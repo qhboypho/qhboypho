@@ -1,0 +1,62 @@
+-- Seed sample fashion products
+INSERT OR IGNORE INTO products (name, description, price, original_price, category, brand, material, thumbnail, images, colors, sizes, stock, is_featured) VALUES 
+(
+  'Áo Thun Unisex Basic Premium',
+  'Áo thun cotton cao cấp, form regular fit phù hợp cả nam lẫn nữ. Chất liệu mềm mại, thoáng mát, không phai màu sau nhiều lần giặt.',
+  299000,
+  399000,
+  'unisex',
+  'FashionVN',
+  '100% Cotton Combed',
+  'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600',
+  '["https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=600","https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=600","https://images.unsplash.com/photo-1562157873-818bc0726f68?w=600"]',
+  '["Trắng","Đen","Xám","Navy","Kem"]',
+  '["XS","S","M","L","XL","XXL"]',
+  150,
+  1
+),
+(
+  'Quần Jean Slim Fit Cao Cấp',
+  'Quần jean denim cao cấp, co giãn 4 chiều, tôn dáng hoàn hảo. Phù hợp đi làm, đi chơi hay du lịch.',
+  599000,
+  799000,
+  'unisex',
+  'DenimCo',
+  'Denim Stretch 98% Cotton 2% Spandex',
+  'https://images.unsplash.com/photo-1542272604-787c3835535d?w=600',
+  '["https://images.unsplash.com/photo-1542272604-787c3835535d?w=600","https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=600"]',
+  '["Xanh nhạt","Xanh đậm","Đen","Xám"]',
+  '["28","29","30","31","32","33","34"]',
+  80,
+  1
+),
+(
+  'Váy Maxi Hoa Nữ Tính',
+  'Váy maxi dài chất vải lụa mềm mại, họa tiết hoa lãng mạn. Phù hợp đi biển, dạo phố hay sự kiện nhẹ nhàng.',
+  459000,
+  599000,
+  'female',
+  'BloomStyle',
+  'Lụa Viscose cao cấp',
+  'https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?w=600',
+  '["https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?w=600","https://images.unsplash.com/photo-1496747611176-843222e1e57c?w=600"]',
+  '["Hoa hồng","Hoa xanh","Hoa tím","Hoa vàng"]',
+  '["S","M","L","XL"]',
+  60,
+  0
+),
+(
+  'Áo Polo Nam Lịch Lãm',
+  'Áo polo cotton piqué cao cấp, form slim fit thanh lịch. Phù hợp đi làm văn phòng hoặc sự kiện.',
+  389000,
+  499000,
+  'male',
+  'GentlemanVN',
+  'Cotton Piqué 220gsm',
+  'https://images.unsplash.com/photo-1598300042247-d088f8ab3a91?w=600',
+  '["https://images.unsplash.com/photo-1598300042247-d088f8ab3a91?w=600","https://images.unsplash.com/photo-1625910513474-5cc1e5b1c4f9?w=600"]',
+  '["Trắng","Đen","Navy","Bordeaux","Olive"]',
+  '["S","M","L","XL","XXL"]',
+  100,
+  1
+);
