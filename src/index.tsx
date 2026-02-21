@@ -13,8 +13,8 @@ app.use('/static/*', serveStatic({ root: './' }))
 
 // ─── INIT DB ───────────────────────────────────────────────────
 async function initDB(db: D1Database) {
-  await db.exec(`
-    CREATE TABLE IF NOT EXISTS products (
+  const statements = [
+    `CREATE TABLE IF NOT EXISTS products (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
       description TEXT,
@@ -32,8 +32,8 @@ async function initDB(db: D1Database) {
       is_featured INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-    CREATE TABLE IF NOT EXISTS orders (
+    )`,
+    `CREATE TABLE IF NOT EXISTS orders (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       order_code TEXT UNIQUE NOT NULL,
       customer_name TEXT NOT NULL,
@@ -50,10 +50,13 @@ async function initDB(db: D1Database) {
       status TEXT DEFAULT 'pending',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-    CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status);
-    CREATE INDEX IF NOT EXISTS idx_products_active ON products(is_active);
-  `)
+    )`,
+    `CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status)`,
+    `CREATE INDEX IF NOT EXISTS idx_products_active ON products(is_active)`
+  ]
+  for (const sql of statements) {
+    try { await db.prepare(sql).run() } catch (_) {}
+  }
 }
 
 // ─── API: PRODUCTS ─────────────────────────────────────────────
@@ -62,10 +65,10 @@ async function initDB(db: D1Database) {
 app.get('/api/products', async (c) => {
   try {
     await initDB(c.env.DB)
-    const { rows } = await c.env.DB.prepare(
+    const result = await c.env.DB.prepare(
       `SELECT * FROM products WHERE is_active = 1 ORDER BY created_at DESC`
     ).all()
-    return c.json({ success: true, data: rows })
+    return c.json({ success: true, data: result.results || [] })
   } catch (e: any) {
     return c.json({ success: false, error: e.message }, 500)
   }
@@ -87,10 +90,10 @@ app.get('/api/products/:id', async (c) => {
 app.get('/api/admin/products', async (c) => {
   try {
     await initDB(c.env.DB)
-    const { rows } = await c.env.DB.prepare(
+    const result = await c.env.DB.prepare(
       `SELECT * FROM products ORDER BY created_at DESC`
     ).all()
-    return c.json({ success: true, data: rows })
+    return c.json({ success: true, data: result.results || [] })
   } catch (e: any) {
     return c.json({ success: false, error: e.message }, 500)
   }
@@ -264,8 +267,8 @@ app.get('/api/admin/orders', async (c) => {
     const stmt = status && status !== 'all'
       ? c.env.DB.prepare(query).bind(status)
       : c.env.DB.prepare(query)
-    const { rows } = await stmt.all()
-    return c.json({ success: true, data: rows })
+    const result2 = await stmt.all()
+    return c.json({ success: true, data: result2.results || [] })
   } catch (e: any) {
     return c.json({ success: false, error: e.message }, 500)
   }
@@ -304,7 +307,8 @@ app.get('/api/admin/stats', async (c) => {
     const totalOrders = await c.env.DB.prepare(`SELECT COUNT(*) as count FROM orders`).first() as any
     const pendingOrders = await c.env.DB.prepare(`SELECT COUNT(*) as count FROM orders WHERE status='pending'`).first() as any
     const revenue = await c.env.DB.prepare(`SELECT SUM(total_price) as total FROM orders WHERE status != 'cancelled'`).first() as any
-    const recentOrders = await c.env.DB.prepare(`SELECT * FROM orders ORDER BY created_at DESC LIMIT 5`).all()
+    const recentOrdersRes = await c.env.DB.prepare(`SELECT * FROM orders ORDER BY created_at DESC LIMIT 5`).all()
+    const recentOrders = recentOrdersRes
 
     return c.json({
       success: true,
@@ -313,7 +317,7 @@ app.get('/api/admin/stats', async (c) => {
         totalOrders: totalOrders?.count || 0,
         pendingOrders: pendingOrders?.count || 0,
         revenue: revenue?.total || 0,
-        recentOrders: recentOrders.rows
+        recentOrders: recentOrders.results || []
       }
     })
   } catch (e: any) {
