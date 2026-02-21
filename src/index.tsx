@@ -46,13 +46,27 @@ async function initDB(db: D1Database) {
       size TEXT,
       quantity INTEGER DEFAULT 1,
       total_price REAL NOT NULL,
+      voucher_code TEXT DEFAULT '',
+      discount_amount REAL DEFAULT 0,
       note TEXT,
       status TEXT DEFAULT 'pending',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`,
+    `CREATE TABLE IF NOT EXISTS vouchers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      code TEXT UNIQUE NOT NULL,
+      discount_amount REAL NOT NULL,
+      valid_from DATETIME NOT NULL,
+      valid_to DATETIME NOT NULL,
+      usage_limit INTEGER DEFAULT 0,
+      used_count INTEGER DEFAULT 0,
+      is_active INTEGER DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`,
     `CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status)`,
-    `CREATE INDEX IF NOT EXISTS idx_products_active ON products(is_active)`
+    `CREATE INDEX IF NOT EXISTS idx_products_active ON products(is_active)`,
+    `CREATE INDEX IF NOT EXISTS idx_vouchers_code ON vouchers(code)`
   ]
   for (const sql of statements) {
     try { await db.prepare(sql).run() } catch (_) {}
@@ -216,7 +230,7 @@ app.post('/api/orders', async (c) => {
     const body = await c.req.json()
     const {
       customer_name, customer_phone, customer_address,
-      product_id, color, size, quantity, note
+      product_id, color, size, quantity, note, voucher_code
     } = body
 
     if (!customer_name || !customer_phone || !customer_address || !product_id) {
@@ -227,13 +241,35 @@ app.post('/api/orders', async (c) => {
     if (!product) return c.json({ success: false, error: 'Product not found' }, 404)
 
     const qty = parseInt(quantity) || 1
-    const total = product.price * qty
+    let discount = 0
+
+    // Validate voucher if provided
+    if (voucher_code && voucher_code.trim()) {
+      const now = new Date().toISOString()
+      const voucher = await c.env.DB.prepare(
+        `SELECT * FROM vouchers WHERE code=? AND is_active=1 AND valid_from<=? AND valid_to>=?`
+      ).bind(voucher_code.trim().toUpperCase(), now, now).first() as any
+
+      if (!voucher) {
+        return c.json({ success: false, error: 'INVALID_VOUCHER' }, 400)
+      }
+      if (voucher.usage_limit > 0 && voucher.used_count >= voucher.usage_limit) {
+        return c.json({ success: false, error: 'VOUCHER_LIMIT' }, 400)
+      }
+      discount = voucher.discount_amount
+
+      // Increment used_count
+      await c.env.DB.prepare(`UPDATE vouchers SET used_count=used_count+1 WHERE id=?`).bind(voucher.id).run()
+    }
+
+    const subtotal = product.price * qty
+    const total = Math.max(0, subtotal - discount)
     const orderCode = 'FS' + Date.now().toString(36).toUpperCase()
 
     const result = await c.env.DB.prepare(`
       INSERT INTO orders 
-        (order_code, customer_name, customer_phone, customer_address, product_id, product_name, product_price, color, size, quantity, total_price, note)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (order_code, customer_name, customer_phone, customer_address, product_id, product_name, product_price, color, size, quantity, total_price, voucher_code, discount_amount, note)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       orderCode,
       customer_name,
@@ -246,10 +282,12 @@ app.post('/api/orders', async (c) => {
       size || '',
       qty,
       total,
+      voucher_code ? voucher_code.trim().toUpperCase() : '',
+      discount,
       note || ''
     ).run()
 
-    return c.json({ success: true, order_code: orderCode, id: result.meta.last_row_id })
+    return c.json({ success: true, order_code: orderCode, id: result.meta.last_row_id, discount, total })
   } catch (e: any) {
     return c.json({ success: false, error: e.message }, 500)
   }
@@ -293,6 +331,99 @@ app.delete('/api/admin/orders/:id', async (c) => {
   try {
     const id = c.req.param('id')
     await c.env.DB.prepare(`DELETE FROM orders WHERE id = ?`).bind(id).run()
+    return c.json({ success: true })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+// ─── API: VOUCHERS ─────────────────────────────────────────────
+
+// POST validate voucher (public)
+app.post('/api/vouchers/validate', async (c) => {
+  try {
+    await initDB(c.env.DB)
+    const { code } = await c.req.json()
+    if (!code) return c.json({ success: false, error: 'MISSING_CODE' }, 400)
+
+    const now = new Date().toISOString()
+    const voucher = await c.env.DB.prepare(
+      `SELECT * FROM vouchers WHERE code=? AND is_active=1 AND valid_from<=? AND valid_to>=?`
+    ).bind(code.trim().toUpperCase(), now, now).first() as any
+
+    if (!voucher) return c.json({ success: false, error: 'INVALID_VOUCHER' }, 400)
+    if (voucher.usage_limit > 0 && voucher.used_count >= voucher.usage_limit) {
+      return c.json({ success: false, error: 'VOUCHER_LIMIT' }, 400)
+    }
+
+    return c.json({ success: true, data: { id: voucher.id, code: voucher.code, discount_amount: voucher.discount_amount } })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+// GET all vouchers (admin)
+app.get('/api/admin/vouchers', async (c) => {
+  try {
+    await initDB(c.env.DB)
+    const result = await c.env.DB.prepare(`SELECT * FROM vouchers ORDER BY created_at DESC`).all()
+    return c.json({ success: true, data: result.results || [] })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+// POST create voucher (admin)
+app.post('/api/admin/vouchers', async (c) => {
+  try {
+    await initDB(c.env.DB)
+    const body = await c.req.json()
+    const { discount_amount, valid_from, valid_to, usage_limit, custom_code } = body
+
+    if (!discount_amount || !valid_from || !valid_to) {
+      return c.json({ success: false, error: 'Missing required fields' }, 400)
+    }
+
+    // Generate or use custom code
+    let code = custom_code
+      ? custom_code.trim().toUpperCase()
+      : 'FASHION' + Math.random().toString(36).substring(2, 7).toUpperCase()
+
+    // Ensure unique
+    const existing = await c.env.DB.prepare(`SELECT id FROM vouchers WHERE code=?`).bind(code).first()
+    if (existing) {
+      code = code + Math.floor(Math.random() * 100)
+    }
+
+    const result = await c.env.DB.prepare(`
+      INSERT INTO vouchers (code, discount_amount, valid_from, valid_to, usage_limit, is_active)
+      VALUES (?, ?, ?, ?, ?, 1)
+    `).bind(code, parseFloat(discount_amount), valid_from, valid_to, parseInt(usage_limit) || 0).run()
+
+    return c.json({ success: true, id: result.meta.last_row_id, code })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+// PATCH toggle voucher active
+app.patch('/api/admin/vouchers/:id/toggle', async (c) => {
+  try {
+    const id = c.req.param('id')
+    await c.env.DB.prepare(
+      `UPDATE vouchers SET is_active = CASE WHEN is_active=1 THEN 0 ELSE 1 END WHERE id=?`
+    ).bind(id).run()
+    return c.json({ success: true })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+// DELETE voucher
+app.delete('/api/admin/vouchers/:id', async (c) => {
+  try {
+    const id = c.req.param('id')
+    await c.env.DB.prepare(`DELETE FROM vouchers WHERE id=?`).bind(id).run()
     return c.json({ success: true })
   } catch (e: any) {
     return c.json({ success: false, error: e.message }, 500)
@@ -379,6 +510,22 @@ function storefrontHTML(): string {
   @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
   .navbar-blur { backdrop-filter: blur(12px); background: rgba(26,26,46,0.95); }
   .filter-btn.active { background: #c0392b; color: white; border-color: #c0392b; }
+  /* Shake animation for validation */
+  @keyframes shake {
+    0%,100%{transform:translateX(0)}
+    15%{transform:translateX(-6px)}
+    30%{transform:translateX(6px)}
+    45%{transform:translateX(-5px)}
+    60%{transform:translateX(5px)}
+    75%{transform:translateX(-3px)}
+    90%{transform:translateX(3px)}
+  }
+  .shake { animation: shake 0.5s ease; }
+  .field-error label, .field-error .field-title { color: #e84393 !important; }
+  .field-error input, .field-error textarea { border-color: #e84393 !important; box-shadow: 0 0 0 3px rgba(232,67,147,0.15) !important; }
+  /* Voucher styles */
+  .voucher-success { background: linear-gradient(135deg,#d1fae5,#a7f3d0); border: 1.5px solid #6ee7b7; }
+  .voucher-error { background: #fff1f2; border: 1.5px solid #fecdd3; }
 </style>
 </head>
 <body class="bg-gray-50">
@@ -531,7 +678,7 @@ function storefrontHTML(): string {
 
 <!-- ORDER POPUP -->
 <div id="orderOverlay" class="fixed inset-0 overlay z-50 hidden flex items-center justify-center p-4">
-  <div class="popup-card bg-white rounded-3xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+  <div class="popup-card bg-white rounded-3xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto" id="orderPopupCard">
     <div class="sticky top-0 bg-white rounded-t-3xl border-b px-6 py-4 flex items-center justify-between">
       <h3 class="font-display text-xl font-bold text-gray-900">Đặt hàng nhanh</h3>
       <button onclick="closeOrder()" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition">
@@ -550,34 +697,53 @@ function storefrontHTML(): string {
       </div>
 
       <div class="space-y-4">
-        <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-1.5"><i class="fas fa-user text-pink-400 mr-1"></i>Họ và tên *</label>
-          <input type="text" id="orderName" placeholder="Nhập họ và tên" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
+        <!-- Họ tên -->
+        <div id="fieldName">
+          <label class="block text-sm font-semibold text-gray-700 mb-1.5 field-title">
+            <i class="fas fa-user text-pink-400 mr-1"></i>Họ và tên *
+          </label>
+          <input type="text" id="orderName" placeholder="Nhập họ và tên"
+            class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
         </div>
-        <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-1.5"><i class="fas fa-phone text-pink-400 mr-1"></i>Số điện thoại *</label>
-          <input type="tel" id="orderPhone" placeholder="0987 654 321" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
+        <!-- SĐT -->
+        <div id="fieldPhone">
+          <label class="block text-sm font-semibold text-gray-700 mb-1.5 field-title">
+            <i class="fas fa-phone text-pink-400 mr-1"></i>Số điện thoại *
+          </label>
+          <input type="tel" id="orderPhone" placeholder="0987 654 321"
+            class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
         </div>
-        <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-1.5"><i class="fas fa-map-marker-alt text-pink-400 mr-1"></i>Địa chỉ giao hàng *</label>
-          <textarea id="orderAddress" rows="2" placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200 resize-none"></textarea>
+        <!-- Địa chỉ -->
+        <div id="fieldAddress">
+          <label class="block text-sm font-semibold text-gray-700 mb-1.5 field-title">
+            <i class="fas fa-map-marker-alt text-pink-400 mr-1"></i>Địa chỉ giao hàng *
+          </label>
+          <textarea id="orderAddress" rows="2"
+            placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành"
+            class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200 resize-none"></textarea>
         </div>
         
         <!-- Color -->
-        <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-2"><i class="fas fa-palette text-pink-400 mr-1"></i>Màu sắc</label>
+        <div id="fieldColor">
+          <label class="block text-sm font-semibold text-gray-700 mb-2 field-title">
+            <i class="fas fa-palette text-pink-400 mr-1"></i>Màu sắc
+          </label>
           <div id="colorOptions" class="flex flex-wrap gap-2"></div>
         </div>
         
         <!-- Size -->
         <div id="sizeSection">
-          <label class="block text-sm font-semibold text-gray-700 mb-2"><i class="fas fa-ruler text-pink-400 mr-1"></i>Size</label>
+          <label class="block text-sm font-semibold text-gray-700 mb-2 field-title">
+            <i class="fas fa-ruler text-pink-400 mr-1"></i>Size
+          </label>
           <div id="sizeOptions" class="flex flex-wrap gap-2"></div>
         </div>
         
         <!-- Quantity -->
         <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-2"><i class="fas fa-sort-numeric-up text-pink-400 mr-1"></i>Số lượng</label>
+          <label class="block text-sm font-semibold text-gray-700 mb-2">
+            <i class="fas fa-sort-numeric-up text-pink-400 mr-1"></i>Số lượng
+          </label>
           <div class="flex items-center gap-3">
             <button onclick="changeQty(-1)" class="w-9 h-9 rounded-full border-2 border-gray-300 flex items-center justify-center hover:border-pink-400 hover:text-pink-500 transition font-bold">−</button>
             <span id="qtyDisplay" class="text-xl font-bold w-8 text-center">1</span>
@@ -585,19 +751,50 @@ function storefrontHTML(): string {
           </div>
         </div>
         
+        <!-- Voucher -->
+        <div id="fieldVoucher">
+          <label class="block text-sm font-semibold text-gray-700 mb-1.5 field-title">
+            <i class="fas fa-tag text-pink-400 mr-1"></i>Mã giảm giá (tuỳ chọn)
+          </label>
+          <div class="flex gap-2">
+            <input type="text" id="orderVoucher" placeholder="Nhập mã voucher..."
+              class="flex-1 border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200 uppercase tracking-wider"
+              oninput="this.value=this.value.toUpperCase()">
+            <button onclick="applyVoucher()" id="voucherBtn"
+              class="px-4 py-2.5 bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-sm font-semibold transition whitespace-nowrap">
+              Áp dụng
+            </button>
+          </div>
+          <div id="voucherStatus" class="mt-2 hidden"></div>
+        </div>
+        
         <!-- Note -->
         <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-1.5"><i class="fas fa-sticky-note text-pink-400 mr-1"></i>Ghi chú (tuỳ chọn)</label>
-          <input type="text" id="orderNote" placeholder="Ghi chú cho đơn hàng..." class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
+          <label class="block text-sm font-semibold text-gray-700 mb-1.5">
+            <i class="fas fa-sticky-note text-pink-400 mr-1"></i>Ghi chú (tuỳ chọn)
+          </label>
+          <input type="text" id="orderNote" placeholder="Ghi chú cho đơn hàng..."
+            class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
         </div>
         
         <!-- Total -->
-        <div class="bg-gradient-to-r from-pink-50 to-red-50 rounded-2xl p-4 flex justify-between items-center">
-          <span class="font-semibold text-gray-700">Tổng cộng:</span>
-          <span id="orderTotal" class="text-2xl font-bold text-pink-600">0đ</span>
+        <div class="bg-gradient-to-r from-pink-50 to-red-50 rounded-2xl p-4 space-y-1.5">
+          <div id="subtotalRow" class="flex justify-between items-center hidden">
+            <span class="text-sm text-gray-500">Tạm tính:</span>
+            <span id="orderSubtotal" class="text-sm font-semibold text-gray-700">0đ</span>
+          </div>
+          <div id="discountRow" class="flex justify-between items-center hidden">
+            <span class="text-sm text-green-600 font-medium"><i class="fas fa-tag mr-1"></i>Giảm giá:</span>
+            <span id="orderDiscount" class="text-sm font-bold text-green-600">-0đ</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="font-semibold text-gray-700">Tổng cộng:</span>
+            <span id="orderTotal" class="text-2xl font-bold text-pink-600">0đ</span>
+          </div>
         </div>
         
-        <button onclick="submitOrder()" class="btn-primary w-full text-white py-3.5 rounded-xl font-bold text-base">
+        <button onclick="submitOrder()" id="submitOrderBtn"
+          class="btn-primary w-full text-white py-3.5 rounded-xl font-bold text-base">
           <i class="fas fa-shopping-cart mr-2"></i>Đặt hàng ngay
         </button>
       </div>
@@ -628,6 +825,7 @@ let currentProduct = null
 let orderQty = 1
 let selectedColor = ''
 let selectedSize = ''
+let appliedVoucher = null   // { code, discount_amount }
 
 // ── INIT ──────────────────────────────────────────
 async function loadProducts() {
@@ -644,21 +842,19 @@ async function loadProducts() {
 function renderProducts(products) {
   const grid = document.getElementById('productsGrid')
   const empty = document.getElementById('emptyState')
-  
   if (!products.length) {
     grid.innerHTML = ''
     empty.classList.remove('hidden')
     return
   }
   empty.classList.add('hidden')
-  
   grid.innerHTML = products.map(p => {
     const colors = safeJson(p.colors)
     const discount = p.original_price ? Math.round((1 - p.price/p.original_price)*100) : 0
     return \`
     <div class="bg-white rounded-2xl overflow-hidden card-hover shadow-sm border border-gray-100 cursor-pointer" onclick="showDetail(\${p.id})">
       <div class="relative overflow-hidden bg-gray-100">
-        <img src="\${p.thumbnail || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'}" 
+        <img src="\${p.thumbnail || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'}"
           alt="\${p.name}" class="w-full product-img-main" loading="lazy"
           onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'">
         \${discount > 0 ? \`<span class="absolute top-3 left-3 badge-sale text-white text-xs font-bold px-2 py-1 rounded-full">-\${discount}%</span>\` : ''}
@@ -679,7 +875,7 @@ function renderProducts(products) {
           \${colors.slice(0,4).map(c => \`<span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">\${c}</span>\`).join('')}
           \${colors.length > 4 ? \`<span class="text-xs text-gray-400">+\${colors.length-4}</span>\` : ''}
         </div>\` : ''}
-        <button onclick="event.stopPropagation();openOrder(\${p.id})" 
+        <button onclick="event.stopPropagation();openOrder(\${p.id})"
           class="btn-primary w-full text-white py-2 rounded-xl text-sm font-semibold">
           <i class="fas fa-shopping-cart mr-1.5"></i>Mua ngay
         </button>
@@ -695,7 +891,7 @@ function filterProducts(cat, btn) {
   const search = document.getElementById('searchInput').value.toLowerCase()
   filteredProducts = allProducts.filter(p => {
     const matchCat = cat === 'all' || p.category === cat
-    const matchSearch = !search || p.name.toLowerCase().includes(search) || (p.brand || '').toLowerCase().includes(search)
+    const matchSearch = !search || p.name.toLowerCase().includes(search) || (p.brand||'').toLowerCase().includes(search)
     return matchCat && matchSearch
   })
   renderProducts(filteredProducts)
@@ -721,7 +917,6 @@ async function showDetail(id) {
     const sizes = safeJson(p.sizes)
     const images = safeJson(p.images)
     const discount = p.original_price ? Math.round((1 - p.price/p.original_price)*100) : 0
-    
     document.getElementById('detailContent').innerHTML = \`
     <div class="grid md:grid-cols-2 gap-6">
       <div>
@@ -760,13 +955,12 @@ async function showDetail(id) {
         </button>
       </div>
     </div>\`
-    
     document.getElementById('detailOverlay').classList.remove('hidden')
   } catch(e) { showToast('Không thể tải chi tiết sản phẩm', 'error') }
 }
 
 function selectDetailColor(c, btn) {
-  document.querySelectorAll('#detailContent button').forEach(b => { if(b.textContent===c || b.dataset.type==='color') b.classList.remove('bg-pink-50','border-pink-400','text-pink-600') })
+  btn.closest('.flex').querySelectorAll('button').forEach(b => b.classList.remove('bg-pink-50','border-pink-400','text-pink-600'))
   btn.classList.add('bg-pink-50','border-pink-400','text-pink-600')
   document.getElementById('detailColorLabel').textContent = c
 }
@@ -776,7 +970,7 @@ function selectDetailSize(s, btn) {
 }
 function closeDetail() { document.getElementById('detailOverlay').classList.add('hidden') }
 
-// ── ORDER ──────────────────────────────────────────
+// ── ORDER POPUP ────────────────────────────────────
 async function openOrder(id) {
   try {
     const res = await axios.get('/api/products/' + id)
@@ -784,7 +978,8 @@ async function openOrder(id) {
     orderQty = 1
     selectedColor = ''
     selectedSize = ''
-    
+    appliedVoucher = null
+
     document.getElementById('orderProductImg').src = currentProduct.thumbnail || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'
     document.getElementById('orderProductName').textContent = currentProduct.name
     document.getElementById('orderProductPrice').textContent = fmtPrice(currentProduct.price)
@@ -793,15 +988,23 @@ async function openOrder(id) {
     document.getElementById('orderPhone').value = ''
     document.getElementById('orderAddress').value = ''
     document.getElementById('orderNote').value = ''
+    document.getElementById('orderVoucher').value = ''
+    document.getElementById('voucherStatus').classList.add('hidden')
+    document.getElementById('discountRow').classList.add('hidden')
+    document.getElementById('subtotalRow').classList.add('hidden')
+    // Clear field errors
+    ;['fieldName','fieldPhone','fieldAddress','fieldColor'].forEach(id => {
+      document.getElementById(id)?.classList.remove('field-error','shake')
+    })
     updateOrderTotal()
-    
+
     // Colors
     const colors = safeJson(currentProduct.colors)
     const colorDiv = document.getElementById('colorOptions')
     colorDiv.innerHTML = colors.length ? colors.map(c => \`
       <button class="color-btn px-3 py-1.5 border rounded-lg text-sm hover:border-pink-400 transition" onclick="selectOrderColor('\${c}',this)">\${c}</button>
-    \`).join('') : '<p class="text-gray-400 text-sm">Không có màu</p>'
-    
+    \`).join('') : '<p class="text-gray-400 text-sm">Không có lựa chọn màu</p>'
+
     // Sizes
     const sizes = safeJson(currentProduct.sizes)
     const sizeDiv = document.getElementById('sizeOptions')
@@ -809,7 +1012,7 @@ async function openOrder(id) {
       <button class="size-btn px-3 py-1.5 border rounded-lg text-sm font-medium hover:border-pink-400 transition" onclick="selectOrderSize('\${s}',this)">\${s}</button>
     \`).join('') : '<p class="text-gray-400 text-sm">Không có size</p>'
     document.getElementById('sizeSection').style.display = sizes.length ? '' : 'none'
-    
+
     document.getElementById('orderOverlay').classList.remove('hidden')
     document.body.style.overflow = 'hidden'
   } catch(e) { showToast('Lỗi khi tải sản phẩm', 'error') }
@@ -819,6 +1022,7 @@ function selectOrderColor(c, btn) {
   document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active','bg-pink-50','border-pink-400','text-pink-600'))
   btn.classList.add('active','bg-pink-50','border-pink-400','text-pink-600')
   selectedColor = c
+  document.getElementById('fieldColor')?.classList.remove('field-error','shake')
 }
 function selectOrderSize(s, btn) {
   document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active','bg-gray-900','text-white','border-gray-900'))
@@ -832,26 +1036,103 @@ function changeQty(d) {
 }
 function updateOrderTotal() {
   if (!currentProduct) return
-  document.getElementById('orderTotal').textContent = fmtPrice(currentProduct.price * orderQty)
+  const subtotal = currentProduct.price * orderQty
+  const discount = appliedVoucher ? appliedVoucher.discount_amount : 0
+  const total = Math.max(0, subtotal - discount)
+  document.getElementById('orderTotal').textContent = fmtPrice(total)
+  if (appliedVoucher) {
+    document.getElementById('orderSubtotal').textContent = fmtPrice(subtotal)
+    document.getElementById('orderDiscount').textContent = '-' + fmtPrice(discount)
+    document.getElementById('subtotalRow').classList.remove('hidden')
+    document.getElementById('discountRow').classList.remove('hidden')
+  } else {
+    document.getElementById('subtotalRow').classList.add('hidden')
+    document.getElementById('discountRow').classList.add('hidden')
+  }
 }
 function closeOrder() {
   document.getElementById('orderOverlay').classList.add('hidden')
   document.body.style.overflow = ''
 }
 
+// ── VOUCHER ────────────────────────────────────────
+async function applyVoucher() {
+  const code = document.getElementById('orderVoucher').value.trim().toUpperCase()
+  const statusEl = document.getElementById('voucherStatus')
+  const btn = document.getElementById('voucherBtn')
+  
+  if (!code) {
+    statusEl.className = 'mt-2 voucher-error rounded-xl px-3 py-2 text-sm text-red-600 font-medium'
+    statusEl.innerHTML = '<i class="fas fa-times-circle mr-1"></i>Vui lòng nhập mã voucher'
+    statusEl.classList.remove('hidden')
+    return
+  }
+  
+  btn.disabled = true
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'
+  statusEl.classList.add('hidden')
+  
+  try {
+    const res = await axios.post('/api/vouchers/validate', { code })
+    appliedVoucher = res.data.data
+    statusEl.className = 'mt-2 voucher-success rounded-xl px-3 py-2 text-sm text-green-700 font-semibold flex items-center gap-2'
+    statusEl.innerHTML = \`<i class="fas fa-check-circle text-green-500"></i>Áp dụng thành công! Giảm <strong>\${fmtPrice(appliedVoucher.discount_amount)}</strong>\`
+    statusEl.classList.remove('hidden')
+    updateOrderTotal()
+    document.getElementById('orderVoucher').classList.add('border-green-400','bg-green-50')
+  } catch(err) {
+    appliedVoucher = null
+    const errCode = err.response?.data?.error
+    const msg = errCode === 'VOUCHER_LIMIT' ? 'Voucher đã hết lượt sử dụng'
+              : errCode === 'INVALID_VOUCHER' ? 'Mã không hợp lệ hoặc đã hết hạn'
+              : 'Không thể áp dụng mã này'
+    statusEl.className = 'mt-2 voucher-error rounded-xl px-3 py-2 text-sm text-red-600 font-medium flex items-center gap-1'
+    statusEl.innerHTML = \`<i class="fas fa-times-circle mr-1"></i>\${msg}\`
+    statusEl.classList.remove('hidden')
+    document.getElementById('orderVoucher').classList.remove('border-green-400','bg-green-50')
+    updateOrderTotal()
+  } finally {
+    btn.disabled = false
+    btn.innerHTML = appliedVoucher ? '<i class="fas fa-check mr-1"></i>Đã áp dụng' : 'Áp dụng'
+    if (appliedVoucher) btn.classList.replace('bg-gray-800','bg-green-600')
+    else btn.className = 'px-4 py-2.5 bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-sm font-semibold transition whitespace-nowrap'
+  }
+}
+
+// ── VALIDATION SHAKE + SCROLL ─────────────────────
+function shakeField(fieldId) {
+  const el = document.getElementById(fieldId)
+  if (!el) return
+  el.classList.add('field-error')
+  el.classList.remove('shake')
+  void el.offsetWidth  // reflow to restart animation
+  el.classList.add('shake')
+  // Scroll to field inside popup
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  setTimeout(() => el.classList.remove('shake'), 600)
+}
+function clearFieldError(fieldId) {
+  document.getElementById(fieldId)?.classList.remove('field-error')
+}
+
+// ── SUBMIT ORDER ───────────────────────────────────
 async function submitOrder() {
   const name = document.getElementById('orderName').value.trim()
   const phone = document.getElementById('orderPhone').value.trim()
   const address = document.getElementById('orderAddress').value.trim()
-  
-  if (!name) { showToast('Vui lòng nhập họ tên', 'error'); return }
-  if (!phone || !/^[0-9]{9,11}$/.test(phone.replace(/\\s/g,''))) { showToast('Số điện thoại không hợp lệ', 'error'); return }
-  if (!address) { showToast('Vui lòng nhập địa chỉ', 'error'); return }
-  
-  const btn = document.querySelector('#orderOverlay button[onclick="submitOrder()"]')
+
+  // Validate with shake + scroll
+  if (!name) { shakeField('fieldName'); return }
+  clearFieldError('fieldName')
+  if (!phone || !/^[0-9]{9,11}$/.test(phone.replace(/\\s/g,''))) { shakeField('fieldPhone'); return }
+  clearFieldError('fieldPhone')
+  if (!address) { shakeField('fieldAddress'); return }
+  clearFieldError('fieldAddress')
+
+  const btn = document.getElementById('submitOrderBtn')
   btn.disabled = true
   btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Đang xử lý...'
-  
+
   try {
     const res = await axios.post('/api/orders', {
       customer_name: name,
@@ -861,13 +1142,22 @@ async function submitOrder() {
       color: selectedColor,
       size: selectedSize,
       quantity: orderQty,
+      voucher_code: appliedVoucher ? appliedVoucher.code : '',
       note: document.getElementById('orderNote').value.trim()
     })
-    
     closeOrder()
     showToast(\`🎉 Đặt hàng thành công! Mã đơn: \${res.data.order_code}\`, 'success', 5000)
   } catch(e) {
-    showToast('Đặt hàng thất bại, thử lại sau', 'error')
+    const errCode = e.response?.data?.error
+    if (errCode === 'INVALID_VOUCHER' || errCode === 'VOUCHER_LIMIT') {
+      showToast('Voucher không còn hiệu lực, vui lòng thử lại', 'error')
+      appliedVoucher = null
+      updateOrderTotal()
+      document.getElementById('voucherBtn').innerHTML = 'Áp dụng'
+      document.getElementById('voucherBtn').className = 'px-4 py-2.5 bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-sm font-semibold transition whitespace-nowrap'
+    } else {
+      showToast('Đặt hàng thất bại, thử lại sau', 'error')
+    }
   } finally {
     btn.disabled = false
     btn.innerHTML = '<i class="fas fa-shopping-cart mr-2"></i>Đặt hàng ngay'
@@ -896,6 +1186,15 @@ function toggleCart() { showToast('Giỏ hàng – sắp ra mắt!', 'success') 
 // Close overlays on outside click
 document.getElementById('orderOverlay').addEventListener('click', (e) => { if(e.target.id==='orderOverlay') closeOrder() })
 document.getElementById('detailOverlay').addEventListener('click', (e) => { if(e.target.id==='detailOverlay') closeDetail() })
+
+// Auto clear error on input
+;['orderName','orderPhone','orderAddress'].forEach(id => {
+  const el = document.getElementById(id)
+  if(el) el.addEventListener('input', () => {
+    const fieldMap = { orderName:'fieldName', orderPhone:'fieldPhone', orderAddress:'fieldAddress' }
+    clearFieldError(fieldMap[id])
+  })
+})
 
 // Init
 loadProducts()
@@ -985,6 +1284,9 @@ function adminHTML(): string {
     <button class="nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium" data-page="orders" onclick="showPage('orders')">
       <i class="fas fa-clipboard-list w-5"></i>Đơn hàng
       <span id="pendingBadge" class="ml-auto bg-pink-500 text-white text-xs rounded-full px-2 py-0.5 hidden"></span>
+    </button>
+    <button class="nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium" data-page="vouchers" onclick="showPage('vouchers')">
+      <i class="fas fa-ticket-alt w-5"></i>Voucher
     </button>
   </nav>
   
@@ -1101,6 +1403,7 @@ function adminHTML(): string {
               <th class="px-4 py-3 text-left font-semibold text-gray-600 hidden sm:table-cell">Màu/Size</th>
               <th class="px-4 py-3 text-center font-semibold text-gray-600 hidden sm:table-cell">SL</th>
               <th class="px-4 py-3 text-right font-semibold text-gray-600">Tổng tiền</th>
+              <th class="px-4 py-3 text-center font-semibold text-gray-600 hidden lg:table-cell">Voucher</th>
               <th class="px-4 py-3 text-center font-semibold text-gray-600">Trạng thái</th>
               <th class="px-4 py-3 text-center font-semibold text-gray-600">Thao tác</th>
             </tr>
@@ -1114,6 +1417,85 @@ function adminHTML(): string {
     </div>
     <div id="orderStats" class="mt-4 text-sm text-gray-500 text-right"></div>
   </div>
+
+  <!-- VOUCHERS PAGE -->
+  <div id="page-vouchers" class="p-6 hidden">
+    <div class="grid md:grid-cols-2 gap-6">
+      <!-- Create Voucher Form -->
+      <div class="bg-white rounded-2xl shadow-sm border p-6">
+        <h2 class="font-bold text-gray-800 text-lg mb-5 flex items-center gap-2">
+          <i class="fas fa-plus-circle text-pink-500"></i>Tạo Voucher mới
+        </h2>
+        <form onsubmit="createVoucher(event)" class="space-y-4">
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1.5">
+              <i class="fas fa-coins text-pink-400 mr-1"></i>Số tiền giảm (VNĐ) *
+            </label>
+            <input type="number" id="vDiscount" placeholder="VD: 50000" min="1000" required
+              class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-1.5">
+                <i class="fas fa-calendar-check text-pink-400 mr-1"></i>Hiệu lực từ *
+              </label>
+              <input type="datetime-local" id="vFrom" required
+                class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-1.5">
+                <i class="fas fa-calendar-times text-pink-400 mr-1"></i>Hết hạn *
+              </label>
+              <input type="datetime-local" id="vTo" required
+                class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1.5">
+              <i class="fas fa-barcode text-pink-400 mr-1"></i>Mã tuỳ chỉnh <span class="text-gray-400 font-normal">(để trống = tự sinh)</span>
+            </label>
+            <input type="text" id="vCode" placeholder="VD: SUMMER30"
+              class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 uppercase tracking-wider"
+              oninput="this.value=this.value.toUpperCase()">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1.5">
+              <i class="fas fa-users text-pink-400 mr-1"></i>Giới hạn lượt dùng <span class="text-gray-400 font-normal">(0 = không giới hạn)</span>
+            </label>
+            <input type="number" id="vLimit" placeholder="0" min="0" value="0"
+              class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
+          </div>
+          <button type="submit" id="createVoucherBtn" class="btn-pink w-full text-white py-3 rounded-xl font-bold text-sm">
+            <i class="fas fa-magic mr-2"></i>Tạo & Sinh mã Voucher
+          </button>
+        </form>
+        <!-- Generated code display -->
+        <div id="generatedCode" class="hidden mt-4 p-4 rounded-2xl bg-gradient-to-r from-pink-50 to-red-50 border border-pink-200 text-center">
+          <p class="text-xs text-gray-500 mb-1">Mã voucher vừa tạo:</p>
+          <p id="generatedCodeText" class="text-2xl font-bold tracking-widest text-pink-600 font-mono"></p>
+          <button onclick="copyCode()" class="mt-2 text-xs text-gray-500 hover:text-pink-500 transition">
+            <i class="fas fa-copy mr-1"></i>Sao chép
+          </button>
+        </div>
+      </div>
+
+      <!-- Voucher List -->
+      <div class="bg-white rounded-2xl shadow-sm border p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="font-bold text-gray-800 text-lg flex items-center gap-2">
+            <i class="fas fa-list text-pink-500"></i>Danh sách Voucher
+          </h2>
+          <button onclick="loadVouchers()" class="text-sm text-pink-500 hover:underline">
+            <i class="fas fa-sync-alt mr-1"></i>Làm mới
+          </button>
+        </div>
+        <div id="voucherList" class="space-y-3 max-h-[500px] overflow-y-auto scrollbar-thin pr-1">
+          <div class="text-center py-8 text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
 </main>
 
 <!-- PRODUCT MODAL -->
@@ -1287,19 +1669,20 @@ let gallerySlotClickBound = false
 
 // ── NAVIGATION ────────────────────────────────────
 function showPage(name) {
-  ['dashboard','products','orders'].forEach(p => {
+  ['dashboard','products','orders','vouchers'].forEach(p => {
     document.getElementById('page-'+p).classList.toggle('hidden', p !== name)
     document.querySelectorAll('.nav-item').forEach(b => {
       b.classList.toggle('active', b.dataset.page === name)
     })
   })
-  const titles = {dashboard:'Dashboard', products:'Quản lý Sản phẩm', orders:'Quản lý Đơn hàng'}
-  document.getElementById('pageTitle').textContent = titles[name]
-  
+  const titles = {dashboard:'Dashboard', products:'Quản lý Sản phẩm', orders:'Quản lý Đơn hàng', vouchers:'Quản lý Voucher'}
+  document.getElementById('pageTitle').textContent = titles[name] || name
+
   if (name === 'dashboard') loadDashboard()
   else if (name === 'products') loadAdminProducts()
   else if (name === 'orders') loadAdminOrders()
-  
+  else if (name === 'vouchers') loadVouchers()
+
   // Close mobile sidebar
   document.getElementById('sidebar').classList.add('-translate-x-full')
   document.getElementById('sidebarOverlay').classList.add('hidden')
@@ -1690,7 +2073,13 @@ function renderOrdersTable(orders) {
       \${o.size ? '<span class="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs">'+o.size+'</span>' : '—'}
     </td>
     <td class="px-4 py-3 text-center text-sm font-semibold hidden sm:table-cell">\${o.quantity}</td>
-    <td class="px-4 py-3 text-right font-bold text-gray-800">\${fmtPrice(o.total_price)}</td>
+    <td class="px-4 py-3 text-right">
+      <p class="font-bold text-gray-800">\${fmtPrice(o.total_price)}</p>
+      \${o.discount_amount > 0 ? \`<p class="text-xs text-green-600">-\${fmtPrice(o.discount_amount)}</p>\` : ''}
+    </td>
+    <td class="px-4 py-3 text-center hidden lg:table-cell">
+      \${o.voucher_code ? \`<span class="font-mono text-xs bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 rounded-lg font-semibold">\${o.voucher_code}</span>\` : '<span class="text-gray-300 text-xs">—</span>'}
+    </td>
     <td class="px-4 py-3 text-center">
       <select onchange="updateOrderStatus(\${o.id}, this.value)" class="text-xs border rounded-lg px-2 py-1 focus:outline-none badge badge-\${o.status}" style="max-width:120px">
         <option value="pending" \${o.status==='pending'?'selected':''}>Chờ xử lý</option>
@@ -1754,15 +2143,34 @@ function showOrderDetail(id) {
     <div class="bg-gray-50 rounded-xl p-3">
       <p class="text-xs text-gray-500 mb-1">Sản phẩm</p>
       <p class="font-semibold">\${o.product_name}</p>
-      <div class="flex gap-2 mt-1">
+      <div class="flex gap-2 mt-1 flex-wrap">
         \${o.color ? \`<span class="text-xs bg-pink-50 text-pink-600 px-2 py-0.5 rounded-full border border-pink-200">Màu: \${o.color}</span>\` : ''}
         \${o.size ? \`<span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full border">Size: \${o.size}</span>\` : ''}
         <span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full border">SL: \${o.quantity}</span>
       </div>
     </div>
-    <div class="flex justify-between items-center bg-gradient-to-r from-pink-50 to-red-50 rounded-xl p-3">
-      <span class="font-semibold text-gray-700">Tổng tiền:</span>
-      <span class="text-xl font-bold text-pink-600">\${fmtPrice(o.total_price)}</span>
+    \${o.voucher_code ? \`
+    <div class="bg-green-50 rounded-xl p-3 flex justify-between items-center">
+      <div>
+        <p class="text-xs text-gray-500">Voucher áp dụng</p>
+        <p class="font-mono font-bold text-green-700 text-sm">\${o.voucher_code}</p>
+      </div>
+      <span class="font-bold text-green-600">-\${fmtPrice(o.discount_amount)}</span>
+    </div>\` : ''}
+    <div class="bg-gradient-to-r from-pink-50 to-red-50 rounded-xl p-3 space-y-1">
+      \${o.discount_amount > 0 ? \`
+      <div class="flex justify-between text-sm">
+        <span class="text-gray-500">Tạm tính:</span>
+        <span class="text-gray-700">\${fmtPrice(o.product_price * o.quantity)}</span>
+      </div>
+      <div class="flex justify-between text-sm">
+        <span class="text-green-600">Giảm giá:</span>
+        <span class="text-green-600 font-semibold">-\${fmtPrice(o.discount_amount)}</span>
+      </div>\` : ''}
+      <div class="flex justify-between items-center">
+        <span class="font-semibold text-gray-700">Tổng tiền:</span>
+        <span class="text-xl font-bold text-pink-600">\${fmtPrice(o.total_price)}</span>
+      </div>
     </div>
     \${o.note ? \`<div class="bg-yellow-50 rounded-xl p-3"><p class="text-xs text-gray-500">Ghi chú</p><p class="text-sm">\${o.note}</p></div>\` : ''}
     <p class="text-xs text-gray-400 text-right">Đặt lúc: \${new Date(o.created_at).toLocaleString('vi-VN')}</p>
@@ -1773,7 +2181,7 @@ function showOrderDetail(id) {
 // ── EXCEL EXPORT ──────────────────────────────────
 function exportExcel() {
   if (!adminOrders.length) { showAdminToast('Không có dữ liệu để xuất', 'error'); return }
-  
+
   const data = adminOrders.map((o, i) => ({
     'STT': i + 1,
     'Mã đơn hàng': o.order_code,
@@ -1785,24 +2193,126 @@ function exportExcel() {
     'Màu sắc': o.color || '',
     'Size': o.size || '',
     'Số lượng': o.quantity,
+    'Voucher': o.voucher_code || '',
+    'Giảm giá': o.discount_amount || 0,
     'Tổng tiền': o.total_price,
     'Ghi chú': o.note || '',
     'Trạng thái': statusLabel(o.status),
     'Ngày đặt': new Date(o.created_at).toLocaleString('vi-VN')
   }))
-  
+
   const ws = XLSX.utils.json_to_sheet(data)
-  
-  // Style header row width
   ws['!cols'] = [
     {wch:5},{wch:15},{wch:20},{wch:14},{wch:35},{wch:30},
-    {wch:12},{wch:12},{wch:8},{wch:8},{wch:12},{wch:20},{wch:12},{wch:18}
+    {wch:12},{wch:12},{wch:8},{wch:8},{wch:14},{wch:12},{wch:12},{wch:20},{wch:12},{wch:18}
   ]
-  
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, 'Đơn hàng')
   XLSX.writeFile(wb, 'DonHang_FashionVN_' + new Date().toISOString().split('T')[0] + '.xlsx')
   showAdminToast('Xuất Excel thành công!', 'success')
+}
+
+// ── VOUCHERS ──────────────────────────────────────
+async function loadVouchers() {
+  const list = document.getElementById('voucherList')
+  list.innerHTML = '<div class="text-center py-8 text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></div>'
+  try {
+    const res = await axios.get('/api/admin/vouchers')
+    const vouchers = res.data.data || []
+    if (!vouchers.length) {
+      list.innerHTML = '<div class="text-center py-8 text-gray-400"><i class="fas fa-ticket-alt text-4xl mb-2"></i><p>Chưa có voucher nào</p></div>'
+      return
+    }
+    list.innerHTML = vouchers.map(v => {
+      const now = new Date()
+      const from = new Date(v.valid_from)
+      const to = new Date(v.valid_to)
+      const expired = to < now
+      const notStarted = from > now
+      const isValid = !expired && !notStarted && v.is_active
+      return \`
+      <div class="border rounded-2xl p-4 \${!v.is_active ? 'opacity-50 bg-gray-50' : isValid ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200' : 'bg-gray-50 border-gray-200'}">
+        <div class="flex items-start justify-between gap-2 mb-2">
+          <div class="flex items-center gap-2 flex-wrap">
+            <span class="font-mono font-bold text-lg tracking-widest \${isValid ? 'text-green-700' : 'text-gray-500'}">\${v.code}</span>
+            <span class="text-xs px-2 py-0.5 rounded-full font-medium \${isValid ? 'bg-green-100 text-green-700' : expired ? 'bg-gray-100 text-gray-500' : notStarted ? 'bg-blue-100 text-blue-600' : 'bg-red-100 text-red-600'}">
+              \${isValid ? '✅ Hiệu lực' : expired ? '⏰ Hết hạn' : notStarted ? '🕐 Chưa bắt đầu' : '🚫 Tắt'}
+            </span>
+          </div>
+          <div class="flex gap-1 shrink-0">
+            <button onclick="toggleVoucher(\${v.id})" class="p-1.5 rounded-lg text-xs \${v.is_active ? 'bg-amber-50 text-amber-600 hover:bg-amber-100' : 'bg-green-50 text-green-600 hover:bg-green-100'} transition" title="\${v.is_active ? 'Tắt' : 'Bật'}">
+              <i class="fas fa-\${v.is_active ? 'toggle-off' : 'toggle-on'}"></i>
+            </button>
+            <button onclick="deleteVoucher(\${v.id})" class="p-1.5 bg-red-50 text-red-500 hover:bg-red-100 rounded-lg text-xs transition" title="Xoá">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        </div>
+        <div class="flex items-center gap-3 flex-wrap text-sm">
+          <span class="font-bold text-pink-600 text-base">-\${fmtPrice(v.discount_amount)}</span>
+          <span class="text-gray-400">|</span>
+          <span class="text-gray-500 text-xs">
+            <i class="fas fa-calendar text-gray-400 mr-1"></i>
+            \${new Date(v.valid_from).toLocaleDateString('vi-VN')} → \${new Date(v.valid_to).toLocaleDateString('vi-VN')}
+          </span>
+        </div>
+        <div class="flex gap-3 mt-1.5 text-xs text-gray-500">
+          <span><i class="fas fa-users mr-1 text-gray-400"></i>Đã dùng: <strong>\${v.used_count}</strong>\${v.usage_limit > 0 ? '/'+v.usage_limit : ' (không giới hạn)'}</span>
+        </div>
+      </div>\`
+    }).join('')
+  } catch(e) {
+    list.innerHTML = '<div class="text-center text-red-400 py-8">Lỗi tải dữ liệu</div>'
+  }
+}
+
+async function createVoucher(e) {
+  e.preventDefault()
+  const btn = document.getElementById('createVoucherBtn')
+  btn.disabled = true
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Đang tạo...'
+  try {
+    const res = await axios.post('/api/admin/vouchers', {
+      discount_amount: document.getElementById('vDiscount').value,
+      valid_from: new Date(document.getElementById('vFrom').value).toISOString(),
+      valid_to: new Date(document.getElementById('vTo').value).toISOString(),
+      usage_limit: document.getElementById('vLimit').value || 0,
+      custom_code: document.getElementById('vCode').value || ''
+    })
+    const code = res.data.code
+    document.getElementById('generatedCode').classList.remove('hidden')
+    document.getElementById('generatedCodeText').textContent = code
+    showAdminToast('Tạo voucher ' + code + ' thành công!', 'success')
+    e.target.reset()
+    loadVouchers()
+  } catch(err) {
+    showAdminToast('Lỗi tạo voucher: ' + (err.response?.data?.error || 'Unknown'), 'error')
+  } finally {
+    btn.disabled = false
+    btn.innerHTML = '<i class="fas fa-magic mr-2"></i>Tạo & Sinh mã Voucher'
+  }
+}
+
+async function toggleVoucher(id) {
+  try {
+    await axios.patch('/api/admin/vouchers/' + id + '/toggle')
+    loadVouchers()
+    showAdminToast('Đã cập nhật trạng thái voucher', 'success')
+  } catch(e) { showAdminToast('Lỗi', 'error') }
+}
+
+async function deleteVoucher(id) {
+  if (!confirm('Xoá voucher này?')) return
+  try {
+    await axios.delete('/api/admin/vouchers/' + id)
+    loadVouchers()
+    showAdminToast('Đã xoá voucher', 'success')
+  } catch(e) { showAdminToast('Lỗi xoá', 'error') }
+}
+
+function copyCode() {
+  const code = document.getElementById('generatedCodeText').textContent
+  navigator.clipboard.writeText(code).then(() => showAdminToast('Đã sao chép: ' + code, 'success'))
 }
 
 // ── UTILS ─────────────────────────────────────────
