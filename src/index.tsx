@@ -526,6 +526,18 @@ function storefrontHTML(): string {
   /* Voucher styles */
   .voucher-success { background: linear-gradient(135deg,#d1fae5,#a7f3d0); border: 1.5px solid #6ee7b7; }
   .voucher-error { background: #fff1f2; border: 1.5px solid #fecdd3; }
+  /* Cart modal */
+  .cart-modal { animation: slideInRight 0.35s cubic-bezier(0.32,0.72,0,1); }
+  @keyframes slideInRight { from { transform:translateX(100%); opacity:0.5; } to { transform:translateX(0); opacity:1; } }
+  .cart-item { position:relative; overflow:hidden; touch-action:pan-y; }
+  .cart-item-inner { position:relative; background:#fff; transition: transform 0.25s ease; }
+  .cart-item-delete-bg { position:absolute; right:0; top:0; bottom:0; width:80px; background:linear-gradient(135deg,#e84393,#c0392b); display:flex; align-items:center; justify-content:center; color:white; font-size:1.2rem; border-radius:0 0.75rem 0.75rem 0; }
+  .cart-checkout { animation: slideUp 0.3s ease; }
+  .cart-badge-bounce { animation: badgeBounce 0.4s cubic-bezier(0.36,0.07,0.19,0.97); }
+  @keyframes badgeBounce { 0%{transform:scale(1)} 30%{transform:scale(1.5)} 60%{transform:scale(0.9)} 100%{transform:scale(1)} }
+  .line-clamp-1 { overflow:hidden; display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; }
+  /* Checkout step in cart */
+  .checkout-slide { animation: slideUp 0.3s ease; }
 </style>
 </head>
 <body class="bg-gray-50">
@@ -542,9 +554,9 @@ function storefrontHTML(): string {
       <a href="#contact" class="hover:text-pink-400 transition">Liên hệ</a>
     </div>
     <div class="flex items-center gap-3">
-      <button onclick="toggleCart()" class="relative text-white hover:text-pink-400 transition p-2">
+      <button onclick="openCart()" id="cartNavBtn" class="relative text-white hover:text-pink-400 transition p-2">
         <i class="fas fa-shopping-bag text-xl"></i>
-        <span id="cartBadge" class="absolute -top-1 -right-1 bg-pink-500 text-white text-xs rounded-full w-5 h-5 items-center justify-center hidden">0</span>
+        <span id="cartBadge" class="absolute -top-1 -right-1 bg-pink-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center hidden font-bold">0</span>
       </button>
       <a href="/admin" class="text-gray-400 hover:text-white transition p-2" title="Admin">
         <i class="fas fa-user-shield"></i>
@@ -793,10 +805,16 @@ function storefrontHTML(): string {
           </div>
         </div>
         
-        <button onclick="submitOrder()" id="submitOrderBtn"
-          class="btn-primary w-full text-white py-3.5 rounded-xl font-bold text-base">
-          <i class="fas fa-shopping-cart mr-2"></i>Đặt hàng ngay
-        </button>
+        <div class="flex gap-2">
+          <button onclick="addCurrentToCart()" id="addToCartBtn"
+            class="flex-shrink-0 flex items-center justify-center gap-2 bg-gray-800 hover:bg-gray-700 text-white px-4 py-3.5 rounded-xl font-semibold text-sm transition">
+            <i class="fas fa-shopping-bag"></i><span class="hidden sm:inline">Giỏ hàng</span>
+          </button>
+          <button onclick="submitOrder()" id="submitOrderBtn"
+            class="btn-primary flex-1 text-white py-3.5 rounded-xl font-bold text-base">
+            <i class="fas fa-bolt mr-2"></i>Đặt ngay
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -815,6 +833,151 @@ function storefrontHTML(): string {
   </div>
 </div>
 
+<!-- CART MODAL (full-screen, slide from right) -->
+<div id="cartOverlay" class="fixed inset-0 overlay z-50 hidden" onclick="handleCartOverlayClick(event)">
+  <div id="cartModal" class="cart-modal absolute right-0 top-0 bottom-0 w-full max-w-lg bg-white flex flex-col shadow-2xl">
+    
+    <!-- Cart Header -->
+    <div id="cartHeader" class="flex items-center justify-between px-5 py-4 border-b bg-gradient-to-r from-gray-900 to-gray-800 text-white flex-shrink-0">
+      <div class="flex items-center gap-3">
+        <button id="cartBackBtn" onclick="cartGoBack()" class="hidden w-8 h-8 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 transition">
+          <i class="fas fa-arrow-left text-sm"></i>
+        </button>
+        <div>
+          <h2 id="cartTitle" class="font-display text-lg font-bold">Giỏ hàng</h2>
+          <p id="cartSubtitle" class="text-xs text-gray-300">Chưa có sản phẩm</p>
+        </div>
+      </div>
+      <button onclick="closeCart()" class="w-9 h-9 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 transition">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+
+    <!-- STEP 1: Cart items list -->
+    <div id="cartStep1" class="flex flex-col flex-1 overflow-hidden">
+      <!-- Check all bar -->
+      <div id="cartCheckAllBar" class="hidden flex items-center gap-3 px-5 py-3 bg-gray-50 border-b flex-shrink-0">
+        <label class="flex items-center gap-2 cursor-pointer select-none">
+          <input type="checkbox" id="checkAll" onchange="toggleCheckAll(this)" class="w-4 h-4 accent-pink-500 cursor-pointer">
+          <span class="text-sm font-medium text-gray-700">Chọn tất cả</span>
+        </label>
+        <span id="selectedCount" class="ml-auto text-xs text-gray-400"></span>
+        <button onclick="removeChecked()" id="deleteCheckedBtn" class="hidden text-xs text-red-500 hover:text-red-600 font-medium transition">
+          <i class="fas fa-trash mr-1"></i>Xoá đã chọn
+        </button>
+      </div>
+
+      <!-- Items scroll area -->
+      <div id="cartItemsList" class="flex-1 overflow-y-auto px-4 py-3 space-y-3">
+        <!-- filled dynamically -->
+      </div>
+
+      <!-- Cart Footer -->
+      <div id="cartFooter" class="hidden flex-shrink-0 border-t bg-white px-5 py-4">
+        <div class="flex items-center justify-between mb-3">
+          <span class="text-gray-600 font-medium">Tổng cộng (<span id="cartSelectedItems">0</span> sản phẩm):</span>
+          <span id="cartTotalPrice" class="text-xl font-bold text-pink-600">0đ</span>
+        </div>
+        <button onclick="proceedToCheckout()" id="checkoutBtn"
+          class="btn-primary w-full text-white py-3.5 rounded-xl font-bold text-base disabled:opacity-50">
+          <i class="fas fa-credit-card mr-2"></i>Xác nhận & Đặt hàng
+        </button>
+      </div>
+    </div>
+
+    <!-- STEP 2: Checkout form -->
+    <div id="cartStep2" class="hidden flex-col flex-1 overflow-hidden checkout-slide">
+      <!-- Order summary mini -->
+      <div id="checkoutSummary" class="flex-shrink-0 bg-gray-50 border-b px-5 py-3 overflow-x-auto">
+        <div id="checkoutSummaryItems" class="flex gap-3 min-w-max"></div>
+      </div>
+
+      <!-- Form -->
+      <div class="flex-1 overflow-y-auto px-5 py-4">
+        <h3 class="font-display text-base font-bold text-gray-800 mb-4">Thông tin giao hàng</h3>
+        <div class="space-y-4">
+          <!-- Họ tên -->
+          <div id="ckFieldName">
+            <label class="block text-sm font-semibold text-gray-700 mb-1.5 field-title">
+              <i class="fas fa-user text-pink-400 mr-1"></i>Họ và tên *
+            </label>
+            <input type="text" id="ckName" placeholder="Nhập họ và tên"
+              class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200"
+              oninput="clearCheckoutError('ckFieldName')">
+          </div>
+          <!-- SĐT -->
+          <div id="ckFieldPhone">
+            <label class="block text-sm font-semibold text-gray-700 mb-1.5 field-title">
+              <i class="fas fa-phone text-pink-400 mr-1"></i>Số điện thoại *
+            </label>
+            <input type="tel" id="ckPhone" placeholder="0987 654 321"
+              class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200"
+              oninput="clearCheckoutError('ckFieldPhone')">
+          </div>
+          <!-- Địa chỉ -->
+          <div id="ckFieldAddress">
+            <label class="block text-sm font-semibold text-gray-700 mb-1.5 field-title">
+              <i class="fas fa-map-marker-alt text-pink-400 mr-1"></i>Địa chỉ giao hàng *
+            </label>
+            <textarea id="ckAddress" rows="2"
+              placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành"
+              class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200 resize-none"
+              oninput="clearCheckoutError('ckFieldAddress')"></textarea>
+          </div>
+          <!-- Voucher -->
+          <div id="ckFieldVoucher">
+            <label class="block text-sm font-semibold text-gray-700 mb-1.5">
+              <i class="fas fa-tag text-pink-400 mr-1"></i>Mã giảm giá (tuỳ chọn)
+            </label>
+            <div class="flex gap-2">
+              <input type="text" id="ckVoucher" placeholder="Nhập mã voucher..."
+                class="flex-1 border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200 uppercase tracking-wider"
+                oninput="this.value=this.value.toUpperCase()">
+              <button onclick="applyCkVoucher()" id="ckVoucherBtn"
+                class="px-4 py-2.5 bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-sm font-semibold transition whitespace-nowrap">
+                Áp dụng
+              </button>
+            </div>
+            <div id="ckVoucherStatus" class="mt-2 hidden"></div>
+          </div>
+          <!-- Note -->
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1.5">
+              <i class="fas fa-sticky-note text-pink-400 mr-1"></i>Ghi chú (tuỳ chọn)
+            </label>
+            <input type="text" id="ckNote" placeholder="Ghi chú cho đơn hàng..."
+              class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
+          </div>
+          <!-- Total box -->
+          <div class="bg-gradient-to-r from-pink-50 to-red-50 rounded-2xl p-4 space-y-1.5">
+            <div id="ckSubtotalRow" class="hidden flex justify-between items-center">
+              <span class="text-sm text-gray-500">Tạm tính:</span>
+              <span id="ckSubtotal" class="text-sm font-semibold text-gray-700">0đ</span>
+            </div>
+            <div id="ckDiscountRow" class="hidden flex justify-between items-center">
+              <span class="text-sm text-green-600 font-medium"><i class="fas fa-tag mr-1"></i>Giảm giá:</span>
+              <span id="ckDiscount" class="text-sm font-bold text-green-600">-0đ</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="font-semibold text-gray-700">Tổng cộng:</span>
+              <span id="ckTotal" class="text-2xl font-bold text-pink-600">0đ</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Submit button -->
+      <div class="flex-shrink-0 border-t bg-white px-5 py-4">
+        <button onclick="submitCartOrder()" id="submitCartBtn"
+          class="btn-primary w-full text-white py-3.5 rounded-xl font-bold text-base">
+          <i class="fas fa-shopping-cart mr-2"></i>Đặt hàng ngay
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
 <!-- TOAST -->
 <div id="toastContainer" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
@@ -826,6 +989,57 @@ let orderQty = 1
 let selectedColor = ''
 let selectedSize = ''
 let appliedVoucher = null   // { code, discount_amount }
+
+// ── CART STATE ─────────────────────────────────────
+// cart = [{ cartId, productId, name, sku, thumbnail, price, color, size, qty, checked }]
+let cart = []
+let cartStep = 1  // 1=list, 2=checkout
+let ckAppliedVoucher = null
+
+function loadCart() {
+  try { cart = JSON.parse(localStorage.getItem('fashionvn_cart') || '[]') } catch { cart = [] }
+  updateCartBadge()
+}
+function saveCart() {
+  localStorage.setItem('fashionvn_cart', JSON.stringify(cart))
+  updateCartBadge()
+}
+function updateCartBadge() {
+  const total = cart.reduce((s,i)=>s+i.qty,0)
+  const badge = document.getElementById('cartBadge')
+  if (!badge) return
+  if (total > 0) {
+    badge.textContent = total > 99 ? '99+' : total
+    badge.classList.remove('hidden')
+    badge.classList.add('flex')
+    badge.classList.add('cart-badge-bounce')
+    setTimeout(()=>badge.classList.remove('cart-badge-bounce'),400)
+  } else {
+    badge.classList.add('hidden')
+    badge.classList.remove('flex')
+  }
+}
+function genCartId() { return Date.now().toString(36)+Math.random().toString(36).slice(2,7) }
+
+function addToCart(product, color, size, qty) {
+  // check duplicate: same productId + color + size
+  const exist = cart.find(i=>i.productId===product.id && i.color===color && i.size===size)
+  if (exist) {
+    exist.qty = Math.min(99, exist.qty + qty)
+  } else {
+    cart.push({
+      cartId: genCartId(),
+      productId: product.id,
+      name: product.name,
+      sku: product.sku || ('SKU-'+String(product.id).padStart(4,'0')),
+      thumbnail: product.thumbnail || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400',
+      price: product.price,
+      color, size, qty,
+      checked: true
+    })
+  }
+  saveCart()
+}
 
 // ── INIT ──────────────────────────────────────────
 async function loadProducts() {
@@ -875,10 +1089,16 @@ function renderProducts(products) {
           \${colors.slice(0,4).map(c => \`<span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">\${c}</span>\`).join('')}
           \${colors.length > 4 ? \`<span class="text-xs text-gray-400">+\${colors.length-4}</span>\` : ''}
         </div>\` : ''}
-        <button onclick="event.stopPropagation();openOrder(\${p.id})"
-          class="btn-primary w-full text-white py-2 rounded-xl text-sm font-semibold">
-          <i class="fas fa-shopping-cart mr-1.5"></i>Mua ngay
-        </button>
+        <div class="flex gap-2">
+          <button onclick="event.stopPropagation();openOrder(\${p.id})" title="Mua ngay"
+            class="btn-primary flex-1 text-white py-2 rounded-xl text-sm font-semibold">
+            <i class="fas fa-bolt mr-1"></i>Mua ngay
+          </button>
+          <button onclick="event.stopPropagation();addToCartFromCard(\${p.id})" title="Thêm vào giỏ"
+            class="w-10 h-9 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-white rounded-xl transition">
+            <i class="fas fa-shopping-bag text-sm"></i>
+          </button>
+        </div>
       </div>
     </div>\`
   }).join('')
@@ -1055,6 +1275,24 @@ function closeOrder() {
   document.body.style.overflow = ''
 }
 
+// Add to cart from product card (no color/size selection needed – opens order popup instead if has options)
+async function addToCartFromCard(id) {
+  try {
+    const res = await axios.get('/api/products/' + id)
+    const p = res.data.data
+    const colors = safeJson(p.colors)
+    const sizes = safeJson(p.sizes)
+    // If product has color/size options, open order popup to select first
+    if (colors.length > 0 || sizes.length > 0) {
+      openOrder(id)
+      showToast('Vui lòng chọn màu/size rồi thêm vào giỏ', 'success', 2500)
+      return
+    }
+    addToCart(p, '', '', 1)
+    showToast('Da them "' + p.name + '" vao gio hang!', 'success', 2500)
+  } catch(e) { showToast('Loi khi them vao gio', 'error') }
+}
+
 // ── VOUCHER ────────────────────────────────────────
 async function applyVoucher() {
   const code = document.getElementById('orderVoucher').value.trim().toUpperCase()
@@ -1164,6 +1402,14 @@ async function submitOrder() {
   }
 }
 
+// Add current product from order popup to cart
+function addCurrentToCart() {
+  if (!currentProduct) return
+  addToCart(currentProduct, selectedColor, selectedSize, orderQty)
+  closeOrder()
+  showToast('Da them "' + currentProduct.name + '" vao gio hang!', 'success', 2500)
+}
+
 // ── UTILS ──────────────────────────────────────────
 function fmtPrice(p) { return new Intl.NumberFormat('vi-VN',{style:'currency',currency:'VND'}).format(p) }
 function safeJson(v) { try { return JSON.parse(v||'[]') } catch { return [] } }
@@ -1181,7 +1427,339 @@ function toggleMobileMenu() {
   const m = document.getElementById('mobileMenu')
   m.classList.toggle('hidden')
 }
-function toggleCart() { showToast('Giỏ hàng – sắp ra mắt!', 'success') }
+// ── CART MODAL ────────────────────────────────────
+function openCart() {
+  cartStep = 1
+  ckAppliedVoucher = null
+  renderCartStep1()
+  document.getElementById('cartOverlay').classList.remove('hidden')
+  document.getElementById('cartStep2').classList.add('hidden')
+  document.getElementById('cartStep2').classList.remove('flex')
+  document.getElementById('cartStep1').classList.remove('hidden')
+  document.getElementById('cartBackBtn').classList.add('hidden')
+  document.getElementById('cartTitle').textContent = 'Giỏ hàng'
+  document.body.style.overflow = 'hidden'
+}
+function closeCart() {
+  document.getElementById('cartOverlay').classList.add('hidden')
+  document.body.style.overflow = ''
+}
+function handleCartOverlayClick(e) {
+  if (e.target.id === 'cartOverlay') closeCart()
+}
+function cartGoBack() {
+  cartStep = 1
+  document.getElementById('cartStep2').classList.add('hidden')
+  document.getElementById('cartStep2').classList.remove('flex')
+  document.getElementById('cartStep1').classList.remove('hidden')
+  document.getElementById('cartBackBtn').classList.add('hidden')
+  document.getElementById('cartTitle').textContent = 'Giỏ hàng'
+  updateCartHeaderSubtitle()
+}
+
+function renderCartStep1() {
+  const listEl = document.getElementById('cartItemsList')
+  const checkAllBar = document.getElementById('cartCheckAllBar')
+  const footer = document.getElementById('cartFooter')
+  
+  if (cart.length === 0) {
+    checkAllBar.classList.add('hidden')
+    footer.classList.add('hidden')
+    listEl.innerHTML = '<div class="flex flex-col items-center justify-center py-20 text-center"><div class="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center mb-4"><i class="fas fa-shopping-bag text-4xl text-gray-300"></i></div><p class="text-gray-500 font-medium text-lg mb-1">Chua co san pham nao</p><p class="text-gray-400 text-sm">Hay them san pham vao gio hang</p><button onclick="closeCart()" class="mt-6 btn-primary text-white px-6 py-2.5 rounded-full font-semibold text-sm"><i class="fas fa-arrow-left mr-2"></i>Tiep tuc mua sam</button></div>'
+    updateCartHeaderSubtitle()
+    return
+  }
+
+  checkAllBar.classList.remove('hidden')
+  footer.classList.remove('hidden')
+
+  // Sync checkAll state
+  const allChecked = cart.every(i=>i.checked)
+  document.getElementById('checkAll').checked = allChecked
+
+  listEl.innerHTML = cart.map(function(item) {
+    const col = (typeof item.color === 'string' && item.color) ? item.color : ''
+    const sz = item.size || ''
+    const chk = item.checked ? 'checked' : ''
+    const colorTag = col ? '<span class="text-xs bg-pink-50 text-pink-600 border border-pink-200 px-2 py-0.5 rounded-full">' + col + '</span>' : ''
+    const sizeTag = sz ? '<span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">' + sz + '</span>' : ''
+    return '<div class="cart-item rounded-xl border border-gray-200 bg-white" data-cart-id="' + item.cartId + '">'
+      + '<div class="cart-item-delete-bg cart-del-btn" data-id="' + item.cartId + '"><i class="fas fa-trash"></i></div>'
+      + '<div class="cart-item-inner rounded-xl p-3" data-cart-id="' + item.cartId + '">'
+      + '<div class="flex gap-3 items-start">'
+      + '<div class="flex-shrink-0 pt-1"><input type="checkbox" ' + chk + ' data-toggle-id="' + item.cartId + '" class="cart-chk w-4 h-4 accent-pink-500 cursor-pointer mt-0.5"></div>'
+      + '<img src="' + item.thumbnail + '" alt="' + item.name + '" class="w-16 h-20 object-cover rounded-lg flex-shrink-0" onerror="this.src=&quot;https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&quot;">'
+      + '<div class="flex-1 min-w-0">'
+      + '<p class="font-semibold text-gray-900 text-sm line-clamp-1 mb-0.5">' + item.name + '</p>'
+      + '<p class="text-xs text-gray-400 mb-1">' + item.sku + '</p>'
+      + '<div class="flex flex-wrap gap-1 mb-2">' + colorTag + sizeTag + '</div>'
+      + '<div class="flex items-center justify-between">'
+      + '<span class="text-pink-600 font-bold text-sm">' + fmtPrice(item.price) + '</span>'
+      + '<div class="flex items-center gap-2">'
+      + '<button class="cart-qty-btn w-7 h-7 rounded-full border flex items-center justify-center text-gray-600 hover:border-pink-400 hover:text-pink-500 transition font-bold text-base" data-id="' + item.cartId + '" data-delta="-1">&minus;</button>'
+      + '<span class="text-sm font-bold w-6 text-center">' + item.qty + '</span>'
+      + '<button class="cart-qty-btn w-7 h-7 rounded-full border flex items-center justify-center text-gray-600 hover:border-pink-400 hover:text-pink-500 transition font-bold text-base" data-id="' + item.cartId + '" data-delta="1">+</button>'
+      + '</div></div>'
+      + '<p class="text-right text-xs text-gray-400 mt-1">= ' + fmtPrice(item.price * item.qty) + '</p>'
+      + '</div></div></div></div>'
+  }).join('')
+
+  // Bind events via delegation
+  listEl.querySelectorAll('.cart-del-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() { removeCartItem(btn.dataset.id) })
+  })
+  listEl.querySelectorAll('.cart-chk').forEach(function(cb) {
+    cb.addEventListener('change', function() { toggleCartItem(cb.dataset.toggleId, cb.checked) })
+  })
+  listEl.querySelectorAll('.cart-qty-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() { changeCartQty(btn.dataset.id, parseInt(btn.dataset.delta)) })
+  })
+
+  // Setup swipe-to-delete for each item
+  setupSwipeToDelete()
+  updateCartSummary()
+  updateCartHeaderSubtitle()
+}
+
+function updateCartHeaderSubtitle() {
+  const total = cart.reduce(function(s,i){return s+i.qty},0)
+  document.getElementById('cartSubtitle').textContent = total > 0 ? (total + ' san pham trong gio') : 'Chua co san pham nao'
+}
+
+function toggleCheckAll(cb) {
+  cart.forEach(i=>i.checked = cb.checked)
+  saveCart()
+  renderCartStep1()
+}
+function toggleCartItem(cartId, checked) {
+  const item = cart.find(i=>i.cartId===cartId)
+  if (item) item.checked = checked
+  saveCart()
+  updateCartSummary()
+  // sync checkAll
+  document.getElementById('checkAll').checked = cart.every(i=>i.checked)
+}
+function updateCartSummary() {
+  const checked = cart.filter(i=>i.checked)
+  const total = checked.reduce((s,i)=>s+i.price*i.qty,0)
+  const count = checked.length
+  document.getElementById('cartSelectedItems').textContent = checked.reduce((s,i)=>s+i.qty,0)
+  document.getElementById('cartTotalPrice').textContent = fmtPrice(total)
+  const deleteBtn = document.getElementById('deleteCheckedBtn')
+  const checkoutBtn = document.getElementById('checkoutBtn')
+  if (count > 0) {
+    deleteBtn.classList.remove('hidden')
+    checkoutBtn.disabled = false
+  } else {
+    deleteBtn.classList.add('hidden')
+    checkoutBtn.disabled = true
+  }
+  document.getElementById('selectedCount').textContent = 'Da chon ' + count
+}
+function changeCartQty(cartId, delta) {
+  const item = cart.find(i=>i.cartId===cartId)
+  if (!item) return
+  item.qty = Math.max(1, Math.min(99, item.qty + delta))
+  saveCart()
+  renderCartStep1()
+}
+function removeCartItem(cartId) {
+  cart = cart.filter(i=>i.cartId!==cartId)
+  saveCart()
+  renderCartStep1()
+}
+function removeChecked() {
+  cart = cart.filter(i=>!i.checked)
+  saveCart()
+  renderCartStep1()
+}
+
+// ── SWIPE TO DELETE ────────────────────────────────
+function setupSwipeToDelete() {
+  document.querySelectorAll('.cart-item').forEach(itemEl => {
+    const inner = itemEl.querySelector('.cart-item-inner')
+    if (!inner) return
+    let startX = 0, currentX = 0, isDragging = false
+    const threshold = 60
+
+    function onStart(e) {
+      startX = e.touches ? e.touches[0].clientX : e.clientX
+      isDragging = true
+    }
+    function onMove(e) {
+      if (!isDragging) return
+      currentX = (e.touches ? e.touches[0].clientX : e.clientX) - startX
+      if (currentX < 0) {
+        inner.style.transform = 'translateX(' + Math.max(currentX,-80) + 'px)'
+      } else {
+        inner.style.transform = ''
+      }
+    }
+    function onEnd() {
+      if (!isDragging) return
+      isDragging = false
+      const cartId = inner.dataset.cartId
+      if (currentX < -threshold) {
+        inner.style.transform = 'translateX(-80px)'
+        setTimeout(()=>removeCartItem(cartId),200)
+      } else {
+        inner.style.transform = ''
+      }
+      currentX = 0
+    }
+    inner.addEventListener('touchstart', onStart, {passive:true})
+    inner.addEventListener('touchmove', onMove, {passive:true})
+    inner.addEventListener('touchend', onEnd)
+    inner.addEventListener('mousedown', onStart)
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onEnd)
+  })
+}
+
+// ── CHECKOUT from CART ────────────────────────────
+function proceedToCheckout() {
+  const checked = cart.filter(i=>i.checked)
+  if (checked.length === 0) { showToast('Vui lòng chọn ít nhất 1 sản phẩm','error'); return }
+  // Build summary
+  document.getElementById('checkoutSummaryItems').innerHTML = checked.map(function(i){
+    return '<div class="flex-shrink-0 w-20 text-center">'
+      + '<div class="relative inline-block">'
+      + '<img src="' + i.thumbnail + '" class="w-16 h-20 object-cover rounded-xl border-2 border-white shadow" onerror="this.src=&quot;https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&quot;">'
+      + '<span class="absolute -top-1 -right-1 w-5 h-5 bg-pink-500 text-white text-xs rounded-full flex items-center justify-center font-bold">' + i.qty + '</span>'
+      + '</div><p class="text-xs text-gray-600 mt-1 line-clamp-1">' + i.name + '</p></div>'
+  }).join('')
+  // reset form
+  ;['ckName','ckPhone','ckAddress','ckNote'].forEach(id => { const el=document.getElementById(id); if(el) el.value='' })
+  ;['ckFieldName','ckFieldPhone','ckFieldAddress'].forEach(id => clearCheckoutError(id))
+  ckAppliedVoucher = null
+  document.getElementById('ckVoucher').value = ''
+  document.getElementById('ckVoucherStatus').classList.add('hidden')
+  document.getElementById('ckVoucherBtn').textContent = 'Áp dụng'
+  document.getElementById('ckVoucherBtn').className = 'px-4 py-2.5 bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-sm font-semibold transition whitespace-nowrap'
+  updateCkTotal()
+  // show step2
+  cartStep = 2
+  document.getElementById('cartStep1').classList.add('hidden')
+  document.getElementById('cartStep2').classList.remove('hidden')
+  document.getElementById('cartStep2').classList.add('flex')
+  document.getElementById('cartBackBtn').classList.remove('hidden')
+  document.getElementById('cartTitle').textContent = 'Xác nhận đơn hàng'
+  document.getElementById('cartSubtitle').textContent = checked.reduce(function(s,i){return s+i.qty},0) + ' san pham'
+}
+
+function updateCkTotal() {
+  const checked = cart.filter(i=>i.checked)
+  const subtotal = checked.reduce((s,i)=>s+i.price*i.qty,0)
+  const discount = ckAppliedVoucher ? ckAppliedVoucher.discount_amount : 0
+  const total = Math.max(0, subtotal - discount)
+  document.getElementById('ckTotal').textContent = fmtPrice(total)
+  if (ckAppliedVoucher) {
+    document.getElementById('ckSubtotal').textContent = fmtPrice(subtotal)
+    document.getElementById('ckDiscount').textContent = '-'+fmtPrice(discount)
+    document.getElementById('ckSubtotalRow').classList.remove('hidden')
+    document.getElementById('ckDiscountRow').classList.remove('hidden')
+  } else {
+    document.getElementById('ckSubtotalRow').classList.add('hidden')
+    document.getElementById('ckDiscountRow').classList.add('hidden')
+  }
+}
+async function applyCkVoucher() {
+  const code = document.getElementById('ckVoucher').value.trim().toUpperCase()
+  const statusEl = document.getElementById('ckVoucherStatus')
+  const btn = document.getElementById('ckVoucherBtn')
+  if (!code) {
+    statusEl.className='mt-2 voucher-error rounded-xl px-3 py-2 text-sm text-red-600 font-medium'
+    statusEl.innerHTML='<i class="fas fa-times-circle mr-1"></i>Vui lòng nhập mã voucher'
+    statusEl.classList.remove('hidden'); return
+  }
+  btn.disabled=true; btn.innerHTML='<i class="fas fa-spinner fa-spin"></i>'
+  statusEl.classList.add('hidden')
+  try {
+    const res = await axios.post('/api/vouchers/validate', { code })
+    ckAppliedVoucher = res.data.data
+    statusEl.className='mt-2 voucher-success rounded-xl px-3 py-2 text-sm text-green-700 font-semibold flex items-center gap-2'
+    statusEl.innerHTML='<i class="fas fa-check-circle text-green-500"></i>Ap dung thanh cong! Giam <strong>' + fmtPrice(ckAppliedVoucher.discount_amount) + '</strong>'
+    statusEl.classList.remove('hidden')
+    document.getElementById('ckVoucher').classList.add('border-green-400','bg-green-50')
+    updateCkTotal()
+  } catch(err) {
+    ckAppliedVoucher = null
+    const errCode = err.response?.data?.error
+    const msg = errCode==='VOUCHER_LIMIT'?'Voucher đã hết lượt':errCode==='INVALID_VOUCHER'?'Mã không hợp lệ hoặc hết hạn':'Không thể áp dụng'
+    statusEl.className='mt-2 voucher-error rounded-xl px-3 py-2 text-sm text-red-600 font-medium flex items-center gap-1'
+    statusEl.innerHTML='<i class="fas fa-times-circle mr-1"></i>' + msg
+    statusEl.classList.remove('hidden')
+    document.getElementById('ckVoucher').classList.remove('border-green-400','bg-green-50')
+    updateCkTotal()
+  } finally {
+    btn.disabled=false
+    btn.innerHTML = ckAppliedVoucher ? '<i class="fas fa-check mr-1"></i>Đã áp dụng' : 'Áp dụng'
+    if(ckAppliedVoucher) btn.classList.replace('bg-gray-800','bg-green-600')
+    else btn.className='px-4 py-2.5 bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-sm font-semibold transition whitespace-nowrap'
+  }
+}
+function shakeCheckoutField(fieldId) {
+  const el = document.getElementById(fieldId)
+  if (!el) return
+  el.classList.add('field-error')
+  el.classList.remove('shake')
+  void el.offsetWidth
+  el.classList.add('shake')
+  el.scrollIntoView({ behavior:'smooth', block:'center' })
+  setTimeout(()=>el.classList.remove('shake'),600)
+}
+function clearCheckoutError(fieldId) {
+  document.getElementById(fieldId)?.classList.remove('field-error')
+}
+async function submitCartOrder() {
+  const name = document.getElementById('ckName').value.trim()
+  const phone = document.getElementById('ckPhone').value.trim()
+  const address = document.getElementById('ckAddress').value.trim()
+  if (!name) { shakeCheckoutField('ckFieldName'); return }
+  clearCheckoutError('ckFieldName')
+  if (!phone || !/^[0-9]{9,11}$/.test(phone.replace(/\s/g,''))) { shakeCheckoutField('ckFieldPhone'); return }
+  clearCheckoutError('ckFieldPhone')
+  if (!address) { shakeCheckoutField('ckFieldAddress'); return }
+  clearCheckoutError('ckFieldAddress')
+
+  const note = document.getElementById('ckNote').value.trim()
+  const checkedItems = cart.filter(i=>i.checked)
+  const btn = document.getElementById('submitCartBtn')
+  btn.disabled=true
+  btn.innerHTML='<i class="fas fa-spinner fa-spin mr-2"></i>Đang xử lý...'
+
+  try {
+    const codes = []
+    for (const item of checkedItems) {
+      const res = await axios.post('/api/orders', {
+        customer_name: name, customer_phone: phone, customer_address: address,
+        product_id: item.productId, color: item.color, size: item.size,
+        quantity: item.qty,
+        voucher_code: ckAppliedVoucher ? ckAppliedVoucher.code : '',
+        note
+      })
+      codes.push(res.data.order_code)
+    }
+    // Remove checked items from cart
+    cart = cart.filter(i=>!i.checked)
+    saveCart()
+    closeCart()
+    showToast('Dat hang thanh cong! ' + codes.length + ' don hang da duoc tao', 'success', 5000)
+  } catch(e) {
+    const errCode = e.response?.data?.error
+    if (errCode==='INVALID_VOUCHER'||errCode==='VOUCHER_LIMIT') {
+      showToast('Voucher không còn hiệu lực','error')
+      ckAppliedVoucher=null; updateCkTotal()
+      document.getElementById('ckVoucherBtn').innerHTML='Áp dụng'
+      document.getElementById('ckVoucherBtn').className='px-4 py-2.5 bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-sm font-semibold transition whitespace-nowrap'
+    } else { showToast('Đặt hàng thất bại, thử lại sau','error') }
+  } finally {
+    btn.disabled=false
+    btn.innerHTML='<i class="fas fa-shopping-cart mr-2"></i>Đặt hàng ngay'
+  }
+}
+
+function toggleCart() { openCart() }
 
 // Close overlays on outside click
 document.getElementById('orderOverlay').addEventListener('click', (e) => { if(e.target.id==='orderOverlay') closeOrder() })
@@ -1197,6 +1775,7 @@ document.getElementById('detailOverlay').addEventListener('click', (e) => { if(e
 })
 
 // Init
+loadCart()
 loadProducts()
 </script>
 </body>
