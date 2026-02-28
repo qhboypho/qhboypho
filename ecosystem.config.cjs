@@ -1,7 +1,7 @@
 module.exports = {
   apps: [
     {
-      name: 'fashion-store',
+      name: 'qhclothes',
       script: 'npx',
       args: 'wrangler pages dev dist --d1=fashion-store-production --local --ip 0.0.0.0 --port 3000',
       env: {

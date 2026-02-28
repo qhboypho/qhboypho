@@ -481,7 +481,7 @@ function storefrontHTML(): string {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FashionVN – Thời Trang Cao Cấp</title>
+<title>QH Clothes – Thời Trang Cao Cấp</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
@@ -546,7 +546,7 @@ function storefrontHTML(): string {
 <nav class="navbar-blur fixed top-0 left-0 right-0 z-50 border-b border-white/10">
   <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
     <a href="/" class="flex items-center gap-2">
-      <span class="text-2xl font-display text-white font-bold tracking-wide">Fashion<span class="text-pink-400">VN</span></span>
+      <span class="text-2xl font-display text-white font-bold tracking-wide">QH<span class="text-pink-400">Clothes</span></span>
     </a>
     <div class="hidden md:flex items-center gap-6 text-sm text-gray-300">
       <a href="#products" class="hover:text-pink-400 transition">Sản phẩm</a>
@@ -663,7 +663,7 @@ function storefrontHTML(): string {
 <footer class="gradient-hero text-white py-12" id="contact">
   <div class="max-w-7xl mx-auto px-4 grid md:grid-cols-3 gap-8">
     <div>
-      <h3 class="font-display text-2xl font-bold mb-4">Fashion<span class="text-pink-400">VN</span></h3>
+      <h3 class="font-display text-2xl font-bold mb-4">QH<span class="text-pink-400">Clothes</span></h3>
       <p class="text-gray-400 text-sm leading-relaxed">Thương hiệu thời trang Việt Nam cao cấp, mang phong cách hiện đại đến với mọi người.</p>
     </div>
     <div>
@@ -678,13 +678,13 @@ function storefrontHTML(): string {
       <h4 class="font-semibold mb-4">Liên hệ</h4>
       <div class="flex flex-col gap-2 text-gray-400 text-sm">
         <p><i class="fas fa-phone mr-2 text-pink-400"></i>0987 654 321</p>
-        <p><i class="fas fa-envelope mr-2 text-pink-400"></i>hello@fashionvn.com</p>
+        <p><i class="fas fa-envelope mr-2 text-pink-400"></i>hello@qhclothes.com</p>
         <p><i class="fas fa-map-marker-alt mr-2 text-pink-400"></i>TP. Hồ Chí Minh, Việt Nam</p>
       </div>
     </div>
   </div>
   <div class="max-w-7xl mx-auto px-4 mt-8 pt-8 border-t border-white/10 text-center text-gray-500 text-sm">
-    © 2026 FashionVN. All rights reserved.
+    © 2026 QH Clothes. All rights reserved.
   </div>
 </footer>
 
@@ -997,11 +997,11 @@ let cartStep = 1  // 1=list, 2=checkout
 let ckAppliedVoucher = null
 
 function loadCart() {
-  try { cart = JSON.parse(localStorage.getItem('fashionvn_cart') || '[]') } catch { cart = [] }
+  try { cart = JSON.parse(localStorage.getItem('qhclothes_cart') || '[]') } catch { cart = [] }
   updateCartBadge()
 }
 function saveCart() {
-  localStorage.setItem('fashionvn_cart', JSON.stringify(cart))
+  localStorage.setItem('qhclothes_cart', JSON.stringify(cart))
   updateCartBadge()
 }
 function updateCartBadge() {
@@ -1789,7 +1789,7 @@ function adminHTML(): string {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin – FashionVN</title>
+<title>Admin – QH Clothes</title>
 <script src="https://cdn.tailwindcss.com"><\/script>
 <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"><\/script>
@@ -1847,7 +1847,7 @@ function adminHTML(): string {
         <i class="fas fa-tshirt text-white text-sm"></i>
       </div>
       <div>
-        <p class="text-white font-bold text-lg leading-tight">Fashion<span class="text-pink-400">VN</span></p>
+        <p class="text-white font-bold text-lg leading-tight">QH<span class="text-pink-400">Clothes</span></p>
         <p class="text-gray-400 text-xs">Admin Panel</p>
       </div>
     </div>
@@ -2114,7 +2114,7 @@ function adminHTML(): string {
         </div>
         <div>
           <label class="block text-sm font-semibold mb-1.5 text-gray-700">Thương hiệu</label>
-          <input type="text" id="pBrand" placeholder="VD: FashionVN" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
+          <input type="text" id="pBrand" placeholder="VD: QH Clothes" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
         </div>
         <div class="md:col-span-2">
           <label class="block text-sm font-semibold mb-1.5 text-gray-700">Chất liệu</label>
@@ -2787,7 +2787,7 @@ function exportExcel() {
   ]
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, 'Đơn hàng')
-  XLSX.writeFile(wb, 'DonHang_FashionVN_' + new Date().toISOString().split('T')[0] + '.xlsx')
+  XLSX.writeFile(wb, 'DonHang_QHClothes_' + new Date().toISOString().split('T')[0] + '.xlsx')
   showAdminToast('Xuất Excel thành công!', 'success')
 }
 
