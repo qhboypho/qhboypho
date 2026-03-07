@@ -76,7 +76,7 @@ async function initDB(db: D1Database) {
     `CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT UNIQUE NOT NULL, name TEXT, avatar TEXT, balance REAL DEFAULT 0, is_admin INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`
   ]
   for (const sql of statements) {
-    try { await db.prepare(sql).run() } catch (_) {}
+    try { await db.prepare(sql).run() } catch (_) { }
   }
 }
 
@@ -95,10 +95,10 @@ app.post('/api/admin/login', async (c) => {
 app.get('/api/auth/me', async (c) => {
   const adminToken = getCookie(c, 'admin_token')
   const userToken = getCookie(c, 'user_id')
-  
+
   let isAdmin = adminToken === 'super_secret_admin_token'
   let currentUser = null
-  
+
   if (userToken) {
     try {
       const user = await c.env.DB.prepare("SELECT id as userId, email, name, avatar, balance, is_admin FROM users WHERE id=?").bind(userToken).first()
@@ -106,11 +106,11 @@ app.get('/api/auth/me', async (c) => {
         currentUser = user
         if (user.is_admin) isAdmin = true
       }
-    } catch(e) {}
+    } catch (e) { }
   }
-  
+
   if (!currentUser && !isAdmin) return c.json({ success: false }, 401)
-  
+
   return c.json({
     success: true,
     data: currentUser,
@@ -132,36 +132,36 @@ app.get('/api/auth/google', (c) => {
     return c.redirect(redirectUri + '?code=mock_google_code')
   }
   const redirectUri = new URL('/api/auth/callback', c.req.url).toString()
-  const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=openid%20email%20profile`
+  const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=openid%20email%20profile&prompt=select_account`
   return c.redirect(url)
 })
 
 app.get('/api/auth/callback', async (c) => {
   const code = c.req.query('code')
-  if (!code) return c.json({error: 'No code provided'}, 400)
-  
+  if (!code) return c.json({ error: 'No code provided' }, 400)
+
   const clientId = c.env.GOOGLE_CLIENT_ID
   const clientSecret = c.env.GOOGLE_CLIENT_SECRET
-  
+
   await initDB(c.env.DB)
-  
+
   if (!clientId || !clientSecret || code === 'mock_google_code') {
     // Mock login fallback
     const mockEmail = 'user@example.com'
     const mockName = 'Nguyen Van A (Mock)'
     const mockAvatar = 'https://ui-avatars.com/api/?name=Nguyen+Van+A&background=random'
-    
+
     let user = await c.env.DB.prepare("SELECT id FROM users WHERE email=?").bind(mockEmail).first() as any
     if (!user) {
       const res = await c.env.DB.prepare("INSERT INTO users (email, name, avatar, balance) VALUES (?, ?, ?, 0)").bind(mockEmail, mockName, mockAvatar).run()
-      user = {id: res.meta.last_row_id}
+      user = { id: res.meta.last_row_id }
     }
     setCookie(c, 'user_id', user.id.toString(), { path: '/', maxAge: 86400 * 30, httpOnly: true })
     return c.redirect('/')
   }
-  
+
   const redirectUri = new URL('/api/auth/callback', c.req.url).toString()
-  
+
   try {
     const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
@@ -175,13 +175,13 @@ app.get('/api/auth/callback', async (c) => {
       })
     })
     const tokenData = await tokenRes.json() as any
-    if (!tokenData.access_token) return c.json({error: 'Failed to get token', details: tokenData})
-    
+    if (!tokenData.access_token) return c.json({ error: 'Failed to get token', details: tokenData })
+
     const userRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
       headers: { Authorization: `Bearer ${tokenData.access_token}` }
     })
     const userData = await userRes.json() as any
-    
+
     let user = await c.env.DB.prepare("SELECT id FROM users WHERE email=?").bind(userData.email).first() as any
     if (!user) {
       const res = await c.env.DB.prepare("INSERT INTO users (email, name, avatar, balance) VALUES (?, ?, ?, 0)").bind(userData.email, userData.name, userData.picture).run()
@@ -189,11 +189,11 @@ app.get('/api/auth/callback', async (c) => {
     } else {
       await c.env.DB.prepare("UPDATE users SET name=?, avatar=? WHERE id=?").bind(userData.name, userData.picture, user.id).run()
     }
-    
+
     setCookie(c, 'user_id', user.id.toString(), { path: '/', maxAge: 86400 * 30, httpOnly: true })
     return c.redirect('/')
   } catch (e: any) {
-    return c.json({error: e.message}, 500)
+    return c.json({ error: e.message }, 500)
   }
 })
 
@@ -209,7 +209,7 @@ app.post('/api/webhooks/casso', async (c) => {
   try {
     const body = await c.req.json()
     if (body.error !== 0) return c.json({ success: false })
-    
+
     const secureToken = c.req.header('secure-token')
     if (c.env.CASSO_SECURE_TOKEN && secureToken !== c.env.CASSO_SECURE_TOKEN) {
       return c.json({ error: 'Invalid token' }, 401)
@@ -217,15 +217,15 @@ app.post('/api/webhooks/casso', async (c) => {
 
     await initDB(c.env.DB)
     const transactions = body.data || []
-    
+
     let count = 0;
     for (const tx of transactions) {
       const exists = await c.env.DB.prepare("SELECT id FROM transactions WHERE tid=?").bind(tx.tid).first()
       if (exists) continue;
-      
+
       const desc = (tx.description || '').toUpperCase()
       const match = desc.match(/QHVN90(\d+)/)
-      
+
       if (match) {
         const userId = match[1]
         const amount = tx.amount
@@ -236,7 +236,7 @@ app.post('/api/webhooks/casso', async (c) => {
         await c.env.DB.prepare("INSERT INTO transactions (tid, amount, description) VALUES (?, ?, ?)").bind(tx.tid, tx.amount, tx.description).run()
       }
     }
-    
+
     return c.json({ success: true, processed: count })
   } catch (e: any) {
     return c.json({ success: false, error: e.message }, 500)
@@ -2749,12 +2749,12 @@ function adminHTML(): string {
       <div>
         <label class="block text-sm font-semibold mb-2 text-gray-700"><i class="fas fa-images text-pink-400 mr-1"></i>Thư viện ảnh <span class="text-gray-400 font-normal">(tối đa 9 ảnh)</span></label>
         <div class="grid grid-cols-3 gap-3" id="galleryGrid">
-          ${[0,1,2,3,4,5,6,7,8].map(i => `
+          ${[0, 1, 2, 3, 4, 5, 6, 7, 8].map(i => `
           <div class="img-slot relative flex flex-col items-center justify-center" id="slot-${i}">
             <img id="galleryImg-${i}" src="" alt="" class="w-full h-full object-cover rounded-xl hidden absolute inset-0">
             <div class="flex flex-col items-center gap-1 text-gray-400 text-center p-2" id="slotPlaceholder-${i}">
               <i class="fas fa-plus text-lg"></i>
-              <span class="text-xs">Ảnh ${i+1}</span>
+              <span class="text-xs">Ảnh ${i + 1}</span>
             </div>
             <button type="button" class="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full items-center justify-center hidden text-xs z-10" 
               id="slotDel-${i}" onclick="removeGalleryImg(${i})">×</button>
