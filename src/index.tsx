@@ -5,6 +5,9 @@ import { getCookie, setCookie, deleteCookie } from 'hono/cookie'
 
 type Bindings = {
   DB: D1Database
+  GOOGLE_CLIENT_ID?: string
+  GOOGLE_CLIENT_SECRET?: string
+  CASSO_SECURE_TOKEN?: string
 }
 
 const app = new Hono<{ Bindings: Bindings }>()
@@ -69,6 +72,7 @@ async function initDB(db: D1Database) {
     `CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status)`,
     `CREATE INDEX IF NOT EXISTS idx_products_active ON products(is_active)`,
     `CREATE INDEX IF NOT EXISTS idx_vouchers_code ON vouchers(code)`,
+    `CREATE TABLE IF NOT EXISTS transactions (id INTEGER PRIMARY KEY AUTOINCREMENT, tid TEXT UNIQUE, amount REAL, description TEXT, user_id INTEGER, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`,
     `CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT UNIQUE NOT NULL, name TEXT, avatar TEXT, balance REAL DEFAULT 0, is_admin INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`
   ]
   for (const sql of statements) {
@@ -121,24 +125,76 @@ app.post('/api/auth/logout', async (c) => {
 })
 
 app.get('/api/auth/google', (c) => {
-  const redirectUri = c.req.url.replace('/api/auth/google', '/api/auth/callback')
-  return c.redirect(redirectUri + '?code=mock_google_code')
+  const clientId = c.env.GOOGLE_CLIENT_ID
+  if (!clientId) {
+    // Fallback for local testing without GOOGLE_CLIENT_ID
+    const redirectUri = c.req.url.replace('/api/auth/google', '/api/auth/callback')
+    return c.redirect(redirectUri + '?code=mock_google_code')
+  }
+  const redirectUri = new URL('/api/auth/callback', c.req.url).toString()
+  const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=openid%20email%20profile`
+  return c.redirect(url)
 })
 
 app.get('/api/auth/callback', async (c) => {
-  await initDB(c.env.DB)
-  const mockEmail = 'user@example.com'
-  const mockName = 'Nguyen Van A'
-  const mockAvatar = 'https://ui-avatars.com/api/?name=Nguyen+Van+A&background=random'
+  const code = c.req.query('code')
+  if (!code) return c.json({error: 'No code provided'}, 400)
   
-  let user = await c.env.DB.prepare("SELECT id FROM users WHERE email=?").bind(mockEmail).first()
-  if (!user) {
-    const res = await c.env.DB.prepare("INSERT INTO users (email, name, avatar, balance) VALUES (?, ?, ?, 0)").bind(mockEmail, mockName, mockAvatar).run()
-    user = {"id": res.meta.last_row_id}
+  const clientId = c.env.GOOGLE_CLIENT_ID
+  const clientSecret = c.env.GOOGLE_CLIENT_SECRET
+  
+  await initDB(c.env.DB)
+  
+  if (!clientId || !clientSecret || code === 'mock_google_code') {
+    // Mock login fallback
+    const mockEmail = 'user@example.com'
+    const mockName = 'Nguyen Van A (Mock)'
+    const mockAvatar = 'https://ui-avatars.com/api/?name=Nguyen+Van+A&background=random'
+    
+    let user = await c.env.DB.prepare("SELECT id FROM users WHERE email=?").bind(mockEmail).first() as any
+    if (!user) {
+      const res = await c.env.DB.prepare("INSERT INTO users (email, name, avatar, balance) VALUES (?, ?, ?, 0)").bind(mockEmail, mockName, mockAvatar).run()
+      user = {id: res.meta.last_row_id}
+    }
+    setCookie(c, 'user_id', user.id.toString(), { path: '/', maxAge: 86400 * 30, httpOnly: true })
+    return c.redirect('/')
   }
   
-  setCookie(c, 'user_id', user.id.toString(), { path: '/', maxAge: 86400 * 30, httpOnly: true })
-  return c.redirect('/')
+  const redirectUri = new URL('/api/auth/callback', c.req.url).toString()
+  
+  try {
+    const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        code,
+        client_id: clientId,
+        client_secret: clientSecret,
+        redirect_uri: redirectUri,
+        grant_type: 'authorization_code'
+      })
+    })
+    const tokenData = await tokenRes.json() as any
+    if (!tokenData.access_token) return c.json({error: 'Failed to get token', details: tokenData})
+    
+    const userRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+      headers: { Authorization: `Bearer ${tokenData.access_token}` }
+    })
+    const userData = await userRes.json() as any
+    
+    let user = await c.env.DB.prepare("SELECT id FROM users WHERE email=?").bind(userData.email).first() as any
+    if (!user) {
+      const res = await c.env.DB.prepare("INSERT INTO users (email, name, avatar, balance) VALUES (?, ?, ?, 0)").bind(userData.email, userData.name, userData.picture).run()
+      user = { id: res.meta.last_row_id }
+    } else {
+      await c.env.DB.prepare("UPDATE users SET name=?, avatar=? WHERE id=?").bind(userData.name, userData.picture, user.id).run()
+    }
+    
+    setCookie(c, 'user_id', user.id.toString(), { path: '/', maxAge: 86400 * 30, httpOnly: true })
+    return c.redirect('/')
+  } catch (e: any) {
+    return c.json({error: e.message}, 500)
+  }
 })
 
 app.get('/api/user/orders', async (c) => {
@@ -146,6 +202,45 @@ app.get('/api/user/orders', async (c) => {
   if (!userId) return c.json({ success: false, error: 'Unauthorized' }, 401)
   const orders = await c.env.DB.prepare("SELECT * FROM orders WHERE user_id=? ORDER BY created_at DESC").bind(userId).all()
   return c.json({ success: true, data: orders.results || [] })
+})
+
+
+app.post('/api/webhooks/casso', async (c) => {
+  try {
+    const body = await c.req.json()
+    if (body.error !== 0) return c.json({ success: false })
+    
+    const secureToken = c.req.header('secure-token')
+    if (c.env.CASSO_SECURE_TOKEN && secureToken !== c.env.CASSO_SECURE_TOKEN) {
+      return c.json({ error: 'Invalid token' }, 401)
+    }
+
+    await initDB(c.env.DB)
+    const transactions = body.data || []
+    
+    let count = 0;
+    for (const tx of transactions) {
+      const exists = await c.env.DB.prepare("SELECT id FROM transactions WHERE tid=?").bind(tx.tid).first()
+      if (exists) continue;
+      
+      const desc = (tx.description || '').toUpperCase()
+      const match = desc.match(/QHVN90(\d+)/)
+      
+      if (match) {
+        const userId = match[1]
+        const amount = tx.amount
+        await c.env.DB.prepare("UPDATE users SET balance = balance + ? WHERE id = ?").bind(amount, userId).run()
+        await c.env.DB.prepare("INSERT INTO transactions (tid, amount, description, user_id) VALUES (?, ?, ?, ?)").bind(tx.tid, amount, tx.description, userId).run()
+        count++;
+      } else {
+        await c.env.DB.prepare("INSERT INTO transactions (tid, amount, description) VALUES (?, ?, ?)").bind(tx.tid, tx.amount, tx.description).run()
+      }
+    }
+    
+    return c.json({ success: true, processed: count })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
 })
 
 // ─── API: PRODUCTS ─────────────────────────────────────────────
