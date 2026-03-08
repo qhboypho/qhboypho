@@ -73,13 +73,92 @@ async function initDB(db: D1Database) {
     `CREATE INDEX IF NOT EXISTS idx_products_active ON products(is_active)`,
     `CREATE INDEX IF NOT EXISTS idx_vouchers_code ON vouchers(code)`,
     `CREATE TABLE IF NOT EXISTS transactions (id INTEGER PRIMARY KEY AUTOINCREMENT, tid TEXT UNIQUE, amount REAL, description TEXT, user_id INTEGER, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`,
-    `CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT UNIQUE NOT NULL, name TEXT, avatar TEXT, balance REAL DEFAULT 0, is_admin INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`
+    `CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT UNIQUE NOT NULL, name TEXT, avatar TEXT, balance REAL DEFAULT 0, is_admin INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`,
+    `CREATE TABLE IF NOT EXISTS hero_banners (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      image_url TEXT NOT NULL,
+      subtitle TEXT,
+      title TEXT,
+      price TEXT,
+      display_order INTEGER DEFAULT 0,
+      is_active INTEGER DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`
   ]
   for (const sql of statements) {
     try { await db.prepare(sql).run() } catch (_) { }
   }
+
+  // Seed initial banners if empty
+  try {
+    const bannerCountResult = await db.prepare("SELECT COUNT(*) as num_rows FROM hero_banners").all()
+    let count = 1
+    if (bannerCountResult && bannerCountResult.results && bannerCountResult.results.length > 0) {
+      count = bannerCountResult.results[0].num_rows as number || 0
+    }
+    if (count === 0) {
+      const initialBanners = [
+        ['https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=500', 'Mới nhất', 'Bộ sưu tập Spring 2026', 'Từ 299.000đ', 1],
+        ['https://images.unsplash.com/photo-1550614000-4b95d4edc457?w=500', 'Bán chạy', 'Phong Cách Đường Phố', 'Giảm 20%', 2],
+        ['https://images.unsplash.com/photo-1492707892479-7bc8d5a4ee93?w=500', 'Nam giới', 'Lịch lãm & Tinh tế', 'Từ 450.000đ', 3]
+      ]
+      for (const [img, sub, title, price, order] of initialBanners) {
+        await db.prepare("INSERT INTO hero_banners (image_url, subtitle, title, price, display_order) VALUES (?, ?, ?, ?, ?)").bind(img, sub, title, price, order).run()
+      }
+    }
+  } catch (err) {
+    console.error('Failed to seed banners on init', err)
+  }
 }
 
+// ─── API: HERO BANNERS ─────────────────────────────────────────────
+app.get('/api/hero_banners', async (c) => {
+  await initDB(c.env.DB)
+  const result = await c.env.DB.prepare("SELECT * FROM hero_banners WHERE is_active=1 ORDER BY display_order ASC").all()
+  return c.json({ success: true, data: result.results || [] })
+})
+
+app.get('/api/admin/hero_banners', async (c) => {
+  await initDB(c.env.DB)
+  const adminToken = getCookie(c, 'admin_token')
+  if (adminToken !== 'super_secret_admin_token') return c.json({ success: false, error: 'Unauthorized' }, 401)
+  const result = await c.env.DB.prepare("SELECT * FROM hero_banners ORDER BY display_order ASC, created_at DESC").all()
+  return c.json({ success: true, data: result.results || [] })
+})
+
+app.post('/api/admin/hero_banners', async (c) => {
+  await initDB(c.env.DB)
+  const adminToken = getCookie(c, 'admin_token')
+  if (adminToken !== 'super_secret_admin_token') return c.json({ success: false, error: 'Unauthorized' }, 401)
+  const body = await c.req.json()
+  const { image_url, subtitle, title, price, display_order, is_active } = body
+  const res = await c.env.DB.prepare("INSERT INTO hero_banners (image_url, subtitle, title, price, display_order, is_active) VALUES (?, ?, ?, ?, ?, ?)").bind(
+    image_url, subtitle || '', title || '', price || '', display_order || 0, is_active !== undefined ? is_active : 1
+  ).run()
+  return c.json({ success: true, id: res.meta.last_row_id })
+})
+
+app.put('/api/admin/hero_banners/:id', async (c) => {
+  await initDB(c.env.DB)
+  const adminToken = getCookie(c, 'admin_token')
+  if (adminToken !== 'super_secret_admin_token') return c.json({ success: false, error: 'Unauthorized' }, 401)
+  const id = c.req.param('id')
+  const body = await c.req.json()
+  const { image_url, subtitle, title, price, display_order, is_active } = body
+  await c.env.DB.prepare("UPDATE hero_banners SET image_url=?, subtitle=?, title=?, price=?, display_order=?, is_active=? WHERE id=?").bind(
+    image_url, subtitle || '', title || '', price || '', display_order || 0, is_active !== undefined ? is_active : 1, id
+  ).run()
+  return c.json({ success: true })
+})
+
+app.delete('/api/admin/hero_banners/:id', async (c) => {
+  await initDB(c.env.DB)
+  const adminToken = getCookie(c, 'admin_token')
+  if (adminToken !== 'super_secret_admin_token') return c.json({ success: false, error: 'Unauthorized' }, 401)
+  const id = c.req.param('id')
+  await c.env.DB.prepare("DELETE FROM hero_banners WHERE id=?").bind(id).run()
+  return c.json({ success: true })
+})
 
 // ─── API: AUTH ─────────────────────────────────────────────────
 app.post('/api/admin/login', async (c) => {
@@ -99,17 +178,20 @@ app.get('/api/auth/me', async (c) => {
   let isAdmin = adminToken === 'super_secret_admin_token'
   let currentUser = null
 
+  let dbError = null
+
   if (userToken) {
     try {
-      const user = await c.env.DB.prepare("SELECT id as userId, email, name, avatar, balance, is_admin FROM users WHERE id=?").bind(userToken).first()
+      const parsedId = parseInt(userToken, 10)
+      const user = await c.env.DB.prepare("SELECT id as userId, email, name, avatar, balance, is_admin FROM users WHERE id=?").bind(parsedId).first()
       if (user) {
         currentUser = user
         if (user.is_admin) isAdmin = true
       }
-    } catch (e) { }
+    } catch (e: any) { dbError = e.message }
   }
 
-  if (!currentUser && !isAdmin) return c.json({ success: false }, 401)
+  if (!currentUser && !isAdmin) return c.json({ success: false, debug: { userToken, dbError } }, 401)
 
   return c.json({
     success: true,
@@ -146,18 +228,22 @@ app.get('/api/auth/callback', async (c) => {
   await initDB(c.env.DB)
 
   if (!clientId || !clientSecret || code === 'mock_google_code') {
-    // Mock login fallback
-    const mockEmail = 'user@example.com'
-    const mockName = 'Nguyen Van A (Mock)'
-    const mockAvatar = 'https://ui-avatars.com/api/?name=Nguyen+Van+A&background=random'
+    try {
+      // Mock login fallback
+      const mockEmail = 'user@example.com'
+      const mockName = 'Nguyen Van A (Mock)'
+      const mockAvatar = 'https://ui-avatars.com/api/?name=Nguyen+Van+A&background=random'
 
-    let user = await c.env.DB.prepare("SELECT id FROM users WHERE email=?").bind(mockEmail).first() as any
-    if (!user) {
-      const res = await c.env.DB.prepare("INSERT INTO users (email, name, avatar, balance) VALUES (?, ?, ?, 0)").bind(mockEmail, mockName, mockAvatar).run()
-      user = { id: res.meta.last_row_id }
+      let user = await c.env.DB.prepare("SELECT id FROM users WHERE email=?").bind(mockEmail).first() as any
+      if (!user) {
+        const res = await c.env.DB.prepare("INSERT INTO users (email, name, avatar, balance) VALUES (?, ?, ?, 0)").bind(mockEmail, mockName, mockAvatar).run()
+        user = { id: res.meta.last_row_id }
+      }
+      setCookie(c, 'user_id', user.id.toString(), { path: '/', maxAge: 86400 * 30, httpOnly: true })
+      return c.redirect('/')
+    } catch (err: any) {
+      return c.json({ error: "Fallback Mock Auth error", msg: err.message, stack: err.stack }, 500)
     }
-    setCookie(c, 'user_id', user.id.toString(), { path: '/', maxAge: 86400 * 30, httpOnly: true })
-    return c.redirect('/')
   }
 
   const redirectUri = new URL('/api/auth/callback', c.req.url).toString()
@@ -182,18 +268,28 @@ app.get('/api/auth/callback', async (c) => {
     })
     const userData = await userRes.json() as any
 
-    let user = await c.env.DB.prepare("SELECT id FROM users WHERE email=?").bind(userData.email).first() as any
-    if (!user) {
-      const res = await c.env.DB.prepare("INSERT INTO users (email, name, avatar, balance) VALUES (?, ?, ?, 0)").bind(userData.email, userData.name, userData.picture).run()
-      user = { id: res.meta.last_row_id }
-    } else {
-      await c.env.DB.prepare("UPDATE users SET name=?, avatar=? WHERE id=?").bind(userData.name, userData.picture, user.id).run()
+    let user = null
+    try {
+      user = await c.env.DB.prepare("SELECT id FROM users WHERE email=?").bind(userData.email).first() as any
+      if (!user) {
+        const res = await c.env.DB.prepare("INSERT INTO users (email, name, avatar, balance) VALUES (?, ?, ?, 0)").bind(userData.email, userData.name, userData.picture || null).run()
+        user = { id: res.meta.last_row_id }
+      } else {
+        await c.env.DB.prepare("UPDATE users SET name=?, avatar=? WHERE id=?").bind(userData.name, userData.picture || null, user.id).run()
+      }
+    } catch (dbErr: any) {
+      return c.redirect('/?login=error&step=db_sync&msg=' + encodeURIComponent(dbErr.message))
     }
 
-    setCookie(c, 'user_id', user.id.toString(), { path: '/', maxAge: 86400 * 30, httpOnly: true })
-    return c.redirect('/')
+    if (!user || !user.id) {
+      return c.redirect('/?login=error&step=user_id_missing')
+    }
+
+    const isSecure = c.req.url.startsWith('https://')
+    setCookie(c, 'user_id', user.id.toString(), { path: '/', maxAge: 86400 * 30, httpOnly: true, secure: isSecure, sameSite: 'Lax' })
+    return c.redirect('/?login=success')
   } catch (e: any) {
-    return c.json({ error: e.message }, 500)
+    return c.redirect('/?login=error&step=exchange&msg=' + encodeURIComponent(e.message))
   }
 })
 
@@ -806,14 +902,13 @@ function storefrontHTML(): string {
         <div class="text-center"><p class="text-3xl font-bold text-white">4.9★</p><p class="text-gray-400 text-sm">Đánh giá</p></div>
       </div>
     </div>
-    <div class="hidden md:flex justify-center">
+    <div class="hidden md:flex justify-center" id="heroBannersContainer">
       <div class="relative w-80 h-96">
         <div class="absolute inset-0 bg-gradient-to-br from-pink-500/20 to-purple-600/20 rounded-3xl rotate-6"></div>
-        <img src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=500" alt="Hero Fashion" class="relative rounded-3xl w-full h-full object-cover shadow-2xl">
-        <div class="absolute -bottom-4 -right-4 bg-white rounded-2xl p-4 shadow-xl">
-          <p class="text-xs text-gray-500">Mới nhất</p>
-          <p class="font-bold text-gray-800">Bộ sưu tập Spring 2026</p>
-          <p class="text-pink-500 font-semibold">Từ 299.000đ</p>
+        <img src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=500" alt="Hero Fashion" class="relative rounded-3xl w-full h-full object-cover shadow-2xl bg-white">
+        <div class="absolute -bottom-4 -right-4 bg-white rounded-2xl p-4 shadow-xl z-10 w-48">
+          <div class="w-full h-3 bg-gray-200 animate-pulse rounded mb-2"></div>
+          <div class="w-2/3 h-4 bg-gray-200 animate-pulse rounded mb-2"></div>
         </div>
       </div>
     </div>
@@ -2039,7 +2134,46 @@ document.getElementById('detailOverlay').addEventListener('click', (e) => { if(e
   })
 })
 
+// ── DYNAMIC SETTINGS ──────────────────────────────
+async function loadSettings() {
+  try {
+    const res = await axios.get('/api/hero_banners')
+    if (res.data && res.data.data) {
+      const banners = res.data.data
+      const container = document.getElementById('heroBannersContainer')
+      if (container && banners.length > 0) {
+        container.innerHTML = \`<div class="relative w-80 h-96">\` + banners.map((b, i) => {
+          const isTop = i === banners.length - 1
+          const len = banners.length
+          const rot = len > 1 ? (i - Math.floor((len - 1) / 2)) * 6 : 6
+          const z = i * 10
+          let labelHTML = ''
+          if (isTop) {
+            labelHTML = \`
+              <div class="absolute -bottom-4 -right-4 bg-white rounded-2xl p-4 shadow-xl pointer-events-none transition-all hover:scale-105" style="z-index: \${z + 5}">
+                \${b.subtitle ? \`<p class="text-xs text-gray-500 uppercase tracking-widest font-medium">\${b.subtitle}</p>\` : ''}
+                \${b.title ? \`<p class="font-bold text-gray-800 leading-tight">\${b.title}</p>\` : ''}
+                \${b.price ? \`<p class="text-pink-500 font-bold">\${b.price}</p>\` : ''}
+              </div>
+            \`
+          }
+          return \`
+            <div class="absolute inset-0 transition-transform duration-700 ease-out hover:-translate-y-2 hover:rotate-0" style="transform: rotate(\${rot}deg); z-index: \${z}">
+              <div class="absolute inset-0 bg-gradient-to-br from-pink-500/20 to-purple-600/20 rounded-3xl"></div>
+              <img src="\${b.image_url}" alt="Banner" class="relative rounded-3xl w-full h-full object-cover shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-white/20 bg-gray-100">
+              \${labelHTML}
+            </div>
+          \`
+        }).join('') + \`</div>\`
+      }
+    }
+  } catch (e) {
+    console.error('Failed to load banners', e)
+  }
+}
+
 // Init
+loadSettings()
 loadCart()
 loadProducts()
 checkUserAuth()
@@ -2453,6 +2587,9 @@ function adminHTML(): string {
     <button class="nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium" data-page="vouchers" onclick="showPage('vouchers')">
       <i class="fas fa-ticket-alt w-5"></i>Voucher
     </button>
+    <button class="nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium" data-page="settings" onclick="showPage('settings')">
+      <i class="fas fa-image w-5"></i>Cài đặt Banner
+    </button>
   </nav>
   
   <div class="p-4 border-t border-white/10">
@@ -2661,6 +2798,88 @@ function adminHTML(): string {
     </div>
   </div>
 
+  <!-- BANNERS PAGE -->
+  <div id="page-settings" class="p-6 hidden">
+    <div class="bg-white rounded-2xl shadow-sm border p-6">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="font-bold text-gray-800 text-lg flex items-center gap-2">
+          <i class="fas fa-images text-pink-500"></i>Quản lý Ảnh Banner (Hero)
+        </h2>
+        <button onclick="openBannerModal()" class="bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-xl text-sm font-medium transition flex items-center gap-2">
+          <i class="fas fa-plus"></i> Thêm banner
+        </button>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse min-w-[600px]">
+          <thead>
+            <tr class="bg-gray-50 border-y text-gray-500 text-sm">
+              <th class="py-3 px-4 font-semibold w-24 text-center">Thứ tự</th>
+              <th class="py-3 px-4 font-semibold">Hình ảnh</th>
+              <th class="py-3 px-4 font-semibold">Thông tin</th>
+              <th class="py-3 px-4 font-semibold text-center">Trạng thái</th>
+              <th class="py-3 px-4 font-semibold text-right">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody id="adminBannersTable" class="text-sm divide-y">
+            <tr><td colspan="5" class="py-10 text-center text-gray-400">Đang tải...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- BANNER MODAL -->
+  <div id="bannerModal" onclick="if(event.target === this) closeBannerModal()" class="fixed inset-0 modal-overlay z-50 hidden flex items-start justify-center p-4 overflow-y-auto">
+    <div class="modal-card bg-white rounded-3xl shadow-2xl w-full max-w-xl my-8">
+      <div class="sticky top-0 bg-white rounded-t-3xl border-b px-6 py-4 flex items-center justify-between">
+        <h2 id="bannerModalTitle" class="font-bold text-xl text-gray-900">Thêm Banner</h2>
+        <button onclick="closeBannerModal()" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition">
+          <i class="fas fa-times text-gray-600"></i>
+        </button>
+      </div>
+      <form id="bannerForm" onsubmit="saveBanner(event)" class="px-6 py-5 space-y-4">
+        <input type="hidden" id="bId">
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Link Ảnh *</label>
+          <input type="text" id="bImage" required placeholder="https://..." class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1.5">Phụ đề (VD: Mới nhất)</label>
+            <input type="text" id="bSub" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1.5">Giá (VD: Từ 299k)</label>
+            <input type="text" id="bPrice" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Tiêu đề (VD: Spring Collection)</label>
+          <input type="text" id="bTitle" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1.5">Thứ tự hiển thị (1, 2, 3)</label>
+            <input type="number" id="bOrder" value="0" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1.5">Trạng thái</label>
+            <select id="bActive" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
+              <option value="1">Hiển thị</option>
+              <option value="0">Ẩn</option>
+            </select>
+          </div>
+        </div>
+        <div class="pt-4 flex justify-end gap-3 mt-4">
+          <button type="button" onclick="closeBannerModal()" class="px-5 py-2.5 rounded-xl border text-gray-600 font-medium hover:bg-gray-50 transition">Hủy</button>
+          <button type="submit" id="bSaveBtn" class="bg-pink-500 hover:bg-pink-600 text-white px-6 py-2.5 rounded-xl font-medium transition flex items-center gap-2">
+            <i class="fas fa-save"></i>Lưu Banner
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
 </main>
 
 <!-- PRODUCT MODAL -->
@@ -2834,19 +3053,20 @@ let gallerySlotClickBound = false
 
 // ── NAVIGATION ────────────────────────────────────
 function showPage(name) {
-  ['dashboard','products','orders','vouchers'].forEach(p => {
+  ['dashboard','products','orders','vouchers','settings'].forEach(p => {
     document.getElementById('page-'+p).classList.toggle('hidden', p !== name)
     document.querySelectorAll('.nav-item').forEach(b => {
       b.classList.toggle('active', b.dataset.page === name)
     })
   })
-  const titles = {dashboard:'Dashboard', products:'Quản lý Sản phẩm', orders:'Quản lý Đơn hàng', vouchers:'Quản lý Voucher'}
+  const titles = {dashboard:'Dashboard', products:'Quản lý Sản phẩm', orders:'Quản lý Đơn hàng', vouchers:'Quản lý Voucher', settings:'Cài đặt giao diện'}
   document.getElementById('pageTitle').textContent = titles[name] || name
 
   if (name === 'dashboard') loadDashboard()
   else if (name === 'products') loadAdminProducts()
   else if (name === 'orders') loadAdminOrders()
   else if (name === 'vouchers') loadVouchers()
+  else if (name === 'settings') loadSettingsAdmin()
 
   // Close mobile sidebar
   document.getElementById('sidebar').classList.add('-translate-x-full')
@@ -2857,6 +3077,121 @@ function toggleSidebar() {
   document.getElementById('sidebar').classList.toggle('-translate-x-full')
   document.getElementById('sidebarOverlay').classList.toggle('hidden')
 }
+
+// ── BANNERS ──────────────────────────────────────
+let adminBanners = []
+
+async function loadSettingsAdmin() {
+  document.getElementById('adminBannersTable').innerHTML = '<tr><td colspan="5" class="py-10 text-center text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></td></tr>'
+  try {
+    const res = await axios.get('/api/admin/hero_banners')
+    adminBanners = res.data.data || []
+    renderAdminBanners()
+  } catch (e) {
+    showToast('Lỗi tải danh sách banner', 'error')
+  }
+}
+
+function renderAdminBanners() {
+  const tbody = document.getElementById('adminBannersTable')
+  if (!adminBanners.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-gray-400">Chưa có banner nào</td></tr>'
+    return
+  }
+  tbody.innerHTML = adminBanners.map(b => \`
+    <tr class="table-row">
+      <td class="py-3 px-4 text-center font-bold text-gray-600">\${b.display_order}</td>
+      <td class="py-3 px-4">
+        <img src="\${b.image_url}" class="w-20 h-24 object-cover rounded-xl shadow-sm border">
+      </td>
+      <td class="py-3 px-4">
+        <div class="font-bold text-gray-800 mb-1">\${b.title || '-'}</div>
+        <div class="text-xs text-gray-500 flex flex-wrap gap-2">
+          \${b.subtitle ? \`<span class="bg-gray-100 px-2 py-0.5 rounded text-gray-600">\${b.subtitle}</span>\` : ''}
+          \${b.price ? \`<span class="text-pink-500 font-medium">\${b.price}</span>\` : ''}
+        </div>
+      </td>
+      <td class="py-3 px-4 text-center">
+        <span class="badge \${b.is_active ? 'badge-done' : 'bg-gray-100 text-gray-500'}">
+          \${b.is_active ? 'Hiển thị' : 'Đang ẩn'}
+        </span>
+      </td>
+      <td class="py-3 px-4">
+        <div class="flex items-center justify-end gap-2">
+          <button onclick="editBanner(\${b.id})" class="w-8 h-8 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center justify-center transition" title="Sửa">
+            <i class="fas fa-edit"></i>
+          </button>
+          <button onclick="deleteBanner(\${b.id})" class="w-8 h-8 rounded-full bg-red-50 text-red-600 hover:bg-red-100 flex items-center justify-center transition" title="Xóa">
+            <i class="fas fa-trash"></i>
+          </button>
+        </div>
+      </td>
+    </tr>
+  \`).join('')
+}
+
+function openBannerModal() {
+  document.getElementById('bannerForm').reset()
+  document.getElementById('bId').value = ''
+  document.getElementById('bannerModalTitle').textContent = 'Thêm Banner'
+  document.getElementById('bannerModal').classList.remove('hidden')
+}
+
+function closeBannerModal() {
+  document.getElementById('bannerModal').classList.add('hidden')
+}
+
+function editBanner(id) {
+  const b = adminBanners.find(x => x.id === id)
+  if(!b) return
+  document.getElementById('bannerForm').reset()
+  document.getElementById('bId').value = b.id
+  document.getElementById('bImage').value = b.image_url || ''
+  document.getElementById('bSub').value = b.subtitle || ''
+  document.getElementById('bTitle').value = b.title || ''
+  document.getElementById('bPrice').value = b.price || ''
+  document.getElementById('bOrder').value = b.display_order || 0
+  document.getElementById('bActive').value = b.is_active
+  document.getElementById('bannerModalTitle').textContent = 'Sửa Banner'
+  document.getElementById('bannerModal').classList.remove('hidden')
+}
+
+async function saveBanner(e) {
+  e.preventDefault()
+  const id = document.getElementById('bId').value
+  const payload = {
+    image_url: document.getElementById('bImage').value.trim(),
+    subtitle: document.getElementById('bSub').value.trim(),
+    title: document.getElementById('bTitle').value.trim(),
+    price: document.getElementById('bPrice').value.trim(),
+    display_order: parseInt(document.getElementById('bOrder').value),
+    is_active: parseInt(document.getElementById('bActive').value)
+  }
+  const btn = document.getElementById('bSaveBtn')
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Đang lưu...'
+  try {
+    if (id) {
+      await axios.put('/api/admin/hero_banners/'+id, payload)
+      showToast('Đã cập nhật banner', 'success')
+    } else {
+      await axios.post('/api/admin/hero_banners', payload)
+      showToast('Đã thêm banner mới', 'success')
+    }
+    closeBannerModal()
+    loadSettingsAdmin()
+  } catch (e) { showToast('Lỗi lưu banner', 'error') }
+  finally { btn.innerHTML = '<i class="fas fa-save mr-2"></i>Lưu Banner' }
+}
+
+async function deleteBanner(id) {
+  if(!confirm('Bạn chắc chắn muốn xóa banner này?')) return
+  try {
+    await axios.delete('/api/admin/hero_banners/'+id)
+    showToast('Đã xóa banner', 'success')
+    loadSettingsAdmin()
+  } catch(e) { showToast('Lỗi xóa file', 'error') }
+}
+
 
 // ── DASHBOARD ─────────────────────────────────────
 async function loadDashboard() {
