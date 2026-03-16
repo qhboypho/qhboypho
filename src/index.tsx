@@ -80,6 +80,7 @@ async function initDB(db: D1Database) {
       subtitle TEXT,
       title TEXT,
       price TEXT,
+      product_id INTEGER,
       display_order INTEGER DEFAULT 0,
       is_active INTEGER DEFAULT 1,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -88,6 +89,9 @@ async function initDB(db: D1Database) {
   for (const sql of statements) {
     try { await db.prepare(sql).run() } catch (_) { }
   }
+
+  // Ensure column exists for older databases
+  try { await db.prepare("ALTER TABLE hero_banners ADD COLUMN product_id INTEGER").run() } catch (_) { }
 
   // Seed initial banners if empty
   try {
@@ -98,12 +102,12 @@ async function initDB(db: D1Database) {
     }
     if (count === 0) {
       const initialBanners = [
-        ['https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=500', 'Mới nhất', 'Bộ sưu tập Spring 2026', 'Từ 299.000đ', 1],
-        ['https://images.unsplash.com/photo-1550614000-4b95d4edc457?w=500', 'Bán chạy', 'Phong Cách Đường Phố', 'Giảm 20%', 2],
-        ['https://images.unsplash.com/photo-1492707892479-7bc8d5a4ee93?w=500', 'Nam giới', 'Lịch lãm & Tinh tế', 'Từ 450.000đ', 3]
+        ['https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=500', 'Mới nhất', 'Bộ sưu tập Spring 2026', 'Từ 299.000đ', null, 1],
+        ['https://images.unsplash.com/photo-1550614000-4b95d4edc457?w=500', 'Bán chạy', 'Phong Cách Đường Phố', 'Giảm 20%', null, 2],
+        ['https://images.unsplash.com/photo-1492707892479-7bc8d5a4ee93?w=500', 'Nam giới', 'Lịch lãm & Tinh tế', 'Từ 450.000đ', null, 3]
       ]
-      for (const [img, sub, title, price, order] of initialBanners) {
-        await db.prepare("INSERT INTO hero_banners (image_url, subtitle, title, price, display_order) VALUES (?, ?, ?, ?, ?)").bind(img, sub, title, price, order).run()
+      for (const [img, sub, title, price, pid, order] of initialBanners) {
+        await db.prepare("INSERT INTO hero_banners (image_url, subtitle, title, price, product_id, display_order) VALUES (?, ?, ?, ?, ?, ?)").bind(img, sub, title, price, pid, order).run()
       }
     }
   } catch (err) {
@@ -131,9 +135,9 @@ app.post('/api/admin/hero_banners', async (c) => {
   const adminToken = getCookie(c, 'admin_token')
   if (adminToken !== 'super_secret_admin_token') return c.json({ success: false, error: 'Unauthorized' }, 401)
   const body = await c.req.json()
-  const { image_url, subtitle, title, price, display_order, is_active } = body
-  const res = await c.env.DB.prepare("INSERT INTO hero_banners (image_url, subtitle, title, price, display_order, is_active) VALUES (?, ?, ?, ?, ?, ?)").bind(
-    image_url, subtitle || '', title || '', price || '', display_order || 0, is_active !== undefined ? is_active : 1
+  const { image_url, subtitle, title, price, product_id, display_order, is_active } = body
+  const res = await c.env.DB.prepare("INSERT INTO hero_banners (image_url, subtitle, title, price, product_id, display_order, is_active) VALUES (?, ?, ?, ?, ?, ?, ?)").bind(
+    image_url, subtitle || '', title || '', price || '', product_id ? parseInt(product_id) : null, display_order || 0, is_active !== undefined ? is_active : 1
   ).run()
   return c.json({ success: true, id: res.meta.last_row_id })
 })
@@ -144,9 +148,9 @@ app.put('/api/admin/hero_banners/:id', async (c) => {
   if (adminToken !== 'super_secret_admin_token') return c.json({ success: false, error: 'Unauthorized' }, 401)
   const id = c.req.param('id')
   const body = await c.req.json()
-  const { image_url, subtitle, title, price, display_order, is_active } = body
-  await c.env.DB.prepare("UPDATE hero_banners SET image_url=?, subtitle=?, title=?, price=?, display_order=?, is_active=? WHERE id=?").bind(
-    image_url, subtitle || '', title || '', price || '', display_order || 0, is_active !== undefined ? is_active : 1, id
+  const { image_url, subtitle, title, price, product_id, display_order, is_active } = body
+  await c.env.DB.prepare("UPDATE hero_banners SET image_url=?, subtitle=?, title=?, price=?, product_id=?, display_order=?, is_active=? WHERE id=?").bind(
+    image_url, subtitle || '', title || '', price || '', product_id ? parseInt(product_id) : null, display_order || 0, is_active !== undefined ? is_active : 1, id
   ).run()
   return c.json({ success: true })
 })
@@ -487,6 +491,37 @@ app.patch('/api/admin/products/:id/toggle', async (c) => {
   }
 })
 
+// PATCH toggle featured + set display_order
+app.patch('/api/admin/products/:id/featured', async (c) => {
+  try {
+    const id = c.req.param('id')
+    const body = await c.req.json()
+    const { is_featured, display_order } = body
+
+    await c.env.DB.prepare(`
+      UPDATE products SET is_featured=?, display_order=?,
+      updated_at=CURRENT_TIMESTAMP WHERE id=?
+    `).bind(is_featured ? 1 : 0, display_order ?? 0, id).run()
+
+    return c.json({ success: true })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+// GET featured products for storefront
+app.get('/api/featured-products', async (c) => {
+  try {
+    await initDB(c.env.DB)
+    const res = await c.env.DB.prepare(
+      `SELECT * FROM products WHERE is_active=1 AND is_featured=1 ORDER BY display_order ASC, id DESC`
+    ).all()
+    return c.json({ success: true, data: res.results || [] })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
 // ─── API: ORDERS ───────────────────────────────────────────────
 
 // POST create order (public)
@@ -727,6 +762,7 @@ app.get('/api/admin/stats', async (c) => {
 
 // Admin
 app.get('/admin', (c) => c.redirect('/admin/dashboard'))
+app.get('/admin/login', (c) => c.html(adminLoginHTML()))
 app.get('/admin/*', (c) => {
   return c.html(adminHTML())
 })
@@ -831,6 +867,140 @@ function storefrontHTML(): string {
   .logo-spinner::before { content:''; position:absolute; inset:-3px; border-radius:50%; background:conic-gradient(from 0deg, #6366f1, #8b5cf6, #a855f7, #6366f1); animation: spinSlow 8s linear infinite; z-index:0; }
   .logo-spinner::after { content:''; position:absolute; inset:-3px; border-radius:50%; background:conic-gradient(from 0deg, #6366f1, #8b5cf6, #a855f7, #6366f1); animation: spinSlow 8s linear infinite; filter:blur(8px); opacity:0.6; z-index:0; }
   .logo-spinner img { position:relative; z-index:1; border-radius:50%; width:36px; height:36px; object-fit:cover; animation: spinSlow 12s linear infinite; background:white; }
+
+  /* ── HERO BANNERS EXPAND ────────────────────────── */
+  #heroBannersWrapper {
+    position: relative;
+    cursor: pointer;
+  }
+  /* Collapsed: stacked cards */
+  #heroBannersCollapsed {
+    position: relative;
+    width: 320px;
+    height: 380px;
+    transition: opacity 0.35s ease, transform 0.35s ease;
+  }
+  /* Expanded overlay: full-width horizontal row */
+  #heroBannersExpanded {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    z-index: 999;
+    background: rgba(10,10,30,0.85);
+    backdrop-filter: blur(8px);
+    padding: 80px 24px 24px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.35s ease;
+  }
+  #heroBannersExpanded.open {
+    display: flex;
+    opacity: 1;
+  }
+  #heroBannersExpandedInner {
+    display: flex;
+    flex-direction: row;
+    gap: 16px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    max-width: 100%;
+    width: 100%;
+    padding-bottom: 8px;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+  #heroBannersExpandedInner::-webkit-scrollbar { height: 6px; }
+  #heroBannersExpandedInner::-webkit-scrollbar-thumb { background: rgba(232,67,147,0.6); border-radius:3px; }
+  .hero-banner-card {
+    flex: 0 0 calc(25% - 12px);
+    min-width: 220px;
+    position: relative;
+    border-radius: 20px;
+    overflow: hidden;
+    cursor: pointer;
+    scroll-snap-align: start;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+    text-decoration: none;
+  }
+  .hero-banner-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 30px 60px rgba(0,0,0,0.5);
+  }
+  .hero-banner-card img {
+    width: 100%;
+    height: 320px;
+    object-fit: cover;
+    display: block;
+  }
+  .hero-banner-card .banner-caption {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.4) 60%, transparent 100%);
+    padding: 40px 16px 16px;
+    color: white;
+  }
+  .hero-banner-card .banner-caption .banner-subtitle {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: rgba(255,200,200,0.9);
+    margin-bottom: 4px;
+  }
+  .hero-banner-card .banner-caption .banner-title {
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1.3;
+    margin-bottom: 4px;
+  }
+  .hero-banner-card .banner-caption .banner-price {
+    font-size: 13px;
+    font-weight: 700;
+    color: #fda4af;
+  }
+  /* Close button for expanded */
+  #heroBannersCloseBtn {
+    position: absolute;
+    top: 20px; right: 20px;
+    width: 40px; height: 40px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.2);
+    border: none;
+    color: white;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.2s;
+    backdrop-filter: blur(4px);
+  }
+  #heroBannersCloseBtn:hover { background: rgba(255,255,255,0.35); }
+  #heroBannersExpandedTitle {
+    color: white;
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    text-align: center;
+    letter-spacing: 0.5px;
+  }
+  /* Mobile: vertical layout */
+  @media (max-width: 768px) {
+    #heroBannersCollapsed { width: 240px; height: 280px; }
+    #heroBannersExpanded { padding: 70px 16px 24px; }
+    #heroBannersExpandedInner {
+      flex-direction: column;
+      overflow-x: hidden;
+      overflow-y: auto;
+      max-height: calc(100vh - 140px);
+    }
+    .hero-banner-card {
+      flex: 0 0 auto;
+      min-width: unset;
+      width: 100%;
+    }
+    .hero-banner-card img { height: 220px; }
+  }
 </style>
 </head>
 <body class="bg-gray-50">
@@ -902,14 +1072,24 @@ function storefrontHTML(): string {
         <div class="text-center"><p class="text-3xl font-bold text-white">4.9★</p><p class="text-gray-400 text-sm">Đánh giá</p></div>
       </div>
     </div>
-    <div class="hidden md:flex justify-center" id="heroBannersContainer">
-      <div class="relative w-80 h-96">
-        <div class="absolute inset-0 bg-gradient-to-br from-pink-500/20 to-purple-600/20 rounded-3xl rotate-6"></div>
-        <img src="https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=500" alt="Hero Fashion" class="relative rounded-3xl w-full h-full object-cover shadow-2xl bg-white">
-        <div class="absolute -bottom-4 -right-4 bg-white rounded-2xl p-4 shadow-xl z-10 w-48">
-          <div class="w-full h-3 bg-gray-200 animate-pulse rounded mb-2"></div>
-          <div class="w-2/3 h-4 bg-gray-200 animate-pulse rounded mb-2"></div>
+    <div class="flex justify-center" id="heroBannersWrapper">
+      <!-- Collapsed / stacked state -->
+      <div id="heroBannersCollapsed" title="Hover để xem thêm">
+        <!-- will be rendered by JS -->
+        <div class="relative w-80 h-96">
+          <div class="absolute inset-0 bg-gradient-to-br from-pink-500/20 to-purple-600/20 rounded-3xl rotate-6"></div>
+          <div class="relative rounded-3xl w-full h-full bg-gray-700/40 shadow-2xl flex items-center justify-center">
+            <i class="fas fa-spinner fa-spin text-white text-3xl"></i>
+          </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Expanded fullscreen overlay -->
+    <div id="heroBannersExpanded" onclick="handleBannerOverlayClick(event)">
+      <p id="heroBannersExpandedTitle">✨ Bộ sưu tập nổi bật</p>
+      <div id="heroBannersExpandedInner">
+        <!-- filled by JS -->
       </div>
     </div>
   </div>
@@ -2134,43 +2314,117 @@ document.getElementById('detailOverlay').addEventListener('click', (e) => { if(e
   })
 })
 
-// ── DYNAMIC SETTINGS ──────────────────────────────
+// ── DYNAMIC HERO BANNERS ──────────────────────────
+let heroBannersData = []
+let heroBannersIsExpanded = false
+
 async function loadSettings() {
   try {
     const res = await axios.get('/api/hero_banners')
     if (res.data && res.data.data) {
-      const banners = res.data.data
-      const container = document.getElementById('heroBannersContainer')
-      if (container && banners.length > 0) {
-        container.innerHTML = \`<div class="relative w-80 h-96">\` + banners.map((b, i) => {
-          const isTop = i === banners.length - 1
-          const len = banners.length
-          const rot = len > 1 ? (i - Math.floor((len - 1) / 2)) * 6 : 6
-          const z = i * 10
-          let labelHTML = ''
-          if (isTop) {
-            labelHTML = \`
-              <div class="absolute -bottom-4 -right-4 bg-white rounded-2xl p-4 shadow-xl pointer-events-none transition-all hover:scale-105" style="z-index: \${z + 5}">
-                \${b.subtitle ? \`<p class="text-xs text-gray-500 uppercase tracking-widest font-medium">\${b.subtitle}</p>\` : ''}
-                \${b.title ? \`<p class="font-bold text-gray-800 leading-tight">\${b.title}</p>\` : ''}
-                \${b.price ? \`<p class="text-pink-500 font-bold">\${b.price}</p>\` : ''}
-              </div>
-            \`
-          }
-          return \`
-            <div class="absolute inset-0 transition-transform duration-700 ease-out hover:-translate-y-2 hover:rotate-0" style="transform: rotate(\${rot}deg); z-index: \${z}">
-              <div class="absolute inset-0 bg-gradient-to-br from-pink-500/20 to-purple-600/20 rounded-3xl"></div>
-              <img src="\${b.image_url}" alt="Banner" class="relative rounded-3xl w-full h-full object-cover shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-white/20 bg-gray-100">
-              \${labelHTML}
-            </div>
-          \`
-        }).join('') + \`</div>\`
-      }
+      heroBannersData = res.data.data
+      renderCollapsedBanners(heroBannersData)
+      renderExpandedBanners(heroBannersData)
     }
   } catch (e) {
     console.error('Failed to load banners', e)
   }
 }
+
+function renderCollapsedBanners(banners) {
+  const container = document.getElementById('heroBannersCollapsed')
+  if (!container || !banners.length) return
+  const len = banners.length
+  const shown = banners.slice(0, Math.min(len, 4))
+  container.innerHTML = \`<div class="relative" style="width:300px;height:360px">
+  \${shown.map((b, i) => {
+    const rot = shown.length > 1 ? (i - Math.floor((shown.length - 1) / 2)) * 6 : 0
+    const z = i * 10
+    const isTop = i === shown.length - 1
+    const clickHandler = b.product_id ? \`showDetail(\${b.product_id})\` : \`\`
+    const cursor = b.product_id ? 'cursor-pointer' : 'cursor-default'
+    return \`<div class="absolute inset-0 rounded-3xl overflow-hidden \${cursor}" onclick="\${clickHandler}" style="transform:rotate(\${rot}deg);z-index:\${z};transition:transform 0.5s ease,box-shadow 0.5s ease;box-shadow:0 12px 40px rgba(0,0,0,0.25);">
+      <div class="absolute inset-0 bg-gradient-to-br from-pink-500/15 to-purple-600/15 rounded-3xl pointer-events-none"></div>
+      <img src="\${b.image_url}" alt="\${b.title || 'Banner'}" class="w-full h-full object-cover rounded-3xl pointer-events-none" onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'">
+      \${isTop && (b.subtitle || b.title || b.price) ? \`
+        <div class="absolute bottom-3 right-3 bg-white rounded-2xl px-4 py-3 shadow-xl max-w-[160px] pointer-events-none" style="z-index:\${z+5}">
+          \${b.subtitle ? \`<p class="text-[10px] text-gray-400 uppercase tracking-widest font-semibold">\${b.subtitle}</p>\` : ''}
+          \${b.title ? \`<p class="font-bold text-gray-800 text-sm leading-tight">\${b.title}</p>\` : ''}
+          \${b.price ? \`<p class="text-pink-500 font-bold text-sm mt-1">\${b.price}</p>\` : ''}
+        </div>\` : ''}
+    </div>\`
+  }).join('')}
+  </div>
+  <div class="absolute flex items-center gap-1.5 bg-white/20 backdrop-blur-sm rounded-full px-3 py-1.5 text-white text-xs font-medium cursor-pointer hover:bg-white/30 transition whitespace-nowrap" style="bottom:-28px;left:50%;transform:translateX(-50%);z-index:100" onclick="expandBanners()">
+    <i class="fas fa-expand-alt mr-1 text-pink-300"></i>Xem tất cả \${len} ảnh
+  </div>\`
+  container.style.paddingBottom = '36px'
+  // Hover expand
+  container.onmouseenter = () => { if (!heroBannersIsExpanded) expandBanners() }
+}
+
+function renderExpandedBanners(banners) {
+  const inner = document.getElementById('heroBannersExpandedInner')
+  const title = document.getElementById('heroBannersExpandedTitle')
+  if (!inner) return
+  if (title) title.textContent = \`✨ Bộ sưu tập nổi bật (\${banners.length} ảnh)\`
+  inner.innerHTML = banners.map(b => {
+    if (b.product_id) {
+      return \`<a href="javascript:void(0)" class="hero-banner-card" onclick="collapseBanners(); showDetail(\${b.product_id})">
+        <img src="\${b.image_url}" alt="\${b.title || ''}" onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'" loading="lazy">
+        \${(b.subtitle || b.title || b.price) ? \`
+          <div class="banner-caption">
+            \${b.subtitle ? \`<p class="banner-subtitle">\${b.subtitle}</p>\` : ''}
+            \${b.title ? \`<p class="banner-title">\${b.title}</p>\` : ''}
+            \${b.price ? \`<p class="banner-price">\${b.price}</p>\` : ''}
+          </div>\` : ''}
+      </a>\`
+    } else {
+      return \`<div class="hero-banner-card" style="cursor:default;">
+        <img src="\${b.image_url}" alt="\${b.title || ''}" onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'" loading="lazy">
+        \${(b.subtitle || b.title || b.price) ? \`
+          <div class="banner-caption">
+            \${b.subtitle ? \`<p class="banner-subtitle">\${b.subtitle}</p>\` : ''}
+            \${b.title ? \`<p class="banner-title">\${b.title}</p>\` : ''}
+            \${b.price ? \`<p class="banner-price">\${b.price}</p>\` : ''}
+          </div>\` : ''}
+      </div>\`
+    }
+  }).join('')
+  // Add placeholders to always have 4 per row
+  const needed = Math.max(0, 4 - banners.length)
+  for (let i = 0; i < needed; i++) {
+    inner.innerHTML += \`<div class="hero-banner-card" style="background:rgba(255,255,255,0.05);pointer-events:none;"></div>\`
+  }
+}
+
+function expandBanners() {
+  if (heroBannersIsExpanded) return
+  heroBannersIsExpanded = true
+  const overlay = document.getElementById('heroBannersExpanded')
+  overlay.style.display = 'flex'
+  requestAnimationFrame(() => { overlay.style.opacity = '1' })
+  document.body.style.overflow = 'hidden'
+}
+
+function collapseBanners() {
+  if (!heroBannersIsExpanded) return
+  heroBannersIsExpanded = false
+  const overlay = document.getElementById('heroBannersExpanded')
+  overlay.style.opacity = '0'
+  setTimeout(() => {
+    overlay.style.display = 'none'
+    document.body.style.overflow = ''
+  }, 350)
+}
+
+function handleBannerOverlayClick(e) {
+  if (e.target.id === 'heroBannersExpanded') collapseBanners()
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && heroBannersIsExpanded) collapseBanners()
+})
 
 // Init
 loadSettings()
@@ -2547,6 +2801,12 @@ function adminHTML(): string {
   .mobile-overlay { background:rgba(0,0,0,0.5); }
   [x-cloak] { display:none; }
   .col-tag { width: 32px; height: 32px; border-radius: 50%; display:inline-flex; align-items:center; justify-content:center; font-size:11px; font-weight:600; }
+  /* Force hide sidebar overlay on desktop - overrides any JS toggle */
+  @media (min-width: 768px) {
+    #sidebarOverlay { display: none !important; }
+  }
+  /* Ensure modals don't accidentally block page */
+  .modal-overlay.hidden { pointer-events: none !important; }
 </style>
 </head>
 <body class="bg-gray-50 flex">
@@ -2586,6 +2846,9 @@ function adminHTML(): string {
     </button>
     <button class="nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium" data-page="vouchers" onclick="showPage('vouchers')">
       <i class="fas fa-ticket-alt w-5"></i>Voucher
+    </button>
+    <button class="nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium" data-page="featured" onclick="showPage('featured')">
+      <i class="fas fa-star w-5"></i>Sản phẩm Nổi Bật
     </button>
     <button class="nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium" data-page="settings" onclick="showPage('settings')">
       <i class="fas fa-image w-5"></i>Cài đặt Banner
@@ -2798,6 +3061,49 @@ function adminHTML(): string {
     </div>
   </div>
 
+  <!-- FEATURED PRODUCTS PAGE -->
+  <div id="page-featured" class="p-6 hidden">
+    <div class="mb-6">
+      <div class="flex items-center justify-between mb-2">
+        <div>
+          <h2 class="font-bold text-gray-800 text-xl flex items-center gap-2">
+            <i class="fas fa-star text-amber-400"></i>Quản lý Sản phẩm Nổi Bật
+          </h2>
+          <p class="text-sm text-gray-500 mt-1">Chọn sản phẩm muốn hiển thị nổi bật và sắp xếp thứ tự. Khi khách bấm vào, sẽ mở modal chi tiết sản phẩm.</p>
+        </div>
+        <div class="flex items-center gap-3">
+          <span id="featuredCount" class="text-sm font-semibold text-amber-600 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-200">
+            <i class="fas fa-star mr-1"></i>0 sản phẩm nổi bật
+          </span>
+          <button onclick="saveFeaturedOrder()" id="saveFeaturedBtn" class="bg-gradient-to-r from-amber-400 to-orange-400 hover:from-amber-500 hover:to-orange-500 text-white px-5 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2 transition shadow-sm">
+            <i class="fas fa-save"></i>Lưu thứ tự
+          </button>
+        </div>
+      </div>
+
+      <!-- Featured Preview Strip -->
+      <div id="featuredPreviewStrip" class="hidden bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-4 mb-4">
+        <p class="text-xs font-semibold text-amber-700 uppercase tracking-wider mb-3"><i class="fas fa-eye mr-1"></i>Xem trước thứ tự hiển thị</p>
+        <div id="featuredPreviewItems" class="flex gap-3 overflow-x-auto pb-2"></div>
+      </div>
+    </div>
+
+    <!-- Products Grid for Featured Management -->
+    <div class="bg-white rounded-2xl shadow-sm border overflow-hidden">
+      <div class="border-b px-6 py-4 flex items-center gap-3 bg-gray-50">
+        <i class="fas fa-list text-gray-400"></i>
+        <span class="text-sm font-semibold text-gray-700">Tất cả sản phẩm – Tích chọn để đánh dấu nổi bật</span>
+        <div class="ml-auto flex gap-2">
+          <input type="text" id="featuredSearch" placeholder="Tìm sản phẩm..." oninput="filterFeaturedProducts()"
+            class="border rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:border-amber-400 w-44">
+        </div>
+      </div>
+      <div id="featuredProductsList" class="divide-y max-h-[70vh] overflow-y-auto">
+        <div class="py-12 text-center text-gray-400"><i class="fas fa-spinner fa-spin text-3xl"></i></div>
+      </div>
+    </div>
+  </div>
+
   <!-- BANNERS PAGE -->
   <div id="page-settings" class="p-6 hidden">
     <div class="bg-white rounded-2xl shadow-sm border p-6">
@@ -2853,9 +3159,15 @@ function adminHTML(): string {
             <input type="text" id="bPrice" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
           </div>
         </div>
-        <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Tiêu đề (VD: Spring Collection)</label>
-          <input type="text" id="bTitle" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1.5">Tiêu đề (VD: Spring Collection)</label>
+            <input type="text" id="bTitle" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
+          </div>
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1.5">Link tới Sản phẩm ID (Tùy chọn)</label>
+            <input type="number" id="bProductId" placeholder="VD: 1" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
+          </div>
         </div>
         <div class="grid grid-cols-2 gap-4">
           <div>
@@ -3053,19 +3365,20 @@ let gallerySlotClickBound = false
 
 // ── NAVIGATION ────────────────────────────────────
 function showPage(name) {
-  ['dashboard','products','orders','vouchers','settings'].forEach(p => {
+  ['dashboard','products','orders','vouchers','featured','settings'].forEach(p => {
     document.getElementById('page-'+p).classList.toggle('hidden', p !== name)
-    document.querySelectorAll('.nav-item').forEach(b => {
-      b.classList.toggle('active', b.dataset.page === name)
-    })
   })
-  const titles = {dashboard:'Dashboard', products:'Quản lý Sản phẩm', orders:'Quản lý Đơn hàng', vouchers:'Quản lý Voucher', settings:'Cài đặt giao diện'}
+  document.querySelectorAll('.nav-item').forEach(b => {
+    b.classList.toggle('active', b.dataset.page === name)
+  })
+  const titles = {dashboard:'Dashboard', products:'Quản lý Sản phẩm', orders:'Quản lý Đơn hàng', vouchers:'Quản lý Voucher', featured:'Sản phẩm Nổi Bật', settings:'Cài đặt giao diện'}
   document.getElementById('pageTitle').textContent = titles[name] || name
 
   if (name === 'dashboard') loadDashboard()
   else if (name === 'products') loadAdminProducts()
   else if (name === 'orders') loadAdminOrders()
   else if (name === 'vouchers') loadVouchers()
+  else if (name === 'featured') loadFeaturedAdmin()
   else if (name === 'settings') loadSettingsAdmin()
 
   // Close mobile sidebar
@@ -3078,6 +3391,175 @@ function toggleSidebar() {
   document.getElementById('sidebarOverlay').classList.toggle('hidden')
 }
 
+// ── FEATURED PRODUCTS ────────────────────────────
+let allProductsForFeatured = []
+let featuredOrderMap = {} // { productId: displayOrder }
+
+async function loadFeaturedAdmin() {
+  const listEl = document.getElementById('featuredProductsList')
+  listEl.innerHTML = '<div class="py-12 text-center text-gray-400"><i class="fas fa-spinner fa-spin text-3xl"></i></div>'
+  try {
+    const res = await axios.get('/api/admin/products')
+    allProductsForFeatured = res.data.data || []
+    // Build orderMap from existing data
+    featuredOrderMap = {}
+    allProductsForFeatured.forEach(p => {
+      if (p.is_featured) featuredOrderMap[p.id] = p.display_order || 0
+    })
+    renderFeaturedProductsList(allProductsForFeatured)
+    updateFeaturedPreview()
+  } catch(e) {
+    listEl.innerHTML = '<div class="py-12 text-center text-red-400">Lỗi tải dữ liệu</div>'
+  }
+}
+
+function filterFeaturedProducts() {
+  const q = document.getElementById('featuredSearch').value.toLowerCase()
+  const filtered = allProductsForFeatured.filter(p =>
+    !q || p.name.toLowerCase().includes(q) || (p.brand||'').toLowerCase().includes(q)
+  )
+  renderFeaturedProductsList(filtered)
+}
+
+function renderFeaturedProductsList(products) {
+  const listEl = document.getElementById('featuredProductsList')
+  if (!products.length) {
+    listEl.innerHTML = '<div class="py-12 text-center text-gray-400"><i class="fas fa-box-open text-4xl mb-3"></i><p>Không có sản phẩm nào</p></div>'
+    return
+  }
+
+  // Sort: featured first (by display_order), then non-featured
+  const sorted = [...products].sort((a,b) => {
+    if (a.is_featured && !b.is_featured) return -1
+    if (!a.is_featured && b.is_featured) return 1
+    return (a.display_order||0) - (b.display_order||0)
+  })
+
+  listEl.innerHTML = sorted.map(p => {
+    const isFeatured = !!p.is_featured
+    const order = featuredOrderMap[p.id] ?? (p.display_order || 0)
+    return \`
+    <div class="featured-product-row flex items-center gap-4 px-5 py-4 hover:bg-gray-50 transition \${isFeatured ? 'bg-amber-50/60 border-l-4 border-amber-400' : ''}" data-id="\${p.id}">
+      <!-- Checkbox -->
+      <div class="flex-none">
+        <label class="relative inline-flex items-center cursor-pointer">
+          <input type="checkbox" \${isFeatured ? 'checked' : ''} onchange="toggleFeaturedCheck(\${p.id}, this.checked)"
+            class="sr-only peer">
+          <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-400"></div>
+        </label>
+      </div>
+      <!-- Thumbnail -->
+      <div class="flex-none">
+        <img src="\${p.thumbnail || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=80'}" alt="\${p.name}"
+          class="w-14 h-16 object-cover rounded-xl shadow-sm border-2 \${isFeatured ? 'border-amber-300' : 'border-gray-200'}"
+          onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=80'">
+      </div>
+      <!-- Info -->
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-2">
+          \${isFeatured ? '<span class="text-xs bg-amber-400 text-white px-2 py-0.5 rounded-full font-semibold">⭐ Nổi bật</span>' : ''}
+          \${p.brand ? \`<span class="text-xs text-pink-500 font-medium">\${p.brand}</span>\` : ''}
+        </div>
+        <p class="font-semibold text-gray-800 text-sm mt-0.5 truncate">\${p.name}</p>
+        <p class="text-xs text-pink-600 font-bold">\${new Intl.NumberFormat('vi-VN',{style:'currency',currency:'VND'}).format(p.price)}</p>
+      </div>
+      <!-- Order Input (only if featured) -->
+      <div class="flex-none w-32 \${isFeatured ? '' : 'opacity-30 pointer-events-none'}">
+        <label class="block text-xs text-gray-500 mb-1 text-center">Thứ tự</label>
+        <input type="number" min="1" max="99" value="\${order || 1}"
+          id="order-\${p.id}"
+          onchange="updateFeaturedOrder(\${p.id}, this.value)"
+          class="w-full border-2 border-amber-200 rounded-xl px-3 py-1.5 text-sm text-center font-bold focus:outline-none focus:border-amber-400 bg-white">
+      </div>
+      <!-- Badge Status -->
+      <div class="flex-none">
+        <span class="text-xs px-2 py-1 rounded-full \${p.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}">
+          \${p.is_active ? '● Đang bán' : '○ Đã ẩn'}
+        </span>
+      </div>
+    </div>\`
+  }).join('')
+}
+
+function toggleFeaturedCheck(id, checked) {
+  // Update local state
+  const prod = allProductsForFeatured.find(p => p.id === id)
+  if (prod) prod.is_featured = checked ? 1 : 0
+  
+  if (checked) {
+    // Auto-assign next order if not set
+    const maxOrder = Math.max(0, ...Object.values(featuredOrderMap))
+    featuredOrderMap[id] = maxOrder + 1
+  } else {
+    delete featuredOrderMap[id]
+  }
+  
+  // Re-render
+  const q = document.getElementById('featuredSearch').value.toLowerCase()
+  const filtered = q ? allProductsForFeatured.filter(p => p.name.toLowerCase().includes(q) || (p.brand||'').toLowerCase().includes(q)) : allProductsForFeatured
+  renderFeaturedProductsList(filtered)
+  updateFeaturedPreview()
+}
+
+function updateFeaturedOrder(id, val) {
+  featuredOrderMap[id] = parseInt(val) || 1
+  updateFeaturedPreview()
+}
+
+function updateFeaturedPreview() {
+  const featured = allProductsForFeatured
+    .filter(p => p.is_featured)
+    .sort((a,b) => (featuredOrderMap[a.id]||0) - (featuredOrderMap[b.id]||0))
+
+  const countEl = document.getElementById('featuredCount')
+  countEl.innerHTML = \`<i class="fas fa-star mr-1"></i>\${featured.length} sản phẩm nổi bật\`
+
+  const strip = document.getElementById('featuredPreviewStrip')
+  const previewItems = document.getElementById('featuredPreviewItems')
+
+  if (!featured.length) {
+    strip.classList.add('hidden')
+    return
+  }
+  strip.classList.remove('hidden')
+  previewItems.innerHTML = featured.map((p, i) => \`
+    <div class="flex-none flex flex-col items-center gap-1" style="min-width:72px">
+      <div class="relative">
+        <img src="\${p.thumbnail || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=80'}" alt="\${p.name}"
+          class="w-16 h-20 object-cover rounded-xl border-2 border-amber-300 shadow-sm"
+          onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=80'">
+        <span class="absolute -top-1 -left-1 w-5 h-5 bg-amber-400 text-white text-xs font-bold rounded-full flex items-center justify-center">\${i+1}</span>
+      </div>
+      <p class="text-xs text-gray-600 text-center leading-tight w-16 truncate">\${p.name}</p>
+    </div>
+  \`).join('')
+}
+
+async function saveFeaturedOrder() {
+  const btn = document.getElementById('saveFeaturedBtn')
+  btn.disabled = true
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Đang lưu...'
+  
+  try {
+    const promises = allProductsForFeatured.map(p => {
+      const isFeatured = !!p.is_featured
+      const order = featuredOrderMap[p.id] || 0
+      return axios.patch('/api/admin/products/' + p.id + '/featured', {
+        is_featured: isFeatured,
+        display_order: order
+      })
+    })
+    await Promise.all(promises)
+    showAdminToast('Đã lưu sản phẩm nổi bật thành công!', 'success')
+    loadFeaturedAdmin()
+  } catch(e) {
+    showAdminToast('Lỗi lưu dữ liệu: ' + (e.response?.data?.error || e.message), 'error')
+  } finally {
+    btn.disabled = false
+    btn.innerHTML = '<i class="fas fa-save"></i>Lưu thứ tự'
+  }
+}
+
 // ── BANNERS ──────────────────────────────────────
 let adminBanners = []
 
@@ -3088,7 +3570,12 @@ async function loadSettingsAdmin() {
     adminBanners = res.data.data || []
     renderAdminBanners()
   } catch (e) {
-    showToast('Lỗi tải danh sách banner', 'error')
+    if (e.response && e.response.status === 401) {
+      document.getElementById('adminBannersTable').innerHTML = '<tr><td colspan="5" class="py-10 text-center text-red-400"><i class="fas fa-lock text-3xl mb-3"></i><p class="mt-2">Phiên đăng nhập hết hạn</p><a href="/admin/login" class="mt-3 inline-block bg-pink-500 text-white px-4 py-2 rounded-xl text-sm">Đăng nhập lại</a></td></tr>'
+    } else {
+      document.getElementById('adminBannersTable').innerHTML = '<tr><td colspan="5" class="py-10 text-center text-red-400">Lỗi tải danh sách banner</td></tr>'
+      showAdminToast('Lỗi tải danh sách banner', 'error')
+    }
   }
 }
 
@@ -3106,9 +3593,12 @@ function renderAdminBanners() {
       </td>
       <td class="py-3 px-4">
         <div class="font-bold text-gray-800 mb-1">\${b.title || '-'}</div>
-        <div class="text-xs text-gray-500 flex flex-wrap gap-2">
-          \${b.subtitle ? \`<span class="bg-gray-100 px-2 py-0.5 rounded text-gray-600">\${b.subtitle}</span>\` : ''}
-          \${b.price ? \`<span class="text-pink-500 font-medium">\${b.price}</span>\` : ''}
+        <div class="text-xs text-gray-500 flex flex-col gap-1 mt-1">
+          <div class="flex gap-2">
+            \${b.subtitle ? \`<span class="bg-gray-100 px-2 py-0.5 rounded text-gray-600">\${b.subtitle}</span>\` : ''}
+            \${b.price ? \`<span class="text-pink-500 font-medium">\${b.price}</span>\` : ''}
+          </div>
+          \${b.product_id ? \`<div class="text-blue-500 font-medium">🛒 Link Product ID: \${b.product_id}</div>\` : ''}
         </div>
       </td>
       <td class="py-3 px-4 text-center">
@@ -3150,6 +3640,7 @@ function editBanner(id) {
   document.getElementById('bSub').value = b.subtitle || ''
   document.getElementById('bTitle').value = b.title || ''
   document.getElementById('bPrice').value = b.price || ''
+  document.getElementById('bProductId').value = b.product_id || ''
   document.getElementById('bOrder').value = b.display_order || 0
   document.getElementById('bActive').value = b.is_active
   document.getElementById('bannerModalTitle').textContent = 'Sửa Banner'
@@ -3164,6 +3655,7 @@ async function saveBanner(e) {
     subtitle: document.getElementById('bSub').value.trim(),
     title: document.getElementById('bTitle').value.trim(),
     price: document.getElementById('bPrice').value.trim(),
+    product_id: document.getElementById('bProductId').value ? parseInt(document.getElementById('bProductId').value) : null,
     display_order: parseInt(document.getElementById('bOrder').value),
     is_active: parseInt(document.getElementById('bActive').value)
   }
@@ -3172,14 +3664,14 @@ async function saveBanner(e) {
   try {
     if (id) {
       await axios.put('/api/admin/hero_banners/'+id, payload)
-      showToast('Đã cập nhật banner', 'success')
+      showAdminToast('Đã cập nhật banner', 'success')
     } else {
       await axios.post('/api/admin/hero_banners', payload)
-      showToast('Đã thêm banner mới', 'success')
+      showAdminToast('Đã thêm banner mới', 'success')
     }
     closeBannerModal()
     loadSettingsAdmin()
-  } catch (e) { showToast('Lỗi lưu banner', 'error') }
+  } catch (e) { showAdminToast('Lỗi lưu banner', 'error') }
   finally { btn.innerHTML = '<i class="fas fa-save mr-2"></i>Lưu Banner' }
 }
 
@@ -3187,9 +3679,9 @@ async function deleteBanner(id) {
   if(!confirm('Bạn chắc chắn muốn xóa banner này?')) return
   try {
     await axios.delete('/api/admin/hero_banners/'+id)
-    showToast('Đã xóa banner', 'success')
+    showAdminToast('Đã xóa banner', 'success')
     loadSettingsAdmin()
-  } catch(e) { showToast('Lỗi xóa file', 'error') }
+  } catch(e) { showAdminToast('Lỗi xóa file', 'error') }
 }
 
 
@@ -3830,8 +4322,48 @@ function showAdminToast(msg, type='success') {
   setTimeout(() => { t.style.opacity='0'; t.style.transform='translateX(100%)'; t.style.transition='all 0.3s'; setTimeout(()=>t.remove(),300) }, 3000)
 }
 
+// ── ESC key handler - close any open modal ──────────
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    const modals = ['productModal', 'orderDetailModal', 'bannerModal']
+    modals.forEach(id => {
+      const el = document.getElementById(id)
+      if (el && !el.classList.contains('hidden')) {
+        el.classList.add('hidden')
+      }
+    })
+    document.body.style.overflow = ''
+    // Also close sidebar overlay if open
+    document.getElementById('sidebarOverlay').classList.add('hidden')
+    document.getElementById('sidebar').classList.add('-translate-x-full')
+  }
+})
+
+// ── Safety: ensure all modals start hidden on page load ──
+document.addEventListener('DOMContentLoaded', function() {
+  ['productModal', 'orderDetailModal', 'bannerModal'].forEach(id => {
+    const el = document.getElementById(id)
+    if (el) el.classList.add('hidden')
+  })
+  document.getElementById('sidebarOverlay').classList.add('hidden')
+})
+
 // Init
-loadDashboard()
+async function initAdminAuth() {
+  try {
+    const res = await axios.get('/api/auth/me')
+    if (!res.data.isAdmin) {
+      window.location.href = '/admin/login'
+      return
+    }
+  } catch (e) {
+    // 401 or error → redirect to login
+    window.location.href = '/admin/login'
+    return
+  }
+  loadDashboard()
+}
+initAdminAuth()
 <\/script>
 </body>
 </html>`
