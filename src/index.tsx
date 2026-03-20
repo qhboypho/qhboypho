@@ -850,7 +850,7 @@ function storefrontHTML(): string {
   .toast { animation: fadeInOut 3s ease forwards; }
   @keyframes fadeInOut { 0%{opacity:0;transform:translateY(20px)} 15%{opacity:1;transform:translateY(0)} 85%{opacity:1} 100%{opacity:0} }
   ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-thumb { background: #c0392b; border-radius: 3px; }
-  .product-img-main { aspect-ratio: 3/4; object-fit: cover; }
+  .product-img-main { width: 100%; aspect-ratio: 1/1; height: 100%; object-fit: cover; display: block; }
   .skeleton { background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; }
   @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
   .navbar-blur { backdrop-filter: blur(12px); background: rgba(26,26,46,0.95); }
