@@ -15,6 +15,18 @@ const app = new Hono<{ Bindings: Bindings }>()
 app.use('/api/*', cors())
 app.use('/static/*', serveStatic({ root: './' }))
 
+// Enforce admin auth for all admin APIs except login
+app.use('/api/admin/*', async (c, next) => {
+  if (c.req.path === '/api/admin/login') {
+    return next()
+  }
+  const adminToken = getCookie(c, 'admin_token')
+  if (adminToken !== 'super_secret_admin_token') {
+    return c.json({ success: false, error: 'Unauthorized' }, 401)
+  }
+  return next()
+})
+
 // ─── INIT DB ───────────────────────────────────────────────────
 async function initDB(db: D1Database) {
   const statements = [
@@ -196,7 +208,6 @@ app.get('/api/auth/me', async (c) => {
       const user = await c.env.DB.prepare("SELECT id as userId, email, name, avatar, balance, is_admin FROM users WHERE id=?").bind(parsedId).first()
       if (user) {
         currentUser = user
-        if (user.is_admin) isAdmin = true
       }
     } catch (e: any) { dbError = e.message }
   }
@@ -792,6 +803,10 @@ app.get('/api/admin/stats', async (c) => {
 app.get('/admin', (c) => c.redirect('/admin/dashboard'))
 app.get('/admin/login', (c) => c.html(adminLoginHTML()))
 app.get('/admin/*', (c) => {
+  const adminToken = getCookie(c, 'admin_token')
+  if (adminToken !== 'super_secret_admin_token') {
+    return c.redirect('/admin/login')
+  }
   return c.html(adminHTML())
 })
 
