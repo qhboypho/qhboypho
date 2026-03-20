@@ -541,8 +541,8 @@ app.get('/api/trending-products', async (c) => {
        ORDER BY
          CASE WHEN COALESCE(trending_order, 0) > 0 THEN 0 ELSE 1 END ASC,
          CASE WHEN COALESCE(trending_order, 0) > 0 THEN trending_order ELSE 999999 END ASC,
-         datetime(created_at) ASC,
-         id ASC`
+         datetime(updated_at) DESC,
+         id DESC`
     ).all()
     return c.json({ success: true, data: res.results || [] })
   } catch (e: any) {
@@ -2354,7 +2354,7 @@ async function loadSettings() {
   try {
     const trendingRes = await axios.get('/api/trending-products').catch(() => ({ data: { data: [] } }))
     const trendingProducts = (trendingRes.data && trendingRes.data.data) ? trendingRes.data.data : []
-    heroBannersData = mapTrendingProductsToHeroCards(trendingProducts)
+    heroBannersData = sortHeroCards(mapTrendingProductsToHeroCards(trendingProducts))
     renderCollapsedBanners(heroBannersData)
     renderExpandedBanners(heroBannersData)
     bindHeroBannersWheelScroll()
@@ -2373,8 +2373,26 @@ function mapTrendingProductsToHeroCards(products) {
       subtitle: categoryLabel + ' · Dang thinh hanh',
       title: p.name || '',
       price: fmtPrice(p.price || 0),
-      product_id: p.id
+      product_id: p.id,
+      trending_order: Number(p.trending_order || 0),
+      updated_at: p.updated_at || '',
+      created_at: p.created_at || ''
     }
+  })
+}
+function sortHeroCards(cards) {
+  return [...cards].sort((a, b) => {
+    const ao = Number(a.trending_order || 0)
+    const bo = Number(b.trending_order || 0)
+    const aHas = ao > 0
+    const bHas = bo > 0
+    if (aHas && !bHas) return -1
+    if (!aHas && bHas) return 1
+    if (aHas && bHas && ao !== bo) return ao - bo
+    const au = Date.parse(a.updated_at || a.created_at || '')
+    const bu = Date.parse(b.updated_at || b.created_at || '')
+    if (!Number.isNaN(au) && !Number.isNaN(bu) && au !== bu) return bu - au
+    return Number(a.product_id || 0) - Number(b.product_id || 0)
   })
 }
 function bindHeroBannersWheelScroll() {
