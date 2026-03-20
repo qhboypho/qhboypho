@@ -1,4 +1,4 @@
-import { Hono } from 'hono'
+﻿import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { serveStatic } from 'hono/cloudflare-workers'
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie'
@@ -34,6 +34,9 @@ async function initDB(db: D1Database) {
       stock INTEGER DEFAULT 0,
       is_active INTEGER DEFAULT 1,
       is_featured INTEGER DEFAULT 0,
+      is_trending INTEGER DEFAULT 0,
+      trending_order INTEGER DEFAULT 0,
+      display_order INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`,
@@ -92,6 +95,9 @@ async function initDB(db: D1Database) {
 
   // Ensure column exists for older databases
   try { await db.prepare("ALTER TABLE hero_banners ADD COLUMN product_id INTEGER").run() } catch (_) { }
+  try { await db.prepare("ALTER TABLE products ADD COLUMN display_order INTEGER DEFAULT 0").run() } catch (_) { }
+  try { await db.prepare("ALTER TABLE products ADD COLUMN is_trending INTEGER DEFAULT 0").run() } catch (_) { }
+  try { await db.prepare("ALTER TABLE products ADD COLUMN trending_order INTEGER DEFAULT 0").run() } catch (_) { }
 
   // Seed initial banners if empty
   try {
@@ -391,7 +397,7 @@ app.post('/api/admin/products', async (c) => {
     const {
       name, description, price, original_price,
       category, brand, material, thumbnail,
-      images, colors, sizes, stock, is_featured
+      images, colors, sizes, stock, is_featured, is_trending, trending_order
     } = body
 
     if (!name || !price) {
@@ -400,8 +406,8 @@ app.post('/api/admin/products', async (c) => {
 
     const result = await c.env.DB.prepare(`
       INSERT INTO products 
-        (name, description, price, original_price, category, brand, material, thumbnail, images, colors, sizes, stock, is_featured)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (name, description, price, original_price, category, brand, material, thumbnail, images, colors, sizes, stock, is_featured, is_trending, trending_order)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       name,
       description || '',
@@ -415,7 +421,9 @@ app.post('/api/admin/products', async (c) => {
       JSON.stringify(colors || []),
       JSON.stringify(sizes || []),
       parseInt(stock) || 0,
-      is_featured ? 1 : 0
+      is_featured ? 1 : 0,
+      is_trending ? 1 : 0,
+      parseInt(trending_order) || 0
     ).run()
 
     return c.json({ success: true, id: result.meta.last_row_id })
@@ -432,14 +440,14 @@ app.put('/api/admin/products/:id', async (c) => {
     const {
       name, description, price, original_price,
       category, brand, material, thumbnail,
-      images, colors, sizes, stock, is_active, is_featured
+      images, colors, sizes, stock, is_active, is_featured, is_trending, trending_order
     } = body
 
     await c.env.DB.prepare(`
       UPDATE products SET
         name=?, description=?, price=?, original_price=?,
         category=?, brand=?, material=?, thumbnail=?,
-        images=?, colors=?, sizes=?, stock=?, is_active=?, is_featured=?,
+        images=?, colors=?, sizes=?, stock=?, is_active=?, is_featured=?, is_trending=?, trending_order=?,
         updated_at=CURRENT_TIMESTAMP
       WHERE id=?
     `).bind(
@@ -457,6 +465,8 @@ app.put('/api/admin/products/:id', async (c) => {
       parseInt(stock) || 0,
       is_active !== undefined ? (is_active ? 1 : 0) : 1,
       is_featured ? 1 : 0,
+      is_trending ? 1 : 0,
+      parseInt(trending_order) || 0,
       id
     ).run()
 
@@ -515,6 +525,24 @@ app.get('/api/featured-products', async (c) => {
     await initDB(c.env.DB)
     const res = await c.env.DB.prepare(
       `SELECT * FROM products WHERE is_active=1 AND is_featured=1 ORDER BY display_order ASC, id DESC`
+    ).all()
+    return c.json({ success: true, data: res.results || [] })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+// GET trending products for stacked "Dang thinh hanh" section
+app.get('/api/trending-products', async (c) => {
+  try {
+    await initDB(c.env.DB)
+    const res = await c.env.DB.prepare(
+      `SELECT * FROM products WHERE is_active=1 AND is_trending=1
+       ORDER BY
+         CASE WHEN COALESCE(trending_order, 0) > 0 THEN 0 ELSE 1 END ASC,
+         CASE WHEN COALESCE(trending_order, 0) > 0 THEN trending_order ELSE 999999 END ASC,
+         datetime(created_at) ASC,
+         id ASC`
     ).all()
     return c.json({ success: true, data: res.results || [] })
   } catch (e: any) {
@@ -1009,7 +1037,7 @@ function storefrontHTML(): string {
 <nav class="navbar-blur fixed top-0 left-0 right-0 z-50 border-b border-white/10">
   <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
     <a href="/" class="flex items-center gap-2">
-      <span class="logo-spinner"><img src="/qh-logo.png" alt="QH"></span><span class="text-2xl font-display text-white font-bold tracking-wide ml-1.5"><span class="text-pink-400">Clothes</span></span>
+      <span class="inline-flex items-center justify-center"><img src="/qh-logo.png" alt="QH" class="rounded-full w-9 h-9 object-cover bg-white"></span><span class="text-2xl font-display text-white font-bold tracking-wide ml-1.5"><span class="text-pink-400">Clothes</span></span>
     </a>
     <div class="hidden md:flex items-center gap-6 text-sm text-gray-300">
       <a href="#products" class="hover:text-pink-400 transition">Sản phẩm</a>
@@ -1074,7 +1102,7 @@ function storefrontHTML(): string {
     </div>
     <div class="flex justify-center" id="heroBannersWrapper">
       <!-- Collapsed / stacked state -->
-      <div id="heroBannersCollapsed" title="Hover để xem thêm">
+      <div id="heroBannersCollapsed" title="Click để xem thêm">
         <!-- will be rendered by JS -->
         <div class="relative w-80 h-96">
           <div class="absolute inset-0 bg-gradient-to-br from-pink-500/20 to-purple-600/20 rounded-3xl rotate-6"></div>
@@ -1087,7 +1115,8 @@ function storefrontHTML(): string {
 
     <!-- Expanded fullscreen overlay -->
     <div id="heroBannersExpanded" onclick="handleBannerOverlayClick(event)">
-      <p id="heroBannersExpandedTitle">✨ Bộ sưu tập nổi bật</p>
+      <p id="heroBannersExpandedTitle">🔥 Đang thịnh hành</p>
+      <p id="heroBannersExpandedSubtitle" class="text-white/70 text-xs md:text-sm text-center mb-4">Đây là những sản phẩm hot nhất và đang được đặt mua nhiều nhất ở thời điểm hiện tại.</p>
       <div id="heroBannersExpandedInner">
         <!-- filled by JS -->
       </div>
@@ -1150,7 +1179,10 @@ function storefrontHTML(): string {
 <footer class="gradient-hero text-white py-12" id="contact">
   <div class="max-w-7xl mx-auto px-4 grid md:grid-cols-3 gap-8">
     <div>
-      <h3 class="font-display text-2xl font-bold mb-4">QH<span class="text-pink-400">Clothes</span></h3>
+      <h3 class="font-display text-2xl font-bold mb-4 flex items-center gap-2">
+        <span class="logo-spinner"><img src="/qh-logo.png" alt="QH"></span>
+        <span>QH<span class="text-pink-400">Clothes</span></span>
+      </h3>
       <p class="text-gray-400 text-sm leading-relaxed">Thương hiệu thời trang Việt Nam cao cấp, mang phong cách hiện đại đến với mọi người.</p>
     </div>
     <div>
@@ -1308,7 +1340,7 @@ function storefrontHTML(): string {
 </div>
 
 <!-- PRODUCT DETAIL POPUP -->
-<div id="detailOverlay" class="fixed inset-0 overlay z-50 hidden flex items-center justify-center p-4">
+<div id="detailOverlay" class="fixed inset-0 overlay hidden flex items-center justify-center p-4" style="z-index:1001;">
   <div class="popup-card bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
     <div class="sticky top-0 bg-white rounded-t-3xl border-b px-6 py-4 flex items-center justify-between">
       <h3 class="font-display text-xl font-bold text-gray-900">Chi tiết sản phẩm</h3>
@@ -1714,7 +1746,7 @@ async function showDetail(id) {
             \${sizes.map(s => \`<button class="size-btn w-12 h-10 border rounded-lg text-sm font-medium hover:border-pink-400 transition" onclick="selectDetailSize('\${s}',this)">\${s}</button>\`).join('')}
           </div>
         </div>\` : ''}
-        <button onclick="closeDetail();openOrder(\${p.id})" class="btn-primary w-full text-white py-3.5 rounded-xl font-bold text-base">
+        <button onclick="closeDetail();collapseBanners();openOrder(\${p.id})" class="btn-primary w-full text-white py-3.5 rounded-xl font-bold text-base">
           <i class="fas fa-shopping-cart mr-2"></i>Đặt hàng ngay
         </button>
       </div>
@@ -2320,37 +2352,77 @@ let heroBannersIsExpanded = false
 
 async function loadSettings() {
   try {
-    const res = await axios.get('/api/hero_banners')
-    if (res.data && res.data.data) {
-      heroBannersData = res.data.data
-      renderCollapsedBanners(heroBannersData)
-      renderExpandedBanners(heroBannersData)
-    }
+    const trendingRes = await axios.get('/api/trending-products').catch(() => ({ data: { data: [] } }))
+    const trendingProducts = (trendingRes.data && trendingRes.data.data) ? trendingRes.data.data : []
+    heroBannersData = mapTrendingProductsToHeroCards(trendingProducts)
+    renderCollapsedBanners(heroBannersData)
+    renderExpandedBanners(heroBannersData)
+    bindHeroBannersWheelScroll()
   } catch (e) {
     console.error('Failed to load banners', e)
   }
 }
 
+function mapTrendingProductsToHeroCards(products) {
+  if (!Array.isArray(products)) return []
+  return products.map((p) => {
+    const imgs = safeJson(p.images)
+    const categoryLabel = p.category === 'male' ? 'Nam' : p.category === 'female' ? 'Nu' : 'Unisex'
+    return {
+      image_url: p.thumbnail || imgs[0] || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400',
+      subtitle: categoryLabel + ' · Dang thinh hanh',
+      title: p.name || '',
+      price: fmtPrice(p.price || 0),
+      product_id: p.id
+    }
+  })
+}
+function bindHeroBannersWheelScroll() {
+  const overlay = document.getElementById('heroBannersExpanded')
+  const inner = document.getElementById('heroBannersExpandedInner')
+  if (!overlay || !inner || inner.dataset.wheelBound === '1') return
+  inner.dataset.wheelBound = '1'
+  const onWheel = (e) => {
+    if (!heroBannersIsExpanded) return
+    const delta = Math.abs(e.deltaY) > Math.abs(e.deltaX) ? e.deltaY : e.deltaX
+    if (!delta) return
+    inner.scrollLeft += delta * 1.2
+    e.preventDefault()
+  }
+  inner.addEventListener('wheel', onWheel, { passive: false })
+  overlay.addEventListener('wheel', onWheel, { passive: false })
+}
+
 function renderCollapsedBanners(banners) {
   const container = document.getElementById('heroBannersCollapsed')
-  if (!container || !banners.length) return
+  if (!container) return
+  if (!banners.length) {
+    container.innerHTML = \`<div class="relative w-full h-full rounded-3xl border border-white/20 bg-white/5 flex items-center justify-center text-center px-6">
+      <div>
+        <i class="fas fa-fire text-2xl text-pink-300 mb-2"></i>
+        <p class="text-white/80 text-sm font-medium">Chưa có sản phẩm thịnh hành</p>
+      </div>
+    </div>\`
+    return
+  }
   const len = banners.length
-  const shown = banners.slice(0, Math.min(len, 4))
+  const shown = banners.slice(0, Math.min(len, 4)).reverse()
   container.innerHTML = \`<div class="relative" style="width:300px;height:360px">
   \${shown.map((b, i) => {
     const rot = shown.length > 1 ? (i - Math.floor((shown.length - 1) / 2)) * 6 : 0
     const z = i * 10
     const isTop = i === shown.length - 1
-    const clickHandler = b.product_id ? \`showDetail(\${b.product_id})\` : \`\`
-    const cursor = b.product_id ? 'cursor-pointer' : 'cursor-default'
+    const clickHandler = \`expandBanners()\`
+    const cursor = 'cursor-pointer'
     return \`<div class="absolute inset-0 rounded-3xl overflow-hidden \${cursor}" onclick="\${clickHandler}" style="transform:rotate(\${rot}deg);z-index:\${z};transition:transform 0.5s ease,box-shadow 0.5s ease;box-shadow:0 12px 40px rgba(0,0,0,0.25);">
       <div class="absolute inset-0 bg-gradient-to-br from-pink-500/15 to-purple-600/15 rounded-3xl pointer-events-none"></div>
       <img src="\${b.image_url}" alt="\${b.title || 'Banner'}" class="w-full h-full object-cover rounded-3xl pointer-events-none" onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'">
       \${isTop && (b.subtitle || b.title || b.price) ? \`
-        <div class="absolute bottom-3 right-3 bg-white rounded-2xl px-4 py-3 shadow-xl max-w-[160px] pointer-events-none" style="z-index:\${z+5}">
-          \${b.subtitle ? \`<p class="text-[10px] text-gray-400 uppercase tracking-widest font-semibold">\${b.subtitle}</p>\` : ''}
-          \${b.title ? \`<p class="font-bold text-gray-800 text-sm leading-tight">\${b.title}</p>\` : ''}
-          \${b.price ? \`<p class="text-pink-500 font-bold text-sm mt-1">\${b.price}</p>\` : ''}
+        <div class="absolute left-0 right-0 bottom-0 px-4 pt-10 pb-4 pointer-events-none rounded-b-3xl"
+          style="z-index:\${z+5};background:linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.6) 42%, rgba(0,0,0,0) 100%);">
+          \${b.subtitle ? \`<p class="text-[10px] text-white/75 uppercase tracking-[2px] font-semibold mb-1">\${b.subtitle}</p>\` : ''}
+          \${b.title ? \`<p class="font-bold text-white text-sm leading-tight overflow-hidden text-ellipsis whitespace-nowrap" style="max-width:100%;">\${b.title}</p>\` : ''}
+          \${b.price ? \`<p class="text-pink-300 font-bold text-sm mt-1">\${b.price}</p>\` : ''}
         </div>\` : ''}
     </div>\`
   }).join('')}
@@ -2360,17 +2432,17 @@ function renderCollapsedBanners(banners) {
   </div>\`
   container.style.paddingBottom = '36px'
   // Hover expand
-  container.onmouseenter = () => { if (!heroBannersIsExpanded) expandBanners() }
+  container.onclick = () => { if (!heroBannersIsExpanded) expandBanners() }
 }
 
 function renderExpandedBanners(banners) {
   const inner = document.getElementById('heroBannersExpandedInner')
   const title = document.getElementById('heroBannersExpandedTitle')
   if (!inner) return
-  if (title) title.textContent = \`✨ Bộ sưu tập nổi bật (\${banners.length} ảnh)\`
+  if (title) title.textContent = \`🔥 Đang thịnh hành (\${banners.length} mẫu)\`
   inner.innerHTML = banners.map(b => {
     if (b.product_id) {
-      return \`<a href="javascript:void(0)" class="hero-banner-card" onclick="collapseBanners(); showDetail(\${b.product_id})">
+      return \`<a href="javascript:void(0)" class="hero-banner-card" onclick="showDetail(\${b.product_id})">
         <img src="\${b.image_url}" alt="\${b.title || ''}" onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'" loading="lazy">
         \${(b.subtitle || b.title || b.price) ? \`
           <div class="banner-caption">
@@ -3251,6 +3323,28 @@ function adminHTML(): string {
             <span class="text-sm font-medium text-gray-700">Sản phẩm nổi bật</span>
           </label>
           <label class="flex items-center gap-2 cursor-pointer">
+            <input type="checkbox" id="pTrending" class="w-4 h-4 accent-pink-500">
+            <span class="text-sm font-medium text-gray-700">Sản phẩm thịnh hành</span>
+          </label>
+          <div class="flex items-center gap-2">
+            <label for="pTrendingOrder" class="text-sm font-medium text-gray-700 whitespace-nowrap">Vị trí hiển thị</label>
+            <select id="pTrendingOrder" class="border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-pink-400">
+              <option value="0">Tự động</option>
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+              <option value="6">6</option>
+              <option value="7">7</option>
+              <option value="8">8</option>
+              <option value="9">9</option>
+              <option value="10">10</option>
+              <option value="11">11</option>
+              <option value="12">12</option>
+            </select>
+          </div>
+          <label class="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" id="pActive" checked class="w-4 h-4 accent-pink-500">
             <span class="text-sm font-medium text-gray-700">Hiển thị</span>
           </label>
@@ -3362,6 +3456,7 @@ let sizes = []
 let galleryImages = ['','','','','','','','','']
 let editingId = null
 let gallerySlotClickBound = false
+const MAX_PRODUCT_PAYLOAD_SIZE = 1200000
 
 // ── NAVIGATION ────────────────────────────────────
 function showPage(name) {
@@ -3749,6 +3844,8 @@ function renderAdminProducts(products) {
         <div class="absolute top-2 left-2 flex gap-1">
           <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-white/90 text-gray-700">\${catLabel(p.category)}</span>
           \${p.is_featured ? '<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-400 text-white">⭐ Hot</span>' : ''}
+          \${p.is_trending ? '<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-500 text-white">🔥 Trend</span>' : ''}
+          \${p.is_trending && (p.trending_order||0) > 0 ? \`<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-500 text-white">#\${p.trending_order}</span>\` : ''}
         </div>
         <div class="absolute top-2 right-2">
           <span class="w-2.5 h-2.5 rounded-full inline-block \${p.is_active ? 'bg-green-400' : 'bg-gray-400'}"></span>
@@ -3827,6 +3924,8 @@ async function openProductModal(id = null) {
       document.getElementById('pDescription').value = p.description || ''
       document.getElementById('pStock').value = p.stock || 0
       document.getElementById('pFeatured').checked = !!p.is_featured
+      document.getElementById('pTrending').checked = !!p.is_trending
+      document.getElementById('pTrendingOrder').value = String(p.trending_order || 0)
       document.getElementById('pActive').checked = !!p.is_active
       
       // Thumbnail
@@ -3859,6 +3958,7 @@ function resetProductForm() {
   document.getElementById('productForm').reset()
   document.getElementById('productId').value = ''
   document.getElementById('pActive').checked = true
+  document.getElementById('pTrendingOrder').value = '0'
   previewThumbnail('')
   for (let i = 0; i < 9; i++) clearGallerySlot(i)
   colors = []; sizes = []
@@ -3887,7 +3987,15 @@ async function saveProduct(e) {
     sizes: sizes,
     stock: document.getElementById('pStock').value || 0,
     is_featured: document.getElementById('pFeatured').checked,
+    is_trending: document.getElementById('pTrending').checked,
+    trending_order: parseInt(document.getElementById('pTrendingOrder').value) || 0,
     is_active: document.getElementById('pActive').checked
+  }
+  const payloadSize = JSON.stringify(data).length
+  if (payloadSize > MAX_PRODUCT_PAYLOAD_SIZE) {
+    showAdminToast('Ảnh quá nặng, vui lòng giảm dung lượng hoặc số lượng ảnh', 'error')
+    btn.textContent = 'Lưu sản phẩm'
+    return
   }
   
   try {
@@ -3901,7 +4009,8 @@ async function saveProduct(e) {
     closeProductModal()
     loadAdminProducts()
   } catch(e) {
-    showAdminToast('Lỗi lưu sản phẩm', 'error')
+    const msg = e.response?.data?.error || e.message || 'Lỗi lưu sản phẩm'
+    showAdminToast(msg, 'error')
   } finally {
     btn.textContent = 'Lưu sản phẩm'
   }
@@ -3946,12 +4055,15 @@ function removeGalleryImg(i) {
   clearGallerySlot(i)
 }
 
-function handleGalleryFile(i, input) {
+async function handleGalleryFile(i, input) {
   const file = input.files[0]
   if (!file) return
-  const reader = new FileReader()
-  reader.onload = e => setGallerySlot(i, e.target.result)
-  reader.readAsDataURL(file)
+  try {
+    const dataUrl = await fileToOptimizedDataURL(file, 1200, 0.82)
+    setGallerySlot(i, dataUrl)
+  } catch (e) {
+    showAdminToast('Không thể xử lý ảnh, vui lòng thử ảnh khác', 'error')
+  }
 }
 
 function addGalleryUrl() {
@@ -3976,14 +4088,40 @@ function previewThumbnail(url) {
   }
 }
 
-function handleThumbnailFile(input) {
+async function handleThumbnailFile(input) {
   const file = input.files[0]; if (!file) return
-  const reader = new FileReader()
-  reader.onload = e => {
-    document.getElementById('pThumbnail').value = e.target.result
-    previewThumbnail(e.target.result)
+  try {
+    const dataUrl = await fileToOptimizedDataURL(file, 900, 0.85)
+    document.getElementById('pThumbnail').value = dataUrl
+    previewThumbnail(dataUrl)
+  } catch (e) {
+    showAdminToast('Không thể xử lý thumbnail, vui lòng thử ảnh khác', 'error')
   }
-  reader.readAsDataURL(file)
+}
+
+function fileToOptimizedDataURL(file, maxWidth = 1200, quality = 0.82) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onerror = () => reject(new Error('read_failed'))
+    reader.onload = () => {
+      const img = new Image()
+      img.onerror = () => reject(new Error('decode_failed'))
+      img.onload = () => {
+        const scale = Math.min(1, maxWidth / img.width)
+        const width = Math.max(1, Math.round(img.width * scale))
+        const height = Math.max(1, Math.round(img.height * scale))
+        const canvas = document.createElement('canvas')
+        canvas.width = width
+        canvas.height = height
+        const ctx = canvas.getContext('2d')
+        if (!ctx) return reject(new Error('canvas_failed'))
+        ctx.drawImage(img, 0, 0, width, height)
+        resolve(canvas.toDataURL('image/jpeg', quality))
+      }
+      img.src = reader.result
+    }
+    reader.readAsDataURL(file)
+  })
 }
 
 // ── TAGS (Colors/Sizes) ────────────────────────────
@@ -4482,3 +4620,6 @@ function adminLoginHTML(): string {
 </body>
 </html>`
 }
+
+
+
