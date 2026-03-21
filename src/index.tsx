@@ -906,6 +906,21 @@ function storefrontHTML(): string {
   .cart-checkout { animation: slideUp 0.3s ease; }
   .cart-badge-bounce { animation: badgeBounce 0.4s cubic-bezier(0.36,0.07,0.19,0.97); }
   @keyframes badgeBounce { 0%{transform:scale(1)} 30%{transform:scale(1.5)} 60%{transform:scale(0.9)} 100%{transform:scale(1)} }
+  .cart-fly-chip {
+    position: fixed;
+    width: 42px;
+    height: 42px;
+    border-radius: 9999px;
+    overflow: hidden;
+    border: 2px solid rgba(255,255,255,0.85);
+    box-shadow: 0 10px 24px rgba(0,0,0,0.25);
+    z-index: 10000;
+    pointer-events: none;
+    transform: translate(0,0) scale(1);
+    opacity: 1;
+    transition: transform 0.7s cubic-bezier(0.2,0.8,0.2,1), opacity 0.7s ease;
+  }
+  .cart-fly-chip img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .line-clamp-1 { overflow:hidden; display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; }
   /* Checkout step in cart */
   .checkout-slide { animation: slideUp 0.3s ease; }
@@ -1718,7 +1733,7 @@ function renderProducts(products) {
             class="btn-primary flex-1 text-white py-2 rounded-xl text-sm font-semibold">
             <i class="fas fa-bolt mr-1"></i>Mua ngay
           </button>
-          <button onclick="event.stopPropagation();addToCartFromCard(\${p.id})" title="Thêm vào giỏ hàng"
+          <button onclick="event.stopPropagation();addToCartFromCard(event, \${p.id})" title="Thêm vào giỏ hàng"
             class="w-10 h-9 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-white rounded-xl transition group relative">
             <i class="fas fa-shopping-bag text-sm"></i>
           </button>
@@ -1899,8 +1914,37 @@ function closeOrder() {
   document.body.style.overflow = ''
 }
 
+function animateFlyToCart(imgUrl, sourceEl) {
+  const cartBtn = document.getElementById('cartNavBtn')
+  if (!cartBtn || !imgUrl) return
+  const fromRect = sourceEl ? sourceEl.getBoundingClientRect() : null
+  const toRect = cartBtn.getBoundingClientRect()
+
+  const chip = document.createElement('div')
+  chip.className = 'cart-fly-chip'
+  const startX = fromRect ? (fromRect.left + fromRect.width / 2 - 21) : (window.innerWidth / 2 - 21)
+  const startY = fromRect ? (fromRect.top + fromRect.height / 2 - 21) : (window.innerHeight / 2 - 21)
+  chip.style.left = startX + 'px'
+  chip.style.top = startY + 'px'
+
+  const img = document.createElement('img')
+  img.src = imgUrl
+  img.onerror = () => { img.src = 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200' }
+  chip.appendChild(img)
+  document.body.appendChild(chip)
+
+  requestAnimationFrame(() => {
+    const endX = toRect.left + toRect.width / 2 - 21
+    const endY = toRect.top + toRect.height / 2 - 21
+    chip.style.transform = 'translate(' + (endX - startX) + 'px, ' + (endY - startY) + 'px) scale(0.35)'
+    chip.style.opacity = '0.1'
+  })
+
+  setTimeout(() => chip.remove(), 760)
+}
+
 // Add to cart from product card – always add directly, pick first color/size as default
-async function addToCartFromCard(id) {
+async function addToCartFromCard(evt, id) {
   try {
     const res = await axios.get('/api/products/' + id)
     const p = res.data.data
@@ -1908,6 +1952,7 @@ async function addToCartFromCard(id) {
     const sizes = safeJson(p.sizes)
     const color = colors.length > 0 ? colors[0] : ''
     const size = sizes.length > 0 ? sizes[0] : ''
+    animateFlyToCart(p.thumbnail || '', evt?.currentTarget || evt?.target || null)
     addToCart(p, color, size, 1)
     showToast('Đã thêm "' + p.name + '" vào giỏ hàng!', 'success', 2500)
   } catch(e) { showToast('Lỗi khi thêm vào giỏ', 'error') }
@@ -2025,6 +2070,7 @@ async function submitOrder() {
 // Add current product from order popup to cart
 function addCurrentToCart() {
   if (!currentProduct) return
+  animateFlyToCart(currentProduct.thumbnail || '', document.getElementById('addToCartBtn'))
   addToCart(currentProduct, selectedColor, selectedSize, orderQty)
   closeOrder()
   showToast('Da them "' + currentProduct.name + '" vao gio hang!', 'success', 2500)
