@@ -1597,13 +1597,35 @@ let appliedVoucher = null   // { code, discount_amount }
 let cart = []
 let cartStep = 1  // 1=list, 2=checkout
 let ckAppliedVoucher = null
+let currentUser = null
+let isAdminUser = false
+let cartStorageKey = 'qhclothes_cart_guest'
 
-function loadCart() {
-  try { cart = JSON.parse(localStorage.getItem('qhclothes_cart') || '[]') } catch { cart = [] }
+function resolveCartStorageKey() {
+  if (isAdminUser) return 'qhclothes_cart_admin'
+  const uid = Number(currentUser?.userId || currentUser?.id || 0)
+  if (uid > 0) return 'qhclothes_cart_user_' + uid
+  return 'qhclothes_cart_guest'
+}
+
+function syncCartScope(force = false) {
+  const nextKey = resolveCartStorageKey()
+  if (!force && nextKey === cartStorageKey) return
+  cartStorageKey = nextKey
+  loadCart(true)
+  const overlay = document.getElementById('cartOverlay')
+  if (overlay && !overlay.classList.contains('hidden')) {
+    renderCartStep1()
+  }
+}
+
+function loadCart(useCurrentScope = false) {
+  if (!useCurrentScope) cartStorageKey = resolveCartStorageKey()
+  try { cart = JSON.parse(localStorage.getItem(cartStorageKey) || '[]') } catch { cart = [] }
   updateCartBadge()
 }
 function saveCart() {
-  localStorage.setItem('qhclothes_cart', JSON.stringify(cart))
+  localStorage.setItem(cartStorageKey, JSON.stringify(cart))
   updateCartBadge()
 }
 function updateCartBadge() {
@@ -2549,16 +2571,19 @@ loadProducts()
 checkUserAuth()
 
 // ── USER AUTH & MENU ──────────────────────────────
-let currentUser = null
-let isAdminUser = false
-
 async function checkUserAuth() {
   try {
     const res = await axios.get('/api/auth/me')
     currentUser = res.data.data
     isAdminUser = !!res.data.isAdmin
+    syncCartScope()
     updateUserUI()
-  } catch { currentUser = null; isAdminUser = false; updateUserUI() }
+  } catch {
+    currentUser = null
+    isAdminUser = false
+    syncCartScope()
+    updateUserUI()
+  }
 }
 
 function fmtBalance(v) { return new Intl.NumberFormat('vi-VN').format(v||0) + 'đ' }
@@ -2636,6 +2661,8 @@ function loginWithGoogle() { window.location.href = '/api/auth/google' }
 async function logoutUser() {
   try { await axios.post('/api/auth/logout') } catch {}
   currentUser = null
+  isAdminUser = false
+  syncCartScope(true)
   updateUserUI()
   closeUserMenu()
   showToast('Đã đăng xuất thành công', 'success')
