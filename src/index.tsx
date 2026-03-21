@@ -187,6 +187,8 @@ app.post('/api/admin/login', async (c) => {
   const body = await c.req.json()
   const { username, password } = body
   if (username === 'admin' && password === 'admin') {
+    // Ensure admin session is not mixed with a previous Google user session.
+    deleteCookie(c, 'user_id', { path: '/' })
     setCookie(c, 'admin_token', 'super_secret_admin_token', { path: '/', maxAge: 86400 * 30, httpOnly: true })
     return c.json({ success: true })
   }
@@ -202,7 +204,16 @@ app.get('/api/auth/me', async (c) => {
 
   let dbError = null
 
-  if (userToken) {
+  if (isAdmin) {
+    currentUser = {
+      userId: 0,
+      email: 'admin@qhclothes.local',
+      name: 'Admin',
+      avatar: '',
+      balance: 0,
+      is_admin: 1
+    }
+  } else if (userToken) {
     try {
       const parsedId = parseInt(userToken, 10)
       const user = await c.env.DB.prepare("SELECT id as userId, email, name, avatar, balance, is_admin FROM users WHERE id=?").bind(parsedId).first()
@@ -2562,7 +2573,18 @@ function updateUserUI() {
   const adminLink = document.getElementById('adminNavLink')
   // Admin icon
   if (isAdminUser) { adminLink.classList.remove('hidden') } else { adminLink.classList.add('hidden') }
-  if (currentUser) {
+  if (currentUser && isAdminUser) {
+    defaultAvatar.classList.remove('hidden')
+    imgAvatar.classList.add('hidden')
+    guestSection.classList.add('hidden')
+    loggedInSection.classList.remove('hidden')
+    logoutArea.classList.remove('hidden')
+    document.getElementById('userMenuAvatar').src = '/qh-logo.png'
+    document.getElementById('userMenuName').textContent = 'Admin'
+    document.getElementById('userMenuEmail').textContent = 'Quyen quan tri'
+    walletNav.classList.add('hidden')
+    walletNav.classList.remove('flex')
+  } else if (currentUser) {
     defaultAvatar.classList.add('hidden')
     imgAvatar.src = currentUser.avatar || ''
     imgAvatar.classList.remove('hidden')
