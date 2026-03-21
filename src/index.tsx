@@ -1914,9 +1914,16 @@ function closeOrder() {
   document.body.style.overflow = ''
 }
 
+function resolveFlyImage(product) {
+  if (!product) return 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200'
+  const imgs = safeJson(product.images)
+  return product.thumbnail || imgs[0] || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200'
+}
+
 function animateFlyToCart(imgUrl, sourceEl) {
   const cartBtn = document.getElementById('cartNavBtn')
-  if (!cartBtn || !imgUrl) return
+  if (!cartBtn) return
+  const flyImg = imgUrl || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200'
   const fromRect = sourceEl ? sourceEl.getBoundingClientRect() : null
   const toRect = cartBtn.getBoundingClientRect()
 
@@ -1928,7 +1935,7 @@ function animateFlyToCart(imgUrl, sourceEl) {
   chip.style.top = startY + 'px'
 
   const img = document.createElement('img')
-  img.src = imgUrl
+  img.src = flyImg
   img.onerror = () => { img.src = 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200' }
   chip.appendChild(img)
   document.body.appendChild(chip)
@@ -1952,7 +1959,7 @@ async function addToCartFromCard(evt, id) {
     const sizes = safeJson(p.sizes)
     const color = colors.length > 0 ? colors[0] : ''
     const size = sizes.length > 0 ? sizes[0] : ''
-    animateFlyToCart(p.thumbnail || '', evt?.currentTarget || evt?.target || null)
+    animateFlyToCart(resolveFlyImage(p), evt?.currentTarget || evt?.target || null)
     addToCart(p, color, size, 1)
     showToast('Đã thêm "' + p.name + '" vào giỏ hàng!', 'success', 2500)
   } catch(e) { showToast('Lỗi khi thêm vào giỏ', 'error') }
@@ -2070,7 +2077,7 @@ async function submitOrder() {
 // Add current product from order popup to cart
 function addCurrentToCart() {
   if (!currentProduct) return
-  animateFlyToCart(currentProduct.thumbnail || '', document.getElementById('addToCartBtn'))
+  animateFlyToCart(resolveFlyImage(currentProduct), document.getElementById('addToCartBtn'))
   addToCart(currentProduct, selectedColor, selectedSize, orderQty)
   closeOrder()
   showToast('Da them "' + currentProduct.name + '" vao gio hang!', 'success', 2500)
