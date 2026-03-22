@@ -5680,14 +5680,16 @@ async function arrangeSelectedForShipping() {
 function printSelectedOrders() {
   const selected = filteredAdminOrders.filter(o => selectedOrderIds.has(Number(o.id)))
   if (!selected.length) return
-  const ghtkIds = selected
+  const ghtkOrders = selected
     .filter(o => String(o.shipping_carrier || '').toUpperCase() === 'GHTK' && String(o.shipping_tracking_code || '').trim())
-    .map(o => Number(o.id))
-  if (ghtkIds.length === selected.length) {
-    openGHTKLabelsPdf(ghtkIds)
+  if (!ghtkOrders.length) {
+    showAdminToast('Chưa có mã vận đơn GHTK để in nhãn', 'warning')
     return
   }
-  openPrintOrdersPopup(selected)
+  if (ghtkOrders.length < selected.length) {
+    showAdminToast('Một số đơn chưa có mã vận đơn, chỉ in các đơn đã có mã GHTK', 'warning')
+  }
+  openGHTKLabelsPdf(ghtkOrders.map(o => Number(o.id)))
 }
 
 function openGHTKLabelsPdf(orderIds) {
@@ -5793,7 +5795,13 @@ function printArrangedOrdersFromModal() {
     closeArrangeSuccessModal()
     return
   }
-  openGHTKLabelsPdf(arrangedOrdersForPrint.map((o) => Number(o.id)))
+  const ghtkOrders = arrangedOrdersForPrint
+    .filter(o => String(o.shipping_carrier || '').toUpperCase() === 'GHTK' && String(o.shipping_tracking_code || '').trim())
+  if (!ghtkOrders.length) {
+    showAdminToast('Chưa có mã vận đơn GHTK để in nhãn', 'warning')
+    return
+  }
+  openGHTKLabelsPdf(ghtkOrders.map((o) => Number(o.id)))
   closeArrangeSuccessModal()
 }
 
