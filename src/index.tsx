@@ -2,12 +2,24 @@
 import { cors } from 'hono/cors'
 import { serveStatic } from 'hono/cloudflare-workers'
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie'
+import { PDFDocument } from 'pdf-lib'
 
 type Bindings = {
   DB: D1Database
   GOOGLE_CLIENT_ID?: string
   GOOGLE_CLIENT_SECRET?: string
   CASSO_SECURE_TOKEN?: string
+  GHTK_TOKEN?: string
+  GHTK_CLIENT_SOURCE?: string
+  GHTK_PICK_NAME?: string
+  GHTK_PICK_ADDRESS?: string
+  GHTK_PICK_PROVINCE?: string
+  GHTK_PICK_DISTRICT?: string
+  GHTK_PICK_WARD?: string
+  GHTK_PICK_TEL?: string
+  GHTK_DEFAULT_WEIGHT_KG?: string
+  GHTK_LABEL_ORIGINAL?: string
+  GHTK_LABEL_PAGE_SIZE?: string
 }
 
 const app = new Hono<{ Bindings: Bindings }>()
@@ -78,6 +90,10 @@ async function initDB(db: D1Database) {
       payment_order_code INTEGER,
       shipping_arranged INTEGER DEFAULT 0,
       shipping_arranged_at DATETIME,
+      shipping_carrier TEXT DEFAULT '',
+      shipping_tracking_code TEXT,
+      shipping_label TEXT,
+      shipping_fee REAL DEFAULT 0,
       status TEXT DEFAULT 'pending',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -128,6 +144,10 @@ async function initDB(db: D1Database) {
   try { await db.prepare("ALTER TABLE orders ADD COLUMN payment_order_code INTEGER").run() } catch (_) { }
   try { await db.prepare("ALTER TABLE orders ADD COLUMN shipping_arranged INTEGER DEFAULT 0").run() } catch (_) { }
   try { await db.prepare("ALTER TABLE orders ADD COLUMN shipping_arranged_at DATETIME").run() } catch (_) { }
+  try { await db.prepare("ALTER TABLE orders ADD COLUMN shipping_carrier TEXT DEFAULT ''").run() } catch (_) { }
+  try { await db.prepare("ALTER TABLE orders ADD COLUMN shipping_tracking_code TEXT").run() } catch (_) { }
+  try { await db.prepare("ALTER TABLE orders ADD COLUMN shipping_label TEXT").run() } catch (_) { }
+  try { await db.prepare("ALTER TABLE orders ADD COLUMN shipping_fee REAL DEFAULT 0").run() } catch (_) { }
 
   // Seed initial banners if empty
   try {
@@ -230,6 +250,133 @@ async function syncOrderPaymentWithPayOS(db: D1Database, env: any, order: any) {
   ).run()
 
   return { synced: true, paid: true, paymentInfo }
+}
+
+function normalizeGHTKOriginal(v: any) {
+  const value = String(v || '').toLowerCase()
+  return value === 'landscape' ? 'landscape' : 'portrait'
+}
+
+function normalizeGHTKPageSize(v: any) {
+  const value = String(v || '').toUpperCase()
+  return value === 'A5' ? 'A5' : 'A6'
+}
+
+function parseVietnamAddress(address: string) {
+  const parts = String(address || '').split(',').map((s) => s.trim()).filter(Boolean)
+  if (parts.length < 4) return null
+  const province = parts[parts.length - 1]
+  const district = parts[parts.length - 2]
+  const ward = parts[parts.length - 3]
+  const detail = parts.slice(0, parts.length - 3).join(', ')
+  if (!detail || !province || !district || !ward) return null
+  return { detail, ward, district, province }
+}
+
+function getOrderAmountDueServer(order: any) {
+  return String(order?.payment_status || '').toLowerCase() === 'paid'
+    ? 0
+    : Number(order?.total_price || 0)
+}
+
+async function ghtkCreateShipment(env: any, order: any) {
+  const token = String(env.GHTK_TOKEN || '').trim()
+  const clientSource = String(env.GHTK_CLIENT_SOURCE || '').trim()
+  if (!token || !clientSource) return { ok: false, message: 'MISSING_GHTK_KEYS' }
+
+  const pickName = String(env.GHTK_PICK_NAME || '').trim()
+  const pickAddress = String(env.GHTK_PICK_ADDRESS || '').trim()
+  const pickProvince = String(env.GHTK_PICK_PROVINCE || '').trim()
+  const pickDistrict = String(env.GHTK_PICK_DISTRICT || '').trim()
+  const pickWard = String(env.GHTK_PICK_WARD || '').trim()
+  const pickTel = String(env.GHTK_PICK_TEL || '').trim()
+  if (!pickName || !pickAddress || !pickProvince || !pickDistrict || !pickWard || !pickTel) {
+    return { ok: false, message: 'MISSING_GHTK_PICKUP_CONFIG' }
+  }
+
+  const parsedAddress = parseVietnamAddress(String(order?.customer_address || ''))
+  if (!parsedAddress) return { ok: false, message: 'INVALID_CUSTOMER_ADDRESS_FORMAT' }
+
+  const weight = Number(env.GHTK_DEFAULT_WEIGHT_KG || 0.5)
+  const payload = {
+    products: [
+      {
+        name: String(order?.product_name || 'San pham'),
+        weight: Number.isFinite(weight) && weight > 0 ? weight : 0.5,
+        quantity: Number(order?.quantity || 1) || 1,
+        product_code: ''
+      }
+    ],
+    order: {
+      id: String(order?.order_code || order?.id || ''),
+      pick_name: pickName,
+      pick_address: pickAddress,
+      pick_province: pickProvince,
+      pick_district: pickDistrict,
+      pick_ward: pickWard,
+      pick_tel: pickTel,
+      name: String(order?.customer_name || ''),
+      address: parsedAddress.detail,
+      province: parsedAddress.province,
+      district: parsedAddress.district,
+      ward: parsedAddress.ward,
+      hamlet: 'Khac',
+      tel: String(order?.customer_phone || ''),
+      pick_money: Math.max(0, Math.round(getOrderAmountDueServer(order))),
+      value: Math.max(0, Math.round(Number(order?.total_price || 0))),
+      pick_option: 'cod',
+      transport: 'road',
+      note: String(order?.note || '').slice(0, 120)
+    }
+  }
+
+  const resp = await fetch('https://services.giaohangtietkiem.vn/services/shipment/order/?ver=1.5', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Token': token,
+      'X-Client-Source': clientSource
+    },
+    body: JSON.stringify(payload)
+  })
+  const body: any = await resp.json().catch(() => ({}))
+  if (resp.ok && body?.success && body?.order) return { ok: true, data: body.order }
+  return { ok: false, message: String(body?.message || 'GHTK_CREATE_ORDER_FAILED'), detail: body }
+}
+
+async function ghtkFetchLabelPdf(env: any, trackingCode: string, original?: string, pageSize?: string) {
+  const token = String(env.GHTK_TOKEN || '').trim()
+  const clientSource = String(env.GHTK_CLIENT_SOURCE || '').trim()
+  if (!token || !clientSource) throw new Error('MISSING_GHTK_KEYS')
+
+  const url = 'https://services.giaohangtietkiem.vn/services/label/'
+    + encodeURIComponent(String(trackingCode || '').trim())
+    + '?original=' + encodeURIComponent(normalizeGHTKOriginal(original || env.GHTK_LABEL_ORIGINAL))
+    + '&page_size=' + encodeURIComponent(normalizeGHTKPageSize(pageSize || env.GHTK_LABEL_PAGE_SIZE))
+
+  const resp = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Token': token,
+      'X-Client-Source': clientSource
+    }
+  })
+  const contentType = String(resp.headers.get('content-type') || '').toLowerCase()
+  if (!resp.ok || contentType.indexOf('application/pdf') < 0) {
+    const detail = await resp.text().catch(() => '')
+    throw new Error('GHTK_LABEL_FETCH_FAILED:' + detail)
+  }
+  return new Uint8Array(await resp.arrayBuffer())
+}
+
+async function mergePdfBytes(files: Uint8Array[]) {
+  const merged = await PDFDocument.create()
+  for (const file of files) {
+    const src = await PDFDocument.load(file)
+    const pages = await merged.copyPages(src, src.getPageIndices())
+    for (const p of pages) merged.addPage(p)
+  }
+  return await merged.save()
 }
 
 // ─── API: HERO BANNERS ─────────────────────────────────────────────
@@ -812,22 +959,111 @@ app.delete('/api/admin/orders/:id', async (c) => {
 
 app.post('/api/admin/orders/arrange-shipping', async (c) => {
   try {
+    await initDB(c.env.DB)
     const body: any = await c.req.json().catch(() => ({}))
     const ids = Array.isArray(body.ids) ? body.ids.map((v: any) => Number(v)).filter((v: number) => Number.isFinite(v) && v > 0) : []
     if (!ids.length) return c.json({ success: false, error: 'NO_ORDER_IDS' }, 400)
 
-    const placeholders = ids.map(() => '?').join(', ')
-    const sql = `
-      UPDATE orders
-      SET shipping_arranged=1,
-          shipping_arranged_at=COALESCE(shipping_arranged_at, CURRENT_TIMESTAMP),
-          status=CASE WHEN status='pending' THEN 'confirmed' ELSE status END,
-          updated_at=CURRENT_TIMESTAMP
-      WHERE id IN (${placeholders})
-        AND status NOT IN ('done', 'cancelled')
+    const orderQuery = `
+      SELECT id, order_code, customer_name, customer_phone, customer_address, product_name,
+             quantity, total_price, note, payment_status, status, shipping_tracking_code
+      FROM orders
+      WHERE id IN (${ids.map(() => '?').join(',')})
     `
-    await c.env.DB.prepare(sql).bind(...ids).run()
-    return c.json({ success: true, updated: ids.length })
+    const orderResult = await c.env.DB.prepare(orderQuery).bind(...ids).all()
+    const rows = (orderResult.results || []) as any[]
+    const map = new Map<number, any>(rows.map((o) => [Number(o.id), o]))
+
+    const updated: any[] = []
+    const failed: any[] = []
+    for (const id of ids) {
+      const order = map.get(Number(id))
+      if (!order) {
+        failed.push({ id, error: 'ORDER_NOT_FOUND' })
+        continue
+      }
+      const status = String(order.status || '').toLowerCase()
+      if (status === 'done' || status === 'cancelled') {
+        failed.push({ id, order_code: order.order_code, error: 'ORDER_CLOSED' })
+        continue
+      }
+
+      let trackingCode = String(order.shipping_tracking_code || '').trim()
+      let labelCode = ''
+      let fee = 0
+      if (!trackingCode) {
+        const createRes: any = await ghtkCreateShipment(c.env, order)
+        if (!createRes.ok) {
+          failed.push({ id, order_code: order.order_code, error: createRes.message || 'GHTK_CREATE_ORDER_FAILED', detail: createRes.detail || null })
+          continue
+        }
+        trackingCode = String(createRes.data?.label || createRes.data?.tracking_id || '').trim()
+        labelCode = String(createRes.data?.label || '').trim()
+        fee = Number(createRes.data?.fee || 0) || 0
+      }
+
+      await c.env.DB.prepare(`
+        UPDATE orders
+        SET shipping_arranged=1,
+            shipping_arranged_at=COALESCE(shipping_arranged_at, CURRENT_TIMESTAMP),
+            shipping_carrier='GHTK',
+            shipping_tracking_code=COALESCE(NULLIF(?, ''), shipping_tracking_code),
+            shipping_label=COALESCE(NULLIF(?, ''), shipping_label),
+            shipping_fee=CASE WHEN ? > 0 THEN ? ELSE shipping_fee END,
+            status=CASE WHEN status='pending' THEN 'confirmed' ELSE status END,
+            updated_at=CURRENT_TIMESTAMP
+        WHERE id=?
+      `).bind(trackingCode, labelCode, fee, fee, id).run()
+
+      updated.push({ id, order_code: order.order_code, tracking_code: trackingCode, carrier: 'GHTK' })
+    }
+
+    return c.json({
+      success: failed.length === 0,
+      updated_count: updated.length,
+      failed_count: failed.length,
+      updated,
+      failed
+    })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+app.get('/api/admin/orders/ghtk/print-labels', async (c) => {
+  try {
+    await initDB(c.env.DB)
+    const ids = String(c.req.query('ids') || '')
+      .split(',')
+      .map((v) => Number(v.trim()))
+      .filter((v) => Number.isFinite(v) && v > 0)
+    if (!ids.length) return c.json({ success: false, error: 'NO_ORDER_IDS' }, 400)
+
+    const ordersResult = await c.env.DB.prepare(`
+      SELECT id, shipping_carrier, shipping_tracking_code
+      FROM orders
+      WHERE id IN (${ids.map(() => '?').join(',')})
+    `).bind(...ids).all()
+    const orders = (ordersResult.results || []) as any[]
+    const selected = ids
+      .map((id) => orders.find((o) => Number(o.id) === id))
+      .filter(Boolean)
+      .filter((o: any) => String(o.shipping_carrier || '').toUpperCase() === 'GHTK' && String(o.shipping_tracking_code || '').trim())
+    if (!selected.length) return c.json({ success: false, error: 'NO_GHTK_TRACKING_FOUND' }, 400)
+
+    const files: Uint8Array[] = []
+    for (const row of selected) {
+      files.push(await ghtkFetchLabelPdf(c.env, String(row.shipping_tracking_code), c.req.query('original'), c.req.query('page_size')))
+    }
+    const merged = files.length === 1 ? files[0] : await mergePdfBytes(files)
+    return new Response(merged, {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `inline; filename="ghtk-labels-${new Date().toISOString().slice(0, 10)}.pdf"`,
+        'Cache-Control': 'no-store'
+      }
+    })
   } catch (e: any) {
     return c.json({ success: false, error: e.message }, 500)
   }
@@ -5390,10 +5626,14 @@ async function arrangeSelectedForShipping() {
   if (!ids.length) return
   const selectedOrders = filteredAdminOrders.filter(o => ids.includes(Number(o.id)))
   try {
-    await axios.post('/api/admin/orders/arrange-shipping', { ids })
-    arrangedOrdersForPrint = selectedOrders
+    const res = await axios.post('/api/admin/orders/arrange-shipping', { ids })
+    const updated = Array.isArray(res.data?.updated) ? res.data.updated : []
+    const failed = Array.isArray(res.data?.failed) ? res.data.failed : []
+    const updatedIds = new Set(updated.map((o) => Number(o.id)))
+    arrangedOrdersForPrint = selectedOrders.filter((o) => updatedIds.has(Number(o.id)))
     selectedOrderIds.clear()
-    openArrangeSuccessModal(ids.length)
+    if (arrangedOrdersForPrint.length > 0) openArrangeSuccessModal(arrangedOrdersForPrint.length)
+    if (failed.length > 0) showAdminToast('Có ' + failed.length + ' đơn lỗi khi tạo vận đơn GHTK', 'warning')
     await loadAdminOrders()
   } catch (e) {
     showAdminToast('Lỗi sắp xếp vận chuyển', 'error')
@@ -5403,7 +5643,22 @@ async function arrangeSelectedForShipping() {
 function printSelectedOrders() {
   const selected = filteredAdminOrders.filter(o => selectedOrderIds.has(Number(o.id)))
   if (!selected.length) return
+  const ghtkIds = selected
+    .filter(o => String(o.shipping_carrier || '').toUpperCase() === 'GHTK' && String(o.shipping_tracking_code || '').trim())
+    .map(o => Number(o.id))
+  if (ghtkIds.length === selected.length) {
+    openGHTKLabelsPdf(ghtkIds)
+    return
+  }
   openPrintOrdersPopup(selected)
+}
+
+function openGHTKLabelsPdf(orderIds) {
+  const ids = (orderIds || []).map((v) => Number(v)).filter((v) => Number.isFinite(v) && v > 0)
+  if (!ids.length) return
+  const url = '/api/admin/orders/ghtk/print-labels?ids=' + encodeURIComponent(ids.join(',')) + '&original=portrait&page_size=A6'
+  const tab = window.open(url, '_blank')
+  if (!tab) showAdminToast('Trình duyệt đang chặn mở PDF nhãn GHTK', 'error')
 }
 
 function openPrintOrdersPopup(selected) {
@@ -5472,7 +5727,7 @@ function printArrangedOrdersFromModal() {
     closeArrangeSuccessModal()
     return
   }
-  openPrintOrdersPopup(arrangedOrdersForPrint)
+  openGHTKLabelsPdf(arrangedOrdersForPrint.map((o) => Number(o.id)))
   closeArrangeSuccessModal()
 }
 
