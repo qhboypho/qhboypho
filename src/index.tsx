@@ -5134,6 +5134,7 @@ function renderOrdersTable(orders) {
       <p class="font-bold text-gray-800">\${fmtPrice(getOrderAmountDue(o))}</p>
       \${o.discount_amount > 0 ? \`<p class="text-xs text-green-600">-\${fmtPrice(o.discount_amount)}</p>\` : ''}
       <p class="mt-1"><span class="text-[11px] px-2 py-0.5 rounded-full \${paymentStatusClass(o.payment_status)}">\${paymentStatusLabel(o.payment_status)}</span></p>
+      <div class="mt-1 flex justify-end">\${paymentMethodTagHTML(o.payment_method, o.payment_status)}</div>
     </td>
     <td class="px-4 py-3 text-center hidden lg:table-cell">
       \${o.voucher_code ? \`<span class="font-mono text-xs bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 rounded-lg font-semibold">\${o.voucher_code}</span>\` : '<span class="text-gray-300 text-xs">—</span>'}
@@ -5451,6 +5452,28 @@ function paymentStatusClass(v) {
   return String(v || '').toLowerCase() === 'paid'
     ? 'bg-green-100 text-green-700 border border-green-200'
     : 'bg-amber-100 text-amber-700 border border-amber-200'
+}
+function formatPaymentMethod(v) {
+  const key = String(v || '').toUpperCase()
+  if (key === 'BANK_TRANSFER') return 'Chuyển khoản ngân hàng'
+  if (key === 'MOMO') return 'Ví điện tử MoMo'
+  if (key === 'ZALOPAY') return 'ZaloPay'
+  return 'COD - Thanh toán khi giao'
+}
+function paymentMethodTagHTML(method, paymentStatus) {
+  const key = String(method || '').toUpperCase()
+  const paid = String(paymentStatus || '').toLowerCase() === 'paid'
+  const paidMark = paid ? '<i class="fas fa-check-circle text-green-600"></i>' : ''
+  if (key === 'BANK_TRANSFER') {
+    return '<span class="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200"><i class="fas fa-university"></i>CK ngân hàng ' + paidMark + '</span>'
+  }
+  if (key === 'MOMO') {
+    return '<span class="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-pink-50 text-pink-700 border border-pink-200"><i class="fas fa-wallet"></i>MoMo ' + paidMark + '</span>'
+  }
+  if (key === 'ZALOPAY') {
+    return '<span class="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-200"><i class="fas fa-mobile-alt"></i>ZaloPay ' + paidMark + '</span>'
+  }
+  return '<span class="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-orange-50 text-orange-700 border border-orange-200"><i class="fas fa-money-bill-wave"></i>COD</span>'
 }
 function safeJson(v) { try { return JSON.parse(v||'[]') } catch { return [] } }
 function catLabel(c) { return {unisex:'Unisex',male:'Nam',female:'Nữ'}[c]||c }
