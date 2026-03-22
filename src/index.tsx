@@ -76,6 +76,8 @@ async function initDB(db: D1Database) {
       payment_provider TEXT,
       payment_link_id TEXT,
       payment_order_code INTEGER,
+      shipping_arranged INTEGER DEFAULT 0,
+      shipping_arranged_at DATETIME,
       status TEXT DEFAULT 'pending',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -124,6 +126,8 @@ async function initDB(db: D1Database) {
   try { await db.prepare("ALTER TABLE orders ADD COLUMN payment_provider TEXT").run() } catch (_) { }
   try { await db.prepare("ALTER TABLE orders ADD COLUMN payment_link_id TEXT").run() } catch (_) { }
   try { await db.prepare("ALTER TABLE orders ADD COLUMN payment_order_code INTEGER").run() } catch (_) { }
+  try { await db.prepare("ALTER TABLE orders ADD COLUMN shipping_arranged INTEGER DEFAULT 0").run() } catch (_) { }
+  try { await db.prepare("ALTER TABLE orders ADD COLUMN shipping_arranged_at DATETIME").run() } catch (_) { }
 
   // Seed initial banners if empty
   try {
@@ -801,6 +805,29 @@ app.delete('/api/admin/orders/:id', async (c) => {
     const id = c.req.param('id')
     await c.env.DB.prepare(`DELETE FROM orders WHERE id = ?`).bind(id).run()
     return c.json({ success: true })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+app.post('/api/admin/orders/arrange-shipping', async (c) => {
+  try {
+    const body: any = await c.req.json().catch(() => ({}))
+    const ids = Array.isArray(body.ids) ? body.ids.map((v: any) => Number(v)).filter((v: number) => Number.isFinite(v) && v > 0) : []
+    if (!ids.length) return c.json({ success: false, error: 'NO_ORDER_IDS' }, 400)
+
+    const placeholders = ids.map(() => '?').join(', ')
+    const sql = `
+      UPDATE orders
+      SET shipping_arranged=1,
+          shipping_arranged_at=COALESCE(shipping_arranged_at, CURRENT_TIMESTAMP),
+          status=CASE WHEN status='pending' THEN 'confirmed' ELSE status END,
+          updated_at=CURRENT_TIMESTAMP
+      WHERE id IN (${placeholders})
+        AND status NOT IN ('done', 'cancelled')
+    `
+    await c.env.DB.prepare(sql).bind(...ids).run()
+    return c.json({ success: true, updated: ids.length })
   } catch (e: any) {
     return c.json({ success: false, error: e.message }, 500)
   }
@@ -3922,7 +3949,7 @@ function adminHTML(): string {
   <!-- ORDERS PAGE -->
   <div id="page-orders" class="p-6 hidden">
     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
-      <div class="flex gap-2 flex-wrap">
+      <div class="flex gap-2 flex-wrap items-center">
         <select id="orderStatusFilter" onchange="filterOrders()" class="border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-pink-400">
           <option value="all">Tất cả trạng thái</option>
           <option value="pending">Chờ xử lý</option>
@@ -3933,8 +3960,21 @@ function adminHTML(): string {
         </select>
         <input type="text" id="orderSearch" placeholder="Tìm tên/SĐT/mã..." oninput="filterOrders()" 
           class="border rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-pink-400 w-48">
+        <button id="ordersModeArrangeBtn" onclick="setOrdersViewMode('to_arrange')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-semibold inline-flex items-center gap-2 transition">
+          <i class="fas fa-truck-loading"></i>
+          <span>Sắp xếp vận chuyển</span>
+          <span id="ordersToArrangeCount" class="bg-white/20 px-2 py-0.5 rounded-full text-xs">0</span>
+        </button>
+        <button id="ordersModeWaitingBtn" onclick="setOrdersViewMode('waiting_ship')" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-semibold inline-flex items-center gap-2 transition border border-gray-200">
+          <i class="fas fa-box-open"></i>
+          <span>Đang chờ vận chuyển</span>
+          <span id="ordersWaitingShipCount" class="bg-gray-200 text-gray-700 px-2 py-0.5 rounded-full text-xs">0</span>
+        </button>
       </div>
       <div class="flex items-center gap-2">
+        <button id="bulkArrangeShipBtn" onclick="arrangeSelectedForShipping()" class="hidden bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2 transition">
+          <i class="fas fa-truck-loading"></i><span id="bulkArrangeShipText">Sắp xếp vận chuyển</span>
+        </button>
         <button id="bulkDeleteOrdersBtn" onclick="deleteSelectedOrders()" class="hidden bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2 transition">
           <i class="fas fa-trash"></i><span id="bulkDeleteOrdersText">Xoá đã chọn</span>
         </button>
@@ -3970,6 +4010,15 @@ function adminHTML(): string {
       </div>
     </div>
     <div id="orderStats" class="mt-4 text-sm text-gray-500 text-right"></div>
+  </div>
+
+  <div id="shippingBulkActionBar" class="hidden fixed bottom-5 left-1/2 -translate-x-1/2 z-[70]">
+    <div class="bg-white border border-gray-200 shadow-2xl rounded-2xl px-3 py-2 flex items-center gap-2">
+      <span id="shippingBulkSelectedText" class="text-sm text-gray-700 px-2">Đã chọn 0 đơn</span>
+      <button onclick="printSelectedOrders()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition">
+        In đơn hàng loạt
+      </button>
+    </div>
   </div>
 
   <!-- VOUCHERS PAGE -->
@@ -4370,6 +4419,7 @@ let adminProducts = []
 let adminOrders = []
 let selectedOrderIds = new Set()
 let filteredAdminOrders = []
+let ordersViewMode = 'to_arrange'
 let colors = []
 let sizes = []
 let galleryImages = ['','','','','','','','','']
@@ -4395,6 +4445,11 @@ function showPage(name) {
   else if (name === 'vouchers') loadVouchers()
   else if (name === 'featured') loadFeaturedAdmin()
   else if (name === 'settings') loadSettingsAdmin()
+
+  if (name !== 'orders') {
+    const shipBar = document.getElementById('shippingBulkActionBar')
+    if (shipBar) shipBar.classList.add('hidden')
+  }
 
   // Close mobile sidebar
   document.getElementById('sidebar').classList.add('-translate-x-full')
@@ -5101,24 +5156,69 @@ async function loadAdminOrders() {
   }
 }
 
+function setOrdersViewMode(mode) {
+  ordersViewMode = mode === 'waiting_ship' ? 'waiting_ship' : 'to_arrange'
+  selectedOrderIds.clear()
+  filterOrders()
+}
+
+function updateOrdersModeButtons(counters) {
+  const arrangeBtn = document.getElementById('ordersModeArrangeBtn')
+  const waitingBtn = document.getElementById('ordersModeWaitingBtn')
+  const arrangeCount = document.getElementById('ordersToArrangeCount')
+  const waitingCount = document.getElementById('ordersWaitingShipCount')
+
+  if (arrangeCount) arrangeCount.textContent = String(counters.toArrange || 0)
+  if (waitingCount) waitingCount.textContent = String(counters.waitingShip || 0)
+
+  if (arrangeBtn) {
+    const active = ordersViewMode === 'to_arrange'
+    arrangeBtn.className = active
+      ? 'bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-semibold inline-flex items-center gap-2 transition'
+      : 'bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-semibold inline-flex items-center gap-2 transition border border-gray-200'
+  }
+  if (waitingBtn) {
+    const active = ordersViewMode === 'waiting_ship'
+    waitingBtn.className = active
+      ? 'bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold inline-flex items-center gap-2 transition'
+      : 'bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-semibold inline-flex items-center gap-2 transition border border-gray-200'
+  }
+}
+
 function filterOrders() {
   const status = document.getElementById('orderStatusFilter').value
   const q = document.getElementById('orderSearch').value.toLowerCase()
   const sourceOrders = adminOrders.filter(o => !isInternalTestOrder(o))
+
+  const activeOrders = sourceOrders.filter(o => {
+    const st = String(o.status || '').toLowerCase()
+    return st !== 'shipping' && st !== 'done' && st !== 'cancelled'
+  })
+  const toArrangeCount = activeOrders.filter(o => Number(o.shipping_arranged || 0) !== 1).length
+  const waitingShipCount = activeOrders.filter(o => Number(o.shipping_arranged || 0) === 1).length
+  updateOrdersModeButtons({ toArrange: toArrangeCount, waitingShip: waitingShipCount })
+
+  const byView = sourceOrders.filter(o => {
+    const st = String(o.status || '').toLowerCase()
+    if (st === 'shipping' || st === 'done' || st === 'cancelled') return false
+    if (ordersViewMode === 'waiting_ship') return Number(o.shipping_arranged || 0) === 1
+    return Number(o.shipping_arranged || 0) !== 1
+  })
   const byStatus = status === 'all'
-    ? sourceOrders
-    : sourceOrders.filter(o => String(o.status || '').toLowerCase() === status)
+    ? byView
+    : byView.filter(o => String(o.status || '').toLowerCase() === status)
   const filtered = q ? byStatus.filter(o =>
-    o.customer_name.toLowerCase().includes(q) ||
-    o.customer_phone.includes(q) ||
-    o.order_code.toLowerCase().includes(q) ||
-    o.product_name.toLowerCase().includes(q)
+    String(o.customer_name || '').toLowerCase().includes(q) ||
+    String(o.customer_phone || '').includes(q) ||
+    String(o.order_code || '').toLowerCase().includes(q) ||
+    String(o.product_name || '').toLowerCase().includes(q)
   ) : byStatus
   
   filteredAdminOrders = filtered
   renderOrdersTable(filtered)
   const total = filtered.reduce((s,o) => s + getOrderAmountDue(o), 0)
-  document.getElementById('orderStats').textContent = \`\${filtered.length} đơn – Tổng: \${fmtPrice(total)}\`
+  const modeLabel = ordersViewMode === 'waiting_ship' ? 'Đang chờ vận chuyển' : 'Sắp xếp vận chuyển'
+  document.getElementById('orderStats').textContent = \`\${modeLabel}: \${filtered.length} đơn – Tổng: \${fmtPrice(total)}\`
   updateOrderSelectionUI()
 }
 
@@ -5196,17 +5296,39 @@ function toggleSelectAllOrders(checked) {
 function updateOrderSelectionUI() {
   const bulkBtn = document.getElementById('bulkDeleteOrdersBtn')
   const bulkText = document.getElementById('bulkDeleteOrdersText')
+  const arrangeBtn = document.getElementById('bulkArrangeShipBtn')
+  const arrangeText = document.getElementById('bulkArrangeShipText')
   const selectAll = document.getElementById('ordersSelectAll')
+  const shipBar = document.getElementById('shippingBulkActionBar')
+  const shipBarText = document.getElementById('shippingBulkSelectedText')
   const visibleIds = filteredAdminOrders.map(o => Number(o.id))
   const checkedVisible = visibleIds.filter(id => selectedOrderIds.has(id)).length
-  const anySelected = selectedOrderIds.size > 0
+  const anySelectedVisible = checkedVisible > 0
 
+  if (arrangeBtn) {
+    const showArrange = ordersViewMode === 'to_arrange' && anySelectedVisible
+    arrangeBtn.classList.toggle('hidden', !showArrange)
+    arrangeBtn.classList.toggle('flex', showArrange)
+  }
+  if (arrangeText) {
+    arrangeText.textContent = anySelectedVisible
+      ? ('Sắp xếp vận chuyển (' + checkedVisible + ')')
+      : 'Sắp xếp vận chuyển'
+  }
   if (bulkBtn) {
-    bulkBtn.classList.toggle('hidden', !anySelected)
-    bulkBtn.classList.toggle('flex', anySelected)
+    const showDelete = ordersViewMode !== 'waiting_ship' && anySelectedVisible
+    bulkBtn.classList.toggle('hidden', !showDelete)
+    bulkBtn.classList.toggle('flex', showDelete)
   }
   if (bulkText) {
-    bulkText.textContent = anySelected ? ('Xoá đã chọn (' + selectedOrderIds.size + ')') : 'Xoá đã chọn'
+    bulkText.textContent = anySelectedVisible ? ('Xoá đã chọn (' + checkedVisible + ')') : 'Xoá đã chọn'
+  }
+  if (shipBar) {
+    const showShipBar = ordersViewMode === 'waiting_ship' && anySelectedVisible
+    shipBar.classList.toggle('hidden', !showShipBar)
+  }
+  if (shipBarText) {
+    shipBarText.textContent = 'Đã chọn ' + checkedVisible + ' đơn'
   }
   if (selectAll) {
     const allVisibleChecked = visibleIds.length > 0 && checkedVisible === visibleIds.length
@@ -5227,6 +5349,67 @@ async function deleteSelectedOrders() {
   } catch (e) {
     showAdminToast('Lỗi xoá hàng loạt', 'error')
   }
+}
+
+async function arrangeSelectedForShipping() {
+  const ids = filteredAdminOrders.map(o => Number(o.id)).filter(id => selectedOrderIds.has(id))
+  if (!ids.length) return
+  if (!confirm('Sắp xếp vận chuyển ' + ids.length + ' đơn đã chọn?')) return
+  try {
+    await axios.post('/api/admin/orders/arrange-shipping', { ids })
+    selectedOrderIds.clear()
+    showAdminToast('Đã đưa ' + ids.length + ' đơn sang chờ vận chuyển', 'success')
+    await loadAdminOrders()
+  } catch (e) {
+    showAdminToast('Lỗi sắp xếp vận chuyển', 'error')
+  }
+}
+
+function printSelectedOrders() {
+  const selected = filteredAdminOrders.filter(o => selectedOrderIds.has(Number(o.id)))
+  if (!selected.length) return
+  const rows = selected.map(o =>
+    '<div class="order-card">'
+    + '<div class="row"><strong>Mã đơn:</strong><span>' + (o.order_code || '') + '</span></div>'
+    + '<div class="row"><strong>Khách:</strong><span>' + displayCustomerName(o.customer_name || '') + '</span></div>'
+    + '<div class="row"><strong>SĐT:</strong><span>' + (o.customer_phone || '') + '</span></div>'
+    + '<div class="row"><strong>Địa chỉ:</strong><span>' + (o.customer_address || '') + '</span></div>'
+    + '<div class="row"><strong>Sản phẩm:</strong><span>' + (o.product_name || '') + ' x ' + (o.quantity || 0) + '</span></div>'
+    + '<div class="row"><strong>Thanh toán:</strong><span>' + formatPaymentMethod(o.payment_method) + ' (' + paymentStatusLabel(o.payment_status) + ')</span></div>'
+    + '<div class="row total"><strong>Cần thu:</strong><span>' + fmtPrice(getOrderAmountDue(o)) + '</span></div>'
+    + '</div>'
+  ).join('')
+
+  const popup = window.open('', '_blank', 'width=1080,height=760')
+  if (!popup) {
+    showAdminToast('Trình duyệt đang chặn popup in đơn', 'error')
+    return
+  }
+  const html = '<!doctype html>'
+    + '<html lang="vi">'
+    + '<head>'
+    + '<meta charset="UTF-8" />'
+    + '<title>In đơn hàng loạt</title>'
+    + '<style>'
+    + 'body{font-family:Arial,sans-serif;margin:16px;color:#111827;}'
+    + 'h1{margin:0 0 8px;font-size:22px;}'
+    + '.meta{color:#6b7280;font-size:13px;margin-bottom:14px;}'
+    + '.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;}'
+    + '.order-card{border:1px solid #e5e7eb;border-radius:12px;padding:12px;break-inside:avoid;}'
+    + '.row{display:flex;gap:6px;margin:5px 0;font-size:13px;}'
+    + '.row strong{min-width:86px;}'
+    + '.total{margin-top:8px;padding-top:8px;border-top:1px dashed #d1d5db;font-size:15px;}'
+    + '@media print{body{margin:8px;}}'
+    + '</style>'
+    + '</head>'
+    + '<body>'
+    + '<h1>In đơn hàng loạt</h1>'
+    + '<div class="meta">Số đơn: ' + selected.length + ' • In lúc: ' + new Date().toLocaleString('vi-VN') + '</div>'
+    + '<div class="grid">' + rows + '</div>'
+    + '<script>window.onload=function(){setTimeout(function(){window.print()},120)}<\/script>'
+    + '</body></html>'
+  popup.document.write(html)
+  popup.document.close()
 }
 
 async function updateOrderStatus(id, status) {
