@@ -5365,6 +5365,14 @@ function copyCode() {
 
 // ── UTILS ─────────────────────────────────────────
 function fmtPrice(p) { return new Intl.NumberFormat('vi-VN',{style:'currency',currency:'VND'}).format(p||0) }
+function getOrderAmountDue(order) {
+  if (order && order.amount_due !== undefined && order.amount_due !== null) {
+    return Number(order.amount_due || 0)
+  }
+  return String(order?.payment_status || '').toLowerCase() === 'paid'
+    ? 0
+    : Number(order?.total_price || 0)
+}
 function safeJson(v) { try { return JSON.parse(v||'[]') } catch { return [] } }
 function catLabel(c) { return {unisex:'Unisex',male:'Nam',female:'Nữ'}[c]||c }
 function statusLabel(s) { return {pending:'Chờ xử lý',confirmed:'Xác nhận',shipping:'Đang giao',done:'Hoàn thành',cancelled:'Đã hủy'}[s]||s }
