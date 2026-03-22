@@ -2463,14 +2463,21 @@ async function submitOrder() {
     const orderTotal = Number(res.data.total || 0)
     const orderId = Number(res.data.id || 0)
     if (selectedPaymentMethod === 'BANK_TRANSFER') {
-      const payos = await axios.post('/api/orders/' + orderId + '/payos-link', { origin: window.location.origin })
+      let payosData = null
+      try {
+        const payos = await axios.post('/api/orders/' + orderId + '/payos-link', { origin: window.location.origin })
+        payosData = payos.data?.data || null
+      } catch (_) {
+        showToast('PayOS đang lỗi cấu hình chữ ký, chuyển sang QR chuyển khoản dự phòng.', 'error', 5000)
+      }
       openOrderBankTransferModal({
         orderCode,
         orderId,
         amount: orderTotal,
-        paymentLinkId: payos.data?.data?.paymentLinkId || '',
-        checkoutUrl: payos.data?.data?.checkoutUrl || '',
-        qrCode: payos.data?.data?.qrCode || ''
+        transferContent: 'DH' + orderId,
+        paymentLinkId: payosData?.paymentLinkId || '',
+        checkoutUrl: payosData?.checkoutUrl || '',
+        qrCode: payosData?.qrCode || ''
       })
       showToast(\`Đơn hàng \${orderCode} đã tạo. Vui lòng chuyển khoản để hoàn tất.\`, 'success', 5000)
     } else {
