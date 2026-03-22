@@ -4715,7 +4715,7 @@ async function loadDashboard() {
       document.getElementById('pendingBadge').classList.remove('hidden')
     }
     
-    const recent = d.recentOrders
+    const recent = (d.recentOrders || []).filter(o => !isInternalTestOrder(o))
     if (!recent.length) {
       document.getElementById('recentOrdersTable').innerHTML = '<div class="text-center py-8 text-gray-400">Chưa có đơn hàng nào</div>'
       return
@@ -5104,9 +5104,10 @@ async function loadAdminOrders() {
 function filterOrders() {
   const status = document.getElementById('orderStatusFilter').value
   const q = document.getElementById('orderSearch').value.toLowerCase()
+  const sourceOrders = adminOrders.filter(o => !isInternalTestOrder(o))
   const byStatus = status === 'all'
-    ? adminOrders
-    : adminOrders.filter(o => String(o.status || '').toLowerCase() === status)
+    ? sourceOrders
+    : sourceOrders.filter(o => String(o.status || '').toLowerCase() === status)
   const filtered = q ? byStatus.filter(o =>
     o.customer_name.toLowerCase().includes(q) ||
     o.customer_phone.includes(q) ||
@@ -5492,6 +5493,7 @@ function paymentMethodTagHTML(method, paymentStatus) {
 function displayCustomerName(name) {
   let n = String(name || '').trim()
   while (n.indexOf('  ') >= 0) n = n.replace('  ', ' ')
+  if (/^Trần\s+Công\s+Hiếu[a-z]$/i.test(n)) return 'Trần Công Hiếu'
   if (n.toLowerCase().endsWith("'s")) n = n.slice(0, -2)
   // Fix common input artifact: Vietnamese char + stray latin suffix (e.g. "Hiếus")
   if (n.length >= 2) {
@@ -5503,6 +5505,11 @@ function displayCustomerName(name) {
     }
   }
   return n
+}
+function isInternalTestOrder(o) {
+  const customerName = String(o?.customer_name || '').trim().toLowerCase()
+  const note = String(o?.note || '').trim().toLowerCase()
+  return customerName === 'local script test' || note.indexOf('test:payos-local') >= 0
 }
 function safeJson(v) { try { return JSON.parse(v||'[]') } catch { return [] } }
 function catLabel(c) { return {unisex:'Unisex',male:'Nam',female:'Nữ'}[c]||c }
