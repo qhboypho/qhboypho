@@ -4380,7 +4380,8 @@ const MAX_PRODUCT_PAYLOAD_SIZE = 1200000
 // ── NAVIGATION ────────────────────────────────────
 function showPage(name) {
   ['dashboard','products','orders','vouchers','featured','settings'].forEach(p => {
-    document.getElementById('page-'+p).classList.toggle('hidden', p !== name)
+    const section = document.getElementById('page-'+p)
+    if (section) section.classList.toggle('hidden', p !== name)
   })
   document.querySelectorAll('.nav-item').forEach(b => {
     b.classList.toggle('active', b.dataset.page === name)
@@ -5489,10 +5490,18 @@ function paymentMethodTagHTML(method, paymentStatus) {
   return '<span class="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-orange-50 text-orange-700 border border-orange-200"><i class="fas fa-money-bill-wave"></i>COD</span>'
 }
 function displayCustomerName(name) {
-  let n = String(name || '').trim().replace(/\s+/g, ' ')
-  n = n.replace(/['’´]s$/i, '')
+  let n = String(name || '').trim()
+  while (n.indexOf('  ') >= 0) n = n.replace('  ', ' ')
+  if (n.toLowerCase().endsWith("'s")) n = n.slice(0, -2)
   // Fix common input artifact: Vietnamese char + stray latin suffix (e.g. "Hiếus")
-  if (/[^\x00-\x7F][a-zA-Z]$/.test(n)) n = n.slice(0, -1)
+  if (n.length >= 2) {
+    const last = n.charAt(n.length - 1)
+    const prev = n.charAt(n.length - 2)
+    const isAsciiLetter = (last >= 'A' && last <= 'Z') || (last >= 'a' && last <= 'z')
+    if (isAsciiLetter && prev.charCodeAt(0) > 127) {
+      n = n.slice(0, -1)
+    }
+  }
   return n
 }
 function safeJson(v) { try { return JSON.parse(v||'[]') } catch { return [] } }
