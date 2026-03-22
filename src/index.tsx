@@ -172,6 +172,62 @@ async function payOSSignWithChecksum(checksumKey: string, dataString: string) {
   return Array.from(new Uint8Array(sigBuf)).map((b) => b.toString(16).padStart(2, '0')).join('')
 }
 
+async function payOSGetPaymentInfo(env: any, id: string | number) {
+  const clientId = String(env.PAYOS_CLIENT_ID || '')
+  const apiKey = String(env.PAYOS_API_KEY || '')
+  if (!clientId || !apiKey || !id) return null
+
+  const resp = await fetch(`https://api-merchant.payos.vn/v2/payment-requests/${encodeURIComponent(String(id))}`, {
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-client-id': clientId,
+      'x-api-key': apiKey
+    }
+  })
+  const body: any = await resp.json().catch(() => ({}))
+  if (!resp.ok || String(body?.code || '') !== '00' || !body?.data) return null
+  return body.data
+}
+
+async function syncOrderPaymentWithPayOS(db: D1Database, env: any, order: any) {
+  const isBankTransfer = String(order?.payment_method || '').toUpperCase() === 'BANK_TRANSFER'
+  const isPaid = String(order?.payment_status || '').toLowerCase() === 'paid'
+  if (!isBankTransfer || isPaid) return { synced: false, paid: isPaid }
+
+  const payOSId = order?.payment_link_id || order?.payment_order_code || order?.id
+  if (!payOSId) return { synced: false, paid: false }
+
+  const paymentInfo = await payOSGetPaymentInfo(env, payOSId)
+  if (!paymentInfo) return { synced: false, paid: false }
+
+  const payStatus = String(paymentInfo.status || '').toUpperCase()
+  const amountPaid = Number(paymentInfo.amountPaid || 0)
+  const orderTotal = Number(order.total_price || 0)
+  const isPayOSPaid = payStatus === 'PAID' && amountPaid >= orderTotal
+  if (!isPayOSPaid) return { synced: false, paid: false, paymentInfo }
+
+  await db.prepare(`
+    UPDATE orders
+    SET payment_status='paid',
+        payment_paid_at=COALESCE(payment_paid_at, CURRENT_TIMESTAMP),
+        payment_ref=COALESCE(payment_ref, ?),
+        payment_provider='PAYOS',
+        payment_link_id=COALESCE(payment_link_id, ?),
+        payment_order_code=COALESCE(payment_order_code, ?),
+        status=CASE WHEN status='pending' THEN 'confirmed' ELSE status END,
+        updated_at=CURRENT_TIMESTAMP
+    WHERE id=?
+  `).bind(
+    String(paymentInfo.reference || paymentInfo.id || payOSId),
+    String(paymentInfo.id || order.payment_link_id || ''),
+    Number(paymentInfo.orderCode || order.payment_order_code || order.id || 0),
+    order.id
+  ).run()
+
+  return { synced: true, paid: true, paymentInfo }
+}
+
 // ─── API: HERO BANNERS ─────────────────────────────────────────────
 app.get('/api/hero_banners', async (c) => {
   await initDB(c.env.DB)
@@ -756,9 +812,34 @@ app.get('/api/orders/:orderCode/payment-status', async (c) => {
     await initDB(c.env.DB)
     const orderCode = String(c.req.param('orderCode') || '').trim().toUpperCase()
     if (!orderCode) return c.json({ success: false, error: 'MISSING_ORDER_CODE' }, 400)
-    const order = await c.env.DB.prepare(`SELECT order_code, payment_status, payment_paid_at, status FROM orders WHERE order_code=?`).bind(orderCode).first() as any
+    const order = await c.env.DB.prepare(`
+      SELECT id, order_code, payment_status, payment_paid_at, status, payment_method, payment_link_id, payment_order_code, total_price
+      FROM orders
+      WHERE order_code=?
+    `).bind(orderCode).first() as any
     if (!order) return c.json({ success: false, error: 'ORDER_NOT_FOUND' }, 404)
-    return c.json({ success: true, data: order })
+    await syncOrderPaymentWithPayOS(c.env.DB, c.env, order)
+    const latest = await c.env.DB.prepare(`SELECT order_code, payment_status, payment_paid_at, status FROM orders WHERE id=?`).bind(order.id).first() as any
+    return c.json({ success: true, data: latest || order })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+app.post('/api/orders/:id/payos-sync', async (c) => {
+  try {
+    await initDB(c.env.DB)
+    const id = Number(c.req.param('id') || 0)
+    if (!id) return c.json({ success: false, error: 'INVALID_ORDER_ID' }, 400)
+    const order = await c.env.DB.prepare(`
+      SELECT id, order_code, payment_status, payment_paid_at, status, payment_method, payment_link_id, payment_order_code, total_price
+      FROM orders
+      WHERE id=?
+    `).bind(id).first() as any
+    if (!order) return c.json({ success: false, error: 'ORDER_NOT_FOUND' }, 404)
+    const sync = await syncOrderPaymentWithPayOS(c.env.DB, c.env, order)
+    const latest = await c.env.DB.prepare(`SELECT order_code, payment_status, payment_paid_at, status FROM orders WHERE id=?`).bind(id).first() as any
+    return c.json({ success: true, data: latest || order, synced: !!sync.synced })
   } catch (e: any) {
     return c.json({ success: false, error: e.message }, 500)
   }
@@ -783,7 +864,12 @@ app.post('/api/orders/:id/payos-link', async (c) => {
       return c.json({ success: false, error: 'PAYMENT_METHOD_NOT_BANK_TRANSFER' }, 400)
     }
     if (String(order.payment_status || '').toLowerCase() === 'paid') {
-      return c.json({ success: false, error: 'ORDER_ALREADY_PAID' }, 400)
+      return c.json({ success: true, data: { alreadyPaid: true, orderCode: order.order_code } })
+    }
+
+    const sync = await syncOrderPaymentWithPayOS(c.env.DB, c.env, order)
+    if (sync.paid) {
+      return c.json({ success: true, data: { alreadyPaid: true, orderCode: order.order_code } })
     }
 
     const clientId = String((c.env as any).PAYOS_CLIENT_ID || '')
@@ -2497,6 +2583,11 @@ async function submitOrder() {
       } catch (_) {
         showToast('PayOS tạm lỗi, đang chuyển sang QR dự phòng.', 'error', 4500)
       }
+      if (payosData?.alreadyPaid) {
+        onOrderMarkedPaid(orderCode)
+        showToast('Đơn ' + orderCode + ' đã được thanh toán trước đó.', 'success', 4500)
+        return
+      }
       const checkoutUrl = String(payosData?.checkoutUrl || '').trim()
       if (checkoutUrl) {
         let payTab = payTabRef
@@ -3258,7 +3349,18 @@ async function showUserOrders() {
   content.innerHTML = '<div class="text-center py-8"><i class="fas fa-spinner fa-spin text-2xl text-pink-400"></i></div>'
   try {
     const res = await axios.get('/api/user/orders')
-    const orders = res.data.data || []
+    let orders = res.data.data || []
+    const unpaidBankOrders = orders.filter(function (o) {
+      return String(o.payment_method || '').toUpperCase() === 'BANK_TRANSFER'
+        && String(o.payment_status || '').toLowerCase() !== 'paid'
+    }).slice(0, 6)
+    if (unpaidBankOrders.length) {
+      await Promise.all(unpaidBankOrders.map(function (o) {
+        return axios.post('/api/orders/' + o.id + '/payos-sync').catch(function () { return null })
+      }))
+      const refreshed = await axios.get('/api/user/orders')
+      orders = refreshed.data.data || orders
+    }
     if (!orders.length) {
       content.innerHTML = '<div class="text-center py-8 text-gray-400"><i class="fas fa-shopping-bag text-4xl mb-3"></i><p>Chưa có đơn hàng nào</p></div>'
       return
@@ -3283,10 +3385,18 @@ async function showUserOrders() {
 }
 
 async function resumeOrderPayment(orderId, orderCode) {
+  const payTab = window.open('about:blank', '_blank')
   try {
-    const payTab = window.open('about:blank', '_blank')
     const payos = await axios.post('/api/orders/' + orderId + '/payos-link', { origin: window.location.origin })
-    const checkoutUrl = String(payos.data?.data?.checkoutUrl || '').trim()
+    const payosData = payos.data?.data || {}
+    if (payosData.alreadyPaid) {
+      try { if (payTab && !payTab.closed) payTab.close() } catch (_) { }
+      await axios.post('/api/orders/' + orderId + '/payos-sync').catch(function () { return null })
+      showUserOrders()
+      showToast('Đơn này đã thanh toán thành công', 'success', 3500)
+      return
+    }
+    const checkoutUrl = String(payosData.checkoutUrl || '').trim()
     if (!checkoutUrl) {
       try { if (payTab && !payTab.closed) payTab.close() } catch (_) { }
       showToast('Không tạo được link thanh toán PayOS', 'error', 3500)
@@ -3300,6 +3410,7 @@ async function resumeOrderPayment(orderId, orderCode) {
     startOrderPaymentPolling(orderCode)
     showToast('Đang mở lại trang PayOS để bạn thanh toán tiếp', 'success', 3500)
   } catch (_) {
+    try { if (payTab && !payTab.closed) payTab.close() } catch (_) { }
     showToast('Không thể mở lại thanh toán cho đơn này', 'error', 3500)
   }
 }
