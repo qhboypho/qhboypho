@@ -15,8 +15,7 @@
     "test:payos-local": "node scripts/test-payos-local.mjs"
   },
   "dependencies": {
-    "hono": "^4.12.1",
-    "pdf-lib": "^1.17.1"
+    "hono": "^4.12.1"
   },
   "devDependencies": {
     "@hono/vite-build": "^1.2.0",
