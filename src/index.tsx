@@ -4722,7 +4722,15 @@ async function loadDashboard() {
     document.getElementById('recentOrdersTable').innerHTML = '<table class="w-full text-sm"><thead><tr class="border-b text-gray-500"><th class="py-2 text-left pr-4">Mã ĐH</th><th class="py-2 text-left pr-4">Khách hàng</th><th class="py-2 text-right pr-4">Còn phải thu</th><th class="py-2 text-center">Trạng thái</th></tr></thead><tbody>' +
       recent.map(o => '<tr class="border-b last:border-0"><td class="py-2 pr-4 font-mono text-xs text-blue-600">' + o.order_code + '</td><td class="py-2 pr-4">' + displayCustomerName(o.customer_name) + '</td><td class="py-2 pr-4 text-right font-semibold">' + fmtPrice(getOrderAmountDue(o)) + '</td><td class="py-2 text-center"><span class="badge badge-' + o.status + '">' + statusLabel(o.status) + '</span></td></tr>').join('') +
       '</tbody></table>'
-  } catch(e) { console.error(e) }
+  } catch(e) {
+    if (e && e.response && e.response.status === 401) {
+      showAdminToast('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại', 'error')
+      setTimeout(() => { window.location.href = '/admin/login' }, 400)
+      return
+    }
+    document.getElementById('recentOrdersTable').innerHTML = '<div class="text-center py-8 text-red-400">Lỗi tải dữ liệu dashboard</div>'
+    console.error(e)
+  }
 }
 
 // ── PRODUCTS ─────────────────────────────────────
@@ -5083,6 +5091,11 @@ async function loadAdminOrders() {
     selectedOrderIds = new Set(Array.from(selectedOrderIds).filter(id => validIds.has(Number(id))))
     filterOrders()
   } catch(e) {
+    if (e && e.response && e.response.status === 401) {
+      showAdminToast('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại', 'error')
+      setTimeout(() => { window.location.href = '/admin/login' }, 400)
+      return
+    }
     document.getElementById('ordersTable').innerHTML = '<tr><td colspan="9" class="text-center py-8 text-red-400">Lỗi tải dữ liệu</td></tr>'
   }
 }
