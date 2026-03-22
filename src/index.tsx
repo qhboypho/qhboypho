@@ -5385,6 +5385,9 @@ function printSelectedOrders() {
     showAdminToast('Trình duyệt đang chặn popup in đơn', 'error')
     return
   }
+  popup.onload = function() {
+    setTimeout(function() { popup.print() }, 120)
+  }
   const html = '<!doctype html>'
     + '<html lang="vi">'
     + '<head>'
@@ -5406,7 +5409,6 @@ function printSelectedOrders() {
     + '<h1>In đơn hàng loạt</h1>'
     + '<div class="meta">Số đơn: ' + selected.length + ' • In lúc: ' + new Date().toLocaleString('vi-VN') + '</div>'
     + '<div class="grid">' + rows + '</div>'
-    + '<script>window.onload=function(){setTimeout(function(){window.print()},120)}<\/script>'
     + '</body></html>'
   popup.document.write(html)
   popup.document.close()
