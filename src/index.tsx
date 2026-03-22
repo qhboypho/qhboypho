@@ -3972,12 +3972,6 @@ function adminHTML(): string {
         </button>
       </div>
       <div class="flex items-center gap-2">
-        <button id="bulkArrangeShipBtn" onclick="arrangeSelectedForShipping()" class="hidden bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2 transition">
-          <i class="fas fa-truck-loading"></i><span id="bulkArrangeShipText">Sắp xếp vận chuyển</span>
-        </button>
-        <button id="bulkDeleteOrdersBtn" onclick="deleteSelectedOrders()" class="hidden bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2 transition">
-          <i class="fas fa-trash"></i><span id="bulkDeleteOrdersText">Xoá đã chọn</span>
-        </button>
         <button onclick="exportExcel()" class="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2 transition">
           <i class="fas fa-file-excel"></i>Xuất Excel
         </button>
@@ -4010,6 +4004,17 @@ function adminHTML(): string {
       </div>
     </div>
     <div id="orderStats" class="mt-4 text-sm text-gray-500 text-right"></div>
+  </div>
+
+  <div id="ordersBulkActionBar" class="hidden fixed left-1/2 -translate-x-1/2 z-[70]" style="bottom: 200px;">
+    <div class="bg-white/95 backdrop-blur border border-gray-200 shadow-2xl rounded-2xl px-3 py-2 flex items-center gap-2">
+      <button id="bulkArrangeShipBtn" onclick="arrangeSelectedForShipping()" class="hidden bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2 transition">
+        <i class="fas fa-truck-loading"></i><span id="bulkArrangeShipText">Sắp xếp vận chuyển</span>
+      </button>
+      <button id="bulkDeleteOrdersBtn" onclick="deleteSelectedOrders()" class="hidden bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2 transition">
+        <i class="fas fa-trash"></i><span id="bulkDeleteOrdersText">Xoá đã chọn</span>
+      </button>
+    </div>
   </div>
 
   <div id="shippingBulkActionBar" class="hidden fixed bottom-5 left-1/2 -translate-x-1/2 z-[70]">
@@ -4447,7 +4452,9 @@ function showPage(name) {
   else if (name === 'settings') loadSettingsAdmin()
 
   if (name !== 'orders') {
+    const bulkBar = document.getElementById('ordersBulkActionBar')
     const shipBar = document.getElementById('shippingBulkActionBar')
+    if (bulkBar) bulkBar.classList.add('hidden')
     if (shipBar) shipBar.classList.add('hidden')
   }
 
@@ -5294,6 +5301,7 @@ function toggleSelectAllOrders(checked) {
 }
 
 function updateOrderSelectionUI() {
+  const bulkBar = document.getElementById('ordersBulkActionBar')
   const bulkBtn = document.getElementById('bulkDeleteOrdersBtn')
   const bulkText = document.getElementById('bulkDeleteOrdersText')
   const arrangeBtn = document.getElementById('bulkArrangeShipBtn')
@@ -5319,6 +5327,10 @@ function updateOrderSelectionUI() {
     const showDelete = ordersViewMode !== 'waiting_ship' && anySelectedVisible
     bulkBtn.classList.toggle('hidden', !showDelete)
     bulkBtn.classList.toggle('flex', showDelete)
+  }
+  if (bulkBar) {
+    const showBar = ordersViewMode === 'to_arrange' && anySelectedVisible
+    bulkBar.classList.toggle('hidden', !showBar)
   }
   if (bulkText) {
     bulkText.textContent = anySelectedVisible ? ('Xoá đã chọn (' + checkedVisible + ')') : 'Xoá đã chọn'
