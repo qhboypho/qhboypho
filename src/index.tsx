@@ -69,6 +69,13 @@ async function initDB(db: D1Database) {
       voucher_code TEXT DEFAULT '',
       discount_amount REAL DEFAULT 0,
       note TEXT,
+      payment_method TEXT DEFAULT 'COD',
+      payment_status TEXT DEFAULT 'unpaid',
+      payment_paid_at DATETIME,
+      payment_ref TEXT,
+      payment_provider TEXT,
+      payment_link_id TEXT,
+      payment_order_code INTEGER,
       status TEXT DEFAULT 'pending',
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -110,6 +117,13 @@ async function initDB(db: D1Database) {
   try { await db.prepare("ALTER TABLE products ADD COLUMN display_order INTEGER DEFAULT 0").run() } catch (_) { }
   try { await db.prepare("ALTER TABLE products ADD COLUMN is_trending INTEGER DEFAULT 0").run() } catch (_) { }
   try { await db.prepare("ALTER TABLE products ADD COLUMN trending_order INTEGER DEFAULT 0").run() } catch (_) { }
+  try { await db.prepare("ALTER TABLE orders ADD COLUMN payment_method TEXT DEFAULT 'COD'").run() } catch (_) { }
+  try { await db.prepare("ALTER TABLE orders ADD COLUMN payment_status TEXT DEFAULT 'unpaid'").run() } catch (_) { }
+  try { await db.prepare("ALTER TABLE orders ADD COLUMN payment_paid_at DATETIME").run() } catch (_) { }
+  try { await db.prepare("ALTER TABLE orders ADD COLUMN payment_ref TEXT").run() } catch (_) { }
+  try { await db.prepare("ALTER TABLE orders ADD COLUMN payment_provider TEXT").run() } catch (_) { }
+  try { await db.prepare("ALTER TABLE orders ADD COLUMN payment_link_id TEXT").run() } catch (_) { }
+  try { await db.prepare("ALTER TABLE orders ADD COLUMN payment_order_code INTEGER").run() } catch (_) { }
 
   // Seed initial banners if empty
   try {
@@ -131,6 +145,31 @@ async function initDB(db: D1Database) {
   } catch (err) {
     console.error('Failed to seed banners on init', err)
   }
+}
+
+function payOSBuildDataString(input: Record<string, any>) {
+  const normalize = (v: any) => {
+    if (v === null || v === undefined) return ''
+    if (typeof v === 'object') return JSON.stringify(v)
+    return String(v)
+  }
+  return Object.keys(input)
+    .sort()
+    .map((k) => k + '=' + normalize(input[k]))
+    .join('&')
+}
+
+async function payOSSignWithChecksum(checksumKey: string, dataString: string) {
+  const encoder = new TextEncoder()
+  const key = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(checksumKey),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  )
+  const sigBuf = await crypto.subtle.sign('HMAC', key, encoder.encode(dataString))
+  return Array.from(new Uint8Array(sigBuf)).map((b) => b.toString(16).padStart(2, '0')).join('')
 }
 
 // ─── API: HERO BANNERS ─────────────────────────────────────────────
@@ -581,7 +620,7 @@ app.post('/api/orders', async (c) => {
     const body = await c.req.json()
     const {
       customer_name, customer_phone, customer_address,
-      product_id, color, size, quantity, note, voucher_code
+      product_id, color, size, quantity, note, voucher_code, payment_method
     } = body
 
     if (!customer_name || !customer_phone || !customer_address || !product_id) {
@@ -616,11 +655,15 @@ app.post('/api/orders', async (c) => {
     const subtotal = product.price * qty
     const total = Math.max(0, subtotal - discount)
     const orderCode = 'FS' + Date.now().toString(36).toUpperCase()
+    const normalizedPaymentMethod = String(payment_method || '').toUpperCase()
+    const paymentMethod = ['COD', 'ZALOPAY', 'MOMO', 'BANK_TRANSFER'].includes(normalizedPaymentMethod)
+      ? normalizedPaymentMethod
+      : 'COD'
 
     const result = await c.env.DB.prepare(`
       INSERT INTO orders 
-        (user_id, order_code, customer_name, customer_phone, customer_address, product_id, product_name, product_price, color, size, quantity, total_price, voucher_code, discount_amount, note)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (user_id, order_code, customer_name, customer_phone, customer_address, product_id, product_name, product_price, color, size, quantity, total_price, voucher_code, discount_amount, note, payment_method)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       getCookie(c, 'user_id') || null,
       orderCode,
@@ -636,7 +679,8 @@ app.post('/api/orders', async (c) => {
       total,
       voucher_code ? voucher_code.trim().toUpperCase() : '',
       discount,
-      note || ''
+      note || '',
+      paymentMethod
     ).run()
 
     return c.json({ success: true, order_code: orderCode, id: result.meta.last_row_id, discount, total })
@@ -684,6 +728,221 @@ app.delete('/api/admin/orders/:id', async (c) => {
     const id = c.req.param('id')
     await c.env.DB.prepare(`DELETE FROM orders WHERE id = ?`).bind(id).run()
     return c.json({ success: true })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+// GET payment status by order code (public - used for polling QR payment result)
+app.get('/api/orders/:orderCode/payment-status', async (c) => {
+  try {
+    await initDB(c.env.DB)
+    const orderCode = String(c.req.param('orderCode') || '').trim().toUpperCase()
+    if (!orderCode) return c.json({ success: false, error: 'MISSING_ORDER_CODE' }, 400)
+    const order = await c.env.DB.prepare(`SELECT order_code, payment_status, payment_paid_at, status FROM orders WHERE order_code=?`).bind(orderCode).first() as any
+    if (!order) return c.json({ success: false, error: 'ORDER_NOT_FOUND' }, 404)
+    return c.json({ success: true, data: order })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+// POST create PayOS payment link from an existing order
+app.post('/api/orders/:id/payos-link', async (c) => {
+  try {
+    await initDB(c.env.DB)
+    const id = Number(c.req.param('id') || 0)
+    if (!id) return c.json({ success: false, error: 'INVALID_ORDER_ID' }, 400)
+    const body: any = await c.req.json().catch(() => ({}))
+    const origin = String(body.origin || c.req.header('origin') || '').trim()
+    if (!origin) return c.json({ success: false, error: 'MISSING_ORIGIN' }, 400)
+
+    const order = await c.env.DB.prepare(`
+      SELECT id, order_code, total_price, customer_name, customer_phone, product_name, quantity, payment_method, payment_status
+      FROM orders WHERE id=?
+    `).bind(id).first() as any
+    if (!order) return c.json({ success: false, error: 'ORDER_NOT_FOUND' }, 404)
+    if (String(order.payment_method || '').toUpperCase() !== 'BANK_TRANSFER') {
+      return c.json({ success: false, error: 'PAYMENT_METHOD_NOT_BANK_TRANSFER' }, 400)
+    }
+    if (String(order.payment_status || '').toLowerCase() === 'paid') {
+      return c.json({ success: false, error: 'ORDER_ALREADY_PAID' }, 400)
+    }
+
+    const clientId = String((c.env as any).PAYOS_CLIENT_ID || '')
+    const apiKey = String((c.env as any).PAYOS_API_KEY || '')
+    const checksumKey = String((c.env as any).PAYOS_CHECKSUM_KEY || '')
+    if (!clientId || !apiKey || !checksumKey) {
+      return c.json({ success: false, error: 'PAYOS_CONFIG_MISSING' }, 500)
+    }
+
+    const amount = Math.round(Number(order.total_price || 0))
+    if (amount <= 0) return c.json({ success: false, error: 'INVALID_ORDER_AMOUNT' }, 400)
+
+    const orderCodeNum = Number(order.id) // numeric order code for PayOS
+    const description = `DH${orderCodeNum}`.slice(0, 25)
+    const returnUrl = `${origin}/?order=${encodeURIComponent(order.order_code)}&pay=success`
+    const cancelUrl = `${origin}/?order=${encodeURIComponent(order.order_code)}&pay=cancel`
+    const signPayload = {
+      amount,
+      cancelUrl,
+      description,
+      orderCode: orderCodeNum,
+      returnUrl
+    }
+    const signature = await payOSSignWithChecksum(checksumKey, payOSBuildDataString(signPayload))
+    const reqPayload = {
+      orderCode: orderCodeNum,
+      amount,
+      description,
+      buyerName: order.customer_name || '',
+      buyerPhone: order.customer_phone || '',
+      items: [{ name: order.product_name || 'Don hang', quantity: Number(order.quantity || 1), price: amount }],
+      cancelUrl,
+      returnUrl,
+      signature
+    }
+
+    const resp = await fetch('https://api-merchant.payos.vn/v2/payment-requests', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-client-id': clientId,
+        'x-api-key': apiKey
+      },
+      body: JSON.stringify(reqPayload)
+    })
+    const payosRes: any = await resp.json().catch(() => ({}))
+    if (!resp.ok || String(payosRes.code || '') !== '00' || !payosRes.data) {
+      return c.json({ success: false, error: 'PAYOS_CREATE_LINK_FAILED', detail: payosRes }, 400)
+    }
+
+    await c.env.DB.prepare(`
+      UPDATE orders
+      SET payment_provider='PAYOS',
+          payment_link_id=?,
+          payment_order_code=?,
+          updated_at=CURRENT_TIMESTAMP
+      WHERE id=?
+    `).bind(
+      payosRes.data.paymentLinkId || null,
+      orderCodeNum,
+      id
+    ).run()
+
+    return c.json({
+      success: true,
+      data: {
+        paymentLinkId: payosRes.data.paymentLinkId,
+        checkoutUrl: payosRes.data.checkoutUrl,
+        qrCode: payosRes.data.qrCode,
+        orderCode: order.order_code
+      }
+    })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+// POST PayOS webhook (payment callback)
+app.post('/api/payments/payos/webhook', async (c) => {
+  try {
+    await initDB(c.env.DB)
+    const body: any = await c.req.json()
+    const checksumKey = String((c.env as any).PAYOS_CHECKSUM_KEY || '')
+    if (!checksumKey) return c.json({ success: false, error: 'PAYOS_CONFIG_MISSING' }, 500)
+
+    const data = body?.data || {}
+    const providedSignature = String(body?.signature || '').toLowerCase()
+    if (!providedSignature) {
+      return c.json({ success: false, error: 'MISSING_SIGNATURE' }, 400)
+    }
+    const verifyString = payOSBuildDataString(data)
+    const expectedSignature = await payOSSignWithChecksum(checksumKey, verifyString)
+    if (providedSignature !== expectedSignature) {
+      return c.json({ success: false, error: 'INVALID_PAYOS_SIGNATURE' }, 401)
+    }
+
+    const payosOrderCode = Number(data?.orderCode || 0)
+    if (!payosOrderCode) return c.json({ success: false, error: 'MISSING_ORDER_CODE' }, 400)
+    const order = await c.env.DB.prepare(`
+      SELECT id, order_code, total_price, payment_status, status, payment_order_code
+      FROM orders
+      WHERE id=? OR payment_order_code=?
+      LIMIT 1
+    `).bind(payosOrderCode, payosOrderCode).first() as any
+    if (!order) {
+      return c.json({ success: true, data: { ignored: true, reason: 'ORDER_NOT_FOUND', payosOrderCode } })
+    }
+
+    if (order.payment_status === 'paid') {
+      return c.json({ success: true, data: { order_code: order.order_code, already_paid: true } })
+    }
+
+    const status = String(data?.status || '').toUpperCase()
+    if (status !== 'PAID') {
+      return c.json({ success: true, data: { ignored: true, reason: `status_${status || 'UNKNOWN'}` } })
+    }
+
+    const paidAmount = Number(data?.amount || data?.amountPaid || 0)
+    if (paidAmount > 0 && Number(order.total_price) > 0 && paidAmount < Number(order.total_price)) {
+      return c.json({ success: false, error: 'INSUFFICIENT_AMOUNT' }, 400)
+    }
+
+    const paymentRef = String(data?.paymentLinkId || data?.reference || payosOrderCode)
+    await c.env.DB.prepare(`
+      UPDATE orders
+      SET payment_status='paid',
+          payment_paid_at=CURRENT_TIMESTAMP,
+          payment_ref=?,
+          payment_provider='PAYOS',
+          payment_order_code=?,
+          payment_link_id=COALESCE(?, payment_link_id),
+          status=CASE WHEN status='pending' THEN 'confirmed' ELSE status END,
+          updated_at=CURRENT_TIMESTAMP
+      WHERE id=?
+    `).bind(
+      paymentRef || null,
+      payosOrderCode,
+      data?.paymentLinkId || null,
+      order.id
+    ).run()
+
+    return c.json({ success: true, data: { order_code: order.order_code, payment_status: 'paid' } })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+// POST confirm/update webhook URL on PayOS (helper endpoint)
+app.post('/api/payments/payos/confirm-webhook', async (c) => {
+  try {
+    const body: any = await c.req.json().catch(() => ({}))
+    const webhookUrl = String(body.webhookUrl || '').trim()
+    if (!webhookUrl || !/^https:\/\//i.test(webhookUrl)) {
+      return c.json({ success: false, error: 'INVALID_WEBHOOK_URL' }, 400)
+    }
+
+    const clientId = String((c.env as any).PAYOS_CLIENT_ID || '')
+    const apiKey = String((c.env as any).PAYOS_API_KEY || '')
+    if (!clientId || !apiKey) {
+      return c.json({ success: false, error: 'PAYOS_CONFIG_MISSING' }, 500)
+    }
+
+    const resp = await fetch('https://api-merchant.payos.vn/confirm-webhook', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-client-id': clientId,
+        'x-api-key': apiKey
+      },
+      body: JSON.stringify({ webhookUrl })
+    })
+    const data: any = await resp.json().catch(() => ({}))
+    if (!resp.ok || String(data.code || '') !== '00') {
+      return c.json({ success: false, error: 'PAYOS_CONFIRM_WEBHOOK_FAILED', detail: data }, 400)
+    }
+    return c.json({ success: true, data })
   } catch (e: any) {
     return c.json({ success: false, error: e.message }, 500)
   }
@@ -894,6 +1153,7 @@ function storefrontHTML(): string {
   .shake { animation: shake 0.5s ease; }
   .field-error label, .field-error .field-title { color: #e84393 !important; }
   .field-error input, .field-error textarea { border-color: #e84393 !important; box-shadow: 0 0 0 3px rgba(232,67,147,0.15) !important; }
+  .field-error .payment-method-btn { border-color: #e84393 !important; box-shadow: 0 0 0 3px rgba(232,67,147,0.12) !important; }
   /* Voucher styles */
   .voucher-success { background: linear-gradient(135deg,#d1fae5,#a7f3d0); border: 1.5px solid #6ee7b7; }
   .voucher-error { background: #fff1f2; border: 1.5px solid #fecdd3; }
@@ -1250,7 +1510,7 @@ function storefrontHTML(): string {
 
 <!-- ORDER POPUP -->
 <div id="orderOverlay" class="fixed inset-0 overlay z-50 hidden flex items-center justify-center p-4">
-  <div class="popup-card bg-white rounded-3xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto" id="orderPopupCard">
+  <div class="popup-card bg-white rounded-3xl shadow-2xl w-full max-w-md md:max-w-[56rem] max-h-[90vh] overflow-y-auto" id="orderPopupCard">
     <div class="sticky top-0 bg-white rounded-t-3xl border-b px-6 py-4 flex items-center justify-between">
       <h3 class="font-display text-xl font-bold text-gray-900">Đặt hàng nhanh</h3>
       <button onclick="closeOrder()" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition">
@@ -1348,6 +1608,53 @@ function storefrontHTML(): string {
           <input type="text" id="orderNote" placeholder="Ghi chú cho đơn hàng..."
             class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
         </div>
+
+        <div id="fieldPaymentMethod">
+          <label class="block text-sm font-semibold text-gray-700 mb-1.5 field-title">
+            <i class="fas fa-credit-card text-pink-400 mr-1"></i>Chọn phương thức thanh toán *
+          </label>
+          <p class="text-xs text-red-500 mb-2">Trường này là bắt buộc</p>
+          <div class="space-y-2">
+            <button type="button" class="payment-method-btn w-full flex items-center gap-3 border rounded-xl px-3 py-2.5 text-left hover:border-pink-400 transition"
+              onclick="selectPaymentMethod('COD', this)">
+              <span class="w-8 h-8 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center">
+                <i class="fas fa-money-bill-wave"></i>
+              </span>
+              <span>
+                <span class="block text-sm font-semibold text-gray-800">COD</span>
+                <span class="block text-xs text-gray-500">Thanh toán khi giao</span>
+              </span>
+            </button>
+
+            <div class="w-full flex items-center gap-2 border rounded-xl px-3 py-2.5 hover:border-pink-400 transition">
+              <button type="button" class="payment-method-btn flex-1 flex items-center gap-3 text-left border rounded-lg px-2 py-1.5"
+                onclick="selectPaymentMethod('ZALOPAY', this)">
+                <span class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">ZP</span>
+                <span class="block text-sm font-semibold text-gray-800">Zalopay</span>
+              </button>
+              <button type="button" class="text-sm font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                onclick="openZaloPayLink(event)">
+                Liên kết <i class="fas fa-chevron-right text-xs"></i>
+              </button>
+            </div>
+
+            <button type="button" class="payment-method-btn w-full flex items-center gap-3 border rounded-xl px-3 py-2.5 text-left hover:border-pink-400 transition"
+              onclick="selectPaymentMethod('MOMO', this)">
+              <span class="w-8 h-8 rounded-full bg-pink-100 text-pink-600 flex items-center justify-center">
+                <i class="fas fa-wallet"></i>
+              </span>
+              <span class="block text-sm font-semibold text-gray-800">Ví điện tử MoMo</span>
+            </button>
+
+            <button type="button" class="payment-method-btn w-full flex items-center gap-3 border rounded-xl px-3 py-2.5 text-left hover:border-pink-400 transition"
+              onclick="selectPaymentMethod('BANK_TRANSFER', this)">
+              <span class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
+                <i class="fas fa-university"></i>
+              </span>
+              <span class="block text-sm font-semibold text-gray-800">Chuyển khoản ngân hàng</span>
+            </button>
+          </div>
+        </div>
         
         <!-- Total -->
         <div class="bg-gradient-to-r from-pink-50 to-red-50 rounded-2xl p-4 space-y-1.5">
@@ -1377,6 +1684,77 @@ function storefrontHTML(): string {
         </div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ORDER BANK TRANSFER QR MODAL -->
+<div id="orderBankTransferOverlay" class="fixed inset-0 overlay z-[70] hidden flex items-center justify-center p-4">
+  <div class="popup-card bg-white rounded-3xl shadow-2xl w-full max-w-md max-h-[92vh] overflow-y-auto">
+    <div class="sticky top-0 bg-white rounded-t-3xl border-b px-6 py-4 flex items-center justify-between">
+      <h3 class="font-display text-xl font-bold text-gray-900">
+        <i class="fas fa-qrcode text-pink-500 mr-2"></i>Quét mã QR để thanh toán
+      </h3>
+      <button onclick="closeOrderBankTransferModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition">
+        <i class="fas fa-times text-gray-600"></i>
+      </button>
+    </div>
+    <div class="px-6 py-5">
+      <div class="border rounded-2xl p-4 bg-gray-50">
+        <div class="flex justify-center mb-3">
+          <img id="orderBankQrImg" src="" alt="VietQR thanh toán đơn hàng" class="w-56 h-56 object-contain rounded-xl border bg-white">
+        </div>
+        <div class="space-y-2 text-sm">
+          <div class="flex justify-between items-center bg-white rounded-lg px-3 py-2 border">
+            <span class="text-gray-500">Ngân hàng</span>
+            <span class="font-bold text-gray-800">MB Bank</span>
+          </div>
+          <div class="flex justify-between items-center bg-white rounded-lg px-3 py-2 border">
+            <span class="text-gray-500">Số TK</span>
+            <span class="font-bold text-gray-800">
+              <span id="orderBankAccountNo"></span>
+              <button type="button" class="ml-1 text-gray-400 hover:text-gray-600" onclick="copyBankValue(document.getElementById('orderBankAccountNo').textContent)">
+                <i class="fas fa-copy"></i>
+              </button>
+            </span>
+          </div>
+          <div class="flex justify-between items-center bg-white rounded-lg px-3 py-2 border">
+            <span class="text-gray-500">Chủ TK</span>
+            <span class="font-bold text-gray-800" id="orderBankAccountName"></span>
+          </div>
+          <div class="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+            <p class="text-amber-700 text-xs font-semibold mb-1">Nội dung CK (BẮT BUỘC)</p>
+            <div class="flex items-center justify-between">
+              <span id="orderBankTransferContent" class="font-mono font-bold text-amber-800"></span>
+              <button type="button" class="text-amber-500 hover:text-amber-700" onclick="copyBankValue(document.getElementById('orderBankTransferContent').textContent)">
+                <i class="fas fa-copy"></i>
+              </button>
+            </div>
+          </div>
+          <div class="flex justify-between items-center bg-white rounded-lg px-3 py-2 border">
+            <span class="text-gray-500">Số tiền</span>
+            <span class="font-bold text-pink-600" id="orderBankAmountDisplay"></span>
+          </div>
+          <div class="flex justify-between items-center bg-white rounded-lg px-3 py-2 border">
+            <span class="text-gray-500">Mã đơn</span>
+            <span class="font-mono font-bold text-blue-600" id="orderBankOrderCode"></span>
+          </div>
+        </div>
+      </div>
+      <div class="mt-4 bg-blue-50 border border-blue-200 rounded-xl px-3 py-2 text-xs text-blue-700">
+        Sau khi chuyển khoản, đơn hàng sẽ được xác nhận khi shop đối soát giao dịch.
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="orderPaidNoticeOverlay" class="fixed inset-0 z-[80] hidden items-center justify-center bg-black/30 p-4">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-xs p-5 text-center">
+    <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-green-100 text-green-600 flex items-center justify-center">
+      <i class="fas fa-check text-xl"></i>
+    </div>
+    <p class="text-green-600 font-bold text-lg">Đã thanh toán thành công</p>
+    <p class="text-sm text-gray-600 mt-1">Đơn hàng đã được ghi nhận.</p>
+    <p class="text-xs font-mono text-blue-600 mt-2" id="orderPaidNoticeCode"></p>
   </div>
 </div>
 
@@ -1605,6 +1983,9 @@ let currentProduct = null
 let orderQty = 1
 let selectedColor = ''
 let selectedSize = ''
+let selectedPaymentMethod = ''
+let pendingBankTransferOrder = null
+let bankTransferPollTimer = null
 let appliedVoucher = null   // { code, discount_amount }
 
 // ── CART STATE ─────────────────────────────────────
@@ -1837,6 +2218,7 @@ async function openOrder(id) {
     orderQty = 1
     selectedColor = ''
     selectedSize = ''
+    selectedPaymentMethod = ''
     appliedVoucher = null
 
     document.getElementById('orderProductImg').src = currentProduct.thumbnail || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'
@@ -1851,8 +2233,9 @@ async function openOrder(id) {
     document.getElementById('voucherStatus').classList.add('hidden')
     document.getElementById('discountRow').classList.add('hidden')
     document.getElementById('subtotalRow').classList.add('hidden')
+    document.querySelectorAll('.payment-method-btn').forEach(b => b.classList.remove('active','border-pink-500','bg-pink-50'))
     // Clear field errors
-    ;['fieldName','fieldPhone','fieldAddress','fieldColor'].forEach(id => {
+    ;['fieldName','fieldPhone','fieldAddress','fieldColor','fieldPaymentMethod'].forEach(id => {
       document.getElementById(id)?.classList.remove('field-error','shake')
     })
     updateOrderTotal()
@@ -1887,6 +2270,23 @@ function selectOrderSize(s, btn) {
   document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active','bg-gray-900','text-white','border-gray-900'))
   btn.classList.add('active','bg-gray-900','text-white','border-gray-900')
   selectedSize = s
+}
+function selectPaymentMethod(method, btn) {
+  document.querySelectorAll('.payment-method-btn').forEach(b => b.classList.remove('active','border-pink-500','bg-pink-50'))
+  btn.classList.add('active','border-pink-500','bg-pink-50')
+  selectedPaymentMethod = method
+  document.getElementById('fieldPaymentMethod')?.classList.remove('field-error','shake')
+}
+function openZaloPayLink(evt) {
+  if (evt) {
+    evt.preventDefault()
+    evt.stopPropagation()
+  }
+  const startedAt = Date.now()
+  window.location.href = 'zalopay://'
+  setTimeout(() => {
+    if (Date.now() - startedAt < 1700) window.open('https://zalopay.vn/', '_blank')
+  }, 1200)
 }
 function changeQty(d) {
   orderQty = Math.max(1, Math.min(99, orderQty + d))
@@ -2038,6 +2438,8 @@ async function submitOrder() {
   clearFieldError('fieldPhone')
   if (!address) { shakeField('fieldAddress'); return }
   clearFieldError('fieldAddress')
+  if (!selectedPaymentMethod) { shakeField('fieldPaymentMethod'); return }
+  clearFieldError('fieldPaymentMethod')
 
   const btn = document.getElementById('submitOrderBtn')
   btn.disabled = true
@@ -2053,10 +2455,27 @@ async function submitOrder() {
       size: selectedSize,
       quantity: orderQty,
       voucher_code: appliedVoucher ? appliedVoucher.code : '',
-      note: document.getElementById('orderNote').value.trim()
+      note: document.getElementById('orderNote').value.trim(),
+      payment_method: selectedPaymentMethod
     })
     closeOrder()
-    showToast(\`🎉 Đặt hàng thành công! Mã đơn: \${res.data.order_code}\`, 'success', 5000)
+    const orderCode = res.data.order_code
+    const orderTotal = Number(res.data.total || 0)
+    const orderId = Number(res.data.id || 0)
+    if (selectedPaymentMethod === 'BANK_TRANSFER') {
+      const payos = await axios.post('/api/orders/' + orderId + '/payos-link', { origin: window.location.origin })
+      openOrderBankTransferModal({
+        orderCode,
+        orderId,
+        amount: orderTotal,
+        paymentLinkId: payos.data?.data?.paymentLinkId || '',
+        checkoutUrl: payos.data?.data?.checkoutUrl || '',
+        qrCode: payos.data?.data?.qrCode || ''
+      })
+      showToast(\`Đơn hàng \${orderCode} đã tạo. Vui lòng chuyển khoản để hoàn tất.\`, 'success', 5000)
+    } else {
+      showToast(\`🎉 Đặt hàng thành công! Mã đơn: \${orderCode}\`, 'success', 5000)
+    }
   } catch(e) {
     const errCode = e.response?.data?.error
     if (errCode === 'INVALID_VOUCHER' || errCode === 'VOUCHER_LIMIT') {
@@ -2086,6 +2505,21 @@ function addCurrentToCart() {
 // ── UTILS ──────────────────────────────────────────
 function fmtPrice(p) { return new Intl.NumberFormat('vi-VN',{style:'currency',currency:'VND'}).format(p) }
 function safeJson(v) { try { return JSON.parse(v||'[]') } catch { return [] } }
+function formatPaymentMethod(v) {
+  const key = String(v || '').toUpperCase()
+  if (key === 'ZALOPAY') return 'ZaloPay'
+  if (key === 'MOMO') return 'Ví điện tử MoMo'
+  if (key === 'BANK_TRANSFER') return 'Chuyển khoản ngân hàng'
+  return 'COD - Thanh toán khi giao'
+}
+function paymentStatusLabel(v) {
+  return String(v || '').toLowerCase() === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán'
+}
+function paymentStatusClass(v) {
+  return String(v || '').toLowerCase() === 'paid'
+    ? 'bg-green-100 text-green-700 border border-green-200'
+    : 'bg-amber-100 text-amber-700 border border-amber-200'
+}
 
 function showToast(msg, type='success', duration=3000) {
   const c = document.getElementById('toastContainer')
@@ -2409,7 +2843,8 @@ async function submitCartOrder() {
         product_id: item.productId, color: item.color, size: item.size,
         quantity: item.qty,
         voucher_code: ckAppliedVoucher ? ckAppliedVoucher.code : '',
-        note
+        note,
+        payment_method: 'COD'
       })
       codes.push(res.data.order_code)
     }
@@ -2437,6 +2872,13 @@ function toggleCart() { openCart() }
 // Close overlays on outside click
 document.getElementById('orderOverlay').addEventListener('click', (e) => { if(e.target.id==='orderOverlay') closeOrder() })
 document.getElementById('detailOverlay').addEventListener('click', (e) => { if(e.target.id==='detailOverlay') closeDetail() })
+document.getElementById('orderBankTransferOverlay').addEventListener('click', (e) => { if (e.target.id === 'orderBankTransferOverlay') closeOrderBankTransferModal() })
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    const bankModal = document.getElementById('orderBankTransferOverlay')
+    if (bankModal && !bankModal.classList.contains('hidden')) closeOrderBankTransferModal()
+  }
+})
 
 // Auto clear error on input
 ;['orderName','orderPhone','orderAddress'].forEach(id => {
@@ -2772,9 +3214,89 @@ const BANK_CONFIG = {
 
 let selectedTopupAmount = 50000
 
-function getVietQRUrl(amount) {
-  const info = 'QHVN90' + (currentUser ? currentUser.userId : '')
+function getVietQRUrl(amount, customInfo = '') {
+  const info = customInfo || ('QHVN90' + (currentUser ? currentUser.userId : ''))
   return 'https://img.vietqr.io/image/' + BANK_CONFIG.bankId + '-' + BANK_CONFIG.accountNo + '-' + BANK_CONFIG.template + '.png?amount=' + amount + '&addInfo=' + encodeURIComponent(info) + '&accountName=' + encodeURIComponent(BANK_CONFIG.accountName)
+}
+
+function getOrderTransferContent(orderCode) {
+  const safeCode = String(orderCode || '').replace(/[^a-zA-Z0-9]/g, '')
+  return 'DH' + safeCode
+}
+
+function getQRImageFromPayload(qrText) {
+  if (!qrText) return ''
+  return 'https://quickchart.io/qr?size=360&ecLevel=M&text=' + encodeURIComponent(qrText)
+}
+
+function openOrderBankTransferModal(info) {
+  const orderCode = info?.orderCode || ''
+  const amount = Number(info?.amount || 0)
+  const transferContent = info?.transferContent || getOrderTransferContent(info?.orderId || orderCode)
+  const qrImage = info?.qrCode ? getQRImageFromPayload(info.qrCode) : getVietQRUrl(amount, transferContent)
+  pendingBankTransferOrder = { orderCode, amount, transferContent, paymentLinkId: info?.paymentLinkId || '' }
+  document.getElementById('orderBankOrderCode').textContent = orderCode
+  document.getElementById('orderBankAmountDisplay').textContent = fmtPrice(amount)
+  document.getElementById('orderBankAccountNo').textContent = BANK_CONFIG.accountNo
+  document.getElementById('orderBankAccountName').textContent = BANK_CONFIG.accountName
+  document.getElementById('orderBankTransferContent').textContent = transferContent
+  document.getElementById('orderBankQrImg').src = qrImage
+  document.getElementById('orderBankTransferOverlay').classList.remove('hidden')
+  document.body.style.overflow = 'hidden'
+  startOrderPaymentPolling(orderCode)
+}
+
+function closeOrderBankTransferModal() {
+  document.getElementById('orderBankTransferOverlay').classList.add('hidden')
+  stopOrderPaymentPolling()
+  pendingBankTransferOrder = null
+  document.body.style.overflow = ''
+}
+
+async function copyBankValue(value) {
+  try {
+    await navigator.clipboard.writeText(String(value || '').trim())
+    showToast('Đã sao chép', 'success', 1500)
+  } catch (_) {
+    showToast('Không thể sao chép', 'error', 1500)
+  }
+}
+
+function stopOrderPaymentPolling() {
+  if (bankTransferPollTimer) {
+    clearInterval(bankTransferPollTimer)
+    bankTransferPollTimer = null
+  }
+}
+
+function showOrderPaidNotice(orderCode) {
+  const overlay = document.getElementById('orderPaidNoticeOverlay')
+  const codeEl = document.getElementById('orderPaidNoticeCode')
+  if (codeEl) codeEl.textContent = orderCode || ''
+  if (!overlay) return
+  overlay.classList.remove('hidden')
+  overlay.classList.add('flex')
+  setTimeout(() => {
+    overlay.classList.add('hidden')
+    overlay.classList.remove('flex')
+  }, 2600)
+}
+
+function startOrderPaymentPolling(orderCode) {
+  stopOrderPaymentPolling()
+  bankTransferPollTimer = setInterval(async () => {
+    try {
+      const res = await axios.get('/api/orders/' + encodeURIComponent(orderCode) + '/payment-status')
+      const paymentStatus = res.data?.data?.payment_status
+      if (paymentStatus === 'paid') {
+        stopOrderPaymentPolling()
+        closeOrderBankTransferModal()
+        showOrderPaidNotice(orderCode)
+        showToast('Đã thanh toán thành công và ghi nhận đơn hàng', 'success', 4500)
+        if (typeof loadAdminOrders === 'function') loadAdminOrders()
+      }
+    } catch (_) { }
+  }, 4000)
 }
 
 function showWalletInMenu() {
@@ -4341,6 +4863,7 @@ function renderOrdersTable(orders) {
     <td class="px-4 py-3 text-right">
       <p class="font-bold text-gray-800">\${fmtPrice(o.total_price)}</p>
       \${o.discount_amount > 0 ? \`<p class="text-xs text-green-600">-\${fmtPrice(o.discount_amount)}</p>\` : ''}
+      <p class="mt-1"><span class="text-[11px] px-2 py-0.5 rounded-full \${paymentStatusClass(o.payment_status)}">\${paymentStatusLabel(o.payment_status)}</span></p>
     </td>
     <td class="px-4 py-3 text-center hidden lg:table-cell">
       \${o.voucher_code ? \`<span class="font-mono text-xs bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 rounded-lg font-semibold">\${o.voucher_code}</span>\` : '<span class="text-gray-300 text-xs">—</span>'}
@@ -4404,6 +4927,9 @@ function showOrderDetail(id) {
       <p class="font-semibold">\${o.customer_name}</p>
       <p class="text-sm text-gray-600">\${o.customer_phone}</p>
       <p class="text-sm text-gray-600">\${o.customer_address}</p>
+      <p class="text-sm text-gray-600 mt-1"><span class="text-gray-500">Thanh toán:</span> \${formatPaymentMethod(o.payment_method)}</p>
+      <p class="text-sm text-gray-600"><span class="text-gray-500">Trạng thái TT:</span> <span class="\${paymentStatusClass(o.payment_status)} px-2 py-0.5 rounded-full text-xs">\${paymentStatusLabel(o.payment_status)}</span></p>
+      \${o.payment_paid_at ? \`<p class="text-xs text-green-600 mt-1">Đã thanh toán lúc: \${new Date(o.payment_paid_at).toLocaleString('vi-VN')}</p>\` : ''}
     </div>
     <div class="bg-gray-50 rounded-xl p-3">
       <p class="text-xs text-gray-500 mb-1">Sản phẩm</p>
@@ -4458,11 +4984,14 @@ function exportExcel() {
     'Màu sắc': o.color || '',
     'Size': o.size || '',
     'Số lượng': o.quantity,
+    'Phương thức thanh toán': formatPaymentMethod(o.payment_method),
+    'Trạng thái thanh toán': paymentStatusLabel(o.payment_status),
     'Voucher': o.voucher_code || '',
     'Giảm giá': o.discount_amount || 0,
     'Tổng tiền': o.total_price,
     'Ghi chú': o.note || '',
     'Trạng thái': statusLabel(o.status),
+    'Thanh toán lúc': o.payment_paid_at ? new Date(o.payment_paid_at).toLocaleString('vi-VN') : '',
     'Ngày đặt': new Date(o.created_at).toLocaleString('vi-VN')
   }))
 
