@@ -3923,7 +3923,7 @@ function adminHTML(): string {
   <div id="page-orders" class="p-6 hidden">
     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
       <div class="flex gap-2 flex-wrap">
-        <select id="orderStatusFilter" onchange="loadAdminOrders()" class="border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-pink-400">
+        <select id="orderStatusFilter" onchange="filterOrders()" class="border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-pink-400">
           <option value="all">Tất cả trạng thái</option>
           <option value="pending">Chờ xử lý</option>
           <option value="confirmed">Đã xác nhận</option>
@@ -3955,7 +3955,6 @@ function adminHTML(): string {
               <th class="px-4 py-3 text-left font-semibold text-gray-600">Mã ĐH</th>
               <th class="px-4 py-3 text-left font-semibold text-gray-600">Khách hàng</th>
               <th class="px-4 py-3 text-left font-semibold text-gray-600 hidden md:table-cell">Sản phẩm</th>
-              <th class="px-4 py-3 text-left font-semibold text-gray-600 hidden sm:table-cell">Màu/Size</th>
               <th class="px-4 py-3 text-center font-semibold text-gray-600 hidden sm:table-cell">SL</th>
               <th class="px-4 py-3 text-right font-semibold text-gray-600">Tổng tiền</th>
               <th class="px-4 py-3 text-center font-semibold text-gray-600 hidden lg:table-cell">Voucher</th>
@@ -5076,27 +5075,30 @@ function addPresetSizes(arr) {
 
 // ── ORDERS ────────────────────────────────────────
 async function loadAdminOrders() {
-  document.getElementById('ordersTable').innerHTML = '<tr><td colspan="10" class="text-center py-12 text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></td></tr>'
+  document.getElementById('ordersTable').innerHTML = '<tr><td colspan="9" class="text-center py-12 text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></td></tr>'
   try {
-    const status = document.getElementById('orderStatusFilter').value
-    const res = await axios.get('/api/admin/orders' + (status !== 'all' ? '?status='+status : ''))
+    const res = await axios.get('/api/admin/orders')
     adminOrders = res.data.data || []
     const validIds = new Set(adminOrders.map(o => Number(o.id)))
     selectedOrderIds = new Set(Array.from(selectedOrderIds).filter(id => validIds.has(Number(id))))
     filterOrders()
   } catch(e) {
-    document.getElementById('ordersTable').innerHTML = '<tr><td colspan="10" class="text-center py-8 text-red-400">Lỗi tải dữ liệu</td></tr>'
+    document.getElementById('ordersTable').innerHTML = '<tr><td colspan="9" class="text-center py-8 text-red-400">Lỗi tải dữ liệu</td></tr>'
   }
 }
 
 function filterOrders() {
+  const status = document.getElementById('orderStatusFilter').value
   const q = document.getElementById('orderSearch').value.toLowerCase()
-  const filtered = q ? adminOrders.filter(o =>
+  const byStatus = status === 'all'
+    ? adminOrders
+    : adminOrders.filter(o => String(o.status || '').toLowerCase() === status)
+  const filtered = q ? byStatus.filter(o =>
     o.customer_name.toLowerCase().includes(q) ||
     o.customer_phone.includes(q) ||
     o.order_code.toLowerCase().includes(q) ||
     o.product_name.toLowerCase().includes(q)
-  ) : adminOrders
+  ) : byStatus
   
   filteredAdminOrders = filtered
   renderOrdersTable(filtered)
@@ -5126,10 +5128,6 @@ function renderOrdersTable(orders) {
     </td>
     <td class="px-4 py-3 hidden md:table-cell">
       <p class="text-sm text-gray-700 max-w-xs truncate">\${o.product_name}</p>
-    </td>
-    <td class="px-4 py-3 text-sm text-gray-600 hidden sm:table-cell">
-      \${o.color ? '<span class="bg-pink-50 text-pink-600 px-2 py-0.5 rounded text-xs mr-1">'+o.color+'</span>' : ''}
-      \${o.size ? '<span class="bg-gray-100 text-gray-600 px-2 py-0.5 rounded text-xs">'+o.size+'</span>' : '—'}
     </td>
     <td class="px-4 py-3 text-center text-sm font-semibold hidden sm:table-cell">\${o.quantity}</td>
     <td class="px-4 py-3 text-right">
