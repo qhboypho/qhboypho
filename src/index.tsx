@@ -3265,16 +3265,43 @@ async function showUserOrders() {
     }
     content.innerHTML = '<h3 class="font-semibold text-gray-800 mb-3"><i class="fas fa-clipboard-list text-pink-400 mr-2"></i>Lịch sử mua hàng</h3>'
       + '<div class="space-y-2">' + orders.map(function(o) {
-        const statusColors = {pending:'bg-amber-100 text-amber-700',confirmed:'bg-blue-100 text-blue-700',shipping:'bg-purple-100 text-purple-700',done:'bg-green-100 text-green-700',cancelled:'bg-red-100 text-red-700'}
-        const statusLabels = {pending:'Chờ xử lý',confirmed:'Đã xác nhận',shipping:'Đang giao',done:'Hoàn thành',cancelled:'Đã hủy'}
+        const paymentPaid = String(o.payment_status || '').toLowerCase() === 'paid'
+        const paymentBadgeClass = paymentPaid ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
+        const paymentBadgeText = paymentPaid ? 'Đã thanh toán' : 'Chưa thanh toán'
+        const canResume = !paymentPaid && String(o.payment_method || '').toUpperCase() === 'BANK_TRANSFER'
+        const codeHtml = canResume
+          ? '<button class="font-mono text-xs text-blue-600 font-semibold hover:underline" onclick="resumeOrderPayment(' + o.id + ',\\'' + String(o.order_code || '').replace(/'/g, "\\'") + '\\')">' + o.order_code + '</button>'
+          : '<span class="font-mono text-xs text-blue-600 font-semibold">' + o.order_code + '</span>'
         return '<div class="order-history-item border rounded-xl p-3">'
-          + '<div class="flex justify-between items-start mb-1"><span class="font-mono text-xs text-blue-600 font-semibold">' + o.order_code + '</span>'
-          + '<span class="text-xs px-2 py-0.5 rounded-full font-medium ' + (statusColors[o.status]||'') + '">' + (statusLabels[o.status]||o.status) + '</span></div>'
+          + '<div class="flex justify-between items-start mb-1">' + codeHtml
+          + '<span class="text-xs px-2 py-0.5 rounded-full font-medium ' + paymentBadgeClass + '">' + paymentBadgeText + '</span></div>'
           + '<p class="text-sm font-medium text-gray-800">' + o.product_name + '</p>'
           + '<div class="flex justify-between items-center mt-1"><span class="text-xs text-gray-400">' + new Date(o.created_at).toLocaleDateString('vi-VN') + '</span>'
           + '<span class="font-bold text-pink-600 text-sm">' + fmtPrice(getOrderAmountDue(o)) + '</span></div></div>'
       }).join('') + '</div>'
   } catch { content.innerHTML = '<div class="text-center py-8 text-red-400">Lỗi tải dữ liệu</div>' }
+}
+
+async function resumeOrderPayment(orderId, orderCode) {
+  try {
+    const payTab = window.open('about:blank', '_blank')
+    const payos = await axios.post('/api/orders/' + orderId + '/payos-link', { origin: window.location.origin })
+    const checkoutUrl = String(payos.data?.data?.checkoutUrl || '').trim()
+    if (!checkoutUrl) {
+      try { if (payTab && !payTab.closed) payTab.close() } catch (_) { }
+      showToast('Không tạo được link thanh toán PayOS', 'error', 3500)
+      return
+    }
+    if (payTab) {
+      payTab.location.href = checkoutUrl
+    } else {
+      window.open(checkoutUrl, '_blank')
+    }
+    startOrderPaymentPolling(orderCode)
+    showToast('Đang mở lại trang PayOS để bạn thanh toán tiếp', 'success', 3500)
+  } catch (_) {
+    showToast('Không thể mở lại thanh toán cho đơn này', 'error', 3500)
+  }
 }
 
 // ── WALLET CONFIG (thay thông tin ngân hàng ở đây) ──
@@ -3355,6 +3382,10 @@ function onOrderMarkedPaid(orderCode) {
   closeOrderBankTransferModal()
   showOrderPaidNotice(orderCode)
   showToast('Đã thanh toán thành công và ghi nhận đơn hàng', 'success', 4500)
+  const userMenuContent = document.getElementById('userMenuContent')
+  if (userMenuContent && userMenuContent.textContent && userMenuContent.textContent.includes('Lịch sử mua hàng')) {
+    showUserOrders()
+  }
   if (typeof loadAdminOrders === 'function') loadAdminOrders()
 }
 
