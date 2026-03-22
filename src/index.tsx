@@ -17,6 +17,9 @@ type Bindings = {
   GHTK_PICK_DISTRICT?: string
   GHTK_PICK_WARD?: string
   GHTK_PICK_TEL?: string
+  GHTK_FALLBACK_PROVINCE?: string
+  GHTK_FALLBACK_DISTRICT?: string
+  GHTK_FALLBACK_WARD?: string
   GHTK_DEFAULT_WEIGHT_KG?: string
   GHTK_LABEL_ORIGINAL?: string
   GHTK_LABEL_PAGE_SIZE?: string
@@ -273,6 +276,23 @@ function parseVietnamAddress(address: string) {
   return { detail, ward, district, province }
 }
 
+function resolveRecipientAddressForGHTK(env: any, rawAddress: string) {
+  const parsed = parseVietnamAddress(rawAddress)
+  if (parsed) return { ...parsed, usedFallback: false }
+  const fallbackProvince = String(env.GHTK_FALLBACK_PROVINCE || env.GHTK_PICK_PROVINCE || '').trim()
+  const fallbackDistrict = String(env.GHTK_FALLBACK_DISTRICT || env.GHTK_PICK_DISTRICT || '').trim()
+  const fallbackWard = String(env.GHTK_FALLBACK_WARD || env.GHTK_PICK_WARD || '').trim()
+  const detail = String(rawAddress || '').trim()
+  if (!detail || !fallbackProvince || !fallbackDistrict || !fallbackWard) return null
+  return {
+    detail,
+    ward: fallbackWard,
+    district: fallbackDistrict,
+    province: fallbackProvince,
+    usedFallback: true
+  }
+}
+
 function getOrderAmountDueServer(order: any) {
   return String(order?.payment_status || '').toLowerCase() === 'paid'
     ? 0
@@ -294,7 +314,7 @@ async function ghtkCreateShipment(env: any, order: any) {
     return { ok: false, message: 'MISSING_GHTK_PICKUP_CONFIG' }
   }
 
-  const parsedAddress = parseVietnamAddress(String(order?.customer_address || ''))
+  const parsedAddress = resolveRecipientAddressForGHTK(env, String(order?.customer_address || ''))
   if (!parsedAddress) return { ok: false, message: 'INVALID_CUSTOMER_ADDRESS_FORMAT' }
 
   const weight = Number(env.GHTK_DEFAULT_WEIGHT_KG || 0.5)
@@ -340,7 +360,7 @@ async function ghtkCreateShipment(env: any, order: any) {
     body: JSON.stringify(payload)
   })
   const body: any = await resp.json().catch(() => ({}))
-  if (resp.ok && body?.success && body?.order) return { ok: true, data: body.order }
+  if (resp.ok && body?.success && body?.order) return { ok: true, data: body.order, usedFallbackAddress: !!parsedAddress.usedFallback }
   return { ok: false, message: String(body?.message || 'GHTK_CREATE_ORDER_FAILED'), detail: body }
 }
 
@@ -1000,6 +1020,19 @@ app.post('/api/admin/orders/arrange-shipping', async (c) => {
         trackingCode = String(createRes.data?.label || createRes.data?.tracking_id || '').trim()
         labelCode = String(createRes.data?.label || '').trim()
         fee = Number(createRes.data?.fee || 0) || 0
+        if (!trackingCode) {
+          failed.push({ id, order_code: order.order_code, error: 'GHTK_TRACKING_EMPTY', detail: createRes.data || null })
+          continue
+        }
+        updated.push({
+          id,
+          order_code: order.order_code,
+          tracking_code: trackingCode,
+          carrier: 'GHTK',
+          used_fallback_address: !!createRes.usedFallbackAddress
+        })
+      } else {
+        updated.push({ id, order_code: order.order_code, tracking_code: trackingCode, carrier: 'GHTK', reused_tracking: true })
       }
 
       await c.env.DB.prepare(`
@@ -1015,7 +1048,6 @@ app.post('/api/admin/orders/arrange-shipping', async (c) => {
         WHERE id=?
       `).bind(trackingCode, labelCode, fee, fee, id).run()
 
-      updated.push({ id, order_code: order.order_code, tracking_code: trackingCode, carrier: 'GHTK' })
     }
 
     return c.json({
@@ -4665,9 +4697,13 @@ function adminHTML(): string {
         <i class="fas fa-check text-xl"></i>
       </div>
       <p id="arrangeSuccessText" class="text-gray-800 font-semibold">Đã sắp xếp vận chuyển thành công 0 đơn hàng.</p>
-      <button onclick="printArrangedOrdersFromModal()" class="mt-5 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl font-semibold text-sm inline-flex items-center gap-2 transition">
+      <button id="arrangeModalPrintBtn" onclick="printArrangedOrdersFromModal()" class="mt-5 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl font-semibold text-sm inline-flex items-center gap-2 transition">
         <i class="fas fa-print"></i>In đơn
       </button>
+      <div id="arrangeFailedWrap" class="hidden mt-4 text-left bg-amber-50 border border-amber-200 rounded-xl p-3">
+        <p class="text-xs font-semibold text-amber-700 mb-2">Đơn lỗi khi tạo vận đơn GHTK</p>
+        <div id="arrangeFailedList" class="max-h-32 overflow-auto space-y-1 text-xs text-amber-800"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -4683,6 +4719,7 @@ let selectedOrderIds = new Set()
 let filteredAdminOrders = []
 let ordersViewMode = 'to_arrange'
 let arrangedOrdersForPrint = []
+let arrangedFailedOrders = []
 let colors = []
 let sizes = []
 let galleryImages = ['','','','','','','','','']
@@ -5631,9 +5668,9 @@ async function arrangeSelectedForShipping() {
     const failed = Array.isArray(res.data?.failed) ? res.data.failed : []
     const updatedIds = new Set(updated.map((o) => Number(o.id)))
     arrangedOrdersForPrint = selectedOrders.filter((o) => updatedIds.has(Number(o.id)))
+    arrangedFailedOrders = failed
     selectedOrderIds.clear()
-    if (arrangedOrdersForPrint.length > 0) openArrangeSuccessModal(arrangedOrdersForPrint.length)
-    if (failed.length > 0) showAdminToast('Có ' + failed.length + ' đơn lỗi khi tạo vận đơn GHTK', 'warning')
+    openArrangeSuccessModal(arrangedOrdersForPrint.length, failed)
     await loadAdminOrders()
   } catch (e) {
     showAdminToast('Lỗi sắp xếp vận chuyển', 'error')
@@ -5709,9 +5746,37 @@ function openPrintOrdersPopup(selected) {
   popup.document.close()
 }
 
-function openArrangeSuccessModal(count) {
+function mapArrangeErrorText(code) {
+  if (code === 'ORDER_NOT_FOUND') return 'Không tìm thấy đơn'
+  if (code === 'ORDER_CLOSED') return 'Đơn đã đóng/hủy'
+  if (code === 'MISSING_GHTK_KEYS') return 'Thiếu GHTK_TOKEN hoặc GHTK_CLIENT_SOURCE'
+  if (code === 'MISSING_GHTK_PICKUP_CONFIG') return 'Thiếu cấu hình địa chỉ lấy hàng GHTK'
+  if (code === 'INVALID_CUSTOMER_ADDRESS_FORMAT') return 'Địa chỉ khách chưa hợp lệ và không có fallback'
+  if (code === 'GHTK_TRACKING_EMPTY') return 'GHTK không trả mã vận đơn'
+  return String(code || 'Lỗi không xác định')
+}
+
+function openArrangeSuccessModal(count, failedList) {
   const text = document.getElementById('arrangeSuccessText')
+  const failed = Array.isArray(failedList) ? failedList : []
   if (text) text.textContent = 'Đã sắp xếp vận chuyển thành công ' + count + ' đơn hàng.'
+  const printBtn = document.getElementById('arrangeModalPrintBtn')
+  if (printBtn) printBtn.classList.toggle('hidden', count <= 0)
+  const failWrap = document.getElementById('arrangeFailedWrap')
+  const failListEl = document.getElementById('arrangeFailedList')
+  if (failWrap && failListEl) {
+    const hasFail = failed.length > 0
+    failWrap.classList.toggle('hidden', !hasFail)
+    if (hasFail) {
+      failListEl.innerHTML = failed.map((f) => {
+        const code = String(f.order_code || f.id || 'N/A')
+        const reason = mapArrangeErrorText(f.error)
+        return '<div>• <span class="font-semibold">' + code + '</span>: ' + reason + '</div>'
+      }).join('')
+    } else {
+      failListEl.innerHTML = ''
+    }
+  }
   const modal = document.getElementById('arrangeSuccessModal')
   if (modal) modal.classList.remove('hidden')
 }
@@ -5719,6 +5784,7 @@ function openArrangeSuccessModal(count) {
 function closeArrangeSuccessModal() {
   const modal = document.getElementById('arrangeSuccessModal')
   if (modal) modal.classList.add('hidden')
+  arrangedFailedOrders = []
 }
 
 function printArrangedOrdersFromModal() {
