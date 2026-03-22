@@ -3934,9 +3934,14 @@ function adminHTML(): string {
         <input type="text" id="orderSearch" placeholder="Tìm tên/SĐT/mã..." oninput="filterOrders()" 
           class="border rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-pink-400 w-48">
       </div>
-      <button onclick="exportExcel()" class="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2 transition">
-        <i class="fas fa-file-excel"></i>Xuất Excel
-      </button>
+      <div class="flex items-center gap-2">
+        <button id="bulkDeleteOrdersBtn" onclick="deleteSelectedOrders()" class="hidden bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2 transition">
+          <i class="fas fa-trash"></i><span id="bulkDeleteOrdersText">Xoá đã chọn</span>
+        </button>
+        <button onclick="exportExcel()" class="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2 transition">
+          <i class="fas fa-file-excel"></i>Xuất Excel
+        </button>
+      </div>
     </div>
     
     <div class="bg-white rounded-2xl shadow-sm border overflow-hidden">
@@ -3944,6 +3949,9 @@ function adminHTML(): string {
         <table class="w-full text-sm">
           <thead>
             <tr class="bg-gray-50 border-b">
+              <th class="px-4 py-3 text-center font-semibold text-gray-600">
+                <input id="ordersSelectAll" type="checkbox" onchange="toggleSelectAllOrders(this.checked)" class="w-4 h-4 rounded border-gray-300 text-pink-500 focus:ring-pink-400">
+              </th>
               <th class="px-4 py-3 text-left font-semibold text-gray-600">Mã ĐH</th>
               <th class="px-4 py-3 text-left font-semibold text-gray-600">Khách hàng</th>
               <th class="px-4 py-3 text-left font-semibold text-gray-600 hidden md:table-cell">Sản phẩm</th>
@@ -4361,6 +4369,8 @@ function adminHTML(): string {
 // ── STATE ─────────────────────────────────────────
 let adminProducts = []
 let adminOrders = []
+let selectedOrderIds = new Set()
+let filteredAdminOrders = []
 let colors = []
 let sizes = []
 let galleryImages = ['','','','','','','','','']
@@ -5066,13 +5076,17 @@ function addPresetSizes(arr) {
 
 // ── ORDERS ────────────────────────────────────────
 async function loadAdminOrders() {
-  document.getElementById('ordersTable').innerHTML = '<tr><td colspan="8" class="text-center py-12 text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></td></tr>'
+  document.getElementById('ordersTable').innerHTML = '<tr><td colspan="10" class="text-center py-12 text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></td></tr>'
   try {
     const status = document.getElementById('orderStatusFilter').value
     const res = await axios.get('/api/admin/orders' + (status !== 'all' ? '?status='+status : ''))
     adminOrders = res.data.data || []
+    const validIds = new Set(adminOrders.map(o => Number(o.id)))
+    selectedOrderIds = new Set(Array.from(selectedOrderIds).filter(id => validIds.has(Number(id))))
     filterOrders()
-  } catch(e) { document.getElementById('ordersTable').innerHTML = '<tr><td colspan="8" class="text-center py-8 text-red-400">Lỗi tải dữ liệu</td></tr>' }
+  } catch(e) {
+    document.getElementById('ordersTable').innerHTML = '<tr><td colspan="10" class="text-center py-8 text-red-400">Lỗi tải dữ liệu</td></tr>'
+  }
 }
 
 function filterOrders() {
@@ -5084,9 +5098,11 @@ function filterOrders() {
     o.product_name.toLowerCase().includes(q)
   ) : adminOrders
   
+  filteredAdminOrders = filtered
   renderOrdersTable(filtered)
   const total = filtered.reduce((s,o) => s + getOrderAmountDue(o), 0)
   document.getElementById('orderStats').textContent = \`\${filtered.length} đơn – Tổng: \${fmtPrice(total)}\`
+  updateOrderSelectionUI()
 }
 
 function renderOrdersTable(orders) {
@@ -5100,6 +5116,9 @@ function renderOrdersTable(orders) {
   
   document.getElementById('ordersTable').innerHTML = orders.map(o => \`
   <tr class="table-row border-b cursor-pointer">
+    <td class="px-4 py-3 text-center">
+      <input type="checkbox" class="w-4 h-4 rounded border-gray-300 text-pink-500 focus:ring-pink-400" \${selectedOrderIds.has(Number(o.id)) ? 'checked' : ''} onchange="toggleOrderSelection(\${o.id}, this.checked)">
+    </td>
     <td class="px-4 py-3 font-mono text-xs text-blue-600 font-semibold">\${o.order_code}</td>
     <td class="px-4 py-3">
       <p class="font-medium text-gray-800 text-sm">\${o.customer_name}</p>
@@ -5141,6 +5160,59 @@ function renderOrdersTable(orders) {
       </div>
     </td>
   </tr>\`).join('')
+  updateOrderSelectionUI()
+}
+
+function toggleOrderSelection(id, checked) {
+  const n = Number(id)
+  if (checked) selectedOrderIds.add(n)
+  else selectedOrderIds.delete(n)
+  updateOrderSelectionUI()
+}
+
+function toggleSelectAllOrders(checked) {
+  filteredAdminOrders.forEach(o => {
+    const id = Number(o.id)
+    if (checked) selectedOrderIds.add(id)
+    else selectedOrderIds.delete(id)
+  })
+  renderOrdersTable(filteredAdminOrders)
+}
+
+function updateOrderSelectionUI() {
+  const bulkBtn = document.getElementById('bulkDeleteOrdersBtn')
+  const bulkText = document.getElementById('bulkDeleteOrdersText')
+  const selectAll = document.getElementById('ordersSelectAll')
+  const visibleIds = filteredAdminOrders.map(o => Number(o.id))
+  const checkedVisible = visibleIds.filter(id => selectedOrderIds.has(id)).length
+  const anySelected = selectedOrderIds.size > 0
+
+  if (bulkBtn) {
+    bulkBtn.classList.toggle('hidden', !anySelected)
+    bulkBtn.classList.toggle('flex', anySelected)
+  }
+  if (bulkText) {
+    bulkText.textContent = anySelected ? ('Xoá đã chọn (' + selectedOrderIds.size + ')') : 'Xoá đã chọn'
+  }
+  if (selectAll) {
+    const allVisibleChecked = visibleIds.length > 0 && checkedVisible === visibleIds.length
+    selectAll.checked = allVisibleChecked
+    selectAll.indeterminate = checkedVisible > 0 && checkedVisible < visibleIds.length
+  }
+}
+
+async function deleteSelectedOrders() {
+  const ids = Array.from(selectedOrderIds)
+  if (!ids.length) return
+  if (!confirm('Xoá ' + ids.length + ' đơn đã chọn?')) return
+  try {
+    await Promise.all(ids.map(id => axios.delete('/api/admin/orders/' + id)))
+    selectedOrderIds.clear()
+    showAdminToast('Đã xoá ' + ids.length + ' đơn hàng', 'success')
+    await loadAdminOrders()
+  } catch (e) {
+    showAdminToast('Lỗi xoá hàng loạt', 'error')
+  }
 }
 
 async function updateOrderStatus(id, status) {
@@ -5155,6 +5227,7 @@ async function deleteOrder(id) {
   if (!confirm('Xoá đơn hàng này?')) return
   try {
     await axios.delete('/api/admin/orders/'+id)
+    selectedOrderIds.delete(Number(id))
     showAdminToast('Đã xoá đơn hàng', 'success')
     loadAdminOrders()
   } catch(e) { showAdminToast('Lỗi xoá', 'error') }
