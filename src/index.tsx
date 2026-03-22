@@ -1703,6 +1703,12 @@ function storefrontHTML(): string {
         <div class="flex justify-center mb-3">
           <img id="orderBankQrImg" src="" alt="VietQR thanh toán đơn hàng" class="w-56 h-56 object-contain rounded-xl border bg-white">
         </div>
+        <div id="orderPayosLinkWrap" class="mb-3 hidden">
+          <button type="button" onclick="openOrderPayOSCheckout()" class="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold px-3 py-2 transition">
+            <i class="fas fa-arrow-up-right-from-square"></i>
+            Mở trang thanh toán PayOS
+          </button>
+        </div>
         <div class="space-y-2 text-sm">
           <div class="flex justify-between items-center bg-white rounded-lg px-3 py-2 border">
             <span class="text-gray-500">Ngân hàng</span>
@@ -3240,14 +3246,20 @@ function openOrderBankTransferModal(info) {
   const orderCode = info?.orderCode || ''
   const amount = Number(info?.amount || 0)
   const transferContent = info?.transferContent || getOrderTransferContent(info?.orderId || orderCode)
-  const qrImage = info?.qrCode ? getQRImageFromPayload(info.qrCode) : getVietQRUrl(amount, transferContent)
-  pendingBankTransferOrder = { orderCode, amount, transferContent, paymentLinkId: info?.paymentLinkId || '' }
+  const qrImage = getVietQRUrl(amount, transferContent)
+  const checkoutUrl = String(info?.checkoutUrl || '').trim()
+  pendingBankTransferOrder = { orderCode, amount, transferContent, paymentLinkId: info?.paymentLinkId || '', checkoutUrl }
   document.getElementById('orderBankOrderCode').textContent = orderCode
   document.getElementById('orderBankAmountDisplay').textContent = fmtPrice(amount)
   document.getElementById('orderBankAccountNo').textContent = BANK_CONFIG.accountNo
   document.getElementById('orderBankAccountName').textContent = BANK_CONFIG.accountName
   document.getElementById('orderBankTransferContent').textContent = transferContent
   document.getElementById('orderBankQrImg').src = qrImage
+  const payosLinkWrap = document.getElementById('orderPayosLinkWrap')
+  if (payosLinkWrap) {
+    if (checkoutUrl) payosLinkWrap.classList.remove('hidden')
+    else payosLinkWrap.classList.add('hidden')
+  }
   document.getElementById('orderBankTransferOverlay').classList.remove('hidden')
   document.body.style.overflow = 'hidden'
   startOrderPaymentPolling(orderCode)
@@ -3258,6 +3270,15 @@ function closeOrderBankTransferModal() {
   stopOrderPaymentPolling()
   pendingBankTransferOrder = null
   document.body.style.overflow = ''
+}
+
+function openOrderPayOSCheckout() {
+  const checkoutUrl = String(pendingBankTransferOrder?.checkoutUrl || '').trim()
+  if (!checkoutUrl) {
+    showToast('Chưa có link PayOS cho đơn hàng này', 'error', 2500)
+    return
+  }
+  window.open(checkoutUrl, '_blank', 'noopener,noreferrer')
 }
 
 async function copyBankValue(value) {
