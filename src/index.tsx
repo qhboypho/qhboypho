@@ -5373,6 +5373,14 @@ function getOrderAmountDue(order) {
     ? 0
     : Number(order?.total_price || 0)
 }
+function paymentStatusLabel(v) {
+  return String(v || '').toLowerCase() === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán'
+}
+function paymentStatusClass(v) {
+  return String(v || '').toLowerCase() === 'paid'
+    ? 'bg-green-100 text-green-700 border border-green-200'
+    : 'bg-amber-100 text-amber-700 border border-amber-200'
+}
 function safeJson(v) { try { return JSON.parse(v||'[]') } catch { return [] } }
 function catLabel(c) { return {unisex:'Unisex',male:'Nam',female:'Nữ'}[c]||c }
 function statusLabel(s) { return {pending:'Chờ xử lý',confirmed:'Xác nhận',shipping:'Đang giao',done:'Hoàn thành',cancelled:'Đã hủy'}[s]||s }
