@@ -367,7 +367,13 @@ app.get('/api/auth/callback', async (c) => {
 app.get('/api/user/orders', async (c) => {
   const userId = getCookie(c, 'user_id')
   if (!userId) return c.json({ success: false, error: 'Unauthorized' }, 401)
-  const orders = await c.env.DB.prepare("SELECT * FROM orders WHERE user_id=? ORDER BY created_at DESC").bind(userId).all()
+  const orders = await c.env.DB.prepare(`
+    SELECT *,
+           CASE WHEN LOWER(COALESCE(payment_status, ''))='paid' THEN 0 ELSE total_price END AS amount_due
+    FROM orders
+    WHERE user_id=?
+    ORDER BY created_at DESC
+  `).bind(userId).all()
   return c.json({ success: true, data: orders.results || [] })
 })
 
@@ -694,9 +700,20 @@ app.get('/api/admin/orders', async (c) => {
   try {
     await initDB(c.env.DB)
     const status = c.req.query('status')
-    let query = `SELECT * FROM orders ORDER BY created_at DESC`
+    let query = `
+      SELECT *,
+             CASE WHEN LOWER(COALESCE(payment_status, ''))='paid' THEN 0 ELSE total_price END AS amount_due
+      FROM orders
+      ORDER BY created_at DESC
+    `
     if (status && status !== 'all') {
-      query = `SELECT * FROM orders WHERE status=? ORDER BY created_at DESC`
+      query = `
+        SELECT *,
+               CASE WHEN LOWER(COALESCE(payment_status, ''))='paid' THEN 0 ELSE total_price END AS amount_due
+        FROM orders
+        WHERE status=?
+        ORDER BY created_at DESC
+      `
     }
     const stmt = status && status !== 'all'
       ? c.env.DB.prepare(query).bind(status)
@@ -781,7 +798,7 @@ app.post('/api/orders/:id/payos-link', async (c) => {
 
     const orderCodeNum = Number(order.id) // numeric order code for PayOS
     const description = `DH${orderCodeNum}`.slice(0, 25)
-    const returnUrl = `${origin}/?order=${encodeURIComponent(order.order_code)}&pay=success`
+    const returnUrl = `${origin}/?order=${encodeURIComponent(order.order_code)}&pay=success&closeTab=1`
     const cancelUrl = `${origin}/?order=${encodeURIComponent(order.order_code)}&pay=cancel`
     const signPayload = {
       amount,
@@ -1049,7 +1066,13 @@ app.get('/api/admin/stats', async (c) => {
     const totalOrders = await c.env.DB.prepare(`SELECT COUNT(*) as count FROM orders`).first() as any
     const pendingOrders = await c.env.DB.prepare(`SELECT COUNT(*) as count FROM orders WHERE status='pending'`).first() as any
     const revenue = await c.env.DB.prepare(`SELECT SUM(total_price) as total FROM orders WHERE status != 'cancelled'`).first() as any
-    const recentOrdersRes = await c.env.DB.prepare(`SELECT * FROM orders ORDER BY created_at DESC LIMIT 5`).all()
+    const recentOrdersRes = await c.env.DB.prepare(`
+      SELECT *,
+             CASE WHEN LOWER(COALESCE(payment_status, ''))='paid' THEN 0 ELSE total_price END AS amount_due
+      FROM orders
+      ORDER BY created_at DESC
+      LIMIT 5
+    `).all()
     const recentOrders = recentOrdersRes
 
     return c.json({
@@ -1702,12 +1725,6 @@ function storefrontHTML(): string {
       <div class="border rounded-2xl p-4 bg-gray-50">
         <div class="flex justify-center mb-3">
           <img id="orderBankQrImg" src="" alt="VietQR thanh toán đơn hàng" class="w-56 h-56 object-contain rounded-xl border bg-white">
-        </div>
-        <div id="orderPayosLinkWrap" class="mb-3 hidden">
-          <button type="button" onclick="openOrderPayOSCheckout()" class="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold px-3 py-2 transition">
-            <i class="fas fa-arrow-up-right-from-square"></i>
-            Mở trang thanh toán PayOS
-          </button>
         </div>
         <div class="space-y-2 text-sm">
           <div class="flex justify-between items-center bg-white rounded-lg px-3 py-2 border">
@@ -2450,6 +2467,10 @@ async function submitOrder() {
   const btn = document.getElementById('submitOrderBtn')
   btn.disabled = true
   btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Đang xử lý...'
+  let payTabRef = null
+  if (selectedPaymentMethod === 'BANK_TRANSFER') {
+    try { payTabRef = window.open('about:blank', '_blank') } catch (_) { payTabRef = null }
+  }
 
   try {
     const res = await axios.post('/api/orders', {
@@ -2474,22 +2495,44 @@ async function submitOrder() {
         const payos = await axios.post('/api/orders/' + orderId + '/payos-link', { origin: window.location.origin })
         payosData = payos.data?.data || null
       } catch (_) {
-        showToast('PayOS đang lỗi cấu hình chữ ký, chuyển sang QR chuyển khoản dự phòng.', 'error', 5000)
+        showToast('PayOS tạm lỗi, đang chuyển sang QR dự phòng.', 'error', 4500)
       }
-      openOrderBankTransferModal({
-        orderCode,
-        orderId,
-        amount: orderTotal,
-        transferContent: 'DH' + orderId,
-        paymentLinkId: payosData?.paymentLinkId || '',
-        checkoutUrl: payosData?.checkoutUrl || '',
-        qrCode: payosData?.qrCode || ''
-      })
-      showToast(\`Đơn hàng \${orderCode} đã tạo. Vui lòng chuyển khoản để hoàn tất.\`, 'success', 5000)
+      const checkoutUrl = String(payosData?.checkoutUrl || '').trim()
+      if (checkoutUrl) {
+        let payTab = payTabRef
+        if (payTab) {
+          try { payTab.location.href = checkoutUrl } catch (_) { payTab = null }
+        }
+        if (!payTab) payTab = window.open(checkoutUrl, '_blank')
+        if (payTab) {
+          startOrderPaymentPolling(orderCode)
+          showToast(\`Đơn \${orderCode}: đã mở tab PayOS, vui lòng hoàn tất thanh toán.\`, 'success', 5000)
+        } else {
+          showToast('Trình duyệt đang chặn popup, hiển thị QR dự phòng để bạn thanh toán thủ công.', 'error', 5000)
+          openOrderBankTransferModal({
+            orderCode,
+            orderId,
+            amount: orderTotal,
+            transferContent: 'DH' + orderId,
+            paymentLinkId: payosData?.paymentLinkId || ''
+          })
+        }
+      } else {
+        try { if (payTabRef && !payTabRef.closed) payTabRef.close() } catch (_) { }
+        openOrderBankTransferModal({
+          orderCode,
+          orderId,
+          amount: orderTotal,
+          transferContent: 'DH' + orderId,
+          paymentLinkId: payosData?.paymentLinkId || ''
+        })
+        showToast(\`Đơn hàng \${orderCode} đã tạo. Vui lòng chuyển khoản để hoàn tất.\`, 'success', 5000)
+      }
     } else {
       showToast(\`🎉 Đặt hàng thành công! Mã đơn: \${orderCode}\`, 'success', 5000)
     }
   } catch(e) {
+    try { if (payTabRef && !payTabRef.closed) payTabRef.close() } catch (_) { }
     const errCode = e.response?.data?.error
     if (errCode === 'INVALID_VOUCHER' || errCode === 'VOUCHER_LIMIT') {
       showToast('Voucher không còn hiệu lực, vui lòng thử lại', 'error')
@@ -2532,6 +2575,14 @@ function paymentStatusClass(v) {
   return String(v || '').toLowerCase() === 'paid'
     ? 'bg-green-100 text-green-700 border border-green-200'
     : 'bg-amber-100 text-amber-700 border border-amber-200'
+}
+function getOrderAmountDue(order) {
+  if (order && order.amount_due !== undefined && order.amount_due !== null) {
+    return Number(order.amount_due || 0)
+  }
+  return String(order?.payment_status || '').toLowerCase() === 'paid'
+    ? 0
+    : Number(order?.total_price || 0)
 }
 
 function showToast(msg, type='success', duration=3000) {
@@ -3077,6 +3128,15 @@ loadSettings()
 loadCart()
 loadProducts()
 checkUserAuth()
+handlePayOSReturnFlow()
+
+window.addEventListener('message', function (event) {
+  if (event.origin !== window.location.origin) return
+  const data = event.data || {}
+  if (data.type === 'payos_paid' && data.orderCode) {
+    onOrderMarkedPaid(String(data.orderCode))
+  }
+})
 
 // ── USER AUTH & MENU ──────────────────────────────
 async function checkUserAuth() {
@@ -3212,7 +3272,7 @@ async function showUserOrders() {
           + '<span class="text-xs px-2 py-0.5 rounded-full font-medium ' + (statusColors[o.status]||'') + '">' + (statusLabels[o.status]||o.status) + '</span></div>'
           + '<p class="text-sm font-medium text-gray-800">' + o.product_name + '</p>'
           + '<div class="flex justify-between items-center mt-1"><span class="text-xs text-gray-400">' + new Date(o.created_at).toLocaleDateString('vi-VN') + '</span>'
-          + '<span class="font-bold text-pink-600 text-sm">' + fmtPrice(o.total_price) + '</span></div></div>'
+          + '<span class="font-bold text-pink-600 text-sm">' + fmtPrice(getOrderAmountDue(o)) + '</span></div></div>'
       }).join('') + '</div>'
   } catch { content.innerHTML = '<div class="text-center py-8 text-red-400">Lỗi tải dữ liệu</div>' }
 }
@@ -3237,29 +3297,18 @@ function getOrderTransferContent(orderCode) {
   return 'DH' + safeCode
 }
 
-function getQRImageFromPayload(qrText) {
-  if (!qrText) return ''
-  return 'https://quickchart.io/qr?size=360&ecLevel=M&text=' + encodeURIComponent(qrText)
-}
-
 function openOrderBankTransferModal(info) {
   const orderCode = info?.orderCode || ''
   const amount = Number(info?.amount || 0)
   const transferContent = info?.transferContent || getOrderTransferContent(info?.orderId || orderCode)
   const qrImage = getVietQRUrl(amount, transferContent)
-  const checkoutUrl = String(info?.checkoutUrl || '').trim()
-  pendingBankTransferOrder = { orderCode, amount, transferContent, paymentLinkId: info?.paymentLinkId || '', checkoutUrl }
+  pendingBankTransferOrder = { orderCode, amount, transferContent, paymentLinkId: info?.paymentLinkId || '' }
   document.getElementById('orderBankOrderCode').textContent = orderCode
   document.getElementById('orderBankAmountDisplay').textContent = fmtPrice(amount)
   document.getElementById('orderBankAccountNo').textContent = BANK_CONFIG.accountNo
   document.getElementById('orderBankAccountName').textContent = BANK_CONFIG.accountName
   document.getElementById('orderBankTransferContent').textContent = transferContent
   document.getElementById('orderBankQrImg').src = qrImage
-  const payosLinkWrap = document.getElementById('orderPayosLinkWrap')
-  if (payosLinkWrap) {
-    if (checkoutUrl) payosLinkWrap.classList.remove('hidden')
-    else payosLinkWrap.classList.add('hidden')
-  }
   document.getElementById('orderBankTransferOverlay').classList.remove('hidden')
   document.body.style.overflow = 'hidden'
   startOrderPaymentPolling(orderCode)
@@ -3270,15 +3319,6 @@ function closeOrderBankTransferModal() {
   stopOrderPaymentPolling()
   pendingBankTransferOrder = null
   document.body.style.overflow = ''
-}
-
-function openOrderPayOSCheckout() {
-  const checkoutUrl = String(pendingBankTransferOrder?.checkoutUrl || '').trim()
-  if (!checkoutUrl) {
-    showToast('Chưa có link PayOS cho đơn hàng này', 'error', 2500)
-    return
-  }
-  window.open(checkoutUrl, '_blank', 'noopener,noreferrer')
 }
 
 async function copyBankValue(value) {
@@ -3310,6 +3350,14 @@ function showOrderPaidNotice(orderCode) {
   }, 2600)
 }
 
+function onOrderMarkedPaid(orderCode) {
+  stopOrderPaymentPolling()
+  closeOrderBankTransferModal()
+  showOrderPaidNotice(orderCode)
+  showToast('Đã thanh toán thành công và ghi nhận đơn hàng', 'success', 4500)
+  if (typeof loadAdminOrders === 'function') loadAdminOrders()
+}
+
 function startOrderPaymentPolling(orderCode) {
   stopOrderPaymentPolling()
   bankTransferPollTimer = setInterval(async () => {
@@ -3317,14 +3365,49 @@ function startOrderPaymentPolling(orderCode) {
       const res = await axios.get('/api/orders/' + encodeURIComponent(orderCode) + '/payment-status')
       const paymentStatus = res.data?.data?.payment_status
       if (paymentStatus === 'paid') {
-        stopOrderPaymentPolling()
-        closeOrderBankTransferModal()
-        showOrderPaidNotice(orderCode)
-        showToast('Đã thanh toán thành công và ghi nhận đơn hàng', 'success', 4500)
-        if (typeof loadAdminOrders === 'function') loadAdminOrders()
+        onOrderMarkedPaid(orderCode)
       }
     } catch (_) { }
   }, 4000)
+}
+
+function cleanPaymentQueryParams() {
+  const url = new URL(window.location.href)
+  if (!url.searchParams.has('pay')) return
+  url.searchParams.delete('pay')
+  url.searchParams.delete('order')
+  url.searchParams.delete('closeTab')
+  const next = url.pathname + (url.searchParams.toString() ? '?' + url.searchParams.toString() : '') + url.hash
+  window.history.replaceState({}, '', next)
+}
+
+function handlePayOSReturnFlow() {
+  const params = new URLSearchParams(window.location.search)
+  const payState = String(params.get('pay') || '').toLowerCase()
+  const orderCode = String(params.get('order') || '').trim().toUpperCase()
+  const closeTab = params.get('closeTab') === '1'
+  if (!payState) return
+
+  if (payState === 'success' && orderCode) {
+    try {
+      if (window.opener && !window.opener.closed) {
+        window.opener.postMessage({ type: 'payos_paid', orderCode }, window.location.origin)
+      }
+    } catch (_) { }
+    startOrderPaymentPolling(orderCode)
+    cleanPaymentQueryParams()
+    if (closeTab && window.opener && !window.opener.closed) {
+      setTimeout(() => { window.close() }, 80)
+      return
+    }
+    showToast('Thanh toán PayOS thành công', 'success', 3000)
+    return
+  }
+
+  if (payState === 'cancel') {
+    showToast('Bạn đã hủy thanh toán PayOS', 'error', 3000)
+  }
+  cleanPaymentQueryParams()
 }
 
 function showWalletInMenu() {
@@ -4485,8 +4568,8 @@ async function loadDashboard() {
       document.getElementById('recentOrdersTable').innerHTML = '<div class="text-center py-8 text-gray-400">Chưa có đơn hàng nào</div>'
       return
     }
-    document.getElementById('recentOrdersTable').innerHTML = '<table class="w-full text-sm"><thead><tr class="border-b text-gray-500"><th class="py-2 text-left pr-4">Mã ĐH</th><th class="py-2 text-left pr-4">Khách hàng</th><th class="py-2 text-right pr-4">Tổng tiền</th><th class="py-2 text-center">Trạng thái</th></tr></thead><tbody>' +
-      recent.map(o => '<tr class="border-b last:border-0"><td class="py-2 pr-4 font-mono text-xs text-blue-600">' + o.order_code + '</td><td class="py-2 pr-4">' + o.customer_name + '</td><td class="py-2 pr-4 text-right font-semibold">' + fmtPrice(o.total_price) + '</td><td class="py-2 text-center"><span class="badge badge-' + o.status + '">' + statusLabel(o.status) + '</span></td></tr>').join('') +
+    document.getElementById('recentOrdersTable').innerHTML = '<table class="w-full text-sm"><thead><tr class="border-b text-gray-500"><th class="py-2 text-left pr-4">Mã ĐH</th><th class="py-2 text-left pr-4">Khách hàng</th><th class="py-2 text-right pr-4">Còn phải thu</th><th class="py-2 text-center">Trạng thái</th></tr></thead><tbody>' +
+      recent.map(o => '<tr class="border-b last:border-0"><td class="py-2 pr-4 font-mono text-xs text-blue-600">' + o.order_code + '</td><td class="py-2 pr-4">' + o.customer_name + '</td><td class="py-2 pr-4 text-right font-semibold">' + fmtPrice(getOrderAmountDue(o)) + '</td><td class="py-2 text-center"><span class="badge badge-' + o.status + '">' + statusLabel(o.status) + '</span></td></tr>').join('') +
       '</tbody></table>'
   } catch(e) { console.error(e) }
 }
@@ -4860,7 +4943,7 @@ function filterOrders() {
   ) : adminOrders
   
   renderOrdersTable(filtered)
-  const total = filtered.reduce((s,o) => s + o.total_price, 0)
+  const total = filtered.reduce((s,o) => s + getOrderAmountDue(o), 0)
   document.getElementById('orderStats').textContent = \`\${filtered.length} đơn – Tổng: \${fmtPrice(total)}\`
 }
 
@@ -4889,7 +4972,7 @@ function renderOrdersTable(orders) {
     </td>
     <td class="px-4 py-3 text-center text-sm font-semibold hidden sm:table-cell">\${o.quantity}</td>
     <td class="px-4 py-3 text-right">
-      <p class="font-bold text-gray-800">\${fmtPrice(o.total_price)}</p>
+      <p class="font-bold text-gray-800">\${fmtPrice(getOrderAmountDue(o))}</p>
       \${o.discount_amount > 0 ? \`<p class="text-xs text-green-600">-\${fmtPrice(o.discount_amount)}</p>\` : ''}
       <p class="mt-1"><span class="text-[11px] px-2 py-0.5 rounded-full \${paymentStatusClass(o.payment_status)}">\${paymentStatusLabel(o.payment_status)}</span></p>
     </td>
@@ -4987,9 +5070,10 @@ function showOrderDetail(id) {
         <span class="text-green-600 font-semibold">-\${fmtPrice(o.discount_amount)}</span>
       </div>\` : ''}
       <div class="flex justify-between items-center">
-        <span class="font-semibold text-gray-700">Tổng tiền:</span>
-        <span class="text-xl font-bold text-pink-600">\${fmtPrice(o.total_price)}</span>
+        <span class="font-semibold text-gray-700">Còn phải thu:</span>
+        <span class="text-xl font-bold text-pink-600">\${fmtPrice(getOrderAmountDue(o))}</span>
       </div>
+      \${String(o.payment_status || '').toLowerCase() === 'paid' ? '<p class="text-xs text-green-600">Đơn này đã thanh toán qua PayOS, khi in đơn hiển thị 0đ.</p>' : ''}
     </div>
     \${o.note ? \`<div class="bg-yellow-50 rounded-xl p-3"><p class="text-xs text-gray-500">Ghi chú</p><p class="text-sm">\${o.note}</p></div>\` : ''}
     <p class="text-xs text-gray-400 text-right">Đặt lúc: \${new Date(o.created_at).toLocaleString('vi-VN')}</p>
@@ -5016,7 +5100,7 @@ function exportExcel() {
     'Trạng thái thanh toán': paymentStatusLabel(o.payment_status),
     'Voucher': o.voucher_code || '',
     'Giảm giá': o.discount_amount || 0,
-    'Tổng tiền': o.total_price,
+    'Tổng tiền': getOrderAmountDue(o),
     'Ghi chú': o.note || '',
     'Trạng thái': statusLabel(o.status),
     'Thanh toán lúc': o.payment_paid_at ? new Date(o.payment_paid_at).toLocaleString('vi-VN') : '',
