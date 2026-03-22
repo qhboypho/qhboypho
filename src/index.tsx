@@ -4720,7 +4720,7 @@ async function loadDashboard() {
       return
     }
     document.getElementById('recentOrdersTable').innerHTML = '<table class="w-full text-sm"><thead><tr class="border-b text-gray-500"><th class="py-2 text-left pr-4">Mã ĐH</th><th class="py-2 text-left pr-4">Khách hàng</th><th class="py-2 text-right pr-4">Còn phải thu</th><th class="py-2 text-center">Trạng thái</th></tr></thead><tbody>' +
-      recent.map(o => '<tr class="border-b last:border-0"><td class="py-2 pr-4 font-mono text-xs text-blue-600">' + o.order_code + '</td><td class="py-2 pr-4">' + o.customer_name + '</td><td class="py-2 pr-4 text-right font-semibold">' + fmtPrice(getOrderAmountDue(o)) + '</td><td class="py-2 text-center"><span class="badge badge-' + o.status + '">' + statusLabel(o.status) + '</span></td></tr>').join('') +
+      recent.map(o => '<tr class="border-b last:border-0"><td class="py-2 pr-4 font-mono text-xs text-blue-600">' + o.order_code + '</td><td class="py-2 pr-4">' + displayCustomerName(o.customer_name) + '</td><td class="py-2 pr-4 text-right font-semibold">' + fmtPrice(getOrderAmountDue(o)) + '</td><td class="py-2 text-center"><span class="badge badge-' + o.status + '">' + statusLabel(o.status) + '</span></td></tr>').join('') +
       '</tbody></table>'
   } catch(e) { console.error(e) }
 }
@@ -5123,7 +5123,7 @@ function renderOrdersTable(orders) {
     </td>
     <td class="px-4 py-3 font-mono text-xs text-blue-600 font-semibold">\${o.order_code}</td>
     <td class="px-4 py-3">
-      <p class="font-medium text-gray-800 text-sm">\${o.customer_name}</p>
+      <p class="font-medium text-gray-800 text-sm">\${displayCustomerName(o.customer_name)}</p>
       <p class="text-gray-500 text-xs">\${o.customer_phone}</p>
     </td>
     <td class="px-4 py-3 hidden md:table-cell">
@@ -5249,7 +5249,7 @@ function showOrderDetail(id) {
     </div>
     <div class="bg-pink-50 rounded-xl p-3">
       <p class="text-xs text-gray-500 mb-1">Khách hàng</p>
-      <p class="font-semibold">\${o.customer_name}</p>
+      <p class="font-semibold">\${displayCustomerName(o.customer_name)}</p>
       <p class="text-sm text-gray-600">\${o.customer_phone}</p>
       <p class="text-sm text-gray-600">\${o.customer_address}</p>
       <p class="text-sm text-gray-600 mt-1"><span class="text-gray-500">Thanh toán:</span> \${formatPaymentMethod(o.payment_method)}</p>
@@ -5302,7 +5302,7 @@ function exportExcel() {
   const data = adminOrders.map((o, i) => ({
     'STT': i + 1,
     'Mã đơn hàng': o.order_code,
-    'Họ và tên': o.customer_name,
+    'Họ và tên': displayCustomerName(o.customer_name),
     'Số điện thoại': o.customer_phone,
     'Địa chỉ': o.customer_address,
     'Sản phẩm': o.product_name,
@@ -5474,6 +5474,13 @@ function paymentMethodTagHTML(method, paymentStatus) {
     return '<span class="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-200"><i class="fas fa-mobile-alt"></i>ZaloPay ' + paidMark + '</span>'
   }
   return '<span class="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-orange-50 text-orange-700 border border-orange-200"><i class="fas fa-money-bill-wave"></i>COD</span>'
+}
+function displayCustomerName(name) {
+  let n = String(name || '').trim().replace(/\s+/g, ' ')
+  n = n.replace(/['’´]s$/i, '')
+  // Fix common input artifact: Vietnamese char + stray latin suffix (e.g. "Hiếus")
+  if (/[^\x00-\x7F][a-zA-Z]$/.test(n)) n = n.slice(0, -1)
+  return n
 }
 function safeJson(v) { try { return JSON.parse(v||'[]') } catch { return [] } }
 function catLabel(c) { return {unisex:'Unisex',male:'Nam',female:'Nữ'}[c]||c }
