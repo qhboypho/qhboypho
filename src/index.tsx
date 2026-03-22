@@ -4415,6 +4415,27 @@ function adminHTML(): string {
   </div>
 </div>
 
+<!-- SHIPPING ARRANGE SUCCESS MODAL -->
+<div id="arrangeSuccessModal" class="fixed inset-0 modal-overlay z-[80] hidden flex items-center justify-center p-4">
+  <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
+    <div class="px-6 py-4 border-b flex items-center justify-between">
+      <h3 class="font-bold text-lg text-gray-900">Sắp xếp vận chuyển</h3>
+      <button onclick="closeArrangeSuccessModal()" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center">
+        <i class="fas fa-times text-gray-600"></i>
+      </button>
+    </div>
+    <div class="px-6 py-6 text-center">
+      <div class="mx-auto mb-3 w-14 h-14 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
+        <i class="fas fa-check text-xl"></i>
+      </div>
+      <p id="arrangeSuccessText" class="text-gray-800 font-semibold">Đã sắp xếp vận chuyển thành công 0 đơn hàng.</p>
+      <button onclick="printArrangedOrdersFromModal()" class="mt-5 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl font-semibold text-sm inline-flex items-center gap-2 transition">
+        <i class="fas fa-print"></i>In đơn
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div id="adminToast" class="fixed top-6 right-6 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
@@ -4425,6 +4446,7 @@ let adminOrders = []
 let selectedOrderIds = new Set()
 let filteredAdminOrders = []
 let ordersViewMode = 'to_arrange'
+let arrangedOrdersForPrint = []
 let colors = []
 let sizes = []
 let galleryImages = ['','','','','','','','','']
@@ -5366,11 +5388,12 @@ async function deleteSelectedOrders() {
 async function arrangeSelectedForShipping() {
   const ids = filteredAdminOrders.map(o => Number(o.id)).filter(id => selectedOrderIds.has(id))
   if (!ids.length) return
-  if (!confirm('Sắp xếp vận chuyển ' + ids.length + ' đơn đã chọn?')) return
+  const selectedOrders = filteredAdminOrders.filter(o => ids.includes(Number(o.id)))
   try {
     await axios.post('/api/admin/orders/arrange-shipping', { ids })
+    arrangedOrdersForPrint = selectedOrders
     selectedOrderIds.clear()
-    showAdminToast('Đã đưa ' + ids.length + ' đơn sang chờ vận chuyển', 'success')
+    openArrangeSuccessModal(ids.length)
     await loadAdminOrders()
   } catch (e) {
     showAdminToast('Lỗi sắp xếp vận chuyển', 'error')
@@ -5380,6 +5403,11 @@ async function arrangeSelectedForShipping() {
 function printSelectedOrders() {
   const selected = filteredAdminOrders.filter(o => selectedOrderIds.has(Number(o.id)))
   if (!selected.length) return
+  openPrintOrdersPopup(selected)
+}
+
+function openPrintOrdersPopup(selected) {
+  if (!Array.isArray(selected) || !selected.length) return
   const rows = selected.map(o =>
     '<div class="order-card">'
     + '<div class="row"><strong>Mã đơn:</strong><span>' + (o.order_code || '') + '</span></div>'
@@ -5424,6 +5452,28 @@ function printSelectedOrders() {
     + '</body></html>'
   popup.document.write(html)
   popup.document.close()
+}
+
+function openArrangeSuccessModal(count) {
+  const text = document.getElementById('arrangeSuccessText')
+  if (text) text.textContent = 'Đã sắp xếp vận chuyển thành công ' + count + ' đơn hàng.'
+  const modal = document.getElementById('arrangeSuccessModal')
+  if (modal) modal.classList.remove('hidden')
+}
+
+function closeArrangeSuccessModal() {
+  const modal = document.getElementById('arrangeSuccessModal')
+  if (modal) modal.classList.add('hidden')
+}
+
+function printArrangedOrdersFromModal() {
+  if (!arrangedOrdersForPrint.length) {
+    showAdminToast('Không có đơn để in', 'warning')
+    closeArrangeSuccessModal()
+    return
+  }
+  openPrintOrdersPopup(arrangedOrdersForPrint)
+  closeArrangeSuccessModal()
 }
 
 async function updateOrderStatus(id, status) {
@@ -5724,7 +5774,7 @@ function showAdminToast(msg, type='success') {
 // ── ESC key handler - close any open modal ──────────
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') {
-    const modals = ['productModal', 'orderDetailModal', 'bannerModal']
+    const modals = ['productModal', 'orderDetailModal', 'bannerModal', 'arrangeSuccessModal']
     modals.forEach(id => {
       const el = document.getElementById(id)
       if (el && !el.classList.contains('hidden')) {
@@ -5740,7 +5790,7 @@ document.addEventListener('keydown', function(e) {
 
 // ── Safety: ensure all modals start hidden on page load ──
 document.addEventListener('DOMContentLoaded', function() {
-  ['productModal', 'orderDetailModal', 'bannerModal'].forEach(id => {
+  ['productModal', 'orderDetailModal', 'bannerModal', 'arrangeSuccessModal'].forEach(id => {
     const el = document.getElementById(id)
     if (el) el.classList.add('hidden')
   })
