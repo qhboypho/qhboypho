@@ -283,6 +283,20 @@ function getZaloPayMissingConfigKeys(config: ReturnType<typeof getZaloPayConfig>
   return missing
 }
 
+const ADDRESS_KIT_BASE_URL = 'https://production.cas.so/address-kit'
+const addressKitCache = {
+  provinces: new Map<string, any[]>(),
+  communes: new Map<string, any[]>()
+}
+
+function sanitizeAddressEffectiveDate(input: string) {
+  const raw = String(input || '').trim()
+  if (!raw) return 'latest'
+  if (raw === 'latest') return raw
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw
+  return 'latest'
+}
+
 async function syncOrderPaymentWithPayOS(db: D1Database, env: any, order: any) {
   const isBankTransfer = String(order?.payment_method || '').toUpperCase() === 'BANK_TRANSFER'
   const isPaid = String(order?.payment_status || '').toLowerCase() === 'paid'
@@ -1318,6 +1332,70 @@ app.get('/api/payments/zalopay/config', async (c) => {
   })
 })
 
+app.get('/api/address/provinces', async (c) => {
+  try {
+    const effectiveDate = sanitizeAddressEffectiveDate(c.req.query('effectiveDate') || 'latest')
+    if (addressKitCache.provinces.has(effectiveDate)) {
+      return c.json({ success: true, data: addressKitCache.provinces.get(effectiveDate) || [] })
+    }
+
+    const url = `${ADDRESS_KIT_BASE_URL}/${effectiveDate}/provinces`
+    const res = await fetch(url, { headers: { accept: 'application/json' } })
+    if (!res.ok) return c.json({ success: false, error: 'ADDRESSKIT_UPSTREAM_FAILED' }, 502)
+
+    const json: any = await res.json().catch(() => ({}))
+    const provinces = Array.isArray(json?.provinces) ? json.provinces : []
+    const normalized = provinces
+      .map((p: any) => ({
+        code: String(p?.code || '').trim(),
+        name: String(p?.name || '').trim(),
+        administrativeLevel: String(p?.administrativeLevel || '').trim()
+      }))
+      .filter((p: any) => p.code && p.name)
+      .sort((a: any, b: any) => a.name.localeCompare(b.name, 'vi'))
+
+    addressKitCache.provinces.set(effectiveDate, normalized)
+    return c.json({ success: true, data: normalized })
+  } catch (e: any) {
+    return c.json({ success: false, error: e?.message || 'ADDRESSKIT_FETCH_FAILED' }, 500)
+  }
+})
+
+app.get('/api/address/provinces/:provinceCode/communes', async (c) => {
+  try {
+    const effectiveDate = sanitizeAddressEffectiveDate(c.req.query('effectiveDate') || 'latest')
+    const provinceCode = String(c.req.param('provinceCode') || '').trim()
+    if (!provinceCode) return c.json({ success: false, error: 'INVALID_PROVINCE_CODE' }, 400)
+    const cacheKey = `${effectiveDate}:${provinceCode}`
+    if (addressKitCache.communes.has(cacheKey)) {
+      return c.json({ success: true, data: addressKitCache.communes.get(cacheKey) || [] })
+    }
+
+    const encodedProvinceCode = encodeURIComponent(provinceCode)
+    const url = `${ADDRESS_KIT_BASE_URL}/${effectiveDate}/provinces/${encodedProvinceCode}/communes`
+    const res = await fetch(url, { headers: { accept: 'application/json' } })
+    if (!res.ok) return c.json({ success: false, error: 'ADDRESSKIT_UPSTREAM_FAILED' }, 502)
+
+    const json: any = await res.json().catch(() => ({}))
+    const communes = Array.isArray(json?.communes) ? json.communes : []
+    const normalized = communes
+      .map((p: any) => ({
+        code: String(p?.code || '').trim(),
+        name: String(p?.name || '').trim(),
+        administrativeLevel: String(p?.administrativeLevel || '').trim(),
+        provinceCode: String(p?.provinceCode || '').trim(),
+        provinceName: String(p?.provinceName || '').trim()
+      }))
+      .filter((p: any) => p.code && p.name)
+      .sort((a: any, b: any) => a.name.localeCompare(b.name, 'vi'))
+
+    addressKitCache.communes.set(cacheKey, normalized)
+    return c.json({ success: true, data: normalized })
+  } catch (e: any) {
+    return c.json({ success: false, error: e?.message || 'ADDRESSKIT_FETCH_FAILED' }, 500)
+  }
+})
+
 // POST create ZaloPay payment link from an existing order
 app.post('/api/orders/:id/zalopay-link', async (c) => {
   try {
@@ -2334,9 +2412,26 @@ function storefrontHTML(): string {
           <label class="block text-sm font-semibold text-gray-700 mb-1.5 field-title">
             <i class="fas fa-map-marker-alt text-pink-400 mr-1"></i>Địa chỉ giao hàng *
           </label>
-          <textarea id="orderAddress" rows="2"
-            placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành"
-            class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200 resize-none"></textarea>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+            <select id="orderProvince"
+              onchange="onAddressProvinceChange('order')"
+              class="w-full border rounded-xl px-3.5 py-2.5 text-sm bg-white focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
+              <option value="">Chọn tỉnh/thành</option>
+            </select>
+            <select id="orderCommune"
+              onchange="onAddressCommuneChange('order')"
+              class="w-full border rounded-xl px-3.5 py-2.5 text-sm bg-white focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
+              <option value="">Chọn phường/xã</option>
+            </select>
+          </div>
+          <input type="text" id="orderAddressDetail"
+            placeholder="Số nhà, tên đường..."
+            class="mt-2.5 w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200"
+            oninput="clearFieldError('fieldAddress'); syncAddressFullText('order')">
+          <input type="text" id="orderAddress"
+            readonly
+            placeholder="Địa chỉ đầy đủ sẽ tự động ghép tại đây"
+            class="mt-2.5 w-full border rounded-xl px-4 py-2.5 text-sm bg-gray-50 text-gray-600 focus:outline-none">
         </div>
         
         <!-- Color -->
@@ -2641,10 +2736,26 @@ function storefrontHTML(): string {
             <label class="block text-sm font-semibold text-gray-700 mb-1.5 field-title">
               <i class="fas fa-map-marker-alt text-pink-400 mr-1"></i>Địa chỉ giao hàng *
             </label>
-            <textarea id="ckAddress" rows="2"
-              placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành"
-              class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200 resize-none"
-              oninput="clearCheckoutError('ckFieldAddress')"></textarea>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+              <select id="ckProvince"
+                onchange="onAddressProvinceChange('ck')"
+                class="w-full border rounded-xl px-3.5 py-2.5 text-sm bg-white focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
+                <option value="">Chọn tỉnh/thành</option>
+              </select>
+              <select id="ckCommune"
+                onchange="onAddressCommuneChange('ck')"
+                class="w-full border rounded-xl px-3.5 py-2.5 text-sm bg-white focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
+                <option value="">Chọn phường/xã</option>
+              </select>
+            </div>
+            <input type="text" id="ckAddressDetail"
+              placeholder="Số nhà, tên đường..."
+              class="mt-2.5 w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200"
+              oninput="clearCheckoutError('ckFieldAddress'); syncAddressFullText('ck')">
+            <input type="text" id="ckAddress"
+              readonly
+              placeholder="Địa chỉ đầy đủ sẽ tự động ghép tại đây"
+              class="mt-2.5 w-full border rounded-xl px-4 py-2.5 text-sm bg-gray-50 text-gray-600 focus:outline-none">
           </div>
           <!-- Voucher -->
           <div id="ckFieldVoucher">
@@ -2781,6 +2892,156 @@ let ckAppliedVoucher = null
 let currentUser = null
 let isAdminUser = false
 let cartStorageKey = 'qhclothes_cart_guest'
+const ADDRESS_EFFECTIVE_DATE = 'latest'
+let addressProvinceOptions = []
+let addressCommuneOptionsByProvince = {}
+let addressKitLoadingPromise = null
+
+function getAddressScopeElements(scope) {
+  const isCart = scope === 'ck'
+  return {
+    fieldId: isCart ? 'ckFieldAddress' : 'fieldAddress',
+    provinceId: isCart ? 'ckProvince' : 'orderProvince',
+    communeId: isCart ? 'ckCommune' : 'orderCommune',
+    detailId: isCart ? 'ckAddressDetail' : 'orderAddressDetail',
+    fullAddressId: isCart ? 'ckAddress' : 'orderAddress'
+  }
+}
+
+function getSelectedAddressOptionText(selectEl) {
+  if (!selectEl) return ''
+  const idx = selectEl.selectedIndex
+  if (idx < 0 || !selectEl.options[idx]) return ''
+  return String(selectEl.options[idx].textContent || '').trim()
+}
+
+function setAddressSelectOptions(selectEl, options, placeholder) {
+  if (!selectEl) return
+  const safeOptions = Array.isArray(options) ? options : []
+  selectEl.innerHTML = '<option value="">' + placeholder + '</option>'
+  safeOptions.forEach((item) => {
+    if (!item || !item.code || !item.name) return
+    const opt = document.createElement('option')
+    opt.value = String(item.code)
+    opt.textContent = String(item.name)
+    selectEl.appendChild(opt)
+  })
+}
+
+async function fetchAddressProvinces() {
+  const res = await axios.get('/api/address/provinces', { params: { effectiveDate: ADDRESS_EFFECTIVE_DATE } })
+  const list = Array.isArray(res.data?.data) ? res.data.data : []
+  addressProvinceOptions = list.filter((p) => p && p.code && p.name)
+  const orderProvince = document.getElementById('orderProvince')
+  const ckProvince = document.getElementById('ckProvince')
+  setAddressSelectOptions(orderProvince, addressProvinceOptions, 'Chọn tỉnh/thành')
+  setAddressSelectOptions(ckProvince, addressProvinceOptions, 'Chọn tỉnh/thành')
+}
+
+async function ensureAddressKitReady() {
+  if (!addressKitLoadingPromise) {
+    addressKitLoadingPromise = fetchAddressProvinces()
+      .catch((err) => {
+        addressProvinceOptions = []
+        addressCommuneOptionsByProvince = {}
+        throw err
+      })
+      .finally(() => { addressKitLoadingPromise = null })
+  }
+  return addressKitLoadingPromise
+}
+
+async function fetchAddressCommunesByProvince(provinceCode) {
+  const code = String(provinceCode || '').trim()
+  if (!code) return []
+  if (Array.isArray(addressCommuneOptionsByProvince[code])) return addressCommuneOptionsByProvince[code]
+  const res = await axios.get('/api/address/provinces/' + encodeURIComponent(code) + '/communes', {
+    params: { effectiveDate: ADDRESS_EFFECTIVE_DATE }
+  })
+  const list = Array.isArray(res.data?.data) ? res.data.data : []
+  const safeList = list.filter((item) => item && item.code && item.name)
+  addressCommuneOptionsByProvince[code] = safeList
+  return safeList
+}
+
+function syncAddressFullText(scope) {
+  const ids = getAddressScopeElements(scope)
+  const provinceEl = document.getElementById(ids.provinceId)
+  const communeEl = document.getElementById(ids.communeId)
+  const detailEl = document.getElementById(ids.detailId)
+  const fullAddressEl = document.getElementById(ids.fullAddressId)
+  if (!fullAddressEl) return ''
+
+  const provinceName = getSelectedAddressOptionText(provinceEl)
+  const communeName = getSelectedAddressOptionText(communeEl)
+  const detail = String(detailEl?.value || '').trim()
+  const fullParts = [detail, communeName, provinceName].filter(Boolean)
+  const fullAddress = fullParts.join(', ')
+  fullAddressEl.value = fullAddress
+  return fullAddress
+}
+
+function resetAddressScope(scope) {
+  const ids = getAddressScopeElements(scope)
+  const provinceEl = document.getElementById(ids.provinceId)
+  const communeEl = document.getElementById(ids.communeId)
+  const detailEl = document.getElementById(ids.detailId)
+  const fullAddressEl = document.getElementById(ids.fullAddressId)
+  if (provinceEl) provinceEl.value = ''
+  if (communeEl) setAddressSelectOptions(communeEl, [], 'Chọn phường/xã')
+  if (detailEl) detailEl.value = ''
+  if (fullAddressEl) fullAddressEl.value = ''
+}
+
+async function onAddressProvinceChange(scope) {
+  const ids = getAddressScopeElements(scope)
+  const provinceEl = document.getElementById(ids.provinceId)
+  const communeEl = document.getElementById(ids.communeId)
+  const selectedCode = String(provinceEl?.value || '').trim()
+  setAddressSelectOptions(communeEl, [], 'Đang tải phường/xã...')
+  if (!selectedCode) {
+    setAddressSelectOptions(communeEl, [], 'Chọn phường/xã')
+    syncAddressFullText(scope)
+    if (scope === 'ck') clearCheckoutError(ids.fieldId)
+    else clearFieldError(ids.fieldId)
+    return
+  }
+  try {
+    const communes = await fetchAddressCommunesByProvince(selectedCode)
+    setAddressSelectOptions(communeEl, communes, communes.length ? 'Chọn phường/xã' : 'Không có dữ liệu phường/xã')
+  } catch (_) {
+    setAddressSelectOptions(communeEl, [], 'Không tải được phường/xã')
+    showToast('Không tải được danh sách phường/xã. Vui lòng thử lại.', 'error', 4500)
+  }
+  syncAddressFullText(scope)
+  if (scope === 'ck') clearCheckoutError(ids.fieldId)
+  else clearFieldError(ids.fieldId)
+}
+
+function onAddressCommuneChange(scope) {
+  syncAddressFullText(scope)
+  const ids = getAddressScopeElements(scope)
+  if (scope === 'ck') clearCheckoutError(ids.fieldId)
+  else clearFieldError(ids.fieldId)
+}
+
+function getAddressPayload(scope) {
+  const ids = getAddressScopeElements(scope)
+  const provinceEl = document.getElementById(ids.provinceId)
+  const communeEl = document.getElementById(ids.communeId)
+  const detailEl = document.getElementById(ids.detailId)
+  const provinceCode = String(provinceEl?.value || '').trim()
+  const communeCode = String(communeEl?.value || '').trim()
+  const detail = String(detailEl?.value || '').trim()
+  const address = syncAddressFullText(scope)
+  return {
+    address,
+    valid: !!(provinceCode && communeCode && detail && address),
+    provinceCode,
+    communeCode,
+    detail
+  }
+}
 
 function resolveCartStorageKey() {
   if (isAdminUser) return 'qhclothes_cart_admin'
@@ -2998,6 +3259,7 @@ function closeDetail() { document.getElementById('detailOverlay').classList.add(
 // ── ORDER POPUP ────────────────────────────────────
 async function openOrder(id) {
   try {
+    await ensureAddressKitReady()
     const res = await axios.get('/api/products/' + id)
     currentProduct = res.data.data
     orderQty = 1
@@ -3012,7 +3274,7 @@ async function openOrder(id) {
     document.getElementById('qtyDisplay').textContent = '1'
     document.getElementById('orderName').value = ''
     document.getElementById('orderPhone').value = ''
-    document.getElementById('orderAddress').value = ''
+    resetAddressScope('order')
     document.getElementById('orderNote').value = ''
     document.getElementById('orderVoucher').value = ''
     document.getElementById('voucherStatus').classList.add('hidden')
@@ -3255,14 +3517,15 @@ function clearFieldError(fieldId) {
 async function submitOrder() {
   const name = document.getElementById('orderName').value.trim()
   const phone = document.getElementById('orderPhone').value.trim()
-  const address = document.getElementById('orderAddress').value.trim()
+  const addressPayload = getAddressPayload('order')
+  const address = addressPayload.address
 
   // Validate with shake + scroll
   if (!name) { shakeField('fieldName'); return }
   clearFieldError('fieldName')
   if (!phone || !/^[0-9]{9,11}$/.test(phone.replace(/\\s/g,''))) { shakeField('fieldPhone'); return }
   clearFieldError('fieldPhone')
-  if (!address) { shakeField('fieldAddress'); return }
+  if (!addressPayload.valid) { shakeField('fieldAddress'); return }
   clearFieldError('fieldAddress')
   if (!selectedPaymentMethod) { shakeField('fieldPaymentMethod'); return }
   clearFieldError('fieldPaymentMethod')
@@ -3653,9 +3916,15 @@ function setupSwipeToDelete() {
 }
 
 // ── CHECKOUT from CART ────────────────────────────
-function proceedToCheckout() {
+async function proceedToCheckout() {
   const checked = cart.filter(i=>i.checked)
   if (checked.length === 0) { showToast('Vui lòng chọn ít nhất 1 sản phẩm','error'); return }
+  try {
+    await ensureAddressKitReady()
+  } catch (_) {
+    showToast('Không tải được danh mục địa chỉ, vui lòng thử lại.', 'error', 4500)
+    return
+  }
   // Build summary
   document.getElementById('checkoutSummaryItems').innerHTML = checked.map(function(i){
     return '<div class="flex-shrink-0 w-20 text-center">'
@@ -3665,7 +3934,8 @@ function proceedToCheckout() {
       + '</div><p class="text-xs text-gray-600 mt-1 line-clamp-1">' + i.name + '</p></div>'
   }).join('')
   // reset form
-  ;['ckName','ckPhone','ckAddress','ckNote'].forEach(id => { const el=document.getElementById(id); if(el) el.value='' })
+  ;['ckName','ckPhone','ckAddress','ckAddressDetail','ckNote'].forEach(id => { const el=document.getElementById(id); if(el) el.value='' })
+  resetAddressScope('ck')
   ;['ckFieldName','ckFieldPhone','ckFieldAddress'].forEach(id => clearCheckoutError(id))
   ckAppliedVoucher = null
   document.getElementById('ckVoucher').value = ''
@@ -3750,12 +4020,13 @@ function clearCheckoutError(fieldId) {
 async function submitCartOrder() {
   const name = document.getElementById('ckName').value.trim()
   const phone = document.getElementById('ckPhone').value.trim()
-  const address = document.getElementById('ckAddress').value.trim()
+  const addressPayload = getAddressPayload('ck')
+  const address = addressPayload.address
   if (!name) { shakeCheckoutField('ckFieldName'); return }
   clearCheckoutError('ckFieldName')
   if (!phone || !/^[0-9]{9,11}$/.test(phone.replace(/s/g,''))) { shakeCheckoutField('ckFieldPhone'); return }
   clearCheckoutError('ckFieldPhone')
-  if (!address) { shakeCheckoutField('ckFieldAddress'); return }
+  if (!addressPayload.valid) { shakeCheckoutField('ckFieldAddress'); return }
   clearCheckoutError('ckFieldAddress')
 
   const note = document.getElementById('ckNote').value.trim()
@@ -3810,12 +4081,19 @@ document.addEventListener('keydown', (e) => {
 })
 
 // Auto clear error on input
-;['orderName','orderPhone','orderAddress'].forEach(id => {
+;['orderName','orderPhone','orderAddressDetail','orderProvince','orderCommune'].forEach(id => {
   const el = document.getElementById(id)
-  if(el) el.addEventListener('input', () => {
-    const fieldMap = { orderName:'fieldName', orderPhone:'fieldPhone', orderAddress:'fieldAddress' }
-    clearFieldError(fieldMap[id])
-  })
+  if (!el) return
+  const fieldMap = {
+    orderName: 'fieldName',
+    orderPhone: 'fieldPhone',
+    orderAddressDetail: 'fieldAddress',
+    orderProvince: 'fieldAddress',
+    orderCommune: 'fieldAddress'
+  }
+  const clearFn = () => clearFieldError(fieldMap[id])
+  el.addEventListener('input', clearFn)
+  el.addEventListener('change', clearFn)
 })
 
 // ── DYNAMIC HERO BANNERS ──────────────────────────
@@ -3994,6 +4272,9 @@ loadCart()
 loadProducts()
 checkUserAuth()
 handlePaymentReturnFlow()
+ensureAddressKitReady().catch(() => {
+  showToast('Không tải được danh mục tỉnh/phường. Bạn có thể thử lại sau.', 'error', 4500)
+})
 
 window.addEventListener('message', function (event) {
   if (event.origin !== window.location.origin) return
