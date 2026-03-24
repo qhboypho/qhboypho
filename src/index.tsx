@@ -275,6 +275,14 @@ function getZaloPayConfig(env: any) {
   }
 }
 
+function getZaloPayMissingConfigKeys(config: ReturnType<typeof getZaloPayConfig>) {
+  const missing: string[] = []
+  if (!config.appIdRaw || !Number.isFinite(config.appIdNum) || config.appIdNum <= 0) missing.push('ZALOPAY_APP_ID')
+  if (!config.key1) missing.push('ZALOPAY_KEY1')
+  if (!config.key2) missing.push('ZALOPAY_KEY2')
+  return missing
+}
+
 async function syncOrderPaymentWithPayOS(db: D1Database, env: any, order: any) {
   const isBankTransfer = String(order?.payment_method || '').toUpperCase() === 'BANK_TRANSFER'
   const isPaid = String(order?.payment_status || '').toLowerCase() === 'paid'
@@ -1298,6 +1306,18 @@ app.post('/api/orders/:id/zalopay-sync', async (c) => {
   }
 })
 
+app.get('/api/payments/zalopay/config', async (c) => {
+  const config = getZaloPayConfig(c.env)
+  const missing = getZaloPayMissingConfigKeys(config)
+  return c.json({
+    success: true,
+    data: {
+      ready: missing.length === 0,
+      missing
+    }
+  })
+})
+
 // POST create ZaloPay payment link from an existing order
 app.post('/api/orders/:id/zalopay-link', async (c) => {
   try {
@@ -1326,8 +1346,9 @@ app.post('/api/orders/:id/zalopay-link', async (c) => {
     }
 
     const config = getZaloPayConfig(c.env)
-    if (!config.appIdRaw || !Number.isFinite(config.appIdNum) || config.appIdNum <= 0 || !config.key1 || !config.key2) {
-      return c.json({ success: false, error: 'ZALOPAY_CONFIG_MISSING' }, 500)
+    const missingConfig = getZaloPayMissingConfigKeys(config)
+    if (missingConfig.length) {
+      return c.json({ success: false, error: 'ZALOPAY_CONFIG_MISSING', missing: missingConfig }, 500)
     }
 
     const amount = Math.round(Number(order.total_price || 0))
@@ -3050,32 +3071,28 @@ function openOrReuseZaloPayLinkTab() {
     return zaloPayLinkTab
   }
   let tab = null
-  try { tab = window.open('about:blank', '_blank') } catch (_) { tab = null }
-  if (tab) {
-    try {
-      tab.document.title = 'Lien ket ZaloPay'
-      tab.document.body.style.margin = '0'
-      tab.document.body.style.fontFamily = 'system-ui, -apple-system, Segoe UI, sans-serif'
-      tab.document.body.style.background = '#f9fafb'
-      tab.document.body.innerHTML = ''
-        + '<div style="max-width:560px;margin:0 auto;padding:28px 20px;color:#111827;">'
-        + '<h2 style="margin:0 0 10px 0;font-size:22px;">Dang san sang lien ket ZaloPay</h2>'
-        + '<p style="margin:0 0 14px 0;color:#4b5563;line-height:1.5;">'
-        + 'Tab nay se tu dong chuyen den trang thanh toan ngay sau khi ban bam "Dat ngay".'
-        + '</p>'
-        + '<p style="margin:0 0 14px 0;color:#4b5563;line-height:1.5;">'
-        + 'Neu chua co don hang, ban co the mo trang ZaloPay de dang nhap truoc.'
-        + '</p>'
-        + '<a href="https://zalopay.vn/" target="_blank" rel="noopener noreferrer" '
-        + 'style="display:inline-block;text-decoration:none;background:#0ea5e9;color:#fff;padding:10px 14px;border-radius:10px;font-weight:600;">'
-        + 'Mo ZaloPay'
-        + '</a>'
-        + '</div>'
-    } catch (_) { }
-  }
+  try { tab = window.open('https://zalopay.vn/', '_blank') } catch (_) { tab = null }
   zaloPayLinkTab = tab
   return tab
 }
+
+async function ensureZaloPayConfigReady(showMessage) {
+  try {
+    const res = await axios.get('/api/payments/zalopay/config')
+    const ready = !!res.data?.data?.ready
+    const missing = Array.isArray(res.data?.data?.missing) ? res.data.data.missing : []
+    if (ready) return { ready: true, missing: [] }
+    if (showMessage) {
+      const detail = missing.length ? (': ' + missing.join(', ')) : ''
+      showToast('ZaloPay chua cau hinh day du' + detail, 'error', 5500)
+    }
+    return { ready: false, missing }
+  } catch (_) {
+    if (showMessage) showToast('Khong kiem tra duoc cau hinh ZaloPay. Thu lai sau.', 'error', 5000)
+    return { ready: false, missing: [] }
+  }
+}
+
 function openZaloPayLink(evt) {
   if (evt) {
     evt.preventDefault()
@@ -3087,7 +3104,7 @@ function openZaloPayLink(evt) {
   if (zaloBtn) selectPaymentMethod('ZALOPAY', zaloBtn)
   const tab = openOrReuseZaloPayLinkTab()
   if (tab) {
-    showToast('Da mo tab lien ket ZaloPay. Bam Dat ngay de tao QR thanh toan.', 'success', 4500)
+    showToast('Da mo ZaloPay. Bam Dat ngay de tao QR thanh toan.', 'success', 4500)
     return
   }
   const fallback = window.open('https://zalopay.vn/', '_blank')
@@ -3249,6 +3266,10 @@ async function submitOrder() {
   clearFieldError('fieldAddress')
   if (!selectedPaymentMethod) { shakeField('fieldPaymentMethod'); return }
   clearFieldError('fieldPaymentMethod')
+  if (selectedPaymentMethod === 'ZALOPAY') {
+    const check = await ensureZaloPayConfigReady(true)
+    if (!check.ready) return
+  }
 
   const btn = document.getElementById('submitOrderBtn')
   btn.disabled = true
@@ -3329,8 +3350,15 @@ async function submitOrder() {
       try {
         const zalo = await axios.post('/api/orders/' + orderId + '/zalopay-link', { origin: window.location.origin })
         zaloData = zalo.data?.data || null
-      } catch (_) {
-        showToast('ZaloPay tạm lỗi, vui lòng thử lại sau ít phút.', 'error', 4500)
+      } catch (err) {
+        const errCode = err.response?.data?.error
+        const missing = Array.isArray(err.response?.data?.missing) ? err.response.data.missing : []
+        if (errCode === 'ZALOPAY_CONFIG_MISSING') {
+          const detail = missing.length ? (': ' + missing.join(', ')) : ''
+          showToast('ZaloPay chua cau hinh day du' + detail, 'error', 5500)
+        } else {
+          showToast('ZaloPay tam loi, vui long thu lai sau it phut.', 'error', 4500)
+        }
       }
 
       if (zaloData?.alreadyPaid) {
@@ -3373,6 +3401,10 @@ async function submitOrder() {
       updateOrderTotal()
       document.getElementById('voucherBtn').innerHTML = 'Áp dụng'
       document.getElementById('voucherBtn').className = 'px-4 py-2.5 bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-sm font-semibold transition whitespace-nowrap'
+    } else if (errCode === 'ZALOPAY_CONFIG_MISSING') {
+      const missing = Array.isArray(e.response?.data?.missing) ? e.response.data.missing : []
+      const detail = missing.length ? (': ' + missing.join(', ')) : ''
+      showToast('ZaloPay chua cau hinh day du' + detail, 'error', 5500)
     } else {
       showToast('Đặt hàng thất bại, thử lại sau', 'error')
     }
@@ -4137,6 +4169,10 @@ async function showUserOrders() {
 async function resumeOrderPayment(orderId, orderCode, paymentMethod) {
   const method = String(paymentMethod || '').toUpperCase()
   const isZaloPay = method === 'ZALOPAY'
+  if (isZaloPay) {
+    const check = await ensureZaloPayConfigReady(true)
+    if (!check.ready) return
+  }
   const providerLabel = isZaloPay ? 'ZaloPay' : 'PayOS'
   const createEndpoint = isZaloPay ? '/api/orders/' + orderId + '/zalopay-link' : '/api/orders/' + orderId + '/payos-link'
   const syncEndpoint = isZaloPay ? '/api/orders/' + orderId + '/zalopay-sync' : '/api/orders/' + orderId + '/payos-sync'
@@ -4168,7 +4204,14 @@ async function resumeOrderPayment(orderId, orderCode, paymentMethod) {
     }
     startOrderPaymentPolling(orderCode)
     showToast('Đang mở lại trang ' + providerLabel + ' để bạn thanh toán tiếp', 'success', 3500)
-  } catch (_) {
+  } catch (err) {
+    const errCode = err.response?.data?.error
+    if (errCode === 'ZALOPAY_CONFIG_MISSING') {
+      const missing = Array.isArray(err.response?.data?.missing) ? err.response.data.missing : []
+      const detail = missing.length ? (': ' + missing.join(', ')) : ''
+      showToast('ZaloPay chua cau hinh day du' + detail, 'error', 5500)
+      return
+    }
     try { if (payTab && !payTab.closed) payTab.close() } catch (_) { }
     showToast('Không thể mở lại thanh toán cho đơn này', 'error', 3500)
   }
