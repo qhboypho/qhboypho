@@ -2413,16 +2413,26 @@ function storefrontHTML(): string {
             <i class="fas fa-map-marker-alt text-pink-400 mr-1"></i>Địa chỉ giao hàng *
           </label>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-            <select id="orderProvince"
-              onchange="onAddressProvinceChange('order')"
-              class="w-full border rounded-xl px-3.5 py-2.5 text-sm bg-white focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
-              <option value="">Chọn tỉnh/thành</option>
-            </select>
-            <select id="orderCommune"
-              onchange="onAddressCommuneChange('order')"
-              class="w-full border rounded-xl px-3.5 py-2.5 text-sm bg-white focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
-              <option value="">Chọn phường/xã</option>
-            </select>
+            <div class="space-y-2">
+              <input type="text" id="orderProvinceSearch" placeholder="Tìm tỉnh/thành..."
+                oninput="onAddressSearchInput('order','province')"
+                class="w-full border rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
+              <select id="orderProvince"
+                onchange="onAddressProvinceChange('order')"
+                class="w-full border rounded-xl px-3.5 py-2.5 text-sm bg-white focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
+                <option value="">Chọn tỉnh/thành</option>
+              </select>
+            </div>
+            <div class="space-y-2">
+              <input type="text" id="orderCommuneSearch" placeholder="Tìm phường/xã..."
+                oninput="onAddressSearchInput('order','commune')"
+                class="w-full border rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
+              <select id="orderCommune"
+                onchange="onAddressCommuneChange('order')"
+                class="w-full border rounded-xl px-3.5 py-2.5 text-sm bg-white focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
+                <option value="">Chọn phường/xã</option>
+              </select>
+            </div>
           </div>
           <input type="text" id="orderAddressDetail"
             placeholder="Số nhà, tên đường..."
@@ -2737,16 +2747,26 @@ function storefrontHTML(): string {
               <i class="fas fa-map-marker-alt text-pink-400 mr-1"></i>Địa chỉ giao hàng *
             </label>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-              <select id="ckProvince"
-                onchange="onAddressProvinceChange('ck')"
-                class="w-full border rounded-xl px-3.5 py-2.5 text-sm bg-white focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
-                <option value="">Chọn tỉnh/thành</option>
-              </select>
-              <select id="ckCommune"
-                onchange="onAddressCommuneChange('ck')"
-                class="w-full border rounded-xl px-3.5 py-2.5 text-sm bg-white focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
-                <option value="">Chọn phường/xã</option>
-              </select>
+              <div class="space-y-2">
+                <input type="text" id="ckProvinceSearch" placeholder="Tìm tỉnh/thành..."
+                  oninput="onAddressSearchInput('ck','province')"
+                  class="w-full border rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
+                <select id="ckProvince"
+                  onchange="onAddressProvinceChange('ck')"
+                  class="w-full border rounded-xl px-3.5 py-2.5 text-sm bg-white focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
+                  <option value="">Chọn tỉnh/thành</option>
+                </select>
+              </div>
+              <div class="space-y-2">
+                <input type="text" id="ckCommuneSearch" placeholder="Tìm phường/xã..."
+                  oninput="onAddressSearchInput('ck','commune')"
+                  class="w-full border rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
+                <select id="ckCommune"
+                  onchange="onAddressCommuneChange('ck')"
+                  class="w-full border rounded-xl px-3.5 py-2.5 text-sm bg-white focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
+                  <option value="">Chọn phường/xã</option>
+                </select>
+              </div>
             </div>
             <input type="text" id="ckAddressDetail"
               placeholder="Số nhà, tên đường..."
@@ -2896,13 +2916,16 @@ const ADDRESS_EFFECTIVE_DATE = 'latest'
 let addressProvinceOptions = []
 let addressCommuneOptionsByProvince = {}
 let addressKitLoadingPromise = null
+let addressAutoFillInProgress = false
 
 function getAddressScopeElements(scope) {
   const isCart = scope === 'ck'
   return {
     fieldId: isCart ? 'ckFieldAddress' : 'fieldAddress',
     provinceId: isCart ? 'ckProvince' : 'orderProvince',
+    provinceSearchId: isCart ? 'ckProvinceSearch' : 'orderProvinceSearch',
     communeId: isCart ? 'ckCommune' : 'orderCommune',
+    communeSearchId: isCart ? 'ckCommuneSearch' : 'orderCommuneSearch',
     detailId: isCart ? 'ckAddressDetail' : 'orderAddressDetail',
     fullAddressId: isCart ? 'ckAddress' : 'orderAddress'
   }
@@ -2918,6 +2941,7 @@ function getSelectedAddressOptionText(selectEl) {
 function setAddressSelectOptions(selectEl, options, placeholder) {
   if (!selectEl) return
   const safeOptions = Array.isArray(options) ? options : []
+  const previousValue = String(selectEl.value || '').trim()
   selectEl.innerHTML = '<option value="">' + placeholder + '</option>'
   safeOptions.forEach((item) => {
     if (!item || !item.code || !item.name) return
@@ -2926,16 +2950,88 @@ function setAddressSelectOptions(selectEl, options, placeholder) {
     opt.textContent = String(item.name)
     selectEl.appendChild(opt)
   })
+  if (previousValue && safeOptions.some((item) => String(item.code) === previousValue)) {
+    selectEl.value = previousValue
+  }
+}
+
+function normalizeSearchText(input) {
+  return String(input || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+}
+
+function getAddressPreferenceKey() {
+  if (isAdminUser) return 'qhclothes_saved_address_admin'
+  const uid = Number(currentUser?.userId || currentUser?.id || 0)
+  if (uid > 0) return 'qhclothes_saved_address_user_' + uid
+  return 'qhclothes_saved_address_guest'
+}
+
+function saveAddressPreference(payload) {
+  try {
+    localStorage.setItem(getAddressPreferenceKey(), JSON.stringify({
+      provinceCode: String(payload?.provinceCode || '').trim(),
+      communeCode: String(payload?.communeCode || '').trim(),
+      detail: String(payload?.detail || '').trim(),
+      updatedAt: Date.now()
+    }))
+  } catch (_) { }
+}
+
+function loadAddressPreference() {
+  try {
+    const raw = localStorage.getItem(getAddressPreferenceKey())
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    if (!parsed || typeof parsed !== 'object') return null
+    const provinceCode = String(parsed.provinceCode || '').trim()
+    const communeCode = String(parsed.communeCode || '').trim()
+    const detail = String(parsed.detail || '').trim()
+    if (!provinceCode || !communeCode || !detail) return null
+    return { provinceCode, communeCode, detail }
+  } catch (_) {
+    return null
+  }
+}
+
+function getFilteredAddressOptions(options, keyword) {
+  const list = Array.isArray(options) ? options : []
+  const q = normalizeSearchText(keyword)
+  if (!q) return list
+  return list.filter((item) => normalizeSearchText(item?.name || '').indexOf(q) >= 0)
+}
+
+function renderProvinceOptionsForScope(scope) {
+  const ids = getAddressScopeElements(scope)
+  const provinceEl = document.getElementById(ids.provinceId)
+  const searchEl = document.getElementById(ids.provinceSearchId)
+  const filtered = getFilteredAddressOptions(addressProvinceOptions, searchEl?.value || '')
+  setAddressSelectOptions(provinceEl, filtered, filtered.length ? 'Chọn tỉnh/thành' : 'Không tìm thấy tỉnh/thành')
+}
+
+function renderCommuneOptionsForScope(scope) {
+  const ids = getAddressScopeElements(scope)
+  const provinceEl = document.getElementById(ids.provinceId)
+  const communeEl = document.getElementById(ids.communeId)
+  const searchEl = document.getElementById(ids.communeSearchId)
+  const provinceCode = String(provinceEl?.value || '').trim()
+  const list = provinceCode ? (addressCommuneOptionsByProvince[provinceCode] || []) : []
+  const filtered = getFilteredAddressOptions(list, searchEl?.value || '')
+  const placeholder = provinceCode
+    ? (filtered.length ? 'Chọn phường/xã' : 'Không tìm thấy phường/xã')
+    : 'Chọn phường/xã'
+  setAddressSelectOptions(communeEl, filtered, placeholder)
 }
 
 async function fetchAddressProvinces() {
   const res = await axios.get('/api/address/provinces', { params: { effectiveDate: ADDRESS_EFFECTIVE_DATE } })
   const list = Array.isArray(res.data?.data) ? res.data.data : []
   addressProvinceOptions = list.filter((p) => p && p.code && p.name)
-  const orderProvince = document.getElementById('orderProvince')
-  const ckProvince = document.getElementById('ckProvince')
-  setAddressSelectOptions(orderProvince, addressProvinceOptions, 'Chọn tỉnh/thành')
-  setAddressSelectOptions(ckProvince, addressProvinceOptions, 'Chọn tỉnh/thành')
+  renderProvinceOptionsForScope('order')
+  renderProvinceOptionsForScope('ck')
 }
 
 async function ensureAddressKitReady() {
@@ -2978,15 +3074,27 @@ function syncAddressFullText(scope) {
   const fullParts = [detail, communeName, provinceName].filter(Boolean)
   const fullAddress = fullParts.join(', ')
   fullAddressEl.value = fullAddress
+  if (!addressAutoFillInProgress) {
+    const provinceCode = String(provinceEl?.value || '').trim()
+    const communeCode = String(communeEl?.value || '').trim()
+    if (provinceCode && communeCode && detail && fullAddress) {
+      saveAddressPreference({ provinceCode, communeCode, detail })
+    }
+  }
   return fullAddress
 }
 
 function resetAddressScope(scope) {
   const ids = getAddressScopeElements(scope)
   const provinceEl = document.getElementById(ids.provinceId)
+  const provinceSearchEl = document.getElementById(ids.provinceSearchId)
   const communeEl = document.getElementById(ids.communeId)
+  const communeSearchEl = document.getElementById(ids.communeSearchId)
   const detailEl = document.getElementById(ids.detailId)
   const fullAddressEl = document.getElementById(ids.fullAddressId)
+  if (provinceSearchEl) provinceSearchEl.value = ''
+  if (communeSearchEl) communeSearchEl.value = ''
+  renderProvinceOptionsForScope(scope)
   if (provinceEl) provinceEl.value = ''
   if (communeEl) setAddressSelectOptions(communeEl, [], 'Chọn phường/xã')
   if (detailEl) detailEl.value = ''
@@ -2997,18 +3105,20 @@ async function onAddressProvinceChange(scope) {
   const ids = getAddressScopeElements(scope)
   const provinceEl = document.getElementById(ids.provinceId)
   const communeEl = document.getElementById(ids.communeId)
+  const communeSearchEl = document.getElementById(ids.communeSearchId)
   const selectedCode = String(provinceEl?.value || '').trim()
-  setAddressSelectOptions(communeEl, [], 'Đang tải phường/xã...')
+  if (communeSearchEl) communeSearchEl.value = ''
+  setAddressSelectOptions(communeEl, [], selectedCode ? 'Đang tải phường/xã...' : 'Chọn phường/xã')
   if (!selectedCode) {
-    setAddressSelectOptions(communeEl, [], 'Chọn phường/xã')
+    renderCommuneOptionsForScope(scope)
     syncAddressFullText(scope)
     if (scope === 'ck') clearCheckoutError(ids.fieldId)
     else clearFieldError(ids.fieldId)
     return
   }
   try {
-    const communes = await fetchAddressCommunesByProvince(selectedCode)
-    setAddressSelectOptions(communeEl, communes, communes.length ? 'Chọn phường/xã' : 'Không có dữ liệu phường/xã')
+    await fetchAddressCommunesByProvince(selectedCode)
+    renderCommuneOptionsForScope(scope)
   } catch (_) {
     setAddressSelectOptions(communeEl, [], 'Không tải được phường/xã')
     showToast('Không tải được danh sách phường/xã. Vui lòng thử lại.', 'error', 4500)
@@ -3023,6 +3133,43 @@ function onAddressCommuneChange(scope) {
   const ids = getAddressScopeElements(scope)
   if (scope === 'ck') clearCheckoutError(ids.fieldId)
   else clearFieldError(ids.fieldId)
+}
+
+function onAddressSearchInput(scope, type) {
+  if (type === 'province') {
+    renderProvinceOptionsForScope(scope)
+    const ids = getAddressScopeElements(scope)
+    const provinceEl = document.getElementById(ids.provinceId)
+    if (!String(provinceEl?.value || '').trim()) renderCommuneOptionsForScope(scope)
+    return
+  }
+  renderCommuneOptionsForScope(scope)
+}
+
+async function applySavedAddressToScope(scope) {
+  resetAddressScope(scope)
+  const saved = loadAddressPreference()
+  if (!saved) return
+  const ids = getAddressScopeElements(scope)
+  const provinceEl = document.getElementById(ids.provinceId)
+  const communeEl = document.getElementById(ids.communeId)
+  const detailEl = document.getElementById(ids.detailId)
+  if (!provinceEl || !communeEl || !detailEl) return
+  const hasProvince = addressProvinceOptions.some((item) => String(item.code) === saved.provinceCode)
+  if (!hasProvince) return
+  addressAutoFillInProgress = true
+  try {
+    provinceEl.value = saved.provinceCode
+    await onAddressProvinceChange(scope)
+    const communes = addressCommuneOptionsByProvince[saved.provinceCode] || []
+    if (communes.some((item) => String(item.code) === saved.communeCode)) {
+      communeEl.value = saved.communeCode
+    }
+    detailEl.value = saved.detail
+    syncAddressFullText(scope)
+  } finally {
+    addressAutoFillInProgress = false
+  }
 }
 
 function getAddressPayload(scope) {
@@ -3274,7 +3421,7 @@ async function openOrder(id) {
     document.getElementById('qtyDisplay').textContent = '1'
     document.getElementById('orderName').value = ''
     document.getElementById('orderPhone').value = ''
-    resetAddressScope('order')
+    await applySavedAddressToScope('order')
     document.getElementById('orderNote').value = ''
     document.getElementById('orderVoucher').value = ''
     document.getElementById('voucherStatus').classList.add('hidden')
@@ -3935,7 +4082,7 @@ async function proceedToCheckout() {
   }).join('')
   // reset form
   ;['ckName','ckPhone','ckAddress','ckAddressDetail','ckNote'].forEach(id => { const el=document.getElementById(id); if(el) el.value='' })
-  resetAddressScope('ck')
+  await applySavedAddressToScope('ck')
   ;['ckFieldName','ckFieldPhone','ckFieldAddress'].forEach(id => clearCheckoutError(id))
   ckAppliedVoucher = null
   document.getElementById('ckVoucher').value = ''
@@ -4291,11 +4438,23 @@ async function checkUserAuth() {
     currentUser = res.data.data
     isAdminUser = !!res.data.isAdmin
     syncCartScope()
+    ensureAddressKitReady()
+      .then(() => {
+        applySavedAddressToScope('order')
+          .catch(() => { })
+      })
+      .catch(() => { })
     updateUserUI()
   } catch {
     currentUser = null
     isAdminUser = false
     syncCartScope()
+    ensureAddressKitReady()
+      .then(() => {
+        applySavedAddressToScope('order')
+          .catch(() => { })
+      })
+      .catch(() => { })
     updateUserUI()
   }
 }
