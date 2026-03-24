@@ -16,6 +16,8 @@
   "vars": {
     "GOOGLE_CLIENT_ID": "",
     "GOOGLE_CLIENT_SECRET": "",
-    "CASSO_SECURE_TOKEN": ""
+    "CASSO_SECURE_TOKEN": "",
+    "ZALOPAY_APP_ID": "",
+    "ZALOPAY_CALLBACK_URL": ""
   }
 }

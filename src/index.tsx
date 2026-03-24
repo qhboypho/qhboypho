@@ -9,6 +9,15 @@ type Bindings = {
   GOOGLE_CLIENT_ID?: string
   GOOGLE_CLIENT_SECRET?: string
   CASSO_SECURE_TOKEN?: string
+  PAYOS_CLIENT_ID?: string
+  PAYOS_API_KEY?: string
+  PAYOS_CHECKSUM_KEY?: string
+  ZALOPAY_APP_ID?: string
+  ZALOPAY_KEY1?: string
+  ZALOPAY_KEY2?: string
+  ZALOPAY_CREATE_ENDPOINT?: string
+  ZALOPAY_QUERY_ENDPOINT?: string
+  ZALOPAY_CALLBACK_URL?: string
   GHTK_TOKEN?: string
   GHTK_CLIENT_SOURCE?: string
   GHTK_PICK_NAME?: string
@@ -217,6 +226,55 @@ async function payOSGetPaymentInfo(env: any, id: string | number) {
   return body.data
 }
 
+function getVietnamDatePrefixYYMMDD(ts = Date.now()) {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Ho_Chi_Minh',
+    year: '2-digit',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(new Date(ts))
+  const yy = parts.find((p) => p.type === 'year')?.value || '00'
+  const mm = parts.find((p) => p.type === 'month')?.value || '01'
+  const dd = parts.find((p) => p.type === 'day')?.value || '01'
+  return `${yy}${mm}${dd}`
+}
+
+function buildZaloPayAppTransId(orderId: number, ts = Date.now()) {
+  const datePrefix = getVietnamDatePrefixYYMMDD(ts)
+  const suffix = `${Math.max(1, Number(orderId) || 1)}_${ts}`
+  const out = `${datePrefix}_${suffix}`
+  return out.length <= 40 ? out : out.slice(0, 40)
+}
+
+function parseJsonObject(input: any) {
+  if (!input) return {}
+  if (typeof input === 'object') return input
+  if (typeof input !== 'string') return {}
+  try {
+    const parsed = JSON.parse(input)
+    return parsed && typeof parsed === 'object' ? parsed : {}
+  } catch {
+    return {}
+  }
+}
+
+function getZaloPayConfig(env: any) {
+  const appIdRaw = String(env.ZALOPAY_APP_ID || '').trim()
+  const appIdNum = Number(appIdRaw)
+  const key1 = String(env.ZALOPAY_KEY1 || '').trim()
+  const key2 = String(env.ZALOPAY_KEY2 || '').trim()
+  const createEndpoint = String(env.ZALOPAY_CREATE_ENDPOINT || 'https://sb-openapi.zalopay.vn/v2/create').trim()
+  const queryEndpoint = String(env.ZALOPAY_QUERY_ENDPOINT || 'https://sb-openapi.zalopay.vn/v2/query').trim()
+  return {
+    appIdRaw,
+    appIdNum,
+    key1,
+    key2,
+    createEndpoint,
+    queryEndpoint
+  }
+}
+
 async function syncOrderPaymentWithPayOS(db: D1Database, env: any, order: any) {
   const isBankTransfer = String(order?.payment_method || '').toUpperCase() === 'BANK_TRANSFER'
   const isPaid = String(order?.payment_status || '').toLowerCase() === 'paid'
@@ -253,6 +311,75 @@ async function syncOrderPaymentWithPayOS(db: D1Database, env: any, order: any) {
   ).run()
 
   return { synced: true, paid: true, paymentInfo }
+}
+
+async function syncOrderPaymentWithZaloPay(db: D1Database, env: any, order: any) {
+  const isZaloPay = String(order?.payment_method || '').toUpperCase() === 'ZALOPAY'
+  const isPaid = String(order?.payment_status || '').toLowerCase() === 'paid'
+  if (!isZaloPay || isPaid) return { synced: false, paid: isPaid }
+
+  const config = getZaloPayConfig(env)
+  if (!config.appIdRaw || !Number.isFinite(config.appIdNum) || config.appIdNum <= 0 || !config.key1) {
+    return { synced: false, paid: false }
+  }
+
+  const appTransId = String(order?.payment_link_id || '').trim()
+  if (!appTransId) return { synced: false, paid: false }
+
+  const macData = `${config.appIdRaw}|${appTransId}|${config.key1}`
+  const mac = await payOSSignWithChecksum(config.key1, macData)
+  const form = new URLSearchParams()
+  form.set('app_id', config.appIdRaw)
+  form.set('app_trans_id', appTransId)
+  form.set('mac', mac)
+
+  const resp = await fetch(config.queryEndpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: form.toString()
+  })
+  const body: any = await resp.json().catch(() => ({}))
+  const returnCode = Number(body?.return_code || 0)
+  if (!resp.ok || returnCode !== 1) {
+    return { synced: false, paid: false, paymentInfo: body }
+  }
+
+  const paidAmount = Number(body?.amount || 0)
+  const orderTotal = Number(order?.total_price || 0)
+  if (paidAmount > 0 && orderTotal > 0 && paidAmount < orderTotal) {
+    return { synced: false, paid: false, paymentInfo: body }
+  }
+
+  const zpTransIdNum = Number(body?.zp_trans_id || 0)
+  const paymentRef = String(body?.zp_trans_id || appTransId || '')
+
+  await db.prepare(`
+    UPDATE orders
+    SET payment_status='paid',
+        payment_paid_at=COALESCE(payment_paid_at, CURRENT_TIMESTAMP),
+        payment_ref=COALESCE(payment_ref, ?),
+        payment_provider='ZALOPAY',
+        payment_link_id=COALESCE(payment_link_id, ?),
+        payment_order_code=COALESCE(payment_order_code, ?),
+        status=CASE WHEN status='pending' THEN 'confirmed' ELSE status END,
+        updated_at=CURRENT_TIMESTAMP
+    WHERE id=?
+  `).bind(
+    paymentRef || null,
+    appTransId || null,
+    Number.isFinite(zpTransIdNum) && zpTransIdNum > 0 ? zpTransIdNum : null,
+    order.id
+  ).run()
+
+  return { synced: true, paid: true, paymentInfo: body }
+}
+
+async function syncOrderPayment(db: D1Database, env: any, order: any) {
+  const method = String(order?.payment_method || '').toUpperCase()
+  if (method === 'BANK_TRANSFER') return syncOrderPaymentWithPayOS(db, env, order)
+  if (method === 'ZALOPAY') return syncOrderPaymentWithZaloPay(db, env, order)
+  const isPaid = String(order?.payment_status || '').toLowerCase() === 'paid'
+  return { synced: false, paid: isPaid }
 }
 
 function normalizeGHTKOriginal(v: any) {
@@ -297,6 +424,15 @@ function getOrderAmountDueServer(order: any) {
   return String(order?.payment_status || '').toLowerCase() === 'paid'
     ? 0
     : Number(order?.total_price || 0)
+}
+
+function buildInternalTestOrderWhereSql(alias = '') {
+  const p = alias ? `${alias}.` : ''
+  return `(
+    LOWER(TRIM(COALESCE(${p}customer_name, '')))='local script test'
+    OR LOWER(TRIM(COALESCE(${p}note, '')))='test:payos-local'
+    OR LOWER(TRIM(COALESCE(${p}note, '')))='test:zalopay-local'
+  )`
 }
 
 async function ghtkCreateShipment(env: any, order: any) {
@@ -927,10 +1063,13 @@ app.get('/api/admin/orders', async (c) => {
   try {
     await initDB(c.env.DB)
     const status = c.req.query('status')
+    const includeInternal = c.req.query('include_internal') === '1'
+    const internalFilterSql = includeInternal ? '1=1' : `NOT ${buildInternalTestOrderWhereSql()}`
     let query = `
       SELECT *,
              CASE WHEN LOWER(COALESCE(payment_status, ''))='paid' THEN 0 ELSE total_price END AS amount_due
       FROM orders
+      WHERE ${internalFilterSql}
       ORDER BY created_at DESC
     `
     if (status && status !== 'all') {
@@ -938,7 +1077,7 @@ app.get('/api/admin/orders', async (c) => {
         SELECT *,
                CASE WHEN LOWER(COALESCE(payment_status, ''))='paid' THEN 0 ELSE total_price END AS amount_due
         FROM orders
-        WHERE status=?
+        WHERE status=? AND ${internalFilterSql}
         ORDER BY created_at DESC
       `
     }
@@ -1113,7 +1252,7 @@ app.get('/api/orders/:orderCode/payment-status', async (c) => {
       WHERE order_code=?
     `).bind(orderCode).first() as any
     if (!order) return c.json({ success: false, error: 'ORDER_NOT_FOUND' }, 404)
-    await syncOrderPaymentWithPayOS(c.env.DB, c.env, order)
+    await syncOrderPayment(c.env.DB, c.env, order)
     const latest = await c.env.DB.prepare(`SELECT order_code, payment_status, payment_paid_at, status FROM orders WHERE id=?`).bind(order.id).first() as any
     return c.json({ success: true, data: latest || order })
   } catch (e: any) {
@@ -1135,6 +1274,135 @@ app.post('/api/orders/:id/payos-sync', async (c) => {
     const sync = await syncOrderPaymentWithPayOS(c.env.DB, c.env, order)
     const latest = await c.env.DB.prepare(`SELECT order_code, payment_status, payment_paid_at, status FROM orders WHERE id=?`).bind(id).first() as any
     return c.json({ success: true, data: latest || order, synced: !!sync.synced })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+app.post('/api/orders/:id/zalopay-sync', async (c) => {
+  try {
+    await initDB(c.env.DB)
+    const id = Number(c.req.param('id') || 0)
+    if (!id) return c.json({ success: false, error: 'INVALID_ORDER_ID' }, 400)
+    const order = await c.env.DB.prepare(`
+      SELECT id, order_code, payment_status, payment_paid_at, status, payment_method, payment_link_id, payment_order_code, total_price
+      FROM orders
+      WHERE id=?
+    `).bind(id).first() as any
+    if (!order) return c.json({ success: false, error: 'ORDER_NOT_FOUND' }, 404)
+    const sync = await syncOrderPaymentWithZaloPay(c.env.DB, c.env, order)
+    const latest = await c.env.DB.prepare(`SELECT order_code, payment_status, payment_paid_at, status FROM orders WHERE id=?`).bind(id).first() as any
+    return c.json({ success: true, data: latest || order, synced: !!sync.synced })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+// POST create ZaloPay payment link from an existing order
+app.post('/api/orders/:id/zalopay-link', async (c) => {
+  try {
+    await initDB(c.env.DB)
+    const id = Number(c.req.param('id') || 0)
+    if (!id) return c.json({ success: false, error: 'INVALID_ORDER_ID' }, 400)
+    const body: any = await c.req.json().catch(() => ({}))
+    const origin = String(body.origin || c.req.header('origin') || '').trim()
+    if (!origin) return c.json({ success: false, error: 'MISSING_ORIGIN' }, 400)
+
+    const order = await c.env.DB.prepare(`
+      SELECT id, order_code, total_price, customer_name, customer_phone, product_name, quantity, payment_method, payment_status
+      FROM orders WHERE id=?
+    `).bind(id).first() as any
+    if (!order) return c.json({ success: false, error: 'ORDER_NOT_FOUND' }, 404)
+    if (String(order.payment_method || '').toUpperCase() !== 'ZALOPAY') {
+      return c.json({ success: false, error: 'PAYMENT_METHOD_NOT_ZALOPAY' }, 400)
+    }
+    if (String(order.payment_status || '').toLowerCase() === 'paid') {
+      return c.json({ success: true, data: { alreadyPaid: true, orderCode: order.order_code } })
+    }
+
+    const sync = await syncOrderPaymentWithZaloPay(c.env.DB, c.env, order)
+    if (sync.paid) {
+      return c.json({ success: true, data: { alreadyPaid: true, orderCode: order.order_code } })
+    }
+
+    const config = getZaloPayConfig(c.env)
+    if (!config.appIdRaw || !Number.isFinite(config.appIdNum) || config.appIdNum <= 0 || !config.key1 || !config.key2) {
+      return c.json({ success: false, error: 'ZALOPAY_CONFIG_MISSING' }, 500)
+    }
+
+    const amount = Math.round(Number(order.total_price || 0))
+    if (amount <= 0) return c.json({ success: false, error: 'INVALID_ORDER_AMOUNT' }, 400)
+
+    const nowMs = Date.now()
+    const appTransId = buildZaloPayAppTransId(Number(order.id || 0), nowMs)
+    const successUrl = `${origin}/?order=${encodeURIComponent(order.order_code)}&pay=success&provider=zalopay&closeTab=1`
+    const cancelUrl = `${origin}/?order=${encodeURIComponent(order.order_code)}&pay=cancel&provider=zalopay`
+    const embedData = JSON.stringify({
+      order_id: Number(order.id || 0),
+      order_code: String(order.order_code || ''),
+      redirecturl: successUrl,
+      cancelurl: cancelUrl
+    })
+    const item = JSON.stringify([
+      {
+        itemid: String(order.id || ''),
+        itemname: String(order.product_name || 'Don hang'),
+        itemprice: amount,
+        itemquantity: Number(order.quantity || 1) || 1
+      }
+    ])
+    const appUser = String(order.customer_phone || order.customer_name || `user_${order.id}`).slice(0, 50)
+    const description = `QHClothes - Thanh toan don hang #${order.order_code}`.slice(0, 256)
+    const callbackUrl = String((c.env as any).ZALOPAY_CALLBACK_URL || '').trim()
+
+    const macInput = `${config.appIdRaw}|${appTransId}|${appUser}|${amount}|${nowMs}|${embedData}|${item}`
+    const mac = await payOSSignWithChecksum(config.key1, macInput)
+
+    const form = new URLSearchParams()
+    form.set('app_id', config.appIdRaw)
+    form.set('app_user', appUser)
+    form.set('app_time', String(nowMs))
+    form.set('amount', String(amount))
+    form.set('app_trans_id', appTransId)
+    form.set('embed_data', embedData)
+    form.set('item', item)
+    form.set('description', description)
+    form.set('expire_duration_seconds', '900')
+    form.set('mac', mac)
+    if (callbackUrl) form.set('callback_url', callbackUrl)
+
+    const resp = await fetch(config.createEndpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: form.toString()
+    })
+    const zaloRes: any = await resp.json().catch(() => ({}))
+    const returnCode = Number(zaloRes?.return_code || 0)
+    if (!resp.ok || returnCode !== 1 || !zaloRes?.order_url) {
+      return c.json({ success: false, error: 'ZALOPAY_CREATE_LINK_FAILED', detail: zaloRes }, 400)
+    }
+
+    await c.env.DB.prepare(`
+      UPDATE orders
+      SET payment_provider='ZALOPAY',
+          payment_link_id=?,
+          updated_at=CURRENT_TIMESTAMP
+      WHERE id=?
+    `).bind(appTransId, id).run()
+
+    return c.json({
+      success: true,
+      data: {
+        appTransId,
+        orderUrl: zaloRes.order_url,
+        qrCode: zaloRes.qr_code || '',
+        zpTransToken: zaloRes.zp_trans_token || '',
+        orderToken: zaloRes.order_token || '',
+        orderCode: order.order_code
+      }
+    })
   } catch (e: any) {
     return c.json({ success: false, error: e.message }, 500)
   }
@@ -1179,8 +1447,8 @@ app.post('/api/orders/:id/payos-link', async (c) => {
 
     const orderCodeNum = Number(order.id) // numeric order code for PayOS
     const description = `DH${orderCodeNum}`.slice(0, 25)
-    const returnUrl = `${origin}/?order=${encodeURIComponent(order.order_code)}&pay=success&closeTab=1`
-    const cancelUrl = `${origin}/?order=${encodeURIComponent(order.order_code)}&pay=cancel`
+    const returnUrl = `${origin}/?order=${encodeURIComponent(order.order_code)}&pay=success&provider=payos&closeTab=1`
+    const cancelUrl = `${origin}/?order=${encodeURIComponent(order.order_code)}&pay=cancel&provider=payos`
     const signPayload = {
       amount,
       cancelUrl,
@@ -1239,6 +1507,94 @@ app.post('/api/orders/:id/payos-link', async (c) => {
     })
   } catch (e: any) {
     return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+// POST ZaloPay callback (payment notify)
+app.post('/api/payments/zalopay/callback', async (c) => {
+  try {
+    await initDB(c.env.DB)
+    const body: any = await c.req.json().catch(() => ({}))
+    const cbDataStr = String(body?.data || '')
+    const providedMac = String(body?.mac || '').toLowerCase()
+    const config = getZaloPayConfig(c.env)
+    if (!config.key2) {
+      return c.json({ return_code: 0, return_message: 'ZALOPAY_CONFIG_MISSING' })
+    }
+    if (!cbDataStr || !providedMac) {
+      return c.json({ return_code: -1, return_message: 'missing_data_or_mac' })
+    }
+
+    const expectedMac = await payOSSignWithChecksum(config.key2, cbDataStr)
+    if (expectedMac !== providedMac) {
+      return c.json({ return_code: -1, return_message: 'mac not equal' })
+    }
+
+    const data = parseJsonObject(cbDataStr)
+    const appTransId = String(data?.app_trans_id || '').trim()
+    const paidAmount = Number(data?.amount || 0)
+    const zpTransIdNum = Number(data?.zp_trans_id || 0)
+    const embedData = parseJsonObject(data?.embed_data)
+    const orderId = Number(embedData?.order_id || 0)
+    const orderCode = String(embedData?.order_code || '').trim().toUpperCase()
+
+    let order: any = null
+    if (orderId > 0) {
+      order = await c.env.DB.prepare(`
+        SELECT id, order_code, total_price, payment_status
+        FROM orders
+        WHERE id=?
+        LIMIT 1
+      `).bind(orderId).first() as any
+    }
+    if (!order && orderCode) {
+      order = await c.env.DB.prepare(`
+        SELECT id, order_code, total_price, payment_status
+        FROM orders
+        WHERE order_code=?
+        LIMIT 1
+      `).bind(orderCode).first() as any
+    }
+    if (!order && appTransId) {
+      order = await c.env.DB.prepare(`
+        SELECT id, order_code, total_price, payment_status
+        FROM orders
+        WHERE payment_link_id=?
+        LIMIT 1
+      `).bind(appTransId).first() as any
+    }
+    if (!order) {
+      return c.json({ return_code: 1, return_message: 'ignored_order_not_found' })
+    }
+    if (String(order.payment_status || '').toLowerCase() === 'paid') {
+      return c.json({ return_code: 2, return_message: 'already_paid' })
+    }
+
+    if (paidAmount > 0 && Number(order.total_price || 0) > 0 && paidAmount < Number(order.total_price || 0)) {
+      return c.json({ return_code: 1, return_message: 'ignored_insufficient_amount' })
+    }
+
+    await c.env.DB.prepare(`
+      UPDATE orders
+      SET payment_status='paid',
+          payment_paid_at=CURRENT_TIMESTAMP,
+          payment_ref=?,
+          payment_provider='ZALOPAY',
+          payment_link_id=COALESCE(?, payment_link_id),
+          payment_order_code=COALESCE(?, payment_order_code),
+          status=CASE WHEN status='pending' THEN 'confirmed' ELSE status END,
+          updated_at=CURRENT_TIMESTAMP
+      WHERE id=?
+    `).bind(
+      String(data?.zp_trans_id || appTransId || ''),
+      appTransId || null,
+      Number.isFinite(zpTransIdNum) && zpTransIdNum > 0 ? zpTransIdNum : null,
+      order.id
+    ).run()
+
+    return c.json({ return_code: 1, return_message: 'success' })
+  } catch (e: any) {
+    return c.json({ return_code: 0, return_message: String(e?.message || 'UNKNOWN_ERROR') })
   }
 })
 
@@ -1443,14 +1799,17 @@ app.delete('/api/admin/vouchers/:id', async (c) => {
 app.get('/api/admin/stats', async (c) => {
   try {
     await initDB(c.env.DB)
+    const includeInternal = c.req.query('include_internal') === '1'
+    const internalFilterSql = includeInternal ? '1=1' : `NOT ${buildInternalTestOrderWhereSql()}`
     const totalProducts = await c.env.DB.prepare(`SELECT COUNT(*) as count FROM products WHERE is_active=1`).first() as any
-    const totalOrders = await c.env.DB.prepare(`SELECT COUNT(*) as count FROM orders`).first() as any
-    const pendingOrders = await c.env.DB.prepare(`SELECT COUNT(*) as count FROM orders WHERE status='pending'`).first() as any
-    const revenue = await c.env.DB.prepare(`SELECT SUM(total_price) as total FROM orders WHERE status != 'cancelled'`).first() as any
+    const totalOrders = await c.env.DB.prepare(`SELECT COUNT(*) as count FROM orders WHERE ${internalFilterSql}`).first() as any
+    const pendingOrders = await c.env.DB.prepare(`SELECT COUNT(*) as count FROM orders WHERE status='pending' AND ${internalFilterSql}`).first() as any
+    const revenue = await c.env.DB.prepare(`SELECT SUM(total_price) as total FROM orders WHERE status != 'cancelled' AND ${internalFilterSql}`).first() as any
     const recentOrdersRes = await c.env.DB.prepare(`
       SELECT *,
              CASE WHEN LOWER(COALESCE(payment_status, ''))='paid' THEN 0 ELSE total_price END AS amount_due
       FROM orders
+      WHERE ${internalFilterSql}
       ORDER BY created_at DESC
       LIMIT 5
     `).all()
@@ -2390,6 +2749,7 @@ let selectedSize = ''
 let selectedPaymentMethod = ''
 let pendingBankTransferOrder = null
 let bankTransferPollTimer = null
+let zaloPayLinkTab = null
 let appliedVoucher = null   // { code, discount_amount }
 
 // ── CART STATE ─────────────────────────────────────
@@ -2681,16 +3041,59 @@ function selectPaymentMethod(method, btn) {
   selectedPaymentMethod = method
   document.getElementById('fieldPaymentMethod')?.classList.remove('field-error','shake')
 }
+function isPopupTabAlive(tab) {
+  try { return !!(tab && !tab.closed) } catch (_) { return false }
+}
+function openOrReuseZaloPayLinkTab() {
+  if (isPopupTabAlive(zaloPayLinkTab)) {
+    try { zaloPayLinkTab.focus() } catch (_) { }
+    return zaloPayLinkTab
+  }
+  let tab = null
+  try { tab = window.open('about:blank', '_blank') } catch (_) { tab = null }
+  if (tab) {
+    try {
+      tab.document.title = 'Lien ket ZaloPay'
+      tab.document.body.style.margin = '0'
+      tab.document.body.style.fontFamily = 'system-ui, -apple-system, Segoe UI, sans-serif'
+      tab.document.body.style.background = '#f9fafb'
+      tab.document.body.innerHTML = ''
+        + '<div style="max-width:560px;margin:0 auto;padding:28px 20px;color:#111827;">'
+        + '<h2 style="margin:0 0 10px 0;font-size:22px;">Dang san sang lien ket ZaloPay</h2>'
+        + '<p style="margin:0 0 14px 0;color:#4b5563;line-height:1.5;">'
+        + 'Tab nay se tu dong chuyen den trang thanh toan ngay sau khi ban bam "Dat ngay".'
+        + '</p>'
+        + '<p style="margin:0 0 14px 0;color:#4b5563;line-height:1.5;">'
+        + 'Neu chua co don hang, ban co the mo trang ZaloPay de dang nhap truoc.'
+        + '</p>'
+        + '<a href="https://zalopay.vn/" target="_blank" rel="noopener noreferrer" '
+        + 'style="display:inline-block;text-decoration:none;background:#0ea5e9;color:#fff;padding:10px 14px;border-radius:10px;font-weight:600;">'
+        + 'Mo ZaloPay'
+        + '</a>'
+        + '</div>'
+    } catch (_) { }
+  }
+  zaloPayLinkTab = tab
+  return tab
+}
 function openZaloPayLink(evt) {
   if (evt) {
     evt.preventDefault()
     evt.stopPropagation()
   }
-  const startedAt = Date.now()
-  window.location.href = 'zalopay://'
-  setTimeout(() => {
-    if (Date.now() - startedAt < 1700) window.open('https://zalopay.vn/', '_blank')
-  }, 1200)
+  const zaloBtn = document.querySelector(".payment-method-btn[onclick*=\"'ZALOPAY'\"]")
+  if (zaloBtn) selectPaymentMethod('ZALOPAY', zaloBtn)
+  const tab = openOrReuseZaloPayLinkTab()
+  if (tab) {
+    showToast('Da mo tab lien ket ZaloPay. Bam Dat ngay de tao QR thanh toan.', 'success', 4500)
+    return
+  }
+  const fallback = window.open('https://zalopay.vn/', '_blank')
+  if (fallback) {
+    showToast('Da mo trang ZaloPay.', 'success', 3500)
+  } else {
+    showToast('Trinh duyet dang chan popup, hay cho phep popup roi thu lai.', 'error', 4000)
+  }
 }
 function changeQty(d) {
   orderQty = Math.max(1, Math.min(99, orderQty + d))
@@ -2851,6 +3254,11 @@ async function submitOrder() {
   let payTabRef = null
   if (selectedPaymentMethod === 'BANK_TRANSFER') {
     try { payTabRef = window.open('about:blank', '_blank') } catch (_) { payTabRef = null }
+  } else if (selectedPaymentMethod === 'ZALOPAY') {
+    payTabRef = openOrReuseZaloPayLinkTab()
+    if (!payTabRef) {
+      try { payTabRef = window.open('about:blank', '_blank') } catch (_) { payTabRef = null }
+    }
   }
 
   try {
@@ -2913,6 +3321,43 @@ async function submitOrder() {
           paymentLinkId: payosData?.paymentLinkId || ''
         })
         showToast(\`Đơn hàng \${orderCode} đã tạo. Vui lòng chuyển khoản để hoàn tất.\`, 'success', 5000)
+      }
+    } else if (selectedPaymentMethod === 'ZALOPAY') {
+      let zaloData = null
+      try {
+        const zalo = await axios.post('/api/orders/' + orderId + '/zalopay-link', { origin: window.location.origin })
+        zaloData = zalo.data?.data || null
+      } catch (_) {
+        showToast('ZaloPay tạm lỗi, vui lòng thử lại sau ít phút.', 'error', 4500)
+      }
+
+      if (zaloData?.alreadyPaid) {
+        onOrderMarkedPaid(orderCode)
+        showToast('Đơn ' + orderCode + ' đã được thanh toán trước đó.', 'success', 4500)
+        return
+      }
+
+      const checkoutUrl = String(zaloData?.orderUrl || '').trim()
+      if (!checkoutUrl) {
+        try { if (payTabRef && !payTabRef.closed) payTabRef.close() } catch (_) { }
+        showToast('Không tạo được liên kết thanh toán ZaloPay.', 'error', 4500)
+        return
+      }
+
+      let payTab = payTabRef
+      if (payTab) {
+        try { payTab.location.href = checkoutUrl } catch (_) { payTab = null }
+      }
+      if (!payTab) payTab = window.open(checkoutUrl, '_blank')
+
+      if (payTab) {
+        zaloPayLinkTab = payTab
+        startOrderPaymentPolling(orderCode)
+        showToast(\`Đơn \${orderCode}: đã mở tab ZaloPay, vui lòng quét QR để thanh toán.\`, 'success', 5000)
+      } else {
+        // Fallback: popup bị chặn, điều hướng luôn tại tab hiện tại
+        startOrderPaymentPolling(orderCode)
+        window.location.href = checkoutUrl
       }
     } else {
       showToast(\`🎉 Đặt hàng thành công! Mã đơn: \${orderCode}\`, 'success', 5000)
@@ -3514,12 +3959,12 @@ loadSettings()
 loadCart()
 loadProducts()
 checkUserAuth()
-handlePayOSReturnFlow()
+handlePaymentReturnFlow()
 
 window.addEventListener('message', function (event) {
   if (event.origin !== window.location.origin) return
   const data = event.data || {}
-  if (data.type === 'payos_paid' && data.orderCode) {
+  if ((data.type === 'payment_paid' || data.type === 'payos_paid') && data.orderCode) {
     onOrderMarkedPaid(String(data.orderCode))
   }
 })
@@ -3645,13 +4090,18 @@ async function showUserOrders() {
   try {
     const res = await axios.get('/api/user/orders')
     let orders = res.data.data || []
-    const unpaidBankOrders = orders.filter(function (o) {
-      return String(o.payment_method || '').toUpperCase() === 'BANK_TRANSFER'
-        && String(o.payment_status || '').toLowerCase() !== 'paid'
+    const unpaidGatewayOrders = orders.filter(function (o) {
+      const method = String(o.payment_method || '').toUpperCase()
+      const unpaid = String(o.payment_status || '').toLowerCase() !== 'paid'
+      return unpaid && (method === 'BANK_TRANSFER' || method === 'ZALOPAY')
     }).slice(0, 6)
-    if (unpaidBankOrders.length) {
-      await Promise.all(unpaidBankOrders.map(function (o) {
-        return axios.post('/api/orders/' + o.id + '/payos-sync').catch(function () { return null })
+    if (unpaidGatewayOrders.length) {
+      await Promise.all(unpaidGatewayOrders.map(function (o) {
+        const method = String(o.payment_method || '').toUpperCase()
+        const syncEndpoint = method === 'ZALOPAY'
+          ? '/api/orders/' + o.id + '/zalopay-sync'
+          : '/api/orders/' + o.id + '/payos-sync'
+        return axios.post(syncEndpoint).catch(function () { return null })
       }))
       const refreshed = await axios.get('/api/user/orders')
       orders = refreshed.data.data || orders
@@ -3665,9 +4115,12 @@ async function showUserOrders() {
         const paymentPaid = String(o.payment_status || '').toLowerCase() === 'paid'
         const paymentBadgeClass = paymentPaid ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
         const paymentBadgeText = paymentPaid ? 'Đã thanh toán' : 'Chưa thanh toán'
-        const canResume = !paymentPaid && String(o.payment_method || '').toUpperCase() === 'BANK_TRANSFER'
+        const paymentMethod = String(o.payment_method || '').toUpperCase()
+        const canResume = !paymentPaid && (paymentMethod === 'BANK_TRANSFER' || paymentMethod === 'ZALOPAY')
+        const safeOrderCode = String(o.order_code || '').replace(/'/g, "\\'")
+        const methodArg = paymentMethod.replace(/'/g, "\\'")
         const codeHtml = canResume
-          ? '<button class="font-mono text-xs text-blue-600 font-semibold hover:underline" onclick="resumeOrderPayment(' + o.id + ',\\'' + String(o.order_code || '').replace(/'/g, "\\'") + '\\')">' + o.order_code + '</button>'
+          ? '<button class="font-mono text-xs text-blue-600 font-semibold hover:underline" onclick="resumeOrderPayment(' + o.id + ',\\'' + safeOrderCode + '\\',\\'' + methodArg + '\\')">' + o.order_code + '</button>'
           : '<span class="font-mono text-xs text-blue-600 font-semibold">' + o.order_code + '</span>'
         return '<div class="order-history-item border rounded-xl p-3">'
           + '<div class="flex justify-between items-start mb-1">' + codeHtml
@@ -3679,31 +4132,40 @@ async function showUserOrders() {
   } catch { content.innerHTML = '<div class="text-center py-8 text-red-400">Lỗi tải dữ liệu</div>' }
 }
 
-async function resumeOrderPayment(orderId, orderCode) {
-  const payTab = window.open('about:blank', '_blank')
+async function resumeOrderPayment(orderId, orderCode, paymentMethod) {
+  const method = String(paymentMethod || '').toUpperCase()
+  const isZaloPay = method === 'ZALOPAY'
+  const providerLabel = isZaloPay ? 'ZaloPay' : 'PayOS'
+  const createEndpoint = isZaloPay ? '/api/orders/' + orderId + '/zalopay-link' : '/api/orders/' + orderId + '/payos-link'
+  const syncEndpoint = isZaloPay ? '/api/orders/' + orderId + '/zalopay-sync' : '/api/orders/' + orderId + '/payos-sync'
+  let payTab = isZaloPay ? openOrReuseZaloPayLinkTab() : window.open('about:blank', '_blank')
   try {
-    const payos = await axios.post('/api/orders/' + orderId + '/payos-link', { origin: window.location.origin })
-    const payosData = payos.data?.data || {}
-    if (payosData.alreadyPaid) {
+    const paymentRes = await axios.post(createEndpoint, { origin: window.location.origin })
+    const paymentData = paymentRes.data?.data || {}
+    if (paymentData.alreadyPaid) {
       try { if (payTab && !payTab.closed) payTab.close() } catch (_) { }
-      await axios.post('/api/orders/' + orderId + '/payos-sync').catch(function () { return null })
+      await axios.post(syncEndpoint).catch(function () { return null })
       showUserOrders()
       showToast('Đơn này đã thanh toán thành công', 'success', 3500)
       return
     }
-    const checkoutUrl = String(payosData.checkoutUrl || '').trim()
+    const checkoutUrl = isZaloPay
+      ? String(paymentData.orderUrl || '').trim()
+      : String(paymentData.checkoutUrl || '').trim()
     if (!checkoutUrl) {
       try { if (payTab && !payTab.closed) payTab.close() } catch (_) { }
-      showToast('Không tạo được link thanh toán PayOS', 'error', 3500)
+      showToast('Không tạo được link thanh toán ' + providerLabel, 'error', 3500)
       return
     }
     if (payTab) {
       payTab.location.href = checkoutUrl
+      if (isZaloPay) zaloPayLinkTab = payTab
     } else {
-      window.open(checkoutUrl, '_blank')
+      payTab = window.open(checkoutUrl, '_blank')
+      if (isZaloPay && payTab) zaloPayLinkTab = payTab
     }
     startOrderPaymentPolling(orderCode)
-    showToast('Đang mở lại trang PayOS để bạn thanh toán tiếp', 'success', 3500)
+    showToast('Đang mở lại trang ' + providerLabel + ' để bạn thanh toán tiếp', 'success', 3500)
   } catch (_) {
     try { if (payTab && !payTab.closed) payTab.close() } catch (_) { }
     showToast('Không thể mở lại thanh toán cho đơn này', 'error', 3500)
@@ -3813,22 +4275,25 @@ function cleanPaymentQueryParams() {
   if (!url.searchParams.has('pay')) return
   url.searchParams.delete('pay')
   url.searchParams.delete('order')
+  url.searchParams.delete('provider')
   url.searchParams.delete('closeTab')
   const next = url.pathname + (url.searchParams.toString() ? '?' + url.searchParams.toString() : '') + url.hash
   window.history.replaceState({}, '', next)
 }
 
-function handlePayOSReturnFlow() {
+function handlePaymentReturnFlow() {
   const params = new URLSearchParams(window.location.search)
   const payState = String(params.get('pay') || '').toLowerCase()
   const orderCode = String(params.get('order') || '').trim().toUpperCase()
+  const provider = String(params.get('provider') || 'payos').trim().toLowerCase()
+  const providerLabel = provider === 'zalopay' ? 'ZaloPay' : 'PayOS'
   const closeTab = params.get('closeTab') === '1'
   if (!payState) return
 
   if (payState === 'success' && orderCode) {
     try {
       if (window.opener && !window.opener.closed) {
-        window.opener.postMessage({ type: 'payos_paid', orderCode }, window.location.origin)
+        window.opener.postMessage({ type: 'payment_paid', orderCode, provider }, window.location.origin)
       }
     } catch (_) { }
     startOrderPaymentPolling(orderCode)
@@ -3837,12 +4302,12 @@ function handlePayOSReturnFlow() {
       setTimeout(() => { window.close() }, 80)
       return
     }
-    showToast('Thanh toán PayOS thành công', 'success', 3000)
+    showToast('Thanh toán ' + providerLabel + ' thành công', 'success', 3000)
     return
   }
 
   if (payState === 'cancel') {
-    showToast('Bạn đã hủy thanh toán PayOS', 'error', 3000)
+    showToast('Bạn đã hủy thanh toán ' + providerLabel, 'error', 3000)
   }
   cleanPaymentQueryParams()
 }
@@ -5878,7 +6343,7 @@ function showOrderDetail(id) {
         <span class="font-semibold text-gray-700">Còn phải thu:</span>
         <span class="text-xl font-bold text-pink-600">\${fmtPrice(getOrderAmountDue(o))}</span>
       </div>
-      \${String(o.payment_status || '').toLowerCase() === 'paid' ? '<p class="text-xs text-green-600">Đơn này đã thanh toán qua PayOS, khi in đơn hiển thị 0đ.</p>' : ''}
+      \${String(o.payment_status || '').toLowerCase() === 'paid' ? '<p class="text-xs text-green-600">Đơn này đã thanh toán online, khi in đơn hiển thị 0đ.</p>' : ''}
     </div>
     \${o.note ? \`<div class="bg-yellow-50 rounded-xl p-3"><p class="text-xs text-gray-500">Ghi chú</p><p class="text-sm">\${o.note}</p></div>\` : ''}
     <p class="text-xs text-gray-400 text-right">Đặt lúc: \${new Date(o.created_at).toLocaleString('vi-VN')}</p>
@@ -6085,7 +6550,7 @@ function displayCustomerName(name) {
 function isInternalTestOrder(o) {
   const customerName = String(o?.customer_name || '').trim().toLowerCase()
   const note = String(o?.note || '').trim().toLowerCase()
-  return customerName === 'local script test' || note.indexOf('test:payos-local') >= 0
+  return customerName === 'local script test' || note.indexOf('test:payos-local') >= 0 || note.indexOf('test:zalopay-local') >= 0
 }
 function safeJson(v) { try { return JSON.parse(v||'[]') } catch { return [] } }
 function catLabel(c) { return {unisex:'Unisex',male:'Nam',female:'Nữ'}[c]||c }

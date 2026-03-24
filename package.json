@@ -12,7 +12,8 @@
     "db:migrate:local": "wrangler d1 migrations apply fashion-store-production --local",
     "db:seed": "wrangler d1 execute fashion-store-production --local --file=./migrations/0002_seed.sql",
     "db:reset": "rm -rf .wrangler/state/v3/d1 && npm run db:migrate:local && npm run db:seed",
-    "test:payos-local": "node scripts/test-payos-local.mjs"
+    "test:payos-local": "node scripts/test-payos-local.mjs",
+    "test:zalopay-local": "node scripts/test-zalopay-local.mjs"
   },
   "dependencies": {
     "hono": "^4.12.1",
