@@ -2017,7 +2017,9 @@ function storefrontHTML(): string {
   .field-error input, .field-error textarea { border-color: #e84393 !important; box-shadow: 0 0 0 3px rgba(232,67,147,0.15) !important; }
   .field-error select { border-color: #e84393 !important; box-shadow: 0 0 0 3px rgba(232,67,147,0.15) !important; }
   .field-error .payment-method-btn { border-color: #e84393 !important; box-shadow: 0 0 0 3px rgba(232,67,147,0.12) !important; }
-  .address-searchable-select.search-open { position: relative; z-index: 80; }
+  .address-option-item { width: 100%; text-align: left; padding: 9px 12px; font-size: 14px; line-height: 1.4; }
+  .address-option-item:hover { background: #fdf2f8; color: #be185d; }
+  .address-option-item.active { background: #ec4899; color: #fff; font-weight: 600; }
   /* Voucher styles */
   .voucher-success { background: linear-gradient(135deg,#d1fae5,#a7f3d0); border: 1.5px solid #6ee7b7; }
   .voucher-error { background: #fff1f2; border: 1.5px solid #fecdd3; }
@@ -2415,16 +2417,42 @@ function storefrontHTML(): string {
             <i class="fas fa-map-marker-alt text-pink-400 mr-1"></i>Địa chỉ giao hàng *
           </label>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-            <select id="orderProvince"
-              onchange="onAddressProvinceChange('order')"
-              class="address-searchable-select w-full border rounded-xl px-3.5 py-2.5 text-sm bg-white focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
-              <option value="">Chọn tỉnh/thành</option>
-            </select>
-            <select id="orderCommune"
-              onchange="onAddressCommuneChange('order')"
-              class="address-searchable-select w-full border rounded-xl px-3.5 py-2.5 text-sm bg-white focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
-              <option value="">Chọn phường/xã</option>
-            </select>
+            <div id="orderProvinceDropdown" class="relative">
+              <button type="button" id="orderProvinceTrigger" onclick="toggleAddressDropdown('order','province')"
+                class="w-full border rounded-xl px-3.5 py-2.5 text-sm bg-white text-left flex items-center justify-between focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
+                <span id="orderProvinceLabel" class="text-gray-500">Chọn tỉnh/thành</span>
+                <i class="fas fa-chevron-down text-gray-400 text-xs"></i>
+              </button>
+              <div id="orderProvinceMenu" class="hidden absolute z-[90] mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
+                <div class="p-2 border-b bg-gray-50">
+                  <input type="text" id="orderProvinceSearch" placeholder="Tìm tỉnh/thành..."
+                    oninput="onAddressDropdownSearchInput('order','province')"
+                    class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
+                </div>
+                <div id="orderProvinceOptions" class="max-h-56 overflow-auto"></div>
+              </div>
+              <select id="orderProvince" onchange="onAddressProvinceChange('order')" class="hidden">
+                <option value="">Chọn tỉnh/thành</option>
+              </select>
+            </div>
+            <div id="orderCommuneDropdown" class="relative">
+              <button type="button" id="orderCommuneTrigger" onclick="toggleAddressDropdown('order','commune')"
+                class="w-full border rounded-xl px-3.5 py-2.5 text-sm bg-white text-left flex items-center justify-between focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
+                <span id="orderCommuneLabel" class="text-gray-500">Chọn phường/xã</span>
+                <i class="fas fa-chevron-down text-gray-400 text-xs"></i>
+              </button>
+              <div id="orderCommuneMenu" class="hidden absolute z-[90] mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
+                <div class="p-2 border-b bg-gray-50">
+                  <input type="text" id="orderCommuneSearch" placeholder="Tìm phường/xã..."
+                    oninput="onAddressDropdownSearchInput('order','commune')"
+                    class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
+                </div>
+                <div id="orderCommuneOptions" class="max-h-56 overflow-auto"></div>
+              </div>
+              <select id="orderCommune" onchange="onAddressCommuneChange('order')" class="hidden">
+                <option value="">Chọn phường/xã</option>
+              </select>
+            </div>
           </div>
           <input type="text" id="orderAddressDetail"
             placeholder="Số nhà, tên đường..."
@@ -2739,16 +2767,42 @@ function storefrontHTML(): string {
               <i class="fas fa-map-marker-alt text-pink-400 mr-1"></i>Địa chỉ giao hàng *
             </label>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-              <select id="ckProvince"
-                onchange="onAddressProvinceChange('ck')"
-                class="address-searchable-select w-full border rounded-xl px-3.5 py-2.5 text-sm bg-white focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
-                <option value="">Chọn tỉnh/thành</option>
-              </select>
-              <select id="ckCommune"
-                onchange="onAddressCommuneChange('ck')"
-                class="address-searchable-select w-full border rounded-xl px-3.5 py-2.5 text-sm bg-white focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
-                <option value="">Chọn phường/xã</option>
-              </select>
+              <div id="ckProvinceDropdown" class="relative">
+                <button type="button" id="ckProvinceTrigger" onclick="toggleAddressDropdown('ck','province')"
+                  class="w-full border rounded-xl px-3.5 py-2.5 text-sm bg-white text-left flex items-center justify-between focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
+                  <span id="ckProvinceLabel" class="text-gray-500">Chọn tỉnh/thành</span>
+                  <i class="fas fa-chevron-down text-gray-400 text-xs"></i>
+                </button>
+                <div id="ckProvinceMenu" class="hidden absolute z-[90] mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
+                  <div class="p-2 border-b bg-gray-50">
+                    <input type="text" id="ckProvinceSearch" placeholder="Tìm tỉnh/thành..."
+                      oninput="onAddressDropdownSearchInput('ck','province')"
+                      class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
+                  </div>
+                  <div id="ckProvinceOptions" class="max-h-56 overflow-auto"></div>
+                </div>
+                <select id="ckProvince" onchange="onAddressProvinceChange('ck')" class="hidden">
+                  <option value="">Chọn tỉnh/thành</option>
+                </select>
+              </div>
+              <div id="ckCommuneDropdown" class="relative">
+                <button type="button" id="ckCommuneTrigger" onclick="toggleAddressDropdown('ck','commune')"
+                  class="w-full border rounded-xl px-3.5 py-2.5 text-sm bg-white text-left flex items-center justify-between focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
+                  <span id="ckCommuneLabel" class="text-gray-500">Chọn phường/xã</span>
+                  <i class="fas fa-chevron-down text-gray-400 text-xs"></i>
+                </button>
+                <div id="ckCommuneMenu" class="hidden absolute z-[90] mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
+                  <div class="p-2 border-b bg-gray-50">
+                    <input type="text" id="ckCommuneSearch" placeholder="Tìm phường/xã..."
+                      oninput="onAddressDropdownSearchInput('ck','commune')"
+                      class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
+                  </div>
+                  <div id="ckCommuneOptions" class="max-h-56 overflow-auto"></div>
+                </div>
+                <select id="ckCommune" onchange="onAddressCommuneChange('ck')" class="hidden">
+                  <option value="">Chọn phường/xã</option>
+                </select>
+              </div>
             </div>
             <input type="text" id="ckAddressDetail"
               placeholder="Số nhà, tên đường..."
@@ -2940,7 +2994,7 @@ function normalizeSearchText(input) {
   return String(input || '')
     .toLowerCase()
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[\\u0300-\\u036f]/g, '')
     .trim()
 }
 
@@ -2985,11 +3039,72 @@ function getFilteredAddressOptions(options, keyword) {
   return list.filter((item) => normalizeSearchText(item?.name || '').indexOf(q) >= 0)
 }
 
+function getAddressDropdownIds(scope, type) {
+  const prefix = scope === 'ck' ? 'ck' : 'order'
+  const part = type === 'province' ? 'Province' : 'Commune'
+  const root = prefix + part
+  return {
+    dropdownId: root + 'Dropdown',
+    triggerId: root + 'Trigger',
+    labelId: root + 'Label',
+    menuId: root + 'Menu',
+    searchId: root + 'Search',
+    optionsId: root + 'Options'
+  }
+}
+
+function closeAddressDropdown(scope, type) {
+  const ids = getAddressDropdownIds(scope, type)
+  const menuEl = document.getElementById(ids.menuId)
+  if (menuEl) menuEl.classList.add('hidden')
+}
+
+function closeAllAddressDropdowns() {
+  ;[
+    ['order', 'province'],
+    ['order', 'commune'],
+    ['ck', 'province'],
+    ['ck', 'commune']
+  ].forEach(([scope, type]) => closeAddressDropdown(scope, type))
+}
+
+function renderAddressDropdownList(scope, type, keyword = '') {
+  const ids = getAddressScopeElements(scope)
+  const dIds = getAddressDropdownIds(scope, type)
+  const selectEl = document.getElementById(type === 'province' ? ids.provinceId : ids.communeId)
+  const optionsEl = document.getElementById(dIds.optionsId)
+  const labelEl = document.getElementById(dIds.labelId)
+  if (!selectEl || !optionsEl || !labelEl) return
+
+  const placeholder = String(selectEl.options?.[0]?.textContent || (type === 'province' ? 'Chọn tỉnh/thành' : 'Chọn phường/xã'))
+  const selectedCode = String(selectEl.value || '').trim()
+  const selectedOpt = Array.from(selectEl.options).find((opt, idx) => idx > 0 && String(opt.value || '').trim() === selectedCode)
+  labelEl.textContent = selectedOpt ? String(selectedOpt.textContent || '') : placeholder
+  labelEl.classList.toggle('text-gray-500', !selectedOpt)
+  labelEl.classList.toggle('text-gray-900', !!selectedOpt)
+
+  const list = Array.from(selectEl.options)
+    .slice(1)
+    .map((opt) => ({ code: String(opt.value || ''), name: String(opt.textContent || '') }))
+  const filtered = getFilteredAddressOptions(list, keyword)
+
+  if (!filtered.length) {
+    optionsEl.innerHTML = '<div class="px-3 py-2 text-sm text-gray-400">Không tìm thấy kết quả</div>'
+    return
+  }
+
+  optionsEl.innerHTML = filtered.map((item) => {
+    const active = String(item.code) === selectedCode ? ' active' : ''
+    return '<button type="button" class="address-option-item' + active + '" data-scope="' + scope + '" data-type="' + type + '" data-code="' + item.code + '" onclick="selectAddressDropdownOption(this.dataset.scope,this.dataset.type,this.dataset.code)">' + item.name + '</button>'
+  }).join('')
+}
+
 function renderProvinceOptionsForScope(scope, keyword = '') {
   const ids = getAddressScopeElements(scope)
   const provinceEl = document.getElementById(ids.provinceId)
   const filtered = getFilteredAddressOptions(addressProvinceOptions, keyword)
   setAddressSelectOptions(provinceEl, filtered, filtered.length ? 'Chọn tỉnh/thành' : 'Không tìm thấy tỉnh/thành')
+  renderAddressDropdownList(scope, 'province', keyword)
 }
 
 function renderCommuneOptionsForScope(scope, keyword = '') {
@@ -3003,6 +3118,7 @@ function renderCommuneOptionsForScope(scope, keyword = '') {
     ? (filtered.length ? 'Chọn phường/xã' : 'Không tìm thấy phường/xã')
     : 'Chọn phường/xã'
   setAddressSelectOptions(communeEl, filtered, placeholder)
+  renderAddressDropdownList(scope, 'commune', keyword)
 }
 
 async function fetchAddressProvinces() {
@@ -3069,11 +3185,13 @@ function resetAddressScope(scope) {
   const communeEl = document.getElementById(ids.communeId)
   const detailEl = document.getElementById(ids.detailId)
   const fullAddressEl = document.getElementById(ids.fullAddressId)
-  addressDropdownSearchState[scope + ':province'] = { query: '', timer: null }
-  addressDropdownSearchState[scope + ':commune'] = { query: '', timer: null }
+  addressDropdownSearchState[scope + ':province'] = ''
+  addressDropdownSearchState[scope + ':commune'] = ''
   renderProvinceOptionsForScope(scope)
   if (provinceEl) provinceEl.value = ''
   if (communeEl) setAddressSelectOptions(communeEl, [], 'Chọn phường/xã')
+  renderAddressDropdownList(scope, 'province', '')
+  renderAddressDropdownList(scope, 'commune', '')
   if (detailEl) detailEl.value = ''
   if (fullAddressEl) fullAddressEl.value = ''
 }
@@ -3083,8 +3201,9 @@ async function onAddressProvinceChange(scope) {
   const provinceEl = document.getElementById(ids.provinceId)
   const communeEl = document.getElementById(ids.communeId)
   const selectedCode = String(provinceEl?.value || '').trim()
-  addressDropdownSearchState[scope + ':commune'] = { query: '', timer: null }
+  addressDropdownSearchState[scope + ':commune'] = ''
   setAddressSelectOptions(communeEl, [], selectedCode ? 'Đang tải phường/xã...' : 'Chọn phường/xã')
+  renderAddressDropdownList(scope, 'commune', '')
   if (!selectedCode) {
     renderCommuneOptionsForScope(scope)
     syncAddressFullText(scope)
@@ -3106,97 +3225,60 @@ async function onAddressProvinceChange(scope) {
 
 function onAddressCommuneChange(scope) {
   syncAddressFullText(scope)
+  renderAddressDropdownList(scope, 'commune', '')
   const ids = getAddressScopeElements(scope)
   if (scope === 'ck') clearCheckoutError(ids.fieldId)
   else clearFieldError(ids.fieldId)
 }
 
-function getAddressSearchSource(scope, type) {
-  if (type === 'province') return addressProvinceOptions
-  const ids = getAddressScopeElements(scope)
-  const provinceEl = document.getElementById(ids.provinceId)
-  const provinceCode = String(provinceEl?.value || '').trim()
-  if (!provinceCode) return []
-  return addressCommuneOptionsByProvince[provinceCode] || []
+function onAddressDropdownSearchInput(scope, type) {
+  const dIds = getAddressDropdownIds(scope, type)
+  const searchEl = document.getElementById(dIds.searchId)
+  const keyword = String(searchEl?.value || '')
+  addressDropdownSearchState[scope + ':' + type] = keyword
+  if (type === 'province') renderProvinceOptionsForScope(scope, keyword)
+  else renderCommuneOptionsForScope(scope, keyword)
 }
 
-function renderAddressSelectByQuery(scope, type, query) {
-  if (type === 'province') renderProvinceOptionsForScope(scope, query)
-  else renderCommuneOptionsForScope(scope, query)
+function selectAddressDropdownOption(scope, type, code) {
+  const ids = getAddressScopeElements(scope)
+  const selectEl = document.getElementById(type === 'province' ? ids.provinceId : ids.communeId)
+  if (!selectEl) return
+  selectEl.value = String(code || '')
+  const dIds = getAddressDropdownIds(scope, type)
+  const searchEl = document.getElementById(dIds.searchId)
+  if (searchEl) searchEl.value = ''
+  addressDropdownSearchState[scope + ':' + type] = ''
+  closeAddressDropdown(scope, type)
+  if (type === 'province') onAddressProvinceChange(scope)
+  else onAddressCommuneChange(scope)
 }
 
-function bindAddressSelectSearch(scope, type) {
-  const ids = getAddressScopeElements(scope)
-  const selectId = type === 'province' ? ids.provinceId : ids.communeId
-  const selectEl = document.getElementById(selectId)
-  if (!selectEl || selectEl.dataset.searchBound === '1') return
-  selectEl.dataset.searchBound = '1'
-
-  const stateKey = scope + ':' + type
-  addressDropdownSearchState[stateKey] = { query: '', timer: null }
-
-  const resetQuery = () => {
-    const st = addressDropdownSearchState[stateKey] || { query: '', timer: null }
-    if (st.timer) clearTimeout(st.timer)
-    st.query = ''
-    st.timer = null
-    addressDropdownSearchState[stateKey] = st
+function toggleAddressDropdown(scope, type) {
+  const dIds = getAddressDropdownIds(scope, type)
+  const menuEl = document.getElementById(dIds.menuId)
+  const searchEl = document.getElementById(dIds.searchId)
+  if (!menuEl) return
+  const willOpen = menuEl.classList.contains('hidden')
+  closeAllAddressDropdowns()
+  if (!willOpen) return
+  menuEl.classList.remove('hidden')
+  if (searchEl) {
+    searchEl.value = ''
+    setTimeout(() => searchEl.focus(), 0)
   }
-
-  selectEl.addEventListener('focus', () => {
-    renderAddressSelectByQuery(scope, type, '')
-    const optionCount = Math.max(2, Number(selectEl.options?.length || 0))
-    selectEl.size = Math.min(12, optionCount)
-    selectEl.classList.add('search-open')
-  })
-
-  selectEl.addEventListener('blur', () => {
-    setTimeout(() => {
-      selectEl.size = 1
-      selectEl.classList.remove('search-open')
-      resetQuery()
-      renderAddressSelectByQuery(scope, type, '')
-    }, 80)
-  })
-
-  selectEl.addEventListener('keydown', (e) => {
-    if (e.key === 'Tab') return
-    const isPrintable = e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey
-    const isBackspace = e.key === 'Backspace'
-    const isEscape = e.key === 'Escape'
-    if (!isPrintable && !isBackspace && !isEscape) return
-    e.preventDefault()
-
-    const st = addressDropdownSearchState[stateKey] || { query: '', timer: null }
-    if (isEscape) st.query = ''
-    else if (isBackspace) st.query = st.query.slice(0, -1)
-    else st.query += e.key
-
-    renderAddressSelectByQuery(scope, type, st.query)
-
-    const source = getFilteredAddressOptions(getAddressSearchSource(scope, type), st.query)
-    const selected = String(selectEl.value || '').trim()
-    if ((!selected || !source.some((item) => String(item.code) === selected)) && source.length) {
-      selectEl.value = String(source[0].code)
-      if (type === 'province') onAddressProvinceChange(scope)
-      else onAddressCommuneChange(scope)
-    }
-
-    if (st.timer) clearTimeout(st.timer)
-    st.timer = setTimeout(() => {
-      st.query = ''
-      st.timer = null
-      renderAddressSelectByQuery(scope, type, '')
-    }, 1200)
-    addressDropdownSearchState[stateKey] = st
-  })
+  addressDropdownSearchState[scope + ':' + type] = ''
+  if (type === 'province') renderProvinceOptionsForScope(scope, '')
+  else renderCommuneOptionsForScope(scope, '')
 }
 
 function bindAddressSearchableDropdowns() {
-  bindAddressSelectSearch('order', 'province')
-  bindAddressSelectSearch('order', 'commune')
-  bindAddressSelectSearch('ck', 'province')
-  bindAddressSelectSearch('ck', 'commune')
+  document.addEventListener('click', (e) => {
+    const target = e.target
+    if (!target) return
+    const inDropdown = target.closest && target.closest('#orderProvinceDropdown, #orderCommuneDropdown, #ckProvinceDropdown, #ckCommuneDropdown')
+    if (!inDropdown) closeAllAddressDropdowns()
+  })
 }
 
 async function applySavedAddressToScope(scope) {
