@@ -3081,7 +3081,9 @@ function openZaloPayLink(evt) {
     evt.preventDefault()
     evt.stopPropagation()
   }
-  const zaloBtn = document.querySelector(".payment-method-btn[onclick*=\"'ZALOPAY'\"]")
+  const zaloBtn = Array.from(document.querySelectorAll('.payment-method-btn')).find(function (btn) {
+    return String(btn.getAttribute('onclick') || '').indexOf("'ZALOPAY'") >= 0
+  })
   if (zaloBtn) selectPaymentMethod('ZALOPAY', zaloBtn)
   const tab = openOrReuseZaloPayLinkTab()
   if (tab) {
