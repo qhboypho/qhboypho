@@ -421,11 +421,13 @@ function normalizeGHTKPageSize(v: any) {
 
 function parseVietnamAddress(address: string) {
   const parts = String(address || '').split(',').map((s) => s.trim()).filter(Boolean)
-  if (parts.length < 4) return null
+  if (parts.length < 3) return null
   const province = parts[parts.length - 1]
-  const district = parts[parts.length - 2]
-  const ward = parts[parts.length - 3]
-  const detail = parts.slice(0, parts.length - 3).join(', ')
+  const ward = parts[parts.length - 2]
+  const detail = parts.slice(0, parts.length - 2).join(', ')
+  // AddressKit checkout currently stores: "detail, ward/commune, province" (no district).
+  // For GHTK, fall back district to the same ward/commune string in this 3-part format.
+  const district = parts.length >= 4 ? parts[parts.length - 3] : ward
   if (!detail || !province || !district || !ward) return null
   return { detail, ward, district, province }
 }
