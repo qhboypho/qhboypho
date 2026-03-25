@@ -6631,7 +6631,12 @@ function renderOrdersTable(orders) {
     <td class="px-4 py-3 font-mono text-xs text-blue-600 font-semibold">\${o.order_code}</td>
     <td class="px-4 py-3 \${showTrackingColumn ? '' : 'hidden'}">
       \${String(o.shipping_tracking_code || '').trim()
-        ? \`<span class="font-mono text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-lg font-semibold">\${o.shipping_tracking_code}</span>\`
+        ? \`<button type="button"
+              onclick="copyTrackingCode(decodeURIComponent('\${encodeURIComponent(String(o.shipping_tracking_code || '').trim())}')); return false;"
+              title="Bấm để copy mã đầy đủ: \${String(o.shipping_tracking_code || '').trim()}"
+              class="font-mono text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-lg font-semibold hover:bg-emerald-100 transition">
+              \${getTrackingDisplayCode(o.shipping_tracking_code)}
+            </button>\`
         : '<span class="text-gray-300 text-xs">—</span>'}
     </td>
     <td class="px-4 py-3">
@@ -7191,6 +7196,37 @@ function isInternalTestOrder(o) {
   const customerName = String(o?.customer_name || '').trim().toLowerCase()
   const note = String(o?.note || '').trim().toLowerCase()
   return customerName === 'local script test' || note.indexOf('test:payos-local') >= 0 || note.indexOf('test:zalopay-local') >= 0
+}
+
+function getTrackingDisplayCode(fullCode) {
+  const full = String(fullCode || '').trim()
+  if (!full) return ''
+  const parts = full.split('.').map((p) => String(p || '').trim()).filter(Boolean)
+  if (parts.length >= 2 && parts[1]) return parts[1]
+  return full
+}
+
+async function copyTrackingCode(fullCode) {
+  const full = String(fullCode || '').trim()
+  if (!full) return
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(full)
+    } else {
+      const ta = document.createElement('textarea')
+      ta.value = full
+      ta.setAttribute('readonly', '')
+      ta.style.position = 'fixed'
+      ta.style.left = '-9999px'
+      document.body.appendChild(ta)
+      ta.select()
+      document.execCommand('copy')
+      document.body.removeChild(ta)
+    }
+    showAdminToast('Đã copy mã vận đơn đầy đủ', 'success')
+  } catch (_) {
+    showAdminToast('Không thể copy mã vận đơn', 'error')
+  }
 }
 function safeJson(v) { try { return JSON.parse(v||'[]') } catch { return [] } }
 function catLabel(c) { return {unisex:'Unisex',male:'Nam',female:'Nữ'}[c]||c }
