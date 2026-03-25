@@ -6658,7 +6658,7 @@ function renderOrdersTable(orders) {
       <button type="button"
         onclick="copyPhoneNumber(decodeURIComponent('\${encodeURIComponent(String(o.customer_phone || '').trim())}')); return false;"
         title="Bấm để copy số điện thoại"
-        class="text-gray-500 text-xs hover:text-pink-600 hover:underline transition">
+        class="text-gray-500 text-xs hover:text-blue-600 no-underline transition">
         \${o.customer_phone}
       </button>
     </td>
