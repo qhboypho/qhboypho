@@ -136,6 +136,11 @@ async function initDB(db: D1Database) {
       display_order INTEGER DEFAULT 0,
       is_active INTEGER DEFAULT 1,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`,
+    `CREATE TABLE IF NOT EXISTS app_settings (
+      key TEXT PRIMARY KEY,
+      value TEXT,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`
   ]
   for (const sql of statements) {
@@ -457,18 +462,100 @@ function buildInternalTestOrderWhereSql(alias = '') {
   )`
 }
 
-async function ghtkCreateShipment(env: any, order: any) {
+type GhtkPickupConfig = {
+  pickAddressId: string
+  pickName: string
+  pickAddress: string
+  pickProvince: string
+  pickDistrict: string
+  pickWard: string
+  pickTel: string
+}
+
+const GHTK_PICKUP_SETTING_KEYS = [
+  'ghtk_pick_address_id',
+  'ghtk_pick_name',
+  'ghtk_pick_address',
+  'ghtk_pick_province',
+  'ghtk_pick_district',
+  'ghtk_pick_ward',
+  'ghtk_pick_tel'
+] as const
+
+async function getGhtkPickupConfig(db: D1Database, env: any): Promise<GhtkPickupConfig> {
+  const query = `SELECT key, value FROM app_settings WHERE key IN (${GHTK_PICKUP_SETTING_KEYS.map(() => '?').join(',')})`
+  const result = await db.prepare(query).bind(...GHTK_PICKUP_SETTING_KEYS).all()
+  const map = new Map<string, string>()
+  for (const row of (result.results || []) as any[]) {
+    map.set(String(row.key || ''), String(row.value || ''))
+  }
+  const dbValue = (key: string) => String(map.get(key) || '').trim()
+  return {
+    pickAddressId: dbValue('ghtk_pick_address_id'),
+    pickName: dbValue('ghtk_pick_name') || String(env.GHTK_PICK_NAME || '').trim(),
+    pickAddress: dbValue('ghtk_pick_address') || String(env.GHTK_PICK_ADDRESS || '').trim(),
+    pickProvince: dbValue('ghtk_pick_province') || String(env.GHTK_PICK_PROVINCE || '').trim(),
+    pickDistrict: dbValue('ghtk_pick_district') || String(env.GHTK_PICK_DISTRICT || '').trim(),
+    pickWard: dbValue('ghtk_pick_ward') || String(env.GHTK_PICK_WARD || '').trim(),
+    pickTel: dbValue('ghtk_pick_tel') || String(env.GHTK_PICK_TEL || '').trim()
+  }
+}
+
+async function upsertAppSettings(db: D1Database, entries: Array<{ key: string, value: string }>) {
+  for (const entry of entries) {
+    await db.prepare(`
+      INSERT INTO app_settings (key, value, updated_at)
+      VALUES (?, ?, CURRENT_TIMESTAMP)
+      ON CONFLICT(key) DO UPDATE SET value=excluded.value, updated_at=CURRENT_TIMESTAMP
+    `).bind(entry.key, entry.value).run()
+  }
+}
+
+async function ghtkFetchPickupAddresses(env: any) {
+  const token = String(env.GHTK_TOKEN || '').trim()
+  const clientSource = String(env.GHTK_CLIENT_SOURCE || '').trim()
+  if (!token || !clientSource) return { ok: false, message: 'MISSING_GHTK_KEYS', data: [] as any[] }
+
+  const resp = await fetch('https://services.giaohangtietkiem.vn/services/shipment/list_pick_add', {
+    method: 'GET',
+    headers: {
+      'Token': token,
+      'X-Client-Source': clientSource
+    }
+  })
+  const body: any = await resp.json().catch(() => ({}))
+  if (!resp.ok || !body?.success) {
+    return { ok: false, message: String(body?.message || 'GHTK_FETCH_PICKUP_ADDRESSES_FAILED'), data: [] as any[], detail: body }
+  }
+  const raw = Array.isArray(body?.data) ? body.data : []
+  const data = raw.map((row: any) => {
+    const id = String(row?.pick_address_id || row?.address_id || row?.id || '').trim()
+    const name = String(row?.pick_name || row?.name || row?.contact_name || '').trim()
+    const tel = String(row?.pick_tel || row?.phone || row?.tel || '').trim()
+    const fullAddress = String(row?.address || row?.pick_address || row?.full_address || '').trim()
+    const parsed = parseVietnamAddress(fullAddress)
+    return {
+      pick_address_id: id,
+      pick_name: name,
+      pick_tel: tel,
+      full_address: fullAddress,
+      pick_address: parsed?.detail || fullAddress,
+      pick_ward: parsed?.ward || '',
+      pick_district: parsed?.district || '',
+      pick_province: parsed?.province || ''
+    }
+  }).filter((v: any) => v.pick_address_id || v.full_address)
+
+  return { ok: true, data }
+}
+
+async function ghtkCreateShipment(env: any, db: D1Database, order: any) {
   const token = String(env.GHTK_TOKEN || '').trim()
   const clientSource = String(env.GHTK_CLIENT_SOURCE || '').trim()
   if (!token || !clientSource) return { ok: false, message: 'MISSING_GHTK_KEYS' }
 
-  const pickName = String(env.GHTK_PICK_NAME || '').trim()
-  const pickAddress = String(env.GHTK_PICK_ADDRESS || '').trim()
-  const pickProvince = String(env.GHTK_PICK_PROVINCE || '').trim()
-  const pickDistrict = String(env.GHTK_PICK_DISTRICT || '').trim()
-  const pickWard = String(env.GHTK_PICK_WARD || '').trim()
-  const pickTel = String(env.GHTK_PICK_TEL || '').trim()
-  if (!pickName || !pickAddress || !pickProvince || !pickDistrict || !pickWard || !pickTel) {
+  const pickup = await getGhtkPickupConfig(db, env)
+  if (!pickup.pickAddressId && (!pickup.pickName || !pickup.pickAddress || !pickup.pickProvince || !pickup.pickDistrict || !pickup.pickWard || !pickup.pickTel)) {
     return { ok: false, message: 'MISSING_GHTK_PICKUP_CONFIG' }
   }
 
@@ -487,12 +574,13 @@ async function ghtkCreateShipment(env: any, order: any) {
     ],
     order: {
       id: String(order?.order_code || order?.id || ''),
-      pick_name: pickName,
-      pick_address: pickAddress,
-      pick_province: pickProvince,
-      pick_district: pickDistrict,
-      pick_ward: pickWard,
-      pick_tel: pickTel,
+      pick_name: pickup.pickName,
+      pick_address: pickup.pickAddress,
+      pick_province: pickup.pickProvince,
+      pick_district: pickup.pickDistrict,
+      pick_ward: pickup.pickWard,
+      pick_tel: pickup.pickTel,
+      pick_address_id: pickup.pickAddressId || undefined,
       name: String(order?.customer_name || ''),
       address: parsedAddress.detail,
       province: parsedAddress.province,
@@ -604,6 +692,62 @@ app.delete('/api/admin/hero_banners/:id', async (c) => {
   const id = c.req.param('id')
   await c.env.DB.prepare("DELETE FROM hero_banners WHERE id=?").bind(id).run()
   return c.json({ success: true })
+})
+
+app.get('/api/admin/ghtk/pickup-config', async (c) => {
+  try {
+    await initDB(c.env.DB)
+    const config = await getGhtkPickupConfig(c.env.DB, c.env)
+    return c.json({
+      success: true,
+      data: config,
+      has_ghtk_keys: !!String(c.env.GHTK_TOKEN || '').trim() && !!String(c.env.GHTK_CLIENT_SOURCE || '').trim()
+    })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+app.put('/api/admin/ghtk/pickup-config', async (c) => {
+  try {
+    await initDB(c.env.DB)
+    const body: any = await c.req.json().catch(() => ({}))
+    const sanitize = (value: any, max = 200) => String(value || '').trim().slice(0, max)
+    const payload = {
+      pickAddressId: sanitize(body.pick_address_id, 80),
+      pickName: sanitize(body.pick_name, 120),
+      pickAddress: sanitize(body.pick_address, 220),
+      pickProvince: sanitize(body.pick_province, 80),
+      pickDistrict: sanitize(body.pick_district, 80),
+      pickWard: sanitize(body.pick_ward, 80),
+      pickTel: sanitize(body.pick_tel, 30)
+    }
+    await upsertAppSettings(c.env.DB, [
+      { key: 'ghtk_pick_address_id', value: payload.pickAddressId },
+      { key: 'ghtk_pick_name', value: payload.pickName },
+      { key: 'ghtk_pick_address', value: payload.pickAddress },
+      { key: 'ghtk_pick_province', value: payload.pickProvince },
+      { key: 'ghtk_pick_district', value: payload.pickDistrict },
+      { key: 'ghtk_pick_ward', value: payload.pickWard },
+      { key: 'ghtk_pick_tel', value: payload.pickTel }
+    ])
+    return c.json({ success: true })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+app.get('/api/admin/ghtk/pickup-addresses', async (c) => {
+  try {
+    await initDB(c.env.DB)
+    const sync = await ghtkFetchPickupAddresses(c.env)
+    if (!sync.ok) {
+      return c.json({ success: false, error: sync.message, detail: (sync as any).detail || null }, 400)
+    }
+    return c.json({ success: true, data: sync.data || [] })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
 })
 
 // ─── API: AUTH ─────────────────────────────────────────────────
@@ -1187,7 +1331,7 @@ app.post('/api/admin/orders/arrange-shipping', async (c) => {
       let labelCode = ''
       let fee = 0
       if (!trackingCode) {
-        const createRes: any = await ghtkCreateShipment(c.env, order)
+        const createRes: any = await ghtkCreateShipment(c.env, c.env.DB, order)
         if (!createRes.ok) {
           failed.push({ id, order_code: order.order_code, error: createRes.message || 'GHTK_CREATE_ORDER_FAILED', detail: createRes.detail || null })
           continue
@@ -5518,6 +5662,56 @@ function adminHTML(): string {
 
   <!-- BANNERS PAGE -->
   <div id="page-settings" class="p-6 hidden">
+    <div class="bg-white rounded-2xl shadow-sm border p-6 mb-6">
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+        <h2 class="font-bold text-gray-800 text-lg flex items-center gap-2">
+          <i class="fas fa-warehouse text-emerald-500"></i>Cài đặt kho lấy hàng GHTK
+        </h2>
+        <button onclick="syncGhtkPickupAddresses()" id="syncGhtkPickupBtn" class="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm font-medium transition flex items-center gap-2">
+          <i class="fas fa-rotate"></i> Đồng bộ kho từ GHTK
+        </button>
+      </div>
+      <p class="text-sm text-gray-500 mb-4">Chọn kho đã tạo trên GHTK để dùng mặc định khi bấm Sắp xếp vận chuyển.</p>
+      <div class="grid md:grid-cols-2 gap-4">
+        <div class="md:col-span-2">
+          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Kho lấy hàng từ GHTK</label>
+          <select id="ghtkPickupAddressId" onchange="applySelectedGhtkWarehouse()" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-400">
+            <option value="">-- Chọn kho đồng bộ --</option>
+          </select>
+          <p id="ghtkPickupHint" class="text-xs text-gray-500 mt-1.5">Nếu chưa thấy kho, bấm "Đồng bộ kho từ GHTK".</p>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Tên người lấy hàng</label>
+          <input type="text" id="ghtkPickName" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-400">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Số điện thoại lấy hàng</label>
+          <input type="text" id="ghtkPickTel" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-400">
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Địa chỉ lấy hàng (chi tiết)</label>
+          <input type="text" id="ghtkPickAddress" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-400">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Tỉnh/Thành</label>
+          <input type="text" id="ghtkPickProvince" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-400">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Quận/Huyện</label>
+          <input type="text" id="ghtkPickDistrict" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-400">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Phường/Xã</label>
+          <input type="text" id="ghtkPickWard" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-400">
+        </div>
+        <div class="md:col-span-2 flex justify-end">
+          <button onclick="saveGhtkPickupConfig()" id="saveGhtkPickupBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2 transition">
+            <i class="fas fa-save"></i>Lưu cấu hình kho GHTK
+          </button>
+        </div>
+      </div>
+    </div>
+
     <div class="bg-white rounded-2xl shadow-sm border p-6">
       <div class="flex items-center justify-between mb-6">
         <h2 class="font-bold text-gray-800 text-lg flex items-center gap-2">
@@ -5826,6 +6020,7 @@ let sizes = []
 let galleryImages = ['','','','','','','','','']
 let editingId = null
 let gallerySlotClickBound = false
+let ghtkPickupAddresses = []
 const MAX_PRODUCT_PAYLOAD_SIZE = 1200000
 
 // ── NAVIGATION ────────────────────────────────────
@@ -6039,16 +6234,104 @@ let adminBanners = []
 async function loadSettingsAdmin() {
   document.getElementById('adminBannersTable').innerHTML = '<tr><td colspan="5" class="py-10 text-center text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></td></tr>'
   try {
-    const res = await axios.get('/api/admin/hero_banners')
-    adminBanners = res.data.data || []
+    const [bannerRes, pickupRes] = await Promise.all([
+      axios.get('/api/admin/hero_banners'),
+      axios.get('/api/admin/ghtk/pickup-config')
+    ])
+    adminBanners = bannerRes.data.data || []
     renderAdminBanners()
+    const pickupCfg = pickupRes.data.data || {}
+    fillGhtkPickupConfig(pickupCfg)
+    await syncGhtkPickupAddresses(true, pickupCfg.pickAddressId || '')
   } catch (e) {
     if (e.response && e.response.status === 401) {
       document.getElementById('adminBannersTable').innerHTML = '<tr><td colspan="5" class="py-10 text-center text-red-400"><i class="fas fa-lock text-3xl mb-3"></i><p class="mt-2">Phiên đăng nhập hết hạn</p><a href="/admin/login" class="mt-3 inline-block bg-pink-500 text-white px-4 py-2 rounded-xl text-sm">Đăng nhập lại</a></td></tr>'
     } else {
       document.getElementById('adminBannersTable').innerHTML = '<tr><td colspan="5" class="py-10 text-center text-red-400">Lỗi tải danh sách banner</td></tr>'
-      showAdminToast('Lỗi tải danh sách banner', 'error')
+      showAdminToast('Lỗi tải dữ liệu cài đặt', 'error')
     }
+  }
+}
+
+function fillGhtkPickupConfig(cfg) {
+  document.getElementById('ghtkPickupAddressId').value = cfg.pickAddressId || ''
+  document.getElementById('ghtkPickName').value = cfg.pickName || ''
+  document.getElementById('ghtkPickTel').value = cfg.pickTel || ''
+  document.getElementById('ghtkPickAddress').value = cfg.pickAddress || ''
+  document.getElementById('ghtkPickProvince').value = cfg.pickProvince || ''
+  document.getElementById('ghtkPickDistrict').value = cfg.pickDistrict || ''
+  document.getElementById('ghtkPickWard').value = cfg.pickWard || ''
+}
+
+function renderGhtkPickupAddressOptions(selectedId = '') {
+  const select = document.getElementById('ghtkPickupAddressId')
+  if (!select) return
+  const options = ['<option value="">-- Chọn kho đồng bộ --</option>']
+  ghtkPickupAddresses.forEach(item => {
+    const text = [item.pick_name || 'Kho', item.full_address || '', item.pick_tel || ''].filter(Boolean).join(' | ')
+    options.push('<option value="' + (item.pick_address_id || '') + '">' + text + '</option>')
+  })
+  select.innerHTML = options.join('')
+  select.value = selectedId || ''
+}
+
+function applySelectedGhtkWarehouse() {
+  const selectedId = document.getElementById('ghtkPickupAddressId').value
+  if (!selectedId) return
+  const found = ghtkPickupAddresses.find(item => String(item.pick_address_id) === String(selectedId))
+  if (!found) return
+  if (found.pick_name) document.getElementById('ghtkPickName').value = found.pick_name
+  if (found.pick_tel) document.getElementById('ghtkPickTel').value = found.pick_tel
+  if (found.pick_address) document.getElementById('ghtkPickAddress').value = found.pick_address
+  if (found.pick_province) document.getElementById('ghtkPickProvince').value = found.pick_province
+  if (found.pick_district) document.getElementById('ghtkPickDistrict').value = found.pick_district
+  if (found.pick_ward) document.getElementById('ghtkPickWard').value = found.pick_ward
+}
+
+async function syncGhtkPickupAddresses(silent = false, selectedId = '') {
+  const btn = document.getElementById('syncGhtkPickupBtn')
+  const currentSelected = selectedId || document.getElementById('ghtkPickupAddressId').value
+  btn.disabled = true
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang đồng bộ...'
+  try {
+    const res = await axios.get('/api/admin/ghtk/pickup-addresses')
+    ghtkPickupAddresses = res.data.data || []
+    renderGhtkPickupAddressOptions(currentSelected)
+    document.getElementById('ghtkPickupHint').textContent = ghtkPickupAddresses.length
+      ? ('Đã đồng bộ ' + ghtkPickupAddresses.length + ' kho từ GHTK.')
+      : 'Chưa tìm thấy kho trên GHTK.'
+    if (!silent) showAdminToast('Đã đồng bộ kho GHTK', 'success')
+  } catch (e) {
+    const msg = e.response?.data?.error || e.message || 'SYNC_GHTK_FAILED'
+    if (!silent) showAdminToast('Đồng bộ kho thất bại: ' + msg, 'error')
+    document.getElementById('ghtkPickupHint').textContent = 'Không đồng bộ được kho từ GHTK: ' + msg
+  } finally {
+    btn.disabled = false
+    btn.innerHTML = '<i class="fas fa-rotate"></i> Đồng bộ kho từ GHTK'
+  }
+}
+
+async function saveGhtkPickupConfig() {
+  const btn = document.getElementById('saveGhtkPickupBtn')
+  const payload = {
+    pick_address_id: document.getElementById('ghtkPickupAddressId').value.trim(),
+    pick_name: document.getElementById('ghtkPickName').value.trim(),
+    pick_tel: document.getElementById('ghtkPickTel').value.trim(),
+    pick_address: document.getElementById('ghtkPickAddress').value.trim(),
+    pick_province: document.getElementById('ghtkPickProvince').value.trim(),
+    pick_district: document.getElementById('ghtkPickDistrict').value.trim(),
+    pick_ward: document.getElementById('ghtkPickWard').value.trim()
+  }
+  btn.disabled = true
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang lưu...'
+  try {
+    await axios.put('/api/admin/ghtk/pickup-config', payload)
+    showAdminToast('Đã lưu cấu hình kho GHTK', 'success')
+  } catch (e) {
+    showAdminToast('Lưu cấu hình kho thất bại', 'error')
+  } finally {
+    btn.disabled = false
+    btn.innerHTML = '<i class="fas fa-save"></i>Lưu cấu hình kho GHTK'
   }
 }
 
