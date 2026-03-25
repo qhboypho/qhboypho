@@ -6656,7 +6656,7 @@ function renderOrdersTable(orders) {
     <td class="px-4 py-3">
       <p class="font-medium text-gray-800 text-sm">\${displayCustomerName(o.customer_name)}</p>
       <button type="button"
-        onclick="copyPhoneNumber('\${String(o.customer_phone || '').replace(/'/g, '\\\\'')}'); return false;"
+        onclick="copyPhoneNumber(decodeURIComponent('\${encodeURIComponent(String(o.customer_phone || '').trim())}')); return false;"
         title="Bấm để copy số điện thoại"
         class="text-gray-500 text-xs hover:text-pink-600 hover:underline transition">
         \${o.customer_phone}
