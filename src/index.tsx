@@ -1004,6 +1004,20 @@ app.get('/api/trending-products', async (c) => {
 
 // ─── API: ORDERS ───────────────────────────────────────────────
 
+function generateNumericOrderSuffix6() {
+  return Math.floor(Math.random() * 1000000).toString().padStart(6, '0')
+}
+
+async function generateUniqueOrderCode(db: D1Database) {
+  for (let i = 0; i < 12; i++) {
+    const code = 'QH' + generateNumericOrderSuffix6()
+    const existing = await db.prepare(`SELECT id FROM orders WHERE order_code=? LIMIT 1`).bind(code).first()
+    if (!existing) return code
+  }
+  const fallback = Date.now().toString().slice(-6).padStart(6, '0')
+  return 'QH' + fallback
+}
+
 // POST create order (public)
 app.post('/api/orders', async (c) => {
   try {
@@ -1045,7 +1059,7 @@ app.post('/api/orders', async (c) => {
 
     const subtotal = product.price * qty
     const total = Math.max(0, subtotal - discount)
-    const orderCode = 'FS' + Date.now().toString(36).toUpperCase()
+    const orderCode = await generateUniqueOrderCode(c.env.DB)
     const normalizedPaymentMethod = String(payment_method || '').toUpperCase()
     const paymentMethod = ['COD', 'ZALOPAY', 'MOMO', 'BANK_TRANSFER'].includes(normalizedPaymentMethod)
       ? normalizedPaymentMethod
