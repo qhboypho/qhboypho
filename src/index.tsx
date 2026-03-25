@@ -6655,7 +6655,12 @@ function renderOrdersTable(orders) {
     </td>
     <td class="px-4 py-3">
       <p class="font-medium text-gray-800 text-sm">\${displayCustomerName(o.customer_name)}</p>
-      <p class="text-gray-500 text-xs">\${o.customer_phone}</p>
+      <button type="button"
+        onclick="copyPhoneNumber('\${String(o.customer_phone || '').replace(/'/g, '\\\\'')}'); return false;"
+        title="Bấm để copy số điện thoại"
+        class="text-gray-500 text-xs hover:text-pink-600 hover:underline transition">
+        \${o.customer_phone}
+      </button>
     </td>
     <td class="px-4 py-3 hidden md:table-cell">
       <p class="text-sm text-gray-700 max-w-xs truncate">\${o.product_name}</p>
@@ -7220,9 +7225,9 @@ function getTrackingDisplayCode(fullCode) {
   return full
 }
 
-async function copyTrackingCode(fullCode) {
-  const full = String(fullCode || '').trim()
-  if (!full) return
+async function copyTextValue(value, successMessage) {
+  const full = String(value || '').trim()
+  if (!full) return false
   try {
     if (navigator.clipboard && navigator.clipboard.writeText) {
       await navigator.clipboard.writeText(full)
@@ -7237,10 +7242,20 @@ async function copyTrackingCode(fullCode) {
       document.execCommand('copy')
       document.body.removeChild(ta)
     }
-    showAdminToast('Đã copy mã vận đơn đầy đủ', 'success')
+    showAdminToast(successMessage || 'Đã copy', 'success')
+    return true
   } catch (_) {
-    showAdminToast('Không thể copy mã vận đơn', 'error')
+    showAdminToast('Không thể copy', 'error')
+    return false
   }
+}
+
+async function copyTrackingCode(fullCode) {
+  await copyTextValue(fullCode, 'Đã copy mã vận đơn đầy đủ')
+}
+
+async function copyPhoneNumber(phone) {
+  await copyTextValue(phone, 'Đã copy số điện thoại')
 }
 function safeJson(v) { try { return JSON.parse(v||'[]') } catch { return [] } }
 function catLabel(c) { return {unisex:'Unisex',male:'Nam',female:'Nữ'}[c]||c }
