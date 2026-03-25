@@ -5341,6 +5341,7 @@ function adminHTML(): string {
                 <input id="ordersSelectAll" type="checkbox" onchange="toggleSelectAllOrders(this.checked)" class="w-4 h-4 rounded border-gray-300 text-pink-500 focus:ring-pink-400">
               </th>
               <th class="px-4 py-3 text-left font-semibold text-gray-600">Mã ĐH</th>
+              <th id="ordersTrackingHeader" class="px-4 py-3 text-left font-semibold text-gray-600 hidden">Mã vận đơn</th>
               <th class="px-4 py-3 text-left font-semibold text-gray-600">Khách hàng</th>
               <th class="px-4 py-3 text-left font-semibold text-gray-600 hidden md:table-cell">Sản phẩm</th>
               <th class="px-4 py-3 text-center font-semibold text-gray-600 hidden sm:table-cell">SL</th>
@@ -6612,6 +6613,9 @@ function filterOrders() {
 
 function renderOrdersTable(orders) {
   const empty = document.getElementById('ordersEmpty')
+  const showTrackingColumn = ordersViewMode === 'waiting_ship'
+  const trackingHeader = document.getElementById('ordersTrackingHeader')
+  if (trackingHeader) trackingHeader.classList.toggle('hidden', !showTrackingColumn)
   if (!orders.length) {
     document.getElementById('ordersTable').innerHTML = ''
     empty.classList.remove('hidden')
@@ -6625,6 +6629,11 @@ function renderOrdersTable(orders) {
       <input type="checkbox" class="w-4 h-4 rounded border-gray-300 text-pink-500 focus:ring-pink-400" \${selectedOrderIds.has(Number(o.id)) ? 'checked' : ''} onchange="toggleOrderSelection(\${o.id}, this.checked)">
     </td>
     <td class="px-4 py-3 font-mono text-xs text-blue-600 font-semibold">\${o.order_code}</td>
+    <td class="px-4 py-3 \${showTrackingColumn ? '' : 'hidden'}">
+      \${String(o.shipping_tracking_code || '').trim()
+        ? \`<span class="font-mono text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-lg font-semibold">\${o.shipping_tracking_code}</span>\`
+        : '<span class="text-gray-300 text-xs">—</span>'}
+    </td>
     <td class="px-4 py-3">
       <p class="font-medium text-gray-800 text-sm">\${displayCustomerName(o.customer_name)}</p>
       <p class="text-gray-500 text-xs">\${o.customer_phone}</p>
@@ -6747,13 +6756,16 @@ async function deleteSelectedOrders() {
 async function arrangeSelectedForShipping() {
   const ids = filteredAdminOrders.map(o => Number(o.id)).filter(id => selectedOrderIds.has(id))
   if (!ids.length) return
-  const selectedOrders = filteredAdminOrders.filter(o => ids.includes(Number(o.id)))
   try {
     const res = await axios.post('/api/admin/orders/arrange-shipping', { ids })
     const updated = Array.isArray(res.data?.updated) ? res.data.updated : []
     const failed = Array.isArray(res.data?.failed) ? res.data.failed : []
-    const updatedIds = new Set(updated.map((o) => Number(o.id)))
-    arrangedOrdersForPrint = selectedOrders.filter((o) => updatedIds.has(Number(o.id)))
+    arrangedOrdersForPrint = updated.map((o) => ({
+      id: Number(o.id),
+      order_code: String(o.order_code || ''),
+      shipping_carrier: String(o.shipping_carrier || o.carrier || 'GHTK'),
+      shipping_tracking_code: String(o.shipping_tracking_code || o.tracking_code || '').trim()
+    }))
     arrangedFailedOrders = failed
     selectedOrderIds.clear()
     openArrangeSuccessModal(arrangedOrdersForPrint.length, failed)
@@ -6766,8 +6778,7 @@ async function arrangeSelectedForShipping() {
 function printSelectedOrders() {
   const selected = filteredAdminOrders.filter(o => selectedOrderIds.has(Number(o.id)))
   if (!selected.length) return
-  const ghtkOrders = selected
-    .filter(o => String(o.shipping_carrier || '').toUpperCase() === 'GHTK' && String(o.shipping_tracking_code || '').trim())
+  const ghtkOrders = extractGHTKPrintableOrders(selected)
   if (!ghtkOrders.length) {
     showAdminToast('Chưa có mã vận đơn GHTK để in nhãn', 'warning')
     return
@@ -6834,6 +6845,15 @@ function openPrintOrdersPopup(selected) {
   popup.document.close()
 }
 
+function extractGHTKPrintableOrders(rows) {
+  const list = Array.isArray(rows) ? rows : []
+  return list.filter((o) => {
+    const carrier = String(o.shipping_carrier || o.carrier || '').toUpperCase()
+    const tracking = String(o.shipping_tracking_code || o.tracking_code || '').trim()
+    return carrier === 'GHTK' && !!tracking
+  })
+}
+
 function mapArrangeErrorText(code) {
   if (code === 'ORDER_NOT_FOUND') return 'Không tìm thấy đơn'
   if (code === 'ORDER_CLOSED') return 'Đơn đã đóng/hủy'
@@ -6881,8 +6901,7 @@ function printArrangedOrdersFromModal() {
     closeArrangeSuccessModal()
     return
   }
-  const ghtkOrders = arrangedOrdersForPrint
-    .filter(o => String(o.shipping_carrier || '').toUpperCase() === 'GHTK' && String(o.shipping_tracking_code || '').trim())
+  const ghtkOrders = extractGHTKPrintableOrders(arrangedOrdersForPrint)
   if (!ghtkOrders.length) {
     showAdminToast('Chưa có mã vận đơn GHTK để in nhãn', 'warning')
     return
