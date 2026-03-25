@@ -6642,7 +6642,14 @@ function renderOrdersTable(orders) {
     <td class="px-4 py-3 text-center">
       <input type="checkbox" class="w-4 h-4 rounded border-gray-300 text-pink-500 focus:ring-pink-400" \${selectedOrderIds.has(Number(o.id)) ? 'checked' : ''} onchange="toggleOrderSelection(\${o.id}, this.checked)">
     </td>
-    <td class="px-4 py-3 font-mono text-xs text-blue-600 font-semibold">\${o.order_code}</td>
+    <td class="px-4 py-3">
+      <button type="button"
+        onclick="copyOrderCode(decodeURIComponent('\${encodeURIComponent(String(o.order_code || '').trim())}')); return false;"
+        title="Bấm để copy mã đơn hàng"
+        class="font-mono text-xs text-blue-600 font-semibold hover:text-blue-700 transition">
+        \${o.order_code}
+      </button>
+    </td>
     <td class="px-4 py-3 \${showTrackingColumn ? '' : 'hidden'}">
       \${String(o.shipping_tracking_code || '').trim()
         ? \`<button type="button"
@@ -7256,6 +7263,10 @@ async function copyTrackingCode(fullCode) {
 
 async function copyPhoneNumber(phone) {
   await copyTextValue(phone, 'Đã copy số điện thoại')
+}
+
+async function copyOrderCode(orderCode) {
+  await copyTextValue(orderCode, 'Đã copy mã đơn hàng')
 }
 function safeJson(v) { try { return JSON.parse(v||'[]') } catch { return [] } }
 function catLabel(c) { return {unisex:'Unisex',male:'Nam',female:'Nữ'}[c]||c }
