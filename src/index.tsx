@@ -5296,6 +5296,8 @@ function adminHTML(): string {
   .nav-item { transition: all 0.2s; }
   .nav-item.active, .nav-item:hover { background: rgba(232,67,147,0.15); color: #e84393; }
   .nav-item.active { border-left: 3px solid #e84393; }
+  .nav-sub-item { transition: all 0.2s; }
+  .nav-sub-item.active, .nav-sub-item:hover { background: rgba(16,185,129,0.15); color: #34d399; }
   .stat-card { background: linear-gradient(135deg, var(--from), var(--to)); }
   .btn-pink { background: linear-gradient(135deg,#e84393,#c0392b); transition:all 0.2s; }
   .btn-pink:hover { opacity:0.9; transform:scale(1.01); }
@@ -5371,9 +5373,16 @@ function adminHTML(): string {
     <button class="nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium" data-page="featured" onclick="showPage('featured')">
       <i class="fas fa-star w-5"></i>Sản phẩm Nổi Bật
     </button>
-    <button class="nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium" data-page="settings" onclick="showPage('settings')">
-      <i class="fas fa-gear w-5"></i>Cài đặt
+    <button id="settingsMenuBtn" class="nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium" onclick="toggleSettingsMenu()">
+      <i class="fas fa-gear w-5"></i>
+      <span>Cài đặt</span>
+      <i id="settingsMenuChevron" class="fas fa-chevron-down ml-auto text-xs transition-transform"></i>
     </button>
+    <div id="settingsSubmenu" class="hidden ml-5 mt-1 space-y-1">
+      <button class="nav-sub-item w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg text-gray-400 text-sm font-medium" data-sub-page="settings-warehouse" onclick="openSettingsWarehouse()">
+        <i class="fas fa-warehouse w-4"></i>Cài đặt kho hàng
+      </button>
+    </div>
   </nav>
   
   <div class="p-4 border-t border-white/10">
@@ -5944,6 +5953,8 @@ let galleryImages = ['','','','','','','','','']
 let editingId = null
 let gallerySlotClickBound = false
 let ghtkPickupAddresses = []
+let settingsSubmenuOpen = false
+let settingsActiveSubPage = ''
 const MAX_PRODUCT_PAYLOAD_SIZE = 1200000
 
 // ── NAVIGATION ────────────────────────────────────
@@ -5952,9 +5963,21 @@ function showPage(name) {
     const section = document.getElementById('page-'+p)
     if (section) section.classList.toggle('hidden', p !== name)
   })
-  document.querySelectorAll('.nav-item').forEach(b => {
-    b.classList.toggle('active', b.dataset.page === name)
+  document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'))
+  const mainBtn = document.querySelector('.nav-item[data-page="' + name + '"]')
+  if (mainBtn) mainBtn.classList.add('active')
+  document.querySelectorAll('.nav-sub-item').forEach(b => {
+    b.classList.toggle('active', b.dataset.subPage === settingsActiveSubPage)
   })
+  if (name === 'settings') {
+    const settingsBtn = document.getElementById('settingsMenuBtn')
+    if (settingsBtn) settingsBtn.classList.add('active')
+    setSettingsSubmenuOpen(true)
+  } else {
+    setSettingsSubmenuOpen(false)
+    settingsActiveSubPage = ''
+    document.querySelectorAll('.nav-sub-item').forEach(b => b.classList.remove('active'))
+  }
   const titles = {dashboard:'Dashboard', products:'Quản lý Sản phẩm', orders:'Quản lý Đơn hàng', vouchers:'Quản lý Voucher', featured:'Sản phẩm Nổi Bật', settings:'Cài đặt'}
   document.getElementById('pageTitle').textContent = titles[name] || name
 
@@ -5980,6 +6003,24 @@ function showPage(name) {
 function toggleSidebar() {
   document.getElementById('sidebar').classList.toggle('-translate-x-full')
   document.getElementById('sidebarOverlay').classList.toggle('hidden')
+}
+
+function setSettingsSubmenuOpen(open) {
+  settingsSubmenuOpen = !!open
+  const submenu = document.getElementById('settingsSubmenu')
+  const chevron = document.getElementById('settingsMenuChevron')
+  if (submenu) submenu.classList.toggle('hidden', !settingsSubmenuOpen)
+  if (chevron) chevron.classList.toggle('rotate-180', settingsSubmenuOpen)
+}
+
+function toggleSettingsMenu() {
+  setSettingsSubmenuOpen(!settingsSubmenuOpen)
+}
+
+function openSettingsWarehouse() {
+  settingsActiveSubPage = 'settings-warehouse'
+  setSettingsSubmenuOpen(true)
+  showPage('settings')
 }
 
 // ── FEATURED PRODUCTS ────────────────────────────
