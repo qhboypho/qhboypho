@@ -449,6 +449,58 @@ function resolveRecipientAddressForGHTK(env: any, rawAddress: string) {
   }
 }
 
+function normalizeAddressToken(value: string) {
+  return String(value || '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .replace(/[.,]/g, '')
+    .trim()
+}
+
+function normalizeRecipientAddressForGHTK(input: { detail: string, ward: string, district: string, province: string, usedFallback?: boolean }) {
+  const ward = String(input.ward || '').trim()
+  const province = String(input.province || '').trim()
+  let district = String(input.district || '').trim()
+  const detailParts = String(input.detail || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+
+  const wardNorm = normalizeAddressToken(ward)
+  const districtNorm = normalizeAddressToken(district)
+  const provinceNorm = normalizeAddressToken(province)
+
+  if (districtNorm && wardNorm && districtNorm === wardNorm && detailParts.length > 1) {
+    const candidate = detailParts[detailParts.length - 1]
+    const candidateNorm = normalizeAddressToken(candidate)
+    if (candidateNorm && candidateNorm !== wardNorm && candidateNorm !== provinceNorm) {
+      district = candidate
+    }
+  }
+
+  while (detailParts.length > 0) {
+    const lastNorm = normalizeAddressToken(detailParts[detailParts.length - 1])
+    const districtNowNorm = normalizeAddressToken(district)
+    if (!lastNorm) {
+      detailParts.pop()
+      continue
+    }
+    if (lastNorm === wardNorm || lastNorm === districtNowNorm || lastNorm === provinceNorm) {
+      detailParts.pop()
+      continue
+    }
+    break
+  }
+
+  return {
+    detail: detailParts.join(', ').trim(),
+    ward,
+    district,
+    province,
+    usedFallback: !!input.usedFallback
+  }
+}
+
 function getOrderAmountDueServer(order: any) {
   return String(order?.payment_status || '').toLowerCase() === 'paid'
     ? 0
@@ -563,6 +615,10 @@ async function ghtkCreateShipment(env: any, db: D1Database, order: any) {
 
   const parsedAddress = resolveRecipientAddressForGHTK(env, String(order?.customer_address || ''))
   if (!parsedAddress) return { ok: false, message: 'INVALID_CUSTOMER_ADDRESS_FORMAT' }
+  const recipientAddress = normalizeRecipientAddressForGHTK(parsedAddress)
+  if (!recipientAddress.detail || !recipientAddress.ward || !recipientAddress.district || !recipientAddress.province) {
+    return { ok: false, message: 'INVALID_CUSTOMER_ADDRESS_FORMAT' }
+  }
 
   const weight = Number(env.GHTK_DEFAULT_WEIGHT_KG || 0.5)
   const payload = {
@@ -584,10 +640,10 @@ async function ghtkCreateShipment(env: any, db: D1Database, order: any) {
       pick_tel: pickup.pickTel,
       pick_address_id: pickup.pickAddressId || undefined,
       name: String(order?.customer_name || ''),
-      address: parsedAddress.detail,
-      province: parsedAddress.province,
-      district: parsedAddress.district,
-      ward: parsedAddress.ward,
+      address: recipientAddress.detail,
+      province: recipientAddress.province,
+      district: recipientAddress.district,
+      ward: recipientAddress.ward,
       hamlet: 'Khac',
       tel: String(order?.customer_phone || ''),
       pick_money: Math.max(0, Math.round(getOrderAmountDueServer(order))),
@@ -608,7 +664,7 @@ async function ghtkCreateShipment(env: any, db: D1Database, order: any) {
     body: JSON.stringify(payload)
   })
   const body: any = await resp.json().catch(() => ({}))
-  if (resp.ok && body?.success && body?.order) return { ok: true, data: body.order, usedFallbackAddress: !!parsedAddress.usedFallback }
+  if (resp.ok && body?.success && body?.order) return { ok: true, data: body.order, usedFallbackAddress: !!recipientAddress.usedFallback }
   return { ok: false, message: String(body?.message || 'GHTK_CREATE_ORDER_FAILED'), detail: body }
 }
 
