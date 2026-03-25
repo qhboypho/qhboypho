@@ -5372,7 +5372,7 @@ function adminHTML(): string {
       <i class="fas fa-star w-5"></i>Sản phẩm Nổi Bật
     </button>
     <button class="nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium" data-page="settings" onclick="showPage('settings')">
-      <i class="fas fa-image w-5"></i>Cài đặt Banner
+      <i class="fas fa-gear w-5"></i>Cài đặt
     </button>
   </nav>
   
@@ -5662,6 +5662,14 @@ function adminHTML(): string {
 
   <!-- BANNERS PAGE -->
   <div id="page-settings" class="p-6 hidden">
+    <div class="bg-white rounded-2xl shadow-sm border p-4 mb-4">
+      <div class="flex items-center gap-2">
+        <button type="button" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+          <i class="fas fa-warehouse"></i>Cài đặt kho hàng
+        </button>
+      </div>
+    </div>
+
     <div class="bg-white rounded-2xl shadow-sm border p-6 mb-6">
       <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
         <h2 class="font-bold text-gray-800 text-lg flex items-center gap-2">
@@ -5710,91 +5718,6 @@ function adminHTML(): string {
           </button>
         </div>
       </div>
-    </div>
-
-    <div class="bg-white rounded-2xl shadow-sm border p-6">
-      <div class="flex items-center justify-between mb-6">
-        <h2 class="font-bold text-gray-800 text-lg flex items-center gap-2">
-          <i class="fas fa-images text-pink-500"></i>Quản lý Ảnh Banner (Hero)
-        </h2>
-        <button onclick="openBannerModal()" class="bg-pink-500 hover:bg-pink-600 text-white px-4 py-2 rounded-xl text-sm font-medium transition flex items-center gap-2">
-          <i class="fas fa-plus"></i> Thêm banner
-        </button>
-      </div>
-      <div class="overflow-x-auto">
-        <table class="w-full text-left border-collapse min-w-[600px]">
-          <thead>
-            <tr class="bg-gray-50 border-y text-gray-500 text-sm">
-              <th class="py-3 px-4 font-semibold w-24 text-center">Thứ tự</th>
-              <th class="py-3 px-4 font-semibold">Hình ảnh</th>
-              <th class="py-3 px-4 font-semibold">Thông tin</th>
-              <th class="py-3 px-4 font-semibold text-center">Trạng thái</th>
-              <th class="py-3 px-4 font-semibold text-right">Thao tác</th>
-            </tr>
-          </thead>
-          <tbody id="adminBannersTable" class="text-sm divide-y">
-            <tr><td colspan="5" class="py-10 text-center text-gray-400">Đang tải...</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  <!-- BANNER MODAL -->
-  <div id="bannerModal" onclick="if(event.target === this) closeBannerModal()" class="fixed inset-0 modal-overlay z-50 hidden flex items-start justify-center p-4 overflow-y-auto">
-    <div class="modal-card bg-white rounded-3xl shadow-2xl w-full max-w-xl my-8">
-      <div class="sticky top-0 bg-white rounded-t-3xl border-b px-6 py-4 flex items-center justify-between">
-        <h2 id="bannerModalTitle" class="font-bold text-xl text-gray-900">Thêm Banner</h2>
-        <button onclick="closeBannerModal()" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition">
-          <i class="fas fa-times text-gray-600"></i>
-        </button>
-      </div>
-      <form id="bannerForm" onsubmit="saveBanner(event)" class="px-6 py-5 space-y-4">
-        <input type="hidden" id="bId">
-        <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Link Ảnh *</label>
-          <input type="text" id="bImage" required placeholder="https://..." class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
-        </div>
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-1.5">Phụ đề (VD: Mới nhất)</label>
-            <input type="text" id="bSub" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
-          </div>
-          <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-1.5">Giá (VD: Từ 299k)</label>
-            <input type="text" id="bPrice" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
-          </div>
-        </div>
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-1.5">Tiêu đề (VD: Spring Collection)</label>
-            <input type="text" id="bTitle" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
-          </div>
-          <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-1.5">Link tới Sản phẩm ID (Tùy chọn)</label>
-            <input type="number" id="bProductId" placeholder="VD: 1" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
-          </div>
-        </div>
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-1.5">Thứ tự hiển thị (1, 2, 3)</label>
-            <input type="number" id="bOrder" value="0" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
-          </div>
-          <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-1.5">Trạng thái</label>
-            <select id="bActive" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
-              <option value="1">Hiển thị</option>
-              <option value="0">Ẩn</option>
-            </select>
-          </div>
-        </div>
-        <div class="pt-4 flex justify-end gap-3 mt-4">
-          <button type="button" onclick="closeBannerModal()" class="px-5 py-2.5 rounded-xl border text-gray-600 font-medium hover:bg-gray-50 transition">Hủy</button>
-          <button type="submit" id="bSaveBtn" class="bg-pink-500 hover:bg-pink-600 text-white px-6 py-2.5 rounded-xl font-medium transition flex items-center gap-2">
-            <i class="fas fa-save"></i>Lưu Banner
-          </button>
-        </div>
-      </form>
     </div>
   </div>
 
@@ -6032,7 +5955,7 @@ function showPage(name) {
   document.querySelectorAll('.nav-item').forEach(b => {
     b.classList.toggle('active', b.dataset.page === name)
   })
-  const titles = {dashboard:'Dashboard', products:'Quản lý Sản phẩm', orders:'Quản lý Đơn hàng', vouchers:'Quản lý Voucher', featured:'Sản phẩm Nổi Bật', settings:'Cài đặt giao diện'}
+  const titles = {dashboard:'Dashboard', products:'Quản lý Sản phẩm', orders:'Quản lý Đơn hàng', vouchers:'Quản lý Voucher', featured:'Sản phẩm Nổi Bật', settings:'Cài đặt'}
   document.getElementById('pageTitle').textContent = titles[name] || name
 
   if (name === 'dashboard') loadDashboard()
@@ -6229,27 +6152,14 @@ async function saveFeaturedOrder() {
 }
 
 // ── BANNERS ──────────────────────────────────────
-let adminBanners = []
-
 async function loadSettingsAdmin() {
-  document.getElementById('adminBannersTable').innerHTML = '<tr><td colspan="5" class="py-10 text-center text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></td></tr>'
   try {
-    const [bannerRes, pickupRes] = await Promise.all([
-      axios.get('/api/admin/hero_banners'),
-      axios.get('/api/admin/ghtk/pickup-config')
-    ])
-    adminBanners = bannerRes.data.data || []
-    renderAdminBanners()
+    const pickupRes = await axios.get('/api/admin/ghtk/pickup-config')
     const pickupCfg = pickupRes.data.data || {}
     fillGhtkPickupConfig(pickupCfg)
     await syncGhtkPickupAddresses(true, pickupCfg.pickAddressId || '')
   } catch (e) {
-    if (e.response && e.response.status === 401) {
-      document.getElementById('adminBannersTable').innerHTML = '<tr><td colspan="5" class="py-10 text-center text-red-400"><i class="fas fa-lock text-3xl mb-3"></i><p class="mt-2">Phiên đăng nhập hết hạn</p><a href="/admin/login" class="mt-3 inline-block bg-pink-500 text-white px-4 py-2 rounded-xl text-sm">Đăng nhập lại</a></td></tr>'
-    } else {
-      document.getElementById('adminBannersTable').innerHTML = '<tr><td colspan="5" class="py-10 text-center text-red-400">Lỗi tải danh sách banner</td></tr>'
-      showAdminToast('Lỗi tải dữ liệu cài đặt', 'error')
-    }
+    showAdminToast('Lỗi tải dữ liệu cài đặt kho GHTK', 'error')
   }
 }
 
@@ -6333,111 +6243,6 @@ async function saveGhtkPickupConfig() {
     btn.disabled = false
     btn.innerHTML = '<i class="fas fa-save"></i>Lưu cấu hình kho GHTK'
   }
-}
-
-function renderAdminBanners() {
-  const tbody = document.getElementById('adminBannersTable')
-  if (!adminBanners.length) {
-    tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-gray-400">Chưa có banner nào</td></tr>'
-    return
-  }
-  tbody.innerHTML = adminBanners.map(b => \`
-    <tr class="table-row">
-      <td class="py-3 px-4 text-center font-bold text-gray-600">\${b.display_order}</td>
-      <td class="py-3 px-4">
-        <img src="\${b.image_url}" class="w-20 h-24 object-cover rounded-xl shadow-sm border">
-      </td>
-      <td class="py-3 px-4">
-        <div class="font-bold text-gray-800 mb-1">\${b.title || '-'}</div>
-        <div class="text-xs text-gray-500 flex flex-col gap-1 mt-1">
-          <div class="flex gap-2">
-            \${b.subtitle ? \`<span class="bg-gray-100 px-2 py-0.5 rounded text-gray-600">\${b.subtitle}</span>\` : ''}
-            \${b.price ? \`<span class="text-pink-500 font-medium">\${b.price}</span>\` : ''}
-          </div>
-          \${b.product_id ? \`<div class="text-blue-500 font-medium">🛒 Link Product ID: \${b.product_id}</div>\` : ''}
-        </div>
-      </td>
-      <td class="py-3 px-4 text-center">
-        <span class="badge \${b.is_active ? 'badge-done' : 'bg-gray-100 text-gray-500'}">
-          \${b.is_active ? 'Hiển thị' : 'Đang ẩn'}
-        </span>
-      </td>
-      <td class="py-3 px-4">
-        <div class="flex items-center justify-end gap-2">
-          <button onclick="editBanner(\${b.id})" class="w-8 h-8 rounded-full bg-blue-50 text-blue-600 hover:bg-blue-100 flex items-center justify-center transition" title="Sửa">
-            <i class="fas fa-edit"></i>
-          </button>
-          <button onclick="deleteBanner(\${b.id})" class="w-8 h-8 rounded-full bg-red-50 text-red-600 hover:bg-red-100 flex items-center justify-center transition" title="Xóa">
-            <i class="fas fa-trash"></i>
-          </button>
-        </div>
-      </td>
-    </tr>
-  \`).join('')
-}
-
-function openBannerModal() {
-  document.getElementById('bannerForm').reset()
-  document.getElementById('bId').value = ''
-  document.getElementById('bannerModalTitle').textContent = 'Thêm Banner'
-  document.getElementById('bannerModal').classList.remove('hidden')
-}
-
-function closeBannerModal() {
-  document.getElementById('bannerModal').classList.add('hidden')
-}
-
-function editBanner(id) {
-  const b = adminBanners.find(x => x.id === id)
-  if(!b) return
-  document.getElementById('bannerForm').reset()
-  document.getElementById('bId').value = b.id
-  document.getElementById('bImage').value = b.image_url || ''
-  document.getElementById('bSub').value = b.subtitle || ''
-  document.getElementById('bTitle').value = b.title || ''
-  document.getElementById('bPrice').value = b.price || ''
-  document.getElementById('bProductId').value = b.product_id || ''
-  document.getElementById('bOrder').value = b.display_order || 0
-  document.getElementById('bActive').value = b.is_active
-  document.getElementById('bannerModalTitle').textContent = 'Sửa Banner'
-  document.getElementById('bannerModal').classList.remove('hidden')
-}
-
-async function saveBanner(e) {
-  e.preventDefault()
-  const id = document.getElementById('bId').value
-  const payload = {
-    image_url: document.getElementById('bImage').value.trim(),
-    subtitle: document.getElementById('bSub').value.trim(),
-    title: document.getElementById('bTitle').value.trim(),
-    price: document.getElementById('bPrice').value.trim(),
-    product_id: document.getElementById('bProductId').value ? parseInt(document.getElementById('bProductId').value) : null,
-    display_order: parseInt(document.getElementById('bOrder').value),
-    is_active: parseInt(document.getElementById('bActive').value)
-  }
-  const btn = document.getElementById('bSaveBtn')
-  btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Đang lưu...'
-  try {
-    if (id) {
-      await axios.put('/api/admin/hero_banners/'+id, payload)
-      showAdminToast('Đã cập nhật banner', 'success')
-    } else {
-      await axios.post('/api/admin/hero_banners', payload)
-      showAdminToast('Đã thêm banner mới', 'success')
-    }
-    closeBannerModal()
-    loadSettingsAdmin()
-  } catch (e) { showAdminToast('Lỗi lưu banner', 'error') }
-  finally { btn.innerHTML = '<i class="fas fa-save mr-2"></i>Lưu Banner' }
-}
-
-async function deleteBanner(id) {
-  if(!confirm('Bạn chắc chắn muốn xóa banner này?')) return
-  try {
-    await axios.delete('/api/admin/hero_banners/'+id)
-    showAdminToast('Đã xóa banner', 'success')
-    loadSettingsAdmin()
-  } catch(e) { showAdminToast('Lỗi xóa file', 'error') }
 }
 
 
@@ -7567,7 +7372,7 @@ function showAdminToast(msg, type='success') {
 // ── ESC key handler - close any open modal ──────────
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') {
-    const modals = ['productModal', 'orderDetailModal', 'bannerModal', 'arrangeSuccessModal']
+    const modals = ['productModal', 'orderDetailModal', 'arrangeSuccessModal']
     modals.forEach(id => {
       const el = document.getElementById(id)
       if (el && !el.classList.contains('hidden')) {
@@ -7583,7 +7388,7 @@ document.addEventListener('keydown', function(e) {
 
 // ── Safety: ensure all modals start hidden on page load ──
 document.addEventListener('DOMContentLoaded', function() {
-  ['productModal', 'orderDetailModal', 'bannerModal', 'arrangeSuccessModal'].forEach(id => {
+  ['productModal', 'orderDetailModal', 'arrangeSuccessModal'].forEach(id => {
     const el = document.getElementById(id)
     if (el) el.classList.add('hidden')
   })
