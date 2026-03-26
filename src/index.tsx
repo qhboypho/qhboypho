@@ -7246,6 +7246,25 @@ async function openProductModal(id = null) {
   colors = []
   sizes = []
   galleryImages = ['','','','','','','','','']
+  const toStringList = (raw) => {
+    const arr = Array.isArray(raw) ? raw : safeJson(raw)
+    if (!Array.isArray(arr)) return []
+    return arr.map((item) => String(item || '').trim()).filter(Boolean)
+  }
+  const normalizeColorOptionsLocal = (raw) => {
+    const arr = Array.isArray(raw) ? raw : safeJson(raw)
+    if (!Array.isArray(arr)) return []
+    return arr.map((item) => {
+      if (typeof item === 'string') return { name: String(item || '').trim(), image: '' }
+      if (item && typeof item === 'object') {
+        return {
+          name: String(item.name || item.label || '').trim(),
+          image: String(item.image || item.image_url || '').trim()
+        }
+      }
+      return { name: '', image: '' }
+    }).filter((c) => c.name || c.image)
+  }
   
   resetProductForm()
   document.getElementById('modalTitle').textContent = id ? 'Chỉnh sửa sản phẩm' : 'Thêm sản phẩm mới'
@@ -7279,16 +7298,12 @@ async function openProductModal(id = null) {
       document.getElementById('pThumbnail').value = p.thumbnail || ''
       
       // Gallery
-      const imgs = (Array.isArray(p.image_list) ? p.image_list : safeJson(p.images))
-        .map((item) => String(item || '').trim())
-        .filter(Boolean)
+      const imgs = toStringList(Array.isArray(p.image_list) ? p.image_list : p.images)
       imgs.forEach((url, i) => { if (i < 9 && url) setGallerySlot(i, url) })
       
       // Colors & sizes
-      colors = normalizeColorOptions(Array.isArray(p.color_options) ? p.color_options : p.colors)
-      sizes = (Array.isArray(p.size_list) ? p.size_list : safeJson(p.sizes))
-        .map((item) => String(item || '').trim())
-        .filter(Boolean)
+      colors = normalizeColorOptionsLocal(Array.isArray(p.color_options) ? p.color_options : p.colors)
+      sizes = toStringList(Array.isArray(p.size_list) ? p.size_list : p.sizes)
       renderColorOptionsEditor()
       renderTags('size')
     } catch(e) {
