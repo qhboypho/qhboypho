@@ -6215,10 +6215,25 @@ function applyAdminAvatarUI() {
   const name = String(adminProfile?.name || 'QH Clothes').trim() || 'QH Clothes'
   const adminKey = String(adminProfile?.adminUserKey || 'admin').trim().toUpperCase()
 
+  const bindAvatarImg = (img, fallback) => {
+    if (!img || !fallback || img.dataset.bound === '1') return
+    img.dataset.bound = '1'
+    img.addEventListener('load', () => {
+      if (!img.src) return
+      img.classList.remove('hidden')
+      fallback.classList.add('hidden')
+    })
+    img.addEventListener('error', () => {
+      img.classList.add('hidden')
+      fallback.classList.remove('hidden')
+    })
+  }
+
   const syncAvatar = (imgId, fallbackId) => {
     const img = document.getElementById(imgId)
     const fallback = document.getElementById(fallbackId)
     if (!img || !fallback) return
+    bindAvatarImg(img, fallback)
     fallback.textContent = getInitialFromName(name)
     if (avatar) {
       img.src = avatar
@@ -6372,7 +6387,6 @@ async function onAdminAvatarSelected(inputOrEvent) {
   const input = inputOrEvent?.target || inputOrEvent
   const file = input?.files?.[0]
   if (!file) return
-  showAdminToast('Dang tai anh: ' + file.name + ' (' + Math.round(file.size / 1024) + 'KB)', 'warning')
   await handleAdminAvatarFile(file)
   input.value = ''
 }
