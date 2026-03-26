@@ -6007,6 +6007,43 @@ function adminHTML(): string {
           <label class="block text-sm font-semibold mb-1.5 text-gray-700">Tên sản phẩm *</label>
           <input type="text" id="pName" required placeholder="VD: Áo thun Unisex Premium" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-100">
         </div>
+        <div class="md:col-span-2">
+          <label class="block text-sm font-semibold mb-2 text-gray-700"><i class="fas fa-images text-pink-400 mr-1"></i>Hình ảnh</label>
+          <p class="text-xs text-gray-400 mb-2">Ảnh chính hiển thị ở khung lớn bên trái, ảnh phụ nằm ở các khung nhỏ bên phải.</p>
+          <div class="grid md:grid-cols-3 gap-3 items-start">
+            <div class="md:col-span-1">
+              <div class="img-slot w-full flex flex-col items-center justify-center p-3 min-h-[220px]" id="thumbnailPreviewBox" onclick="document.getElementById('thumbnailInput').click()">
+                <img id="thumbnailPreview" src="" alt="" class="w-full h-full object-cover rounded-xl hidden">
+                <div id="thumbnailPlaceholder" class="flex flex-col items-center gap-1 text-gray-400">
+                  <i class="fas fa-camera text-2xl"></i>
+                  <span class="text-sm font-medium">Tải lên ảnh chính</span>
+                </div>
+              </div>
+              <input type="file" id="thumbnailInput" accept="image/*" class="hidden" onchange="handleThumbnailFile(this)">
+              <input type="url" id="pThumbnail" placeholder="Dán URL ảnh chính..." class="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-pink-400 mt-2" oninput="previewThumbnail(this.value)">
+            </div>
+            <div class="md:col-span-2">
+              <div class="grid grid-cols-2 sm:grid-cols-3 gap-3" id="galleryGrid">
+                ${[0, 1, 2, 3, 4, 5, 6, 7, 8].map(i => `
+                <div class="img-slot relative flex flex-col items-center justify-center min-h-[102px]" id="slot-${i}">
+                  <img id="galleryImg-${i}" src="" alt="" class="w-full h-full object-cover rounded-xl hidden absolute inset-0">
+                  <div class="flex flex-col items-center gap-1 text-gray-400 text-center p-2" id="slotPlaceholder-${i}">
+                    <i class="fas fa-plus text-base"></i>
+                    <span class="text-xs">Ảnh ${i + 1}</span>
+                  </div>
+                  <button type="button" class="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full items-center justify-center hidden text-xs z-10"
+                    id="slotDel-${i}" onclick="removeGalleryImg(${i})">×</button>
+                  <input type="file" accept="image/*" class="hidden" id="galleryFile-${i}" onchange="handleGalleryFile(${i},this)">
+                </div>`).join('')}
+              </div>
+              <p class="text-xs text-gray-400 mt-2">Nhấn vào từng ô để thêm ảnh phụ hoặc dán URL nhanh bên dưới.</p>
+              <div class="mt-2 flex gap-2">
+                <input type="url" id="galleryUrlInput" placeholder="Dán URL ảnh phụ..." class="flex-1 border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-pink-400">
+                <button type="button" onclick="addGalleryUrl()" class="btn-pink text-white px-4 py-2 rounded-xl text-sm font-semibold">Thêm</button>
+              </div>
+            </div>
+          </div>
+        </div>
         <div>
           <label class="block text-sm font-semibold mb-1.5 text-gray-700">Giá bán (VNĐ) *</label>
           <input type="number" id="pPrice" required placeholder="299000" min="0" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
@@ -6072,49 +6109,6 @@ function adminHTML(): string {
           </label>
         </div>
       </div>
-      
-      <!-- Thumbnail -->
-      <div>
-        <label class="block text-sm font-semibold mb-2 text-gray-700"><i class="fas fa-image text-pink-400 mr-1"></i>Thumbnail chính</label>
-        <div class="flex gap-3 items-start">
-          <div class="img-slot w-28 h-28 flex flex-col items-center justify-center" id="thumbnailPreviewBox" onclick="document.getElementById('thumbnailInput').click()">
-            <img id="thumbnailPreview" src="" alt="" class="w-full h-full object-cover rounded-xl hidden">
-            <div id="thumbnailPlaceholder" class="flex flex-col items-center gap-1 text-gray-400">
-              <i class="fas fa-camera text-2xl"></i>
-              <span class="text-xs">Thêm ảnh</span>
-            </div>
-          </div>
-          <div class="flex-1">
-            <input type="url" id="pThumbnail" placeholder="Dán URL ảnh thumbnail..." class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 mb-2" oninput="previewThumbnail(this.value)">
-            <input type="file" id="thumbnailInput" accept="image/*" class="hidden" onchange="handleThumbnailFile(this)">
-            <p class="text-xs text-gray-400">Nhập URL hoặc tải lên từ máy tính</p>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Gallery (9 images) -->
-      <div>
-        <label class="block text-sm font-semibold mb-2 text-gray-700"><i class="fas fa-images text-pink-400 mr-1"></i>Thư viện ảnh <span class="text-gray-400 font-normal">(tối đa 9 ảnh)</span></label>
-        <div class="grid grid-cols-3 gap-3" id="galleryGrid">
-          ${[0, 1, 2, 3, 4, 5, 6, 7, 8].map(i => `
-          <div class="img-slot relative flex flex-col items-center justify-center" id="slot-${i}">
-            <img id="galleryImg-${i}" src="" alt="" class="w-full h-full object-cover rounded-xl hidden absolute inset-0">
-            <div class="flex flex-col items-center gap-1 text-gray-400 text-center p-2" id="slotPlaceholder-${i}">
-              <i class="fas fa-plus text-lg"></i>
-              <span class="text-xs">Ảnh ${i + 1}</span>
-            </div>
-            <button type="button" class="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full items-center justify-center hidden text-xs z-10" 
-              id="slotDel-${i}" onclick="removeGalleryImg(${i})">×</button>
-            <input type="file" accept="image/*" class="hidden" id="galleryFile-${i}" onchange="handleGalleryFile(${i},this)">
-          </div>`).join('')}
-        </div>
-        <p class="text-xs text-gray-400 mt-2">Nhấn vào ô để thêm ảnh; hoặc dán URL bên dưới</p>
-        <div class="mt-2 flex gap-2">
-          <input type="url" id="galleryUrlInput" placeholder="Dán URL ảnh rồi nhấn Thêm..." class="flex-1 border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-pink-400">
-          <button type="button" onclick="addGalleryUrl()" class="btn-pink text-white px-4 py-2 rounded-xl text-sm font-semibold">Thêm</button>
-        </div>
-      </div>
-      
       <!-- Colors -->
       <div>
         <label class="block text-sm font-semibold mb-2 text-gray-700"><i class="fas fa-palette text-pink-400 mr-1"></i>Màu sắc</label>
