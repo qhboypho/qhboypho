@@ -5587,7 +5587,7 @@ function adminHTML(): string {
     <div class="flex items-center gap-3">
       <div id="adminAvatarMenuRoot" class="relative">
         <button type="button" onclick="toggleAdminAvatarMenu()" title="Tài khoản quản trị" class="w-auto max-w-[260px] rounded-full bg-gray-900 text-white pl-1.5 pr-3 py-1.5 flex items-center gap-2 shadow-sm hover:bg-gray-800 transition">
-          <span class="relative w-8 h-8 overflow-hidden bg-gray-50 text-gray-700 font-bold text-xs flex items-center justify-center flex-none">
+          <span class="relative w-8 h-8 rounded-full overflow-hidden bg-gray-50 text-gray-700 font-bold text-xs flex items-center justify-center flex-none">
             <img id="adminHeaderAvatarImg" src="" alt="avatar" class="w-full h-full object-cover hidden">
             <span id="adminHeaderAvatarFallback">A</span>
           </span>
@@ -5596,7 +5596,7 @@ function adminHTML(): string {
         <div id="adminAvatarDropdown" class="hidden absolute right-0 mt-2 w-[320px] bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden z-50">
           <div class="p-3 bg-gray-50 border-b border-gray-200">
             <div class="flex items-center gap-3">
-              <button type="button" class="avatar-wrap relative w-14 h-14 overflow-hidden bg-gray-50 text-gray-700 font-bold text-lg flex items-center justify-center cursor-pointer flex-none">
+              <button type="button" class="avatar-wrap relative w-14 h-14 rounded-full overflow-hidden bg-gray-50 text-gray-700 font-bold text-lg flex items-center justify-center cursor-pointer flex-none">
                 <input id="adminAvatarInput" type="file" accept="image/*" class="absolute inset-0 z-20 opacity-0 cursor-pointer" onclick="event.stopPropagation()" onchange="onAdminAvatarSelected(this)">
                 <img id="adminMenuAvatarImg" src="" alt="avatar" class="w-full h-full object-cover hidden">
                 <span id="adminMenuAvatarFallback">A</span>
