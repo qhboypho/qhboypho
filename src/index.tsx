@@ -7463,10 +7463,7 @@ function renderColorOptionsEditor() {
   if (!colors.length) colors = [{ name: '', image: '' }]
   wrap.innerHTML = colors.map((color, idx) => \`
     <div class="grid grid-cols-[78px_1fr_auto] gap-3 items-start">
-      <label class="img-slot w-[78px] h-[78px] flex items-center justify-center cursor-pointer select-none"
-        role="button" tabindex="0"
-        for="colorFile-\${idx}"
-        onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('colorFile-\${idx}').click()}"
+      <div class="img-slot group relative w-[78px] h-[78px] flex items-center justify-center cursor-pointer select-none overflow-hidden"
         ondragover="handleColorImageDragOver(event)"
         ondragleave="handleColorImageDragLeave(event)"
         ondrop="handleColorImageDrop(event, \${idx})">
@@ -7474,8 +7471,13 @@ function renderColorOptionsEditor() {
         <div class="text-[11px] text-gray-400 text-center px-2 leading-tight \${color.image ? 'hidden' : ''}" id="colorPlaceholder-\${idx}">
           Bấm hoặc kéo ảnh
         </div>
-        <input type="file" accept="image/*" class="hidden" id="colorFile-\${idx}" onchange="handleColorImageFile(\${idx}, this)">
-      </label>
+        <input type="file" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" id="colorFile-\${idx}" onchange="handleColorImageFile(\${idx}, this)">
+        <div class="absolute inset-0 hidden group-hover:flex items-center justify-center bg-black/45 text-white transition z-20" id="colorOverlay-\${idx}">
+          <button type="button" onclick="event.preventDefault();event.stopPropagation();removeColorImage(\${idx})" class="w-8 h-8 rounded-full bg-black/35 hover:bg-red-500 flex items-center justify-center z-30">
+            <i class="fas fa-trash text-xs"></i>
+          </button>
+        </div>
+      </div>
       <input type="text" value="\${String(color.name || '').replace(/"/g, '&quot;')}" placeholder="Nhập màu (VD: Đen, Navy...)" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400" oninput="updateColorName(\${idx}, this.value)">
       <button type="button" onclick="removeColorOptionRow(\${idx})" class="w-9 h-9 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 mt-1">
         <i class="fas fa-trash text-xs"></i>
@@ -7501,6 +7503,12 @@ function removeColorOptionRow(idx) {
 function updateColorName(idx, value) {
   if (!colors[idx]) return
   colors[idx].name = String(value || '')
+}
+
+function removeColorImage(idx) {
+  if (!colors[idx]) return
+  colors[idx].image = ''
+  renderColorOptionsEditor()
 }
 
 function handleColorImageDragOver(event) {
