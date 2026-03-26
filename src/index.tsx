@@ -5544,6 +5544,7 @@ function adminHTML(): string {
   .avatar-wrap:hover .avatar-edit-overlay { opacity:1; }
   .img-slot { aspect-ratio:1; border:2px dashed #e5e7eb; border-radius:12px; cursor:pointer; transition:all 0.2s; }
   .img-slot:hover { border-color:#e84393; background:#fdf2f8; }
+  .img-slot.drag-over { border-color:#ec4899; background:#fce7f3; box-shadow:0 0 0 2px rgba(236,72,153,.12) inset; }
   .img-slot.has-img { border-style:solid; border-color:#e84393; }
   .tag-item { display:inline-flex; align-items:center; background:#fdf2f8; border:1px solid #f9a8d4; color:#be185d; border-radius:999px; padding:3px 10px; font-size:13px; gap:4px; }
   .tag-del { cursor:pointer; width:16px; height:16px; display:flex; align-items:center; justify-content:center; border-radius:50%; background:#fecdd3; color:#e11d48; font-size:10px; }
@@ -6012,20 +6013,20 @@ function adminHTML(): string {
           <p class="text-xs text-gray-400 mb-2">Ảnh chính hiển thị ở khung lớn bên trái, ảnh phụ nằm ở các khung nhỏ bên phải.</p>
           <div class="grid md:grid-cols-3 gap-3 items-start">
             <div class="md:col-span-1">
-              <div class="img-slot w-full flex flex-col items-center justify-center p-3 min-h-[220px]" id="thumbnailPreviewBox" onclick="document.getElementById('thumbnailInput').click()">
+              <div class="img-slot w-full flex flex-col items-center justify-center p-3 min-h-[220px]" id="thumbnailPreviewBox" onclick="document.getElementById('thumbnailInput').click()" ondragover="handleImageDragOver(event)" ondragleave="handleImageDragLeave(event)" ondrop="handleImageDrop(event, 'thumbnail', -1)">
                 <img id="thumbnailPreview" src="" alt="" class="w-full h-full object-cover rounded-xl hidden">
                 <div id="thumbnailPlaceholder" class="flex flex-col items-center gap-1 text-gray-400">
                   <i class="fas fa-camera text-2xl"></i>
                   <span class="text-sm font-medium">Tải lên ảnh chính</span>
                 </div>
               </div>
-              <input type="file" id="thumbnailInput" accept="image/*" class="hidden" onchange="handleThumbnailFile(this)">
+              <input type="file" id="thumbnailInput" accept="image/*" multiple class="hidden" onchange="handleThumbnailFile(this)">
               <input type="url" id="pThumbnail" placeholder="Dán URL ảnh chính..." class="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-pink-400 mt-2" oninput="previewThumbnail(this.value)">
             </div>
             <div class="md:col-span-2">
               <div class="grid grid-cols-2 sm:grid-cols-3 gap-3" id="galleryGrid">
                 ${[0, 1, 2, 3, 4, 5, 6, 7, 8].map(i => `
-                <div class="img-slot relative flex flex-col items-center justify-center min-h-[102px]" id="slot-${i}">
+                <div class="img-slot relative flex flex-col items-center justify-center min-h-[102px]" id="slot-${i}" ondragover="handleImageDragOver(event)" ondragleave="handleImageDragLeave(event)" ondrop="handleImageDrop(event, 'gallery', ${i})">
                   <img id="galleryImg-${i}" src="" alt="" class="w-full h-full object-cover rounded-xl hidden absolute inset-0">
                   <div class="flex flex-col items-center gap-1 text-gray-400 text-center p-2" id="slotPlaceholder-${i}">
                     <i class="fas fa-plus text-base"></i>
@@ -6033,7 +6034,7 @@ function adminHTML(): string {
                   </div>
                   <button type="button" class="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full items-center justify-center hidden text-xs z-10"
                     id="slotDel-${i}" onclick="removeGalleryImg(${i})">×</button>
-                  <input type="file" accept="image/*" class="hidden" id="galleryFile-${i}" onchange="handleGalleryFile(${i},this)">
+                  <input type="file" accept="image/*" multiple class="hidden" id="galleryFile-${i}" onchange="handleGalleryFile(${i},this)">
                 </div>`).join('')}
               </div>
               <p class="text-xs text-gray-400 mt-2">Nhấn vào từng ô để thêm ảnh phụ hoặc dán URL nhanh bên dưới.</p>
@@ -7134,11 +7135,51 @@ function removeGalleryImg(i) {
 }
 
 async function handleGalleryFile(i, input) {
-  const file = input.files[0]
-  if (!file) return
+  const files = Array.from(input.files || []).filter(f => f.type && f.type.startsWith('image/'))
+  if (!files.length) return
+  await applyMultipleImagesFrom(files, 'gallery', i)
+  input.value = ''
+}
+
+function handleImageDragOver(event) {
+  event.preventDefault()
+  event.dataTransfer.dropEffect = 'copy'
+  event.currentTarget.classList.add('drag-over')
+}
+
+function handleImageDragLeave(event) {
+  event.currentTarget.classList.remove('drag-over')
+}
+
+async function handleImageDrop(event, targetType, targetIndex = -1) {
+  event.preventDefault()
+  event.currentTarget.classList.remove('drag-over')
+  const files = Array.from(event.dataTransfer?.files || []).filter(f => f.type && f.type.startsWith('image/'))
+  if (!files.length) {
+    showAdminToast('Vui lòng kéo thả file ảnh hợp lệ', 'warning')
+    return
+  }
+  await applyMultipleImagesFrom(files, targetType, targetIndex)
+}
+
+async function applyMultipleImagesFrom(files, targetType, startIndex = 0) {
   try {
-    const dataUrl = await fileToOptimizedDataURL(file, 1200, 0.82)
-    setGallerySlot(i, dataUrl)
+    let fileIndex = 0
+    if (targetType === 'thumbnail' && files[0]) {
+      const thumbDataUrl = await fileToOptimizedDataURL(files[0], 900, 0.85)
+      document.getElementById('pThumbnail').value = thumbDataUrl
+      previewThumbnail(thumbDataUrl)
+      fileIndex = 1
+      startIndex = 0
+    }
+    for (let i = startIndex; i < 9 && fileIndex < files.length; i++) {
+      const dataUrl = await fileToOptimizedDataURL(files[fileIndex], 1200, 0.82)
+      setGallerySlot(i, dataUrl)
+      fileIndex++
+    }
+    if (fileIndex < files.length) {
+      showAdminToast('Đã đầy ô ảnh, một số ảnh chưa được thêm', 'warning')
+    }
   } catch (e) {
     showAdminToast('Không thể xử lý ảnh, vui lòng thử ảnh khác', 'error')
   }
@@ -7167,14 +7208,10 @@ function previewThumbnail(url) {
 }
 
 async function handleThumbnailFile(input) {
-  const file = input.files[0]; if (!file) return
-  try {
-    const dataUrl = await fileToOptimizedDataURL(file, 900, 0.85)
-    document.getElementById('pThumbnail').value = dataUrl
-    previewThumbnail(dataUrl)
-  } catch (e) {
-    showAdminToast('Không thể xử lý thumbnail, vui lòng thử ảnh khác', 'error')
-  }
+  const files = Array.from(input.files || []).filter(f => f.type && f.type.startsWith('image/'))
+  if (!files.length) return
+  await applyMultipleImagesFrom(files, 'thumbnail', 0)
+  input.value = ''
 }
 
 function fileToOptimizedDataURL(file, maxWidth = 1200, quality = 0.82) {
