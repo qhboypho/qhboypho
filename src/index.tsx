@@ -7129,6 +7129,15 @@ function clearGallerySlot(i) {
   slot.classList.remove('has-img')
 }
 
+function compactGallerySlots() {
+  const compacted = galleryImages.filter(v => String(v || '').trim())
+  galleryImages = ['','','','','','','','','']
+  for (let i = 0; i < 9; i++) clearGallerySlot(i)
+  compacted.forEach((url, idx) => {
+    if (idx < 9) setGallerySlot(idx, url)
+  })
+}
+
 function removeGalleryImg(i) {
   event.stopPropagation()
   clearGallerySlot(i)
@@ -7216,6 +7225,7 @@ function handleImageReorderDrop(rawSource, targetType, targetIndex = -1) {
     if (targetUrl) setGallerySlot(sourceIndex, targetUrl)
     else clearGallerySlot(sourceIndex)
   }
+  compactGallerySlots()
 }
 
 async function applyMultipleImagesFrom(files, targetType, startIndex = 0) {
