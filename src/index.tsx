@@ -1207,6 +1207,43 @@ app.get('/api/products/:id', async (c) => {
 })
 
 // GET all products (admin)
+app.get('/api/admin/products/:id', async (c) => {
+  try {
+    await initDB(c.env.DB)
+    const id = c.req.param('id')
+    const row = await c.env.DB.prepare(`SELECT * FROM products WHERE id = ?`).bind(id).first()
+    if (!row) return c.json({ success: false, error: 'Không tìm thấy sản phẩm' }, 404)
+    const images = (() => {
+      try {
+        const parsed = JSON.parse(String((row as any).images || '[]'))
+        return normalizeImageList(parsed)
+      } catch {
+        return []
+      }
+    })()
+    const sizes = (() => {
+      try {
+        const parsed = JSON.parse(String((row as any).sizes || '[]'))
+        return Array.isArray(parsed) ? parsed.map((v) => String(v || '').trim()).filter(Boolean) : []
+      } catch {
+        return []
+      }
+    })()
+    return c.json({
+      success: true,
+      data: {
+        ...row,
+        image_list: images,
+        size_list: sizes,
+        color_options: parseColorOptions((row as any).colors),
+        color_names: compactColorNamesJson((row as any).colors)
+      }
+    })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
 app.get('/api/admin/products', async (c) => {
   try {
     await initDB(c.env.DB)
@@ -4494,6 +4531,11 @@ function addCurrentToCart() {
 // ── UTILS ──────────────────────────────────────────
 function fmtPrice(p) { return new Intl.NumberFormat('vi-VN',{style:'currency',currency:'VND'}).format(p) }
 function safeJson(v) { try { return JSON.parse(v||'[]') } catch { return [] } }
+function normalizeStringList(raw) {
+  const arr = Array.isArray(raw) ? raw : safeJson(raw)
+  if (!Array.isArray(arr)) return []
+  return arr.map((item) => String(item || '').trim()).filter(Boolean)
+}
 function normalizeColorOptions(raw) {
   const arr = Array.isArray(raw) ? raw : safeJson(raw)
   if (!Array.isArray(arr)) return []
@@ -7221,13 +7263,13 @@ async function openProductModal(id = null) {
   
   if (id) {
     try {
-      const res = await axios.get('/api/products/'+id)
-      const p = res.data.data
-      document.getElementById('productId').value = p.id
-      document.getElementById('pName').value = p.name
-      document.getElementById('pPrice').value = p.price
+      const res = await axios.get('/api/admin/products/' + id)
+      const p = res?.data?.data || {}
+      document.getElementById('productId').value = p.id || ''
+      document.getElementById('pName').value = p.name || ''
+      document.getElementById('pPrice').value = p.price || ''
       document.getElementById('pOriginalPrice').value = p.original_price || ''
-      document.getElementById('pCategory').value = p.category
+      document.getElementById('pCategory').value = p.category || 'unisex'
       document.getElementById('pBrand').value = p.brand || ''
       document.getElementById('pMaterial').value = p.material || ''
       document.getElementById('pDescription').value = p.description || ''
@@ -7242,15 +7284,20 @@ async function openProductModal(id = null) {
       document.getElementById('pThumbnail').value = p.thumbnail || ''
       
       // Gallery
-      const imgs = safeJson(p.images)
+      const imgs = normalizeStringList(Array.isArray(p.image_list) ? p.image_list : p.images)
       imgs.forEach((url, i) => { if (i < 9 && url) setGallerySlot(i, url) })
       
       // Colors & sizes
-      colors = getProductColorOptions(p)
-      sizes = safeJson(p.sizes)
+      colors = normalizeColorOptions(Array.isArray(p.color_options) ? p.color_options : p.colors)
+      sizes = normalizeStringList(Array.isArray(p.size_list) ? p.size_list : p.sizes)
       renderColorOptionsEditor()
       renderTags('size')
-    } catch(e) { showAdminToast('Lỗi tải sản phẩm', 'error'); return }
+    } catch(e) {
+      const msg = e?.response?.data?.error || e?.message || 'Lỗi tải sản phẩm'
+      console.error('openProductModal error:', e)
+      showAdminToast(msg, 'error')
+      return
+    }
   }
   
   document.getElementById('productModal').classList.remove('hidden')
