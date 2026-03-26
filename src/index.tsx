@@ -5574,6 +5574,7 @@ function adminHTML(): string {
                 <input id="ordersSelectAll" type="checkbox" onchange="toggleSelectAllOrders(this.checked)" class="w-4 h-4 rounded border-gray-300 text-pink-500 focus:ring-pink-400">
               </th>
               <th class="px-4 py-3 text-left font-semibold text-gray-600">Thông tin ĐH</th>
+              <th class="px-3 py-3 text-center font-semibold text-gray-600 w-16">SL</th>
               <th class="px-4 py-3 text-right font-semibold text-gray-600">Tổng tiền</th>
               <th class="px-4 py-3 text-center font-semibold text-gray-600 hidden lg:table-cell">Voucher</th>
               <th class="px-4 py-3 text-center font-semibold text-gray-600">Trạng thái</th>
@@ -6733,7 +6734,7 @@ function addPresetSizes(arr) {
 
 // ── ORDERS ────────────────────────────────────────
 async function loadAdminOrders() {
-  document.getElementById('ordersTable').innerHTML = '<tr><td colspan="6" class="text-center py-12 text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></td></tr>'
+  document.getElementById('ordersTable').innerHTML = '<tr><td colspan="7" class="text-center py-12 text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></td></tr>'
   try {
     const res = await axios.get('/api/admin/orders')
     adminOrders = res.data.data || []
@@ -6746,7 +6747,7 @@ async function loadAdminOrders() {
       setTimeout(() => { window.location.href = '/admin/login' }, 400)
       return
     }
-    document.getElementById('ordersTable').innerHTML = '<tr><td colspan="6" class="text-center py-8 text-red-400">Lỗi tải dữ liệu</td></tr>'
+    document.getElementById('ordersTable').innerHTML = '<tr><td colspan="7" class="text-center py-8 text-red-400">Lỗi tải dữ liệu</td></tr>'
   }
 }
 
@@ -6871,7 +6872,7 @@ function renderOrdersTable(orders) {
               Mã ĐH: \${o.order_code}
             </button>
           </div>
-          <p class="text-sm text-gray-800 font-semibold truncate max-w-[290px]">\${o.product_name} x \${o.quantity || 1}</p>
+          <p class="text-sm text-gray-800 font-semibold truncate max-w-[290px]">\${o.product_name}</p>
           <div class="text-xs text-gray-500">
             <span>\${displayCustomerName(o.customer_name)}</span>
             <span> • </span>
@@ -6893,6 +6894,9 @@ function renderOrdersTable(orders) {
           </div>
         </div>
       </div>
+    </td>
+    <td class="px-3 py-3 text-center">
+      <span class="inline-flex min-w-8 justify-center text-xs font-semibold text-gray-700 bg-gray-100 border border-gray-200 rounded-md px-2 py-1">\${o.quantity || 1}</span>
     </td>
     <td class="px-4 py-3 text-right">
       <p class="font-bold text-gray-800">\${fmtPrice(getOrderAmountDue(o))}</p>
