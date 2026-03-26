@@ -7089,8 +7089,8 @@ function filterAdminProducts() {
   const q = document.getElementById('productSearch').value.toLowerCase()
   const cat = document.getElementById('productCatFilter').value
   const filtered = adminProducts.filter(p => 
-    (!q || p.name.toLowerCase().includes(q) || (p.brand||'').toLowerCase().includes(q)) &&
-    (!cat || p.category === cat)
+    (!q || String(p?.name || '').toLowerCase().includes(q) || String(p?.brand || '').toLowerCase().includes(q)) &&
+    (!cat || String(p?.category || '') === cat)
   )
   renderAdminProducts(filtered)
 }
@@ -7103,13 +7103,14 @@ function renderAdminProducts(products) {
     return
   }
   grid.innerHTML = safeProducts.map(raw => {
-    const p = raw || {}
-    const name = String(p.name || 'Sản phẩm')
-    const brand = String(p.brand || '').trim()
-    const thumbnail = String(p.thumbnail || '').trim() || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'
-    const colors = getProductColorOptions(p).map((c) => c.name).filter(Boolean)
-    const sizes = safeJson(p.sizes)
-    return \`
+    try {
+      const p = raw || {}
+      const name = String(p.name || 'Sản phẩm')
+      const brand = String(p.brand || '').trim()
+      const thumbnail = String(p.thumbnail || '').trim() || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'
+      const colors = getProductColorOptions(p).map((c) => c.name).filter(Boolean)
+      const sizes = safeJson(p.sizes)
+      return \`
     <div class="bg-white rounded-2xl shadow-sm border overflow-hidden \${!p.is_active ? 'opacity-60' : ''}">
       <div class="relative h-48 bg-gray-100 overflow-hidden">
         <img src="\${thumbnail}" alt="\${name}" 
@@ -7147,6 +7148,41 @@ function renderAdminProducts(products) {
         </div>
       </div>
     </div>\`
+    } catch (err) {
+      const p = raw || {}
+      const name = String(p.name || 'Sản phẩm')
+      const thumbnail = String(p.thumbnail || '').trim() || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'
+      const isActive = !!p.is_active
+      const price = Number(p.price || 0)
+      console.error('renderAdminProducts item error:', err, raw)
+      return \`
+      <div class="bg-white rounded-2xl shadow-sm border overflow-hidden \${!isActive ? 'opacity-60' : ''}">
+        <div class="relative h-48 bg-gray-100 overflow-hidden">
+          <img src="\${thumbnail}" alt="\${name}" class="w-full h-full object-cover" onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'">
+          <div class="absolute top-2 right-2">
+            <span class="w-2.5 h-2.5 rounded-full inline-block \${isActive ? 'bg-green-400' : 'bg-gray-400'}"></span>
+          </div>
+        </div>
+        <div class="p-4">
+          <h3 class="font-semibold text-gray-900 text-sm mb-2 line-clamp-2 leading-tight">\${name}</h3>
+          <div class="flex items-center gap-2 mb-3">
+            <span class="font-bold text-pink-600">\${fmtPrice(price)}</span>
+          </div>
+          <p class="text-xs text-gray-400 mb-3">Tồn kho: <span class="font-semibold text-gray-700">\${p.stock || 0}</span></p>
+          <div class="flex gap-2">
+            <button onclick="openProductModal(\${p.id})" class="flex-1 py-2 border-2 border-pink-200 text-pink-600 rounded-xl text-xs font-semibold hover:bg-pink-50 transition">
+              <i class="fas fa-edit mr-1"></i>Sửa
+            </button>
+            <button onclick="toggleProductActive(\${p.id})" class="py-2 px-3 border-2 border-gray-200 rounded-xl text-xs hover:bg-gray-50 transition" title="\${isActive ? 'Ẩn' : 'Hiện'}">
+              <i class="fas fa-\${isActive ? 'eye-slash' : 'eye'} text-gray-500"></i>
+            </button>
+            <button onclick="deleteProduct(\${p.id})" class="py-2 px-3 border-2 border-red-200 text-red-500 rounded-xl text-xs hover:bg-red-50 transition">
+              <i class="fas fa-trash"></i>
+            </button>
+          </div>
+        </div>
+      </div>\`
+    }
   }).join('')
 }
 
