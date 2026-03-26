@@ -3408,6 +3408,7 @@ let filteredProducts = []
 let currentProduct = null
 let orderQty = 1
 let selectedColor = ''
+let orderColorOptions = []
 let selectedSize = ''
 let selectedPaymentMethod = ''
 let pendingBankTransferOrder = null
@@ -4050,10 +4051,11 @@ async function openOrder(id) {
 
     // Colors
     const colorOptions = window.normalizeColorOptions ? window.normalizeColorOptions(currentProduct.colors) : []
+    orderColorOptions = Array.isArray(colorOptions) ? colorOptions : []
     const colorDiv = document.getElementById('colorOptions')
-    colorDiv.innerHTML = colorOptions.length ? colorOptions.map(item => \`
+    colorDiv.innerHTML = orderColorOptions.length ? orderColorOptions.map((item, idx) => \`
       <button class="color-btn px-3 py-1.5 border rounded-lg text-sm hover:border-pink-400 transition inline-flex items-center gap-2"
-        onclick="selectOrderColor('\${String(item.name || '').replace(/'/g, "\\'")}', '\${String(item.image || '').replace(/'/g, "\\'")}', this)">
+        onclick="selectOrderColorByIndex(\${idx}, this)">
         \${item.image ? \`<img src="\${item.image}" alt="" class="w-5 h-5 rounded-md object-cover border border-gray-200">\` : '<span class="w-5 h-5 rounded-md bg-gray-100 border border-gray-200"></span>'}
         <span>\${item.name}</span>
       </button>
@@ -4080,6 +4082,12 @@ function selectOrderColor(c, colorImage, btn) {
   const preview = document.getElementById('orderProductImg')
   if (preview && selectedColorImage) preview.src = selectedColorImage
   document.getElementById('fieldColor')?.classList.remove('field-error','shake')
+}
+
+function selectOrderColorByIndex(idx, btn) {
+  const item = Array.isArray(orderColorOptions) ? orderColorOptions[idx] : null
+  if (!item) return
+  selectOrderColor(String(item.name || ''), String(item.image || ''), btn)
 }
 function selectOrderSize(s, btn) {
   document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active','bg-gray-900','text-white','border-gray-900'))
