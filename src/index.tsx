@@ -5566,7 +5566,7 @@ function adminHTML(): string {
     </div>
     
     <div class="bg-white rounded-2xl shadow-sm border overflow-hidden">
-      <div class="overflow-x-auto scrollbar-thin">
+      <div class="hidden md:block overflow-x-auto scrollbar-thin">
         <table class="w-full text-sm">
           <thead>
             <tr class="bg-gray-50 border-b">
@@ -5584,6 +5584,7 @@ function adminHTML(): string {
           <tbody id="ordersTable"></tbody>
         </table>
       </div>
+      <div id="ordersMobileList" class="md:hidden divide-y"></div>
       <div id="ordersEmpty" class="hidden text-center py-16 text-gray-400">
         <i class="fas fa-inbox text-4xl mb-3"></i><p>Không có đơn hàng nào</p>
       </div>
@@ -6735,6 +6736,7 @@ function addPresetSizes(arr) {
 // ── ORDERS ────────────────────────────────────────
 async function loadAdminOrders() {
   document.getElementById('ordersTable').innerHTML = '<tr><td colspan="7" class="text-center py-12 text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></td></tr>'
+  document.getElementById('ordersMobileList').innerHTML = '<div class="py-12 text-center text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></div>'
   try {
     const res = await axios.get('/api/admin/orders')
     adminOrders = res.data.data || []
@@ -6748,6 +6750,7 @@ async function loadAdminOrders() {
       return
     }
     document.getElementById('ordersTable').innerHTML = '<tr><td colspan="7" class="text-center py-8 text-red-400">Lỗi tải dữ liệu</td></tr>'
+    document.getElementById('ordersMobileList').innerHTML = '<div class="py-8 text-center text-red-400">Lỗi tải dữ liệu</div>'
   }
 }
 
@@ -6850,7 +6853,9 @@ function renderOrdersTable(orders) {
   const empty = document.getElementById('ordersEmpty')
   if (!orders.length) {
     document.getElementById('ordersTable').innerHTML = ''
+    document.getElementById('ordersMobileList').innerHTML = ''
     empty.classList.remove('hidden')
+    updateOrderSelectionUI()
     return
   }
   empty.classList.add('hidden')
@@ -6927,7 +6932,72 @@ function renderOrdersTable(orders) {
       </div>
     </td>
   </tr>\`).join('')
+  renderOrdersMobileList(orders)
   updateOrderSelectionUI()
+}
+
+function renderOrdersMobileList(orders) {
+  const wrap = document.getElementById('ordersMobileList')
+  wrap.innerHTML = orders.map(o => {
+    const tracking = String(o.shipping_tracking_code || '').trim()
+    return \`
+    <div class="p-3 bg-white">
+      <div class="flex items-start gap-2">
+        <input type="checkbox" class="mt-1 w-4 h-4 rounded border-gray-300 text-pink-500 focus:ring-pink-400" \${selectedOrderIds.has(Number(o.id)) ? 'checked' : ''} onchange="toggleOrderSelection(\${o.id}, this.checked)">
+        <div class="min-w-0 flex-1">
+          <div class="flex items-start justify-between gap-2">
+            <div class="min-w-0">
+              <button type="button"
+                onclick="copyOrderCode(decodeURIComponent('\${encodeURIComponent(String(o.order_code || '').trim())}')); return false;"
+                class="font-mono text-[11px] text-blue-600 font-semibold truncate max-w-[200px]">Mã ĐH: \${o.order_code}</button>
+              <p class="text-sm font-semibold text-gray-800 truncate">\${o.product_name}</p>
+              <p class="text-xs text-gray-500">SKU: \${buildOrderSkuText(o)} • SL: \${o.quantity || 1}</p>
+            </div>
+            <div class="text-right flex-none">
+              <p class="text-sm font-bold text-gray-800">\${fmtPrice(getOrderAmountDue(o))}</p>
+              <p class="mt-1"><span class="text-[11px] px-2 py-0.5 rounded-full \${paymentStatusClass(o.payment_status)}">\${paymentStatusLabel(o.payment_status)}</span></p>
+            </div>
+          </div>
+          <div class="mt-2 flex items-start gap-2">
+            <img src="\${getOrderItemImage(o)}" alt="\${o.product_name || 'product'}" class="w-11 h-11 rounded-lg object-cover border border-gray-200 bg-gray-100 flex-none" onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=80'">
+            <div class="min-w-0 flex-1">
+              <div class="text-xs text-gray-500">
+                <span>\${displayCustomerName(o.customer_name)}</span>
+                <span> • </span>
+                <button type="button"
+                  onclick="copyPhoneNumber(decodeURIComponent('\${encodeURIComponent(String(o.customer_phone || '').trim())}')); return false;"
+                  class="hover:text-blue-600 no-underline transition">\${o.customer_phone}</button>
+              </div>
+              <div class="mt-1">
+                \${tracking
+                  ? \`<button type="button"
+                        onclick="copyTrackingCode(decodeURIComponent('\${encodeURIComponent(tracking)}')); return false;"
+                        class="font-mono text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg font-semibold hover:bg-emerald-100 transition">Mã vận đơn: \${getTrackingDisplayCode(tracking)}</button>\`
+                  : '<span class="text-xs text-gray-300">Mã vận đơn: —</span>'}
+              </div>
+            </div>
+          </div>
+          <div class="mt-2 flex items-center justify-between gap-2">
+            <select onchange="updateOrderStatus(\${o.id}, this.value)" class="text-xs border rounded-lg px-2 py-1 focus:outline-none badge badge-\${o.status}" style="max-width:124px">
+              <option value="pending" \${o.status==='pending'?'selected':''}>Chờ xử lý</option>
+              <option value="confirmed" \${o.status==='confirmed'?'selected':''}>Xác nhận</option>
+              <option value="shipping" \${o.status==='shipping'?'selected':''}>Đang giao</option>
+              <option value="done" \${o.status==='done'?'selected':''}>Hoàn thành</option>
+              <option value="cancelled" \${o.status==='cancelled'?'selected':''}>Huỷ</option>
+            </select>
+            <div class="flex items-center gap-1">
+              <button onclick="showOrderDetail(\${o.id})" class="p-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition" title="Chi tiết">
+                <i class="fas fa-eye text-xs"></i>
+              </button>
+              <button onclick="deleteOrder(\${o.id})" class="p-1.5 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition" title="Xoá">
+                <i class="fas fa-trash text-xs"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>\`
+  }).join('')
 }
 
 function toggleOrderSelection(id, checked) {
