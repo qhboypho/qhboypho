@@ -6211,7 +6211,8 @@ function getInitialFromName(name) {
 }
 
 function applyAdminAvatarUI() {
-  const avatar = String(adminProfile?.avatar || '').trim()
+  const rawAvatar = String(adminProfile?.avatar || '').trim()
+  const avatar = ['null', 'undefined', 'none'].includes(rawAvatar.toLowerCase()) ? '' : rawAvatar
   const name = String(adminProfile?.name || 'QH Clothes').trim() || 'QH Clothes'
   const adminKey = String(adminProfile?.adminUserKey || 'admin').trim().toUpperCase()
 
@@ -6220,6 +6221,11 @@ function applyAdminAvatarUI() {
     img.dataset.bound = '1'
     img.addEventListener('load', () => {
       if (!img.src) return
+      if (img.naturalWidth <= 1 && img.naturalHeight <= 1) {
+        img.classList.add('hidden')
+        fallback.classList.remove('hidden')
+        return
+      }
       img.classList.remove('hidden')
       fallback.classList.add('hidden')
     })
@@ -6255,6 +6261,27 @@ function applyAdminAvatarUI() {
   if (menuName) menuName.textContent = name
   const menuCode = document.getElementById('adminMenuShopCode')
   if (menuCode) menuCode.textContent = 'Shop Code: ' + adminKey
+}
+
+function applyAvatarSrcDirect(dataUrl) {
+  const ids = [
+    ['adminHeaderAvatarImg', 'adminHeaderAvatarFallback'],
+    ['adminMenuAvatarImg', 'adminMenuAvatarFallback']
+  ]
+  ids.forEach(([imgId, fbId]) => {
+    const img = document.getElementById(imgId)
+    const fallback = document.getElementById(fbId)
+    if (!img || !fallback) return
+    if (!dataUrl) {
+      img.src = ''
+      img.classList.add('hidden')
+      fallback.classList.remove('hidden')
+      return
+    }
+    img.src = dataUrl
+    img.classList.remove('hidden')
+    fallback.classList.add('hidden')
+  })
 }
 
 async function loadAdminProfile() {
@@ -6417,6 +6444,7 @@ async function handleAdminAvatarFile(file) {
       const res = await axios.put('/api/admin/profile/avatar', { avatar: dataUrl })
       adminProfile = res.data?.data || adminProfile
       applyAdminAvatarUI()
+      applyAvatarSrcDirect(dataUrl)
       showAdminToast('Đã cập nhật avatar', 'success')
     } catch (e) {
       adminProfile = { ...(adminProfile || {}), avatar: prevAvatar }
