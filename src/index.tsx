@@ -5509,6 +5509,7 @@ function adminHTML(): string {
   .scrollbar-thin::-webkit-scrollbar { width:4px; }
   .scrollbar-thin::-webkit-scrollbar-thumb { background:#e84393; border-radius:2px; }
   .mobile-overlay { background:rgba(0,0,0,0.5); }
+  .hidden { display:none !important; }
   [x-cloak] { display:none; }
   .col-tag { width: 32px; height: 32px; border-radius: 50%; display:inline-flex; align-items:center; justify-content:center; font-size:11px; font-weight:600; }
   /* Force hide sidebar overlay on desktop - overrides any JS toggle */
