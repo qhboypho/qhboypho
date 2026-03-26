@@ -5496,7 +5496,7 @@ function adminHTML(): string {
   .modal-overlay { background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); }
   .modal-card { animation: fadeIn 0.25s ease; }
   @keyframes fadeIn { from{opacity:0;transform:scale(0.95)} to{opacity:1;transform:scale(1)} }
-  .avatar-edit-overlay { position:absolute; inset:0; display:block; background:rgba(0,0,0,0.3); opacity:0; transition:opacity 0.2s; pointer-events:none; }
+  .avatar-edit-overlay { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.35); opacity:0; transition:opacity 0.2s; pointer-events:none; }
   .avatar-wrap:hover .avatar-edit-overlay { opacity:1; }
   .img-slot { aspect-ratio:1; border:2px dashed #e5e7eb; border-radius:12px; cursor:pointer; transition:all 0.2s; }
   .img-slot:hover { border-color:#e84393; background:#fdf2f8; }
@@ -5588,15 +5588,28 @@ function adminHTML(): string {
     <div class="flex items-center gap-3">
       <input id="adminAvatarInput" type="file" accept="image/*" class="hidden" onchange="onAdminAvatarSelected(event)">
       <div id="adminAvatarMenuRoot" class="relative">
-        <button type="button" onclick="toggleAdminAvatarMenu()" title="Tài khoản quản trị" class="avatar-wrap relative w-9 h-9 rounded-full overflow-hidden border border-pink-200 bg-gradient-to-br from-pink-500 to-red-500 text-white font-bold text-sm flex items-center justify-center">
-          <img id="adminAvatarImg" src="" alt="avatar" class="w-full h-full object-cover hidden">
-          <span id="adminAvatarFallback">A</span>
-          <span class="avatar-edit-overlay"></span>
+        <button type="button" onclick="toggleAdminAvatarMenu()" title="Tài khoản quản trị" class="w-auto max-w-[260px] rounded-full bg-gray-900 text-white pl-1.5 pr-3 py-1.5 flex items-center gap-2 shadow-sm hover:bg-gray-800 transition">
+          <span class="relative w-8 h-8 rounded-full overflow-hidden border border-white/30 bg-gradient-to-br from-pink-500 to-red-500 text-white font-bold text-xs flex items-center justify-center flex-none">
+            <img id="adminHeaderAvatarImg" src="" alt="avatar" class="w-full h-full object-cover hidden">
+            <span id="adminHeaderAvatarFallback">A</span>
+          </span>
+          <span id="adminHeaderProfileName" class="text-sm font-semibold truncate">QH Clothes</span>
         </button>
-        <div id="adminAvatarDropdown" class="hidden absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden z-50">
-          <button type="button" onclick="triggerAdminAvatarPickerFromMenu()" class="w-full text-left px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
-            <i class="fas fa-image text-pink-500"></i>Thay đổi ảnh đại diện
-          </button>
+        <div id="adminAvatarDropdown" class="hidden absolute right-0 mt-2 w-[320px] bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden z-50">
+          <div class="p-3 bg-gray-50 border-b border-gray-200">
+            <div class="flex items-center gap-3">
+              <label for="adminAvatarInput" onclick="event.stopPropagation()" class="avatar-wrap relative w-14 h-14 rounded-full overflow-hidden border border-gray-200 bg-gradient-to-br from-pink-500 to-red-500 text-white font-bold text-lg flex items-center justify-center cursor-pointer flex-none">
+                <img id="adminMenuAvatarImg" src="" alt="avatar" class="w-full h-full object-cover hidden">
+                <span id="adminMenuAvatarFallback">A</span>
+                <span class="avatar-edit-overlay"><i class="fas fa-camera text-white text-sm"></i></span>
+              </label>
+              <div class="min-w-0">
+                <p id="adminMenuProfileName" class="text-sm font-semibold text-gray-900 truncate">QH Clothes</p>
+                <p id="adminMenuShopCode" class="text-xs text-gray-400 truncate">Shop Code: ADMIN</p>
+                <p class="text-xs text-gray-400">Tự bán hàng</p>
+              </div>
+            </div>
+          </div>
           <button type="button" onclick="openChangeAdminPasswordModal(); closeAdminAvatarMenu();" class="w-full text-left px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
             <i class="fas fa-key text-amber-500"></i>Thay đổi mật khẩu
           </button>
@@ -6199,21 +6212,35 @@ function getInitialFromName(name) {
 }
 
 function applyAdminAvatarUI() {
-  const img = document.getElementById('adminAvatarImg')
-  const fallback = document.getElementById('adminAvatarFallback')
-  if (!img || !fallback) return
   const avatar = String(adminProfile?.avatar || '').trim()
-  const name = String(adminProfile?.name || 'Admin').trim()
-  fallback.textContent = getInitialFromName(name)
-  if (avatar) {
-    img.src = avatar
-    img.classList.remove('hidden')
-    fallback.classList.add('hidden')
-  } else {
-    img.src = ''
-    img.classList.add('hidden')
-    fallback.classList.remove('hidden')
+  const name = String(adminProfile?.name || 'QH Clothes').trim() || 'QH Clothes'
+  const adminKey = String(adminProfile?.adminUserKey || 'admin').trim().toUpperCase()
+
+  const syncAvatar = (imgId, fallbackId) => {
+    const img = document.getElementById(imgId)
+    const fallback = document.getElementById(fallbackId)
+    if (!img || !fallback) return
+    fallback.textContent = getInitialFromName(name)
+    if (avatar) {
+      img.src = avatar
+      img.classList.remove('hidden')
+      fallback.classList.add('hidden')
+    } else {
+      img.src = ''
+      img.classList.add('hidden')
+      fallback.classList.remove('hidden')
+    }
   }
+
+  syncAvatar('adminHeaderAvatarImg', 'adminHeaderAvatarFallback')
+  syncAvatar('adminMenuAvatarImg', 'adminMenuAvatarFallback')
+
+  const headerName = document.getElementById('adminHeaderProfileName')
+  if (headerName) headerName.textContent = name
+  const menuName = document.getElementById('adminMenuProfileName')
+  if (menuName) menuName.textContent = name
+  const menuCode = document.getElementById('adminMenuShopCode')
+  if (menuCode) menuCode.textContent = 'Shop Code: ' + adminKey
 }
 
 async function loadAdminProfile() {
@@ -6224,41 +6251,6 @@ async function loadAdminProfile() {
   } catch (_) {
     // keep default avatar fallback
   }
-}
-
-function openAdminAvatarPicker() {
-  const input = document.getElementById('adminAvatarInput')
-  if (!input) return
-  try {
-    if (typeof input.showPicker === 'function') {
-      input.showPicker()
-      return
-    }
-  } catch (_) {}
-  input.click()
-}
-
-function triggerAdminAvatarPickerFromMenu() {
-  closeAdminAvatarMenu()
-  const picker = document.createElement('input')
-  picker.type = 'file'
-  picker.accept = 'image/*'
-  picker.style.position = 'fixed'
-  picker.style.left = '-9999px'
-  picker.style.top = '-9999px'
-  document.body.appendChild(picker)
-  picker.onchange = async function() {
-    const file = picker.files && picker.files[0] ? picker.files[0] : null
-    if (file) await handleAdminAvatarFile(file)
-    document.body.removeChild(picker)
-  }
-  try {
-    if (typeof picker.showPicker === 'function') {
-      picker.showPicker()
-      return
-    }
-  } catch (_) {}
-  picker.click()
 }
 
 function closeAdminAvatarMenu() {
