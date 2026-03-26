@@ -1497,8 +1497,6 @@ app.get('/api/admin/orders', async (c) => {
     let query = `
       SELECT o.*,
              p.thumbnail AS product_thumbnail,
-             p.images AS product_images,
-             p.colors AS product_colors,
              CASE WHEN LOWER(COALESCE(o.payment_status, ''))='paid' THEN 0 ELSE o.total_price END AS amount_due
       FROM orders o
       LEFT JOIN products p ON p.id = o.product_id
@@ -1509,8 +1507,6 @@ app.get('/api/admin/orders', async (c) => {
       query = `
         SELECT o.*,
                p.thumbnail AS product_thumbnail,
-               p.images AS product_images,
-               p.colors AS product_colors,
                CASE WHEN LOWER(COALESCE(o.payment_status, ''))='paid' THEN 0 ELSE o.total_price END AS amount_due
         FROM orders o
         LEFT JOIN products p ON p.id = o.product_id
@@ -1522,12 +1518,7 @@ app.get('/api/admin/orders', async (c) => {
       ? c.env.DB.prepare(query).bind(status)
       : c.env.DB.prepare(query)
     const result2 = await stmt.all()
-    const rows = Array.isArray(result2.results) ? result2.results : []
-    const compactedRows = rows.map((row: any) => ({
-      ...row,
-      product_colors: compactColorNamesJson(row?.product_colors)
-    }))
-    return c.json({ success: true, data: compactedRows })
+    return c.json({ success: true, data: result2.results || [] })
   } catch (e: any) {
     return c.json({ success: false, error: e.message }, 500)
   }
@@ -7521,8 +7512,11 @@ async function loadAdminOrders() {
       setTimeout(() => { window.location.href = '/admin/login' }, 400)
       return
     }
+    const msg = e?.response?.data?.error || e?.message || 'Lỗi tải dữ liệu'
     document.getElementById('ordersTable').innerHTML = '<tr><td colspan="7" class="text-center py-8 text-red-400">Lỗi tải dữ liệu</td></tr>'
     document.getElementById('ordersMobileList').innerHTML = '<div class="py-8 text-center text-red-400">Lỗi tải dữ liệu</div>'
+    showAdminToast(msg, 'error')
+    console.error('loadAdminOrders error:', e)
   }
 }
 
