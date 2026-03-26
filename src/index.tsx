@@ -7103,14 +7103,13 @@ function renderAdminProducts(products) {
     return
   }
   grid.innerHTML = safeProducts.map(raw => {
-    try {
-      const p = raw || {}
-      const name = String(p.name || 'Sản phẩm')
-      const brand = String(p.brand || '').trim()
-      const thumbnail = String(p.thumbnail || '').trim() || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'
-      const colors = getProductColorOptions(p).map((c) => c.name).filter(Boolean)
-      const sizes = safeJson(p.sizes)
-      return \`
+    const p = raw || {}
+    const name = String(p.name || 'Sản phẩm')
+    const brand = String(p.brand || '').trim()
+    const thumbnail = String(p.thumbnail || '').trim() || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'
+    const colors = getProductColorOptions(p).map((c) => c.name).filter(Boolean)
+    const sizes = safeJson(p.sizes)
+    return \`
     <div class="bg-white rounded-2xl shadow-sm border overflow-hidden \${!p.is_active ? 'opacity-60' : ''}">
       <div class="relative h-48 bg-gray-100 overflow-hidden">
         <img src="\${thumbnail}" alt="\${name}" 
@@ -7143,26 +7142,11 @@ function renderAdminProducts(products) {
             <i class="fas fa-\${p.is_active ? 'eye-slash' : 'eye'} text-gray-500"></i>
           </button>
           <button onclick="deleteProduct(\${p.id})" class="py-2 px-3 border-2 border-red-200 text-red-500 rounded-xl text-xs hover:bg-red-50 transition">
-            <i class="fas fa-trash"></i>
+          <i class="fas fa-trash"></i>
           </button>
         </div>
       </div>
     </div>\`
-    } catch (err) {
-      const fallbackName = String(raw?.name || 'Sản phẩm')
-      const fallbackThumb = String(raw?.thumbnail || '').trim() || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'
-      return \`
-        <div class="bg-white rounded-2xl shadow-sm border overflow-hidden">
-          <div class="relative h-48 bg-gray-100 overflow-hidden">
-            <img src="\${fallbackThumb}" alt="\${fallbackName}" class="w-full h-full object-cover" onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'">
-          </div>
-          <div class="p-4">
-            <h3 class="font-semibold text-gray-900 text-sm mb-2 line-clamp-2 leading-tight">\${fallbackName}</h3>
-            <p class="text-xs text-red-500 mb-3">Không tải được chi tiết sản phẩm này</p>
-          </div>
-        </div>
-      \`
-    }
   }).join('')
 }
 
