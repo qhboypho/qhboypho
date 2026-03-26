@@ -1209,6 +1209,18 @@ function normalizeColorOptionsInput(input: any): Array<{ name: string; image: st
   return out
 }
 
+function compactColorNamesJson(raw: any): string {
+  let arr: any[] = []
+  try { arr = JSON.parse(String(raw || '[]')) } catch { arr = [] }
+  if (!Array.isArray(arr)) return '[]'
+  const names = arr.map((item: any) => {
+    if (typeof item === 'string') return String(item || '').trim()
+    if (item && typeof item === 'object') return String(item.name || item.label || '').trim()
+    return ''
+  }).filter(Boolean)
+  return JSON.stringify(names)
+}
+
 // POST create product
 app.post('/api/admin/products', async (c) => {
   try {
@@ -1510,7 +1522,12 @@ app.get('/api/admin/orders', async (c) => {
       ? c.env.DB.prepare(query).bind(status)
       : c.env.DB.prepare(query)
     const result2 = await stmt.all()
-    return c.json({ success: true, data: result2.results || [] })
+    const rows = Array.isArray(result2.results) ? result2.results : []
+    const compactedRows = rows.map((row: any) => ({
+      ...row,
+      product_colors: compactColorNamesJson(row?.product_colors)
+    }))
+    return c.json({ success: true, data: compactedRows })
   } catch (e: any) {
     return c.json({ success: false, error: e.message }, 500)
   }
@@ -7595,8 +7612,6 @@ function getOrderItemImage(order) {
   try { images = JSON.parse(rawImages || '[]') } catch (_) { images = [] }
   if (!Array.isArray(images) || !images.length) return fallback
   if (Array.isArray(colorOptions) && colorOptions.length) {
-    const matched = colorOptions.find((c) => String(c?.name || '').trim().toLowerCase() === selectedColor.toLowerCase())
-    if (matched && String(matched.image || '').trim()) return String(matched.image).trim()
     const idx = colorOptions.findIndex((c) => String(c?.name || '').trim().toLowerCase() === selectedColor.toLowerCase())
     if (idx >= 0 && String(images[idx] || '').trim()) return String(images[idx]).trim()
   }
