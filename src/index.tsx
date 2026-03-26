@@ -6014,7 +6014,7 @@ function adminHTML(): string {
           <div class="grid md:grid-cols-3 gap-3 items-start">
             <div class="md:col-span-1">
               <div class="img-slot w-full flex flex-col items-center justify-center p-3 min-h-[220px]" id="thumbnailPreviewBox" onclick="document.getElementById('thumbnailInput').click()" ondragover="handleImageDragOver(event)" ondragleave="handleImageDragLeave(event)" ondrop="handleImageDrop(event, 'thumbnail', -1)">
-                <img id="thumbnailPreview" src="" alt="" class="w-full h-full object-cover rounded-xl hidden">
+                <img id="thumbnailPreview" src="" alt="" draggable="true" ondragstart="startImageReorderDrag(event, 'thumbnail', -1)" class="w-full h-full object-cover rounded-xl hidden">
                 <div id="thumbnailPlaceholder" class="flex flex-col items-center gap-1 text-gray-400">
                   <i class="fas fa-camera text-2xl"></i>
                   <span class="text-sm font-medium">Tải lên ảnh chính</span>
@@ -6027,7 +6027,7 @@ function adminHTML(): string {
               <div class="grid grid-cols-2 sm:grid-cols-3 gap-3" id="galleryGrid">
                 ${[0, 1, 2, 3, 4, 5, 6, 7, 8].map(i => `
                 <div class="img-slot relative flex flex-col items-center justify-center min-h-[102px]" id="slot-${i}" ondragover="handleImageDragOver(event)" ondragleave="handleImageDragLeave(event)" ondrop="handleImageDrop(event, 'gallery', ${i})">
-                  <img id="galleryImg-${i}" src="" alt="" class="w-full h-full object-cover rounded-xl hidden absolute inset-0">
+                  <img id="galleryImg-${i}" src="" alt="" draggable="true" ondragstart="startImageReorderDrag(event, 'gallery', ${i})" class="w-full h-full object-cover rounded-xl hidden absolute inset-0">
                   <div class="flex flex-col items-center gap-1 text-gray-400 text-center p-2" id="slotPlaceholder-${i}">
                     <i class="fas fa-plus text-base"></i>
                     <span class="text-xs">Ảnh ${i + 1}</span>
@@ -7143,7 +7143,8 @@ async function handleGalleryFile(i, input) {
 
 function handleImageDragOver(event) {
   event.preventDefault()
-  event.dataTransfer.dropEffect = 'copy'
+  const hasInternalSource = !!event.dataTransfer?.types?.includes('application/x-image-source')
+  event.dataTransfer.dropEffect = hasInternalSource ? 'move' : 'copy'
   event.currentTarget.classList.add('drag-over')
 }
 
@@ -7154,12 +7155,67 @@ function handleImageDragLeave(event) {
 async function handleImageDrop(event, targetType, targetIndex = -1) {
   event.preventDefault()
   event.currentTarget.classList.remove('drag-over')
+  const srcPayload = event.dataTransfer?.getData('application/x-image-source')
+  if (srcPayload) {
+    handleImageReorderDrop(srcPayload, targetType, targetIndex)
+    return
+  }
   const files = Array.from(event.dataTransfer?.files || []).filter(f => f.type && f.type.startsWith('image/'))
   if (!files.length) {
     showAdminToast('Vui lòng kéo thả file ảnh hợp lệ', 'warning')
     return
   }
   await applyMultipleImagesFrom(files, targetType, targetIndex)
+}
+
+function startImageReorderDrag(event, sourceType, sourceIndex = -1) {
+  const sourceUrl = sourceType === 'thumbnail'
+    ? String(document.getElementById('pThumbnail')?.value || '').trim()
+    : String(galleryImages[sourceIndex] || '').trim()
+  if (!sourceUrl) {
+    event.preventDefault()
+    return
+  }
+  event.dataTransfer.effectAllowed = 'move'
+  event.dataTransfer.setData('application/x-image-source', JSON.stringify({ sourceType, sourceIndex }))
+  event.dataTransfer.setData('text/plain', sourceUrl)
+}
+
+function handleImageReorderDrop(rawSource, targetType, targetIndex = -1) {
+  let source
+  try {
+    source = JSON.parse(rawSource)
+  } catch {
+    return
+  }
+  const sourceType = source?.sourceType === 'thumbnail' ? 'thumbnail' : 'gallery'
+  const sourceIndex = Number.isInteger(source?.sourceIndex) ? source.sourceIndex : -1
+  if (sourceType === targetType && sourceIndex === targetIndex) return
+  const sourceUrl = sourceType === 'thumbnail'
+    ? String(document.getElementById('pThumbnail')?.value || '').trim()
+    : String(galleryImages[sourceIndex] || '').trim()
+  if (!sourceUrl) return
+  const targetUrl = targetType === 'thumbnail'
+    ? String(document.getElementById('pThumbnail')?.value || '').trim()
+    : String(galleryImages[targetIndex] || '').trim()
+  if (targetType === 'thumbnail') {
+    document.getElementById('pThumbnail').value = sourceUrl
+    previewThumbnail(sourceUrl)
+  } else if (targetIndex >= 0 && targetIndex < 9) {
+    setGallerySlot(targetIndex, sourceUrl)
+  }
+  if (sourceType === 'thumbnail') {
+    if (targetUrl) {
+      document.getElementById('pThumbnail').value = targetUrl
+      previewThumbnail(targetUrl)
+    } else {
+      document.getElementById('pThumbnail').value = ''
+      previewThumbnail('')
+    }
+  } else if (sourceIndex >= 0 && sourceIndex < 9) {
+    if (targetUrl) setGallerySlot(sourceIndex, targetUrl)
+    else clearGallerySlot(sourceIndex)
+  }
 }
 
 async function applyMultipleImagesFrom(files, targetType, startIndex = 0) {
