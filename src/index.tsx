@@ -6348,9 +6348,8 @@ function loadImageElement(src) {
   })
 }
 
-async function compressAvatarDataUrl(dataUrl) {
+async function compressAvatarDataUrl(dataUrl, maxSide = 512, quality = 0.85) {
   const img = await loadImageElement(dataUrl)
-  const maxSide = 512
   const scale = Math.min(1, maxSide / Math.max(img.width || 1, img.height || 1))
   const w = Math.max(1, Math.round((img.width || 1) * scale))
   const h = Math.max(1, Math.round((img.height || 1) * scale))
@@ -6360,7 +6359,7 @@ async function compressAvatarDataUrl(dataUrl) {
   const ctx = canvas.getContext('2d')
   if (!ctx) return dataUrl
   ctx.drawImage(img, 0, 0, w, h)
-  return canvas.toDataURL('image/jpeg', 0.85)
+  return canvas.toDataURL('image/jpeg', quality)
 }
 
 function triggerAdminAvatarPicker(evt) {
@@ -6373,6 +6372,7 @@ async function onAdminAvatarSelected(inputOrEvent) {
   const input = inputOrEvent?.target || inputOrEvent
   const file = input?.files?.[0]
   if (!file) return
+  showAdminToast('Dang tai anh: ' + file.name + ' (' + Math.round(file.size / 1024) + 'KB)', 'warning')
   await handleAdminAvatarFile(file)
   input.value = ''
 }
@@ -6384,9 +6384,16 @@ async function handleAdminAvatarFile(file) {
   }
   try {
     const rawDataUrl = await readImageAsDataURL(file)
-    const dataUrl = await compressAvatarDataUrl(rawDataUrl)
+    let dataUrl = await compressAvatarDataUrl(rawDataUrl, 512, 0.85)
+    if (dataUrl.length > 700000) dataUrl = await compressAvatarDataUrl(rawDataUrl, 448, 0.8)
+    if (dataUrl.length > 700000) dataUrl = await compressAvatarDataUrl(rawDataUrl, 384, 0.75)
+    if (dataUrl.length > 700000) dataUrl = await compressAvatarDataUrl(rawDataUrl, 320, 0.7)
     if (!dataUrl.startsWith('data:image/')) {
       showAdminToast('File ảnh không hợp lệ', 'error')
+      return
+    }
+    if (dataUrl.length > 700000) {
+      showAdminToast('Ảnh quá lớn, vui lòng chọn ảnh nhỏ hơn', 'error')
       return
     }
     const prevAvatar = String(adminProfile?.avatar || '').trim()
