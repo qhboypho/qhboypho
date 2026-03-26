@@ -1186,6 +1186,29 @@ app.get('/api/admin/products', async (c) => {
   }
 })
 
+function normalizeImageList(input: any): string[] {
+  if (!Array.isArray(input)) return []
+  return input.map((v) => String(v || '').trim()).filter(Boolean)
+}
+
+function normalizeColorOptionsInput(input: any): Array<{ name: string; image: string }> {
+  if (!Array.isArray(input)) return []
+  const out: Array<{ name: string; image: string }> = []
+  for (const item of input) {
+    if (typeof item === 'string') {
+      const name = String(item || '').trim()
+      if (name) out.push({ name, image: '' })
+      continue
+    }
+    if (item && typeof item === 'object') {
+      const name = String((item as any).name || (item as any).label || '').trim()
+      const image = String((item as any).image || (item as any).image_url || '').trim()
+      if (name) out.push({ name, image })
+    }
+  }
+  return out
+}
+
 // POST create product
 app.post('/api/admin/products', async (c) => {
   try {
@@ -1200,6 +1223,12 @@ app.post('/api/admin/products', async (c) => {
     if (!name || !price) {
       return c.json({ success: false, error: 'Name and price are required' }, 400)
     }
+    const normalizedImages = normalizeImageList(images)
+    const normalizedColors = normalizeColorOptionsInput(colors)
+    const normalizedThumbnail = String(thumbnail || '').trim()
+    if (!normalizedThumbnail && normalizedImages.length === 0) {
+      return c.json({ success: false, error: 'Product image is required' }, 400)
+    }
 
     const result = await c.env.DB.prepare(`
       INSERT INTO products 
@@ -1213,9 +1242,9 @@ app.post('/api/admin/products', async (c) => {
       category || 'unisex',
       brand || '',
       material || '',
-      thumbnail || '',
-      JSON.stringify(images || []),
-      JSON.stringify(colors || []),
+      normalizedThumbnail,
+      JSON.stringify(normalizedImages),
+      JSON.stringify(normalizedColors),
       JSON.stringify(sizes || []),
       parseInt(stock) || 0,
       is_featured ? 1 : 0,
@@ -1240,6 +1269,13 @@ app.put('/api/admin/products/:id', async (c) => {
       images, colors, sizes, stock, is_active, is_featured, is_trending, trending_order
     } = body
 
+    const normalizedImages = normalizeImageList(images)
+    const normalizedColors = normalizeColorOptionsInput(colors)
+    const normalizedThumbnail = String(thumbnail || '').trim()
+    if (!normalizedThumbnail && normalizedImages.length === 0) {
+      return c.json({ success: false, error: 'Product image is required' }, 400)
+    }
+
     await c.env.DB.prepare(`
       UPDATE products SET
         name=?, description=?, price=?, original_price=?,
@@ -1255,9 +1291,9 @@ app.put('/api/admin/products/:id', async (c) => {
       category || 'unisex',
       brand || '',
       material || '',
-      thumbnail || '',
-      JSON.stringify(images || []),
-      JSON.stringify(colors || []),
+      normalizedThumbnail,
+      JSON.stringify(normalizedImages),
+      JSON.stringify(normalizedColors),
       JSON.stringify(sizes || []),
       parseInt(stock) || 0,
       is_active !== undefined ? (is_active ? 1 : 0) : 1,
@@ -3798,7 +3834,7 @@ function renderProducts(products) {
   }
   empty.classList.add('hidden')
   grid.innerHTML = products.map(p => {
-    const colors = safeJson(p.colors)
+    const colors = getColorNames(p.colors)
     const discount = p.original_price ? Math.round((1 - p.price/p.original_price)*100) : 0
     return \`
     <div class="bg-white rounded-2xl overflow-hidden card-hover shadow-sm border border-gray-100 cursor-pointer" onclick="showDetail(\${p.id})">
@@ -3868,7 +3904,8 @@ async function showDetail(id) {
   try {
     const res = await axios.get('/api/products/' + id)
     const p = res.data.data
-    const colors = safeJson(p.colors)
+    const colorOptions = normalizeColorOptions(p.colors)
+    const colors = colorOptions.map((c) => c.name)
     const sizes = safeJson(p.sizes)
     const images = safeJson(p.images)
     const discount = p.original_price ? Math.round((1 - p.price/p.original_price)*100) : 0
@@ -3957,7 +3994,7 @@ async function openOrder(id) {
     updateOrderTotal()
 
     // Colors
-    const colors = safeJson(currentProduct.colors)
+    const colors = getColorNames(currentProduct.colors)
     const colorDiv = document.getElementById('colorOptions')
     colorDiv.innerHTML = colors.length ? colors.map(c => \`
       <button class="color-btn px-3 py-1.5 border rounded-lg text-sm hover:border-pink-400 transition" onclick="selectOrderColor('\${c}',this)">\${c}</button>
@@ -4112,7 +4149,7 @@ async function addToCartFromCard(evt, id) {
   try {
     const res = await axios.get('/api/products/' + id)
     const p = res.data.data
-    const colors = safeJson(p.colors)
+    const colors = getColorNames(p.colors)
     const sizes = safeJson(p.sizes)
     const color = colors.length > 0 ? colors[0] : ''
     const size = sizes.length > 0 ? sizes[0] : ''
@@ -4358,6 +4395,23 @@ function addCurrentToCart() {
 // ── UTILS ──────────────────────────────────────────
 function fmtPrice(p) { return new Intl.NumberFormat('vi-VN',{style:'currency',currency:'VND'}).format(p) }
 function safeJson(v) { try { return JSON.parse(v||'[]') } catch { return [] } }
+function normalizeColorOptions(raw) {
+  const arr = Array.isArray(raw) ? raw : safeJson(raw)
+  if (!Array.isArray(arr)) return []
+  return arr.map((item) => {
+    if (typeof item === 'string') return { name: String(item || '').trim(), image: '' }
+    if (item && typeof item === 'object') {
+      return {
+        name: String(item.name || item.label || '').trim(),
+        image: String(item.image || item.image_url || '').trim()
+      }
+    }
+    return { name: '', image: '' }
+  }).filter((c) => c.name)
+}
+function getColorNames(raw) {
+  return normalizeColorOptions(raw).map((c) => c.name)
+}
 function formatPaymentMethod(v) {
   const key = String(v || '').toUpperCase()
   if (key === 'ZALOPAY') return 'ZaloPay'
@@ -6009,7 +6063,7 @@ function adminHTML(): string {
           <input type="text" id="pName" required placeholder="VD: Áo thun Unisex Premium" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-100">
         </div>
         <div class="md:col-span-2">
-          <label class="block text-sm font-semibold mb-2 text-gray-700"><i class="fas fa-images text-pink-400 mr-1"></i>Hình ảnh</label>
+          <label class="block text-sm font-semibold mb-2 text-gray-700"><i class="fas fa-images text-pink-400 mr-1"></i>Hình ảnh *</label>
           <p class="text-xs text-gray-400 mb-2">Ảnh chính hiển thị ở khung lớn bên trái, ảnh phụ nằm ở các khung nhỏ bên phải.</p>
           <div class="grid md:grid-cols-3 gap-3 items-start">
             <div class="md:col-span-1">
@@ -6113,13 +6167,10 @@ function adminHTML(): string {
       <!-- Colors -->
       <div>
         <label class="block text-sm font-semibold mb-2 text-gray-700"><i class="fas fa-palette text-pink-400 mr-1"></i>Màu sắc</label>
-        <div id="colorTags" class="flex flex-wrap gap-2 mb-2 min-h-[36px]"></div>
-        <div class="flex gap-2">
-          <input type="text" id="colorInput" placeholder="VD: Đen, Trắng, Navy..." class="flex-1 border rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-pink-400" 
-            onkeydown="if(event.key==='Enter'){event.preventDefault();addTag('color')}">
-          <button type="button" onclick="addTag('color')" class="btn-pink text-white px-4 py-2 rounded-xl text-sm">Thêm</button>
-        </div>
-        <p class="text-xs text-gray-400 mt-1">Nhấn Enter hoặc Thêm để thêm màu</p>
+        <div id="colorOptionsEditor" class="space-y-2"></div>
+        <button type="button" onclick="addColorOptionRow()" class="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-pink-600 transition">
+          <i class="fas fa-plus"></i>Thêm lựa chọn
+        </button>
       </div>
       
       <!-- Sizes -->
@@ -6913,7 +6964,7 @@ function renderAdminProducts(products) {
     return
   }
   grid.innerHTML = products.map(p => {
-    const colors = safeJson(p.colors)
+    const colors = getColorNames(p.colors)
     const sizes = safeJson(p.sizes)
     return \`
     <div class="bg-white rounded-2xl shadow-sm border overflow-hidden \${!p.is_active ? 'opacity-60' : ''}">
@@ -7016,9 +7067,9 @@ async function openProductModal(id = null) {
       imgs.forEach((url, i) => { if (i < 9 && url) setGallerySlot(i, url) })
       
       // Colors & sizes
-      colors = safeJson(p.colors)
+      colors = normalizeColorOptions(p.colors)
       sizes = safeJson(p.sizes)
-      renderTags('color')
+      renderColorOptionsEditor()
       renderTags('size')
     } catch(e) { showAdminToast('Lỗi tải sản phẩm', 'error'); return }
   }
@@ -7041,7 +7092,7 @@ function resetProductForm() {
   previewThumbnail('')
   for (let i = 0; i < 9; i++) clearGallerySlot(i)
   colors = []; sizes = []
-  renderTags('color'); renderTags('size')
+  renderColorOptionsEditor(); renderTags('size')
   galleryImages = ['','','','','','','','','']
 }
 
@@ -7051,6 +7102,15 @@ async function saveProduct(e) {
   btn.textContent = 'Đang lưu...'
   
   const imgList = galleryImages.filter(v => v && v.trim())
+  const normalizedThumbnail = String(document.getElementById('pThumbnail').value || '').trim()
+  const normalizedColors = colors
+    .map((c) => ({ name: String(c?.name || '').trim(), image: String(c?.image || '').trim() }))
+    .filter((c) => c.name)
+  if (!normalizedThumbnail && imgList.length === 0) {
+    showAdminToast('Trường hình ảnh là bắt buộc', 'error')
+    btn.textContent = 'Lưu sản phẩm'
+    return
+  }
   
   const data = {
     name: document.getElementById('pName').value,
@@ -7060,9 +7120,9 @@ async function saveProduct(e) {
     brand: document.getElementById('pBrand').value,
     material: document.getElementById('pMaterial').value,
     description: document.getElementById('pDescription').value,
-    thumbnail: document.getElementById('pThumbnail').value,
+    thumbnail: normalizedThumbnail,
     images: imgList,
-    colors: colors,
+    colors: normalizedColors,
     sizes: sizes,
     stock: document.getElementById('pStock').value || 0,
     is_featured: document.getElementById('pFeatured').checked,
@@ -7307,27 +7367,105 @@ function fileToOptimizedDataURL(file, maxWidth = 1200, quality = 0.82) {
 
 // ── TAGS (Colors/Sizes) ────────────────────────────
 function addTag(type) {
-  const input = document.getElementById(type === 'color' ? 'colorInput' : 'sizeInput')
+  const input = document.getElementById(type === 'size' ? 'sizeInput' : '')
+  if (!input) return
   const val = input.value.trim()
   if (!val) return
-  const arr = type === 'color' ? colors : sizes
-  val.split(',').map(v => v.trim()).filter(v => v && !arr.includes(v)).forEach(v => arr.push(v))
-  renderTags(type)
+  val.split(',').map(v => v.trim()).filter(v => v && !sizes.includes(v)).forEach(v => sizes.push(v))
+  renderTags('size')
   input.value = ''
 }
 
 function removeTag(type, val) {
-  if (type === 'color') colors = colors.filter(c => c !== val)
-  else sizes = sizes.filter(s => s !== val)
-  renderTags(type)
+  if (type !== 'size') return
+  sizes = sizes.filter(s => s !== val)
+  renderTags('size')
 }
 
 function renderTags(type) {
-  const arr = type === 'color' ? colors : sizes
-  const container = document.getElementById(type === 'color' ? 'colorTags' : 'sizeTags')
-  container.innerHTML = arr.map(v => \`
-    <span class="tag-item">\${v}<span class="tag-del" onclick="removeTag('\${type}','\${v}')">×</span></span>
+  if (type !== 'size') return
+  const container = document.getElementById('sizeTags')
+  container.innerHTML = sizes.map(v => \`
+    <span class="tag-item">\${v}<span class="tag-del" onclick="removeTag('size','\${v}')">×</span></span>
   \`).join('')
+}
+
+function renderColorOptionsEditor() {
+  const wrap = document.getElementById('colorOptionsEditor')
+  if (!wrap) return
+  if (!colors.length) colors = [{ name: '', image: '' }]
+  wrap.innerHTML = colors.map((color, idx) => \`
+    <div class="grid grid-cols-[78px_1fr_auto] gap-3 items-start">
+      <div class="img-slot w-[78px] h-[78px] flex items-center justify-center"
+        onclick="document.getElementById('colorFile-\${idx}').click()"
+        ondragover="handleColorImageDragOver(event)"
+        ondragleave="handleColorImageDragLeave(event)"
+        ondrop="handleColorImageDrop(event, \${idx})">
+        <img src="\${color.image || ''}" alt="" class="w-full h-full object-cover rounded-xl \${color.image ? '' : 'hidden'}" id="colorImg-\${idx}">
+        <div class="text-[11px] text-gray-400 text-center \${color.image ? 'hidden' : ''}" id="colorPlaceholder-\${idx}">
+          Kéo thả ảnh
+        </div>
+        <input type="file" accept="image/*" class="hidden" id="colorFile-\${idx}" onchange="handleColorImageFile(\${idx}, this)">
+      </div>
+      <input type="text" value="\${String(color.name || '').replace(/"/g, '&quot;')}" placeholder="Nhập màu (VD: Đen, Navy...)" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400" oninput="updateColorName(\${idx}, this.value)">
+      <button type="button" onclick="removeColorOptionRow(\${idx})" class="w-9 h-9 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 mt-1">
+        <i class="fas fa-trash text-xs"></i>
+      </button>
+    </div>
+  \`).join('')
+}
+
+function addColorOptionRow() {
+  colors.push({ name: '', image: '' })
+  renderColorOptionsEditor()
+}
+
+function removeColorOptionRow(idx) {
+  if (colors.length <= 1) {
+    colors = [{ name: '', image: '' }]
+  } else {
+    colors.splice(idx, 1)
+  }
+  renderColorOptionsEditor()
+}
+
+function updateColorName(idx, value) {
+  if (!colors[idx]) return
+  colors[idx].name = String(value || '')
+}
+
+function handleColorImageDragOver(event) {
+  event.preventDefault()
+  event.currentTarget.classList.add('drag-over')
+}
+
+function handleColorImageDragLeave(event) {
+  event.currentTarget.classList.remove('drag-over')
+}
+
+async function handleColorImageDrop(event, idx) {
+  event.preventDefault()
+  event.currentTarget.classList.remove('drag-over')
+  const file = Array.from(event.dataTransfer?.files || []).find((f) => f.type && f.type.startsWith('image/'))
+  if (!file) return
+  await applyColorImageFile(idx, file)
+}
+
+async function handleColorImageFile(idx, input) {
+  const file = Array.from(input.files || []).find((f) => f.type && f.type.startsWith('image/'))
+  if (!file) return
+  await applyColorImageFile(idx, file)
+  input.value = ''
+}
+
+async function applyColorImageFile(idx, file) {
+  try {
+    if (!colors[idx]) return
+    colors[idx].image = await fileToOptimizedDataURL(file, 500, 0.85)
+    renderColorOptionsEditor()
+  } catch (_) {
+    showAdminToast('Không thể xử lý ảnh màu', 'error')
+  }
 }
 
 function addPresetSizes(arr) {
@@ -7435,16 +7573,16 @@ function getOrderItemImage(order) {
   const fallback = String(order?.product_thumbnail || order?.thumbnail || '').trim()
     || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=80'
   const rawImages = String(order?.product_images || '').trim()
-  const rawColors = String(order?.product_colors || '').trim()
+  const colorOptions = normalizeColorOptions(order?.product_colors || '[]')
   const selectedColor = String(order?.color || '').trim()
   if (!rawImages || !selectedColor) return fallback
   let images = []
-  let colors = []
   try { images = JSON.parse(rawImages || '[]') } catch (_) { images = [] }
-  try { colors = JSON.parse(rawColors || '[]') } catch (_) { colors = [] }
   if (!Array.isArray(images) || !images.length) return fallback
-  if (Array.isArray(colors) && colors.length) {
-    const idx = colors.findIndex((c) => String(c || '').trim().toLowerCase() === selectedColor.toLowerCase())
+  if (Array.isArray(colorOptions) && colorOptions.length) {
+    const matched = colorOptions.find((c) => String(c?.name || '').trim().toLowerCase() === selectedColor.toLowerCase())
+    if (matched && String(matched.image || '').trim()) return String(matched.image).trim()
+    const idx = colorOptions.findIndex((c) => String(c?.name || '').trim().toLowerCase() === selectedColor.toLowerCase())
     if (idx >= 0 && String(images[idx] || '').trim()) return String(images[idx]).trim()
   }
   const first = images.find((img) => String(img || '').trim())
