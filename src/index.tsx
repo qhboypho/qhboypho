@@ -7472,7 +7472,7 @@ function renderColorOptionsEditor() {
           Bấm hoặc kéo ảnh
         </div>
         <input type="file" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" id="colorFile-\${idx}" onchange="handleColorImageFile(\${idx}, this)">
-        <div class="absolute inset-0 hidden group-hover:flex items-center justify-center bg-black/45 text-white transition z-20" id="colorOverlay-\${idx}">
+        <div class="\${color.image ? 'absolute inset-0 hidden group-hover:flex items-center justify-center bg-black/45 text-white transition z-20' : 'hidden'}" id="colorOverlay-\${idx}">
           <button type="button" onclick="event.preventDefault();event.stopPropagation();removeColorImage(\${idx})" class="w-8 h-8 rounded-full bg-black/35 hover:bg-red-500 flex items-center justify-center z-30">
             <i class="fas fa-trash text-xs"></i>
           </button>
