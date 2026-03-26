@@ -5585,7 +5585,7 @@ function adminHTML(): string {
       <h1 id="pageTitle" class="text-lg font-bold text-gray-800">Dashboard</h1>
     </div>
     <div class="flex items-center gap-3">
-      <input id="adminAvatarInput" type="file" accept="image/*" class="hidden" onchange="onAdminAvatarSelected(event)">
+      <input id="adminAvatarInput" type="file" accept="image/*" class="hidden" onchange="onAdminAvatarSelected(this)">
       <div id="adminAvatarMenuRoot" class="relative">
         <button type="button" onclick="toggleAdminAvatarMenu()" title="Tài khoản quản trị" class="w-auto max-w-[260px] rounded-full bg-gray-900 text-white pl-1.5 pr-3 py-1.5 flex items-center gap-2 shadow-sm hover:bg-gray-800 transition">
           <span class="relative w-8 h-8 rounded-full overflow-hidden border border-white/30 bg-gradient-to-br from-pink-500 to-red-500 text-white font-bold text-xs flex items-center justify-center flex-none">
@@ -5597,11 +5597,11 @@ function adminHTML(): string {
         <div id="adminAvatarDropdown" class="hidden absolute right-0 mt-2 w-[320px] bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden z-50">
           <div class="p-3 bg-gray-50 border-b border-gray-200">
             <div class="flex items-center gap-3">
-              <label for="adminAvatarInput" onclick="event.stopPropagation()" class="avatar-wrap relative w-14 h-14 rounded-full overflow-hidden border border-gray-200 bg-gradient-to-br from-pink-500 to-red-500 text-white font-bold text-lg flex items-center justify-center cursor-pointer flex-none">
+              <button type="button" onclick="triggerAdminAvatarPicker(event)" class="avatar-wrap relative w-14 h-14 rounded-full overflow-hidden border border-gray-200 bg-gradient-to-br from-pink-500 to-red-500 text-white font-bold text-lg flex items-center justify-center cursor-pointer flex-none">
                 <img id="adminMenuAvatarImg" src="" alt="avatar" class="w-full h-full object-cover hidden">
                 <span id="adminMenuAvatarFallback">A</span>
                 <span class="avatar-edit-overlay"><i class="fas fa-camera text-white text-sm"></i></span>
-              </label>
+              </button>
               <div class="min-w-0">
                 <p id="adminMenuProfileName" class="text-sm font-semibold text-gray-900 truncate">QH Clothes</p>
                 <p id="adminMenuShopCode" class="text-xs text-gray-400 truncate">Shop Code: ADMIN</p>
@@ -6371,8 +6371,14 @@ async function compressAvatarDataUrl(dataUrl) {
   return canvas.toDataURL('image/jpeg', 0.85)
 }
 
-async function onAdminAvatarSelected(evt) {
-  const input = evt?.target
+function triggerAdminAvatarPicker(evt) {
+  if (evt) evt.stopPropagation()
+  const input = document.getElementById('adminAvatarInput')
+  if (input) input.click()
+}
+
+async function onAdminAvatarSelected(inputOrEvent) {
+  const input = inputOrEvent?.target || inputOrEvent
   const file = input?.files?.[0]
   if (!file) return
   await handleAdminAvatarFile(file)
@@ -6391,12 +6397,17 @@ async function handleAdminAvatarFile(file) {
       showAdminToast('File ảnh không hợp lệ', 'error')
       return
     }
+    const prevAvatar = String(adminProfile?.avatar || '').trim()
+    adminProfile = { ...(adminProfile || {}), avatar: dataUrl }
+    applyAdminAvatarUI()
     try {
       const res = await axios.put('/api/admin/profile/avatar', { avatar: dataUrl })
       adminProfile = res.data?.data || adminProfile
       applyAdminAvatarUI()
       showAdminToast('Đã cập nhật avatar', 'success')
     } catch (e) {
+      adminProfile = { ...(adminProfile || {}), avatar: prevAvatar }
+      applyAdminAvatarUI()
       const msg = e.response?.data?.error || 'Lưu avatar thất bại'
       showAdminToast(msg, 'error')
     }
