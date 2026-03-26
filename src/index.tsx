@@ -6242,6 +6242,26 @@ function toggleAdminAvatarMenu() {
   if (menu) menu.classList.toggle('hidden', !adminAvatarMenuOpen)
 }
 
+function sanitizeAdminOverlayState() {
+  const modalIds = ['productModal', 'orderDetailModal', 'arrangeSuccessModal']
+  modalIds.forEach((id) => {
+    const el = document.getElementById(id)
+    if (el) el.classList.add('hidden')
+  })
+  closeChangeAdminPasswordModal()
+  closeAdminAvatarMenu()
+  const sidebarOverlay = document.getElementById('sidebarOverlay')
+  if (sidebarOverlay) {
+    sidebarOverlay.classList.add('hidden')
+    if (window.matchMedia && window.matchMedia('(min-width: 768px)').matches) {
+      sidebarOverlay.style.display = 'none'
+    } else {
+      sidebarOverlay.style.display = ''
+    }
+  }
+  document.body.style.overflow = ''
+}
+
 function openChangeAdminPasswordModal() {
   const modal = document.getElementById('adminChangePasswordModal')
   if (modal) modal.style.display = 'flex'
@@ -7938,13 +7958,7 @@ document.addEventListener('keydown', function(e) {
 
 // ── Safety: ensure all modals start hidden on page load ──
 document.addEventListener('DOMContentLoaded', function() {
-  ['productModal', 'orderDetailModal', 'arrangeSuccessModal'].forEach(id => {
-    const el = document.getElementById(id)
-    if (el) el.classList.add('hidden')
-  })
-  const pwdModal = document.getElementById('adminChangePasswordModal')
-  if (pwdModal) pwdModal.style.display = 'none'
-  document.getElementById('sidebarOverlay').classList.add('hidden')
+  sanitizeAdminOverlayState()
 
   document.addEventListener('click', function(e) {
     const target = e.target
@@ -7957,6 +7971,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Init
 async function initAdminAuth() {
+  sanitizeAdminOverlayState()
   try {
     const res = await axios.get('/api/auth/me')
     if (!res.data.isAdmin) {
