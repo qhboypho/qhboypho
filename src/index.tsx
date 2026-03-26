@@ -4531,11 +4531,6 @@ function addCurrentToCart() {
 // ── UTILS ──────────────────────────────────────────
 function fmtPrice(p) { return new Intl.NumberFormat('vi-VN',{style:'currency',currency:'VND'}).format(p) }
 function safeJson(v) { try { return JSON.parse(v||'[]') } catch { return [] } }
-function normalizeStringList(raw) {
-  const arr = Array.isArray(raw) ? raw : safeJson(raw)
-  if (!Array.isArray(arr)) return []
-  return arr.map((item) => String(item || '').trim()).filter(Boolean)
-}
 function normalizeColorOptions(raw) {
   const arr = Array.isArray(raw) ? raw : safeJson(raw)
   if (!Array.isArray(arr)) return []
@@ -7284,12 +7279,16 @@ async function openProductModal(id = null) {
       document.getElementById('pThumbnail').value = p.thumbnail || ''
       
       // Gallery
-      const imgs = normalizeStringList(Array.isArray(p.image_list) ? p.image_list : p.images)
+      const imgs = (Array.isArray(p.image_list) ? p.image_list : safeJson(p.images))
+        .map((item) => String(item || '').trim())
+        .filter(Boolean)
       imgs.forEach((url, i) => { if (i < 9 && url) setGallerySlot(i, url) })
       
       // Colors & sizes
       colors = normalizeColorOptions(Array.isArray(p.color_options) ? p.color_options : p.colors)
-      sizes = normalizeStringList(Array.isArray(p.size_list) ? p.size_list : p.sizes)
+      sizes = (Array.isArray(p.size_list) ? p.size_list : safeJson(p.sizes))
+        .map((item) => String(item || '').trim())
+        .filter(Boolean)
       renderColorOptionsEditor()
       renderTags('size')
     } catch(e) {
