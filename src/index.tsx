@@ -1193,7 +1193,14 @@ app.get('/api/products/:id', async (c) => {
     const id = c.req.param('id')
     const row = await c.env.DB.prepare(`SELECT * FROM products WHERE id = ?`).bind(id).first()
     if (!row) return c.json({ success: false, error: 'Not found' }, 404)
-    return c.json({ success: true, data: row })
+    return c.json({
+      success: true,
+      data: {
+        ...row,
+        color_options: parseColorOptions((row as any).colors),
+        color_names: compactColorNamesJson((row as any).colors)
+      }
+    })
   } catch (e: any) {
     return c.json({ success: false, error: e.message }, 500)
   }
@@ -1206,7 +1213,12 @@ app.get('/api/admin/products', async (c) => {
     const result = await c.env.DB.prepare(
       `SELECT * FROM products ORDER BY created_at DESC`
     ).all()
-    return c.json({ success: true, data: result.results || [] })
+    const rows = (result.results || []).map((row: any) => ({
+      ...row,
+      color_options: parseColorOptions(row.colors),
+      color_names: compactColorNamesJson(row.colors)
+    }))
+    return c.json({ success: true, data: rows })
   } catch (e: any) {
     return c.json({ success: false, error: e.message }, 500)
   }
@@ -1235,10 +1247,24 @@ function normalizeColorOptionsInput(input: any): Array<{ name: string; image: st
   return out
 }
 
+function parseColorOptions(raw: any): Array<{ name: string; image: string }> {
+  const parsed = Array.isArray(raw)
+    ? raw
+    : (() => {
+        try {
+          const value = JSON.parse(String(raw || '[]'))
+          return Array.isArray(value) ? value : []
+        } catch {
+          return []
+        }
+      })()
+  return normalizeColorOptionsInput(parsed)
+}
+
 function resolveSelectedColorImage(productColors: any, selectedColor: any, fallbackImage = ''): string {
   const selected = String(selectedColor || '').trim().toLowerCase()
   if (!selected) return String(fallbackImage || '').trim()
-  const colors = normalizeColorOptionsInput(productColors)
+  const colors = parseColorOptions(productColors)
   if (!colors.length) return String(fallbackImage || '').trim()
   const matched =
     colors.find((item) => String(item.name || '').trim().toLowerCase() === selected) ||
@@ -3889,7 +3915,7 @@ function renderProducts(products) {
   }
   empty.classList.add('hidden')
   grid.innerHTML = products.map(p => {
-    const colors = window.getColorNames ? window.getColorNames(p.colors) : []
+    const colors = getProductColorOptions(p).map((c) => c.name)
     const discount = p.original_price ? Math.round((1 - p.price/p.original_price)*100) : 0
     return \`
     <div class="bg-white rounded-2xl overflow-hidden card-hover shadow-sm border border-gray-100 cursor-pointer" onclick="showDetail(\${p.id})">
@@ -3959,7 +3985,7 @@ async function showDetail(id) {
   try {
     const res = await axios.get('/api/products/' + id)
     const p = res.data.data
-    const colorOptions = window.normalizeColorOptions ? window.normalizeColorOptions(p.colors) : []
+    const colorOptions = getProductColorOptions(p)
     const colors = colorOptions.map((c) => c.name)
     const sizes = safeJson(p.sizes)
     const images = safeJson(p.images)
@@ -4050,7 +4076,7 @@ async function openOrder(id) {
     updateOrderTotal()
 
     // Colors
-    const colorOptions = window.normalizeColorOptions ? window.normalizeColorOptions(currentProduct.colors) : []
+    const colorOptions = getProductColorOptions(currentProduct)
     orderColorOptions = Array.isArray(colorOptions) ? colorOptions : []
     const colorDiv = document.getElementById('colorOptions')
     colorDiv.innerHTML = orderColorOptions.length ? orderColorOptions.map((item, idx) => \`
@@ -4078,7 +4104,7 @@ function selectOrderColor(c, colorImage, btn) {
   document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active','bg-pink-50','border-pink-400','text-pink-600'))
   btn.classList.add('active','bg-pink-50','border-pink-400','text-pink-600')
   selectedColor = c
-  selectedColorImage = String(colorImage || '').trim() || selectedColorImage || (currentProduct?.thumbnail || '')
+  selectedColorImage = String(colorImage || '').trim() || getSelectedColorImageFromProduct(currentProduct, c) || (currentProduct?.thumbnail || '')
   const preview = document.getElementById('orderProductImg')
   if (preview && selectedColorImage) preview.src = selectedColorImage
   document.getElementById('fieldColor')?.classList.remove('field-error','shake')
@@ -4219,7 +4245,7 @@ async function addToCartFromCard(evt, id) {
   try {
     const res = await axios.get('/api/products/' + id)
     const p = res.data.data
-    const colors = window.getColorNames ? window.getColorNames(p.colors) : []
+    const colors = getProductColorOptions(p).map((c) => c.name)
     const sizes = safeJson(p.sizes)
     const color = colors.length > 0 ? colors[0] : ''
     const size = sizes.length > 0 ? sizes[0] : ''
@@ -4324,13 +4350,14 @@ async function submitOrder() {
   }
 
   try {
+    const resolvedColorImage = getSelectedColorImageFromProduct(currentProduct, selectedColor)
     const res = await axios.post('/api/orders', {
       customer_name: name,
       customer_phone: phone,
       customer_address: address,
       product_id: currentProduct.id,
       color: selectedColor,
-      selected_color_image: selectedColorImage || getSelectedColorImageFromProduct(currentProduct, selectedColor),
+      selected_color_image: resolvedColorImage || selectedColorImage || (currentProduct?.thumbnail || ''),
       size: selectedSize,
       quantity: orderQty,
       voucher_code: appliedVoucher ? appliedVoucher.code : '',
@@ -4480,6 +4507,12 @@ function normalizeColorOptions(raw) {
     return { name: '', image: '' }
   }).filter((c) => c.name || c.image)
 }
+function getProductColorOptions(product) {
+  if (!product) return []
+  const direct = Array.isArray(product.color_options) ? product.color_options : null
+  if (direct && direct.length) return normalizeColorOptions(direct)
+  return normalizeColorOptions(product.colors || [])
+}
 function getColorNames(raw) {
   const arr = Array.isArray(raw) ? raw : safeJson(raw)
   if (!Array.isArray(arr)) return []
@@ -4492,7 +4525,7 @@ function getColorNames(raw) {
 function getSelectedColorImageFromProduct(product, selectedColor) {
   const color = String(selectedColor || '').trim().toLowerCase()
   if (!color) return String(product?.thumbnail || '').trim()
-  const colors = normalizeColorOptions(product?.colors || [])
+  const colors = getProductColorOptions(product)
   const matched =
     colors.find((item) => String(item.name || '').trim().toLowerCase() === color) ||
     colors.find((item) => {
@@ -7073,7 +7106,7 @@ function renderAdminProducts(products) {
     const name = String(p.name || 'Sản phẩm')
     const brand = String(p.brand || '').trim()
     const thumbnail = String(p.thumbnail || '').trim() || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'
-    const colors = window.getColorNames ? window.getColorNames(p.colors) : []
+    const colors = getProductColorOptions(p).map((c) => c.name)
     const sizes = safeJson(p.sizes)
     return \`
     <div class="bg-white rounded-2xl shadow-sm border overflow-hidden \${!p.is_active ? 'opacity-60' : ''}">
@@ -7176,7 +7209,7 @@ async function openProductModal(id = null) {
       imgs.forEach((url, i) => { if (i < 9 && url) setGallerySlot(i, url) })
       
       // Colors & sizes
-      colors = window.normalizeColorOptions ? window.normalizeColorOptions(p.colors) : []
+      colors = getProductColorOptions(p)
       sizes = safeJson(p.sizes)
       renderColorOptionsEditor()
       renderTags('size')
