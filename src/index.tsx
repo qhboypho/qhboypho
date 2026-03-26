@@ -6212,7 +6212,11 @@ function getInitialFromName(name) {
 
 function applyAdminAvatarUI() {
   const rawAvatar = String(adminProfile?.avatar || '').trim()
-  const avatar = ['null', 'undefined', 'none'].includes(rawAvatar.toLowerCase()) ? '' : rawAvatar
+  const lowerAvatar = rawAvatar.toLowerCase()
+  let avatar = ['null', 'undefined', 'none'].includes(lowerAvatar) ? '' : rawAvatar
+  if (avatar.startsWith('data:image/') && avatar.length < 2000) {
+    avatar = ''
+  }
   const name = String(adminProfile?.name || 'QH Clothes').trim() || 'QH Clothes'
   const adminKey = String(adminProfile?.adminUserKey || 'admin').trim().toUpperCase()
 
@@ -6444,7 +6448,8 @@ async function handleAdminAvatarFile(file) {
       const res = await axios.put('/api/admin/profile/avatar', { avatar: dataUrl })
       adminProfile = res.data?.data || adminProfile
       applyAdminAvatarUI()
-      applyAvatarSrcDirect(dataUrl)
+      applyAvatarSrcDirect(String(adminProfile?.avatar || dataUrl))
+      loadAdminProfile()
       showAdminToast('Đã cập nhật avatar', 'success')
     } catch (e) {
       adminProfile = { ...(adminProfile || {}), avatar: prevAvatar }
