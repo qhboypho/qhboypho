@@ -5593,7 +5593,7 @@ function adminHTML(): string {
           <span class="avatar-edit-overlay"></span>
         </button>
         <div id="adminAvatarDropdown" class="hidden absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden z-50">
-          <button type="button" onclick="openAdminAvatarPicker(); closeAdminAvatarMenu();" class="w-full text-left px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+          <button type="button" onclick="triggerAdminAvatarPickerFromMenu(event)" class="w-full text-left px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
             <i class="fas fa-image text-pink-500"></i>Thay đổi ảnh đại diện
           </button>
           <button type="button" onclick="openChangeAdminPasswordModal(); closeAdminAvatarMenu();" class="w-full text-left px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
@@ -6227,7 +6227,23 @@ async function loadAdminProfile() {
 
 function openAdminAvatarPicker() {
   const input = document.getElementById('adminAvatarInput')
-  if (input) input.click()
+  if (!input) return
+  try {
+    if (typeof input.showPicker === 'function') {
+      input.showPicker()
+      return
+    }
+  } catch (_) {}
+  input.click()
+}
+
+function triggerAdminAvatarPickerFromMenu(event) {
+  if (event) {
+    event.preventDefault()
+    event.stopPropagation()
+  }
+  openAdminAvatarPicker()
+  closeAdminAvatarMenu()
 }
 
 function closeAdminAvatarMenu() {
