@@ -4418,7 +4418,13 @@ function normalizeColorOptions(raw) {
   }).filter((c) => c.name)
 }
 function getColorNames(raw) {
-  return normalizeColorOptions(raw).map((c) => c.name)
+  const arr = Array.isArray(raw) ? raw : safeJson(raw)
+  if (!Array.isArray(arr)) return []
+  return arr.map((item) => {
+    if (typeof item === 'string') return String(item || '').trim()
+    if (item && typeof item === 'object') return String(item.name || item.label || '').trim()
+    return ''
+  }).filter(Boolean)
 }
 function formatPaymentMethod(v) {
   const key = String(v || '').toUpperCase()
@@ -7599,14 +7605,17 @@ function getOrderItemImage(order) {
   const fallback = String(order?.product_thumbnail || order?.thumbnail || '').trim()
     || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=80'
   const rawImages = String(order?.product_images || '').trim()
-  const colorOptions = normalizeColorOptions(order?.product_colors || '[]')
+  const rawColors = Array.isArray(order?.product_colors) ? order.product_colors : safeJson(order?.product_colors || '[]')
   const selectedColor = String(order?.color || '').trim()
   if (!rawImages || !selectedColor) return fallback
   let images = []
   try { images = JSON.parse(rawImages || '[]') } catch (_) { images = [] }
   if (!Array.isArray(images) || !images.length) return fallback
-  if (Array.isArray(colorOptions) && colorOptions.length) {
-    const idx = colorOptions.findIndex((c) => String(c?.name || '').trim().toLowerCase() === selectedColor.toLowerCase())
+  if (Array.isArray(rawColors) && rawColors.length) {
+    const idx = rawColors.findIndex((c) => {
+      const name = typeof c === 'string' ? c : String(c?.name || c?.label || '')
+      return String(name || '').trim().toLowerCase() === selectedColor.toLowerCase()
+    })
     if (idx >= 0 && String(images[idx] || '').trim()) return String(images[idx]).trim()
   }
   const first = images.find((img) => String(img || '').trim())
