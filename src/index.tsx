@@ -3995,11 +3995,12 @@ async function openOrder(id) {
     currentProduct = res.data.data
     orderQty = 1
     selectedColor = ''
+    selectedColorImage = String(currentProduct.thumbnail || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400')
     selectedSize = ''
     selectedPaymentMethod = ''
     appliedVoucher = null
 
-    document.getElementById('orderProductImg').src = currentProduct.thumbnail || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'
+    document.getElementById('orderProductImg').src = selectedColorImage
     document.getElementById('orderProductName').textContent = currentProduct.name
     document.getElementById('orderProductPrice').textContent = fmtPrice(currentProduct.price)
     document.getElementById('qtyDisplay').textContent = '1'
@@ -4019,10 +4020,14 @@ async function openOrder(id) {
     updateOrderTotal()
 
     // Colors
-    const colors = window.getColorNames ? window.getColorNames(currentProduct.colors) : []
+    const colorOptions = window.normalizeColorOptions ? window.normalizeColorOptions(currentProduct.colors) : []
     const colorDiv = document.getElementById('colorOptions')
-    colorDiv.innerHTML = colors.length ? colors.map(c => \`
-      <button class="color-btn px-3 py-1.5 border rounded-lg text-sm hover:border-pink-400 transition" onclick="selectOrderColor('\${c}',this)">\${c}</button>
+    colorDiv.innerHTML = colorOptions.length ? colorOptions.map(item => \`
+      <button class="color-btn px-3 py-1.5 border rounded-lg text-sm hover:border-pink-400 transition inline-flex items-center gap-2"
+        onclick="selectOrderColor('\${String(item.name || '').replace(/'/g, "\\'")}', '\${String(item.image || '').replace(/'/g, "\\'")}', this)">
+        \${item.image ? \`<img src="\${item.image}" alt="" class="w-5 h-5 rounded-md object-cover border border-gray-200">\` : '<span class="w-5 h-5 rounded-md bg-gray-100 border border-gray-200"></span>'}
+        <span>\${item.name}</span>
+      </button>
     \`).join('') : '<p class="text-gray-400 text-sm">Không có lựa chọn màu</p>'
 
     // Sizes
@@ -4038,10 +4043,13 @@ async function openOrder(id) {
   } catch(e) { showToast('Lỗi khi tải sản phẩm', 'error') }
 }
 
-function selectOrderColor(c, btn) {
+function selectOrderColor(c, colorImage, btn) {
   document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active','bg-pink-50','border-pink-400','text-pink-600'))
   btn.classList.add('active','bg-pink-50','border-pink-400','text-pink-600')
   selectedColor = c
+  selectedColorImage = String(colorImage || '').trim() || selectedColorImage || (currentProduct?.thumbnail || '')
+  const preview = document.getElementById('orderProductImg')
+  if (preview && selectedColorImage) preview.src = selectedColorImage
   document.getElementById('fieldColor')?.classList.remove('field-error','shake')
 }
 function selectOrderSize(s, btn) {
@@ -6334,6 +6342,7 @@ let adminProfile = null
 let adminAvatarMenuOpen = false
 let settingsSubmenuOpen = false
 let settingsActiveSubPage = ''
+let selectedColorImage = ''
 const MAX_PRODUCT_PAYLOAD_SIZE = 1200000
 
 // ── NAVIGATION ────────────────────────────────────
@@ -7454,9 +7463,9 @@ function renderColorOptionsEditor() {
   if (!colors.length) colors = [{ name: '', image: '' }]
   wrap.innerHTML = colors.map((color, idx) => \`
     <div class="grid grid-cols-[78px_1fr_auto] gap-3 items-start">
-      <div class="img-slot w-[78px] h-[78px] flex items-center justify-center cursor-pointer select-none"
+      <label class="img-slot w-[78px] h-[78px] flex items-center justify-center cursor-pointer select-none"
         role="button" tabindex="0"
-        onclick="document.getElementById('colorFile-\${idx}').click()"
+        for="colorFile-\${idx}"
         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('colorFile-\${idx}').click()}"
         ondragover="handleColorImageDragOver(event)"
         ondragleave="handleColorImageDragLeave(event)"
@@ -7466,7 +7475,7 @@ function renderColorOptionsEditor() {
           Bấm hoặc kéo ảnh
         </div>
         <input type="file" accept="image/*" class="hidden" id="colorFile-\${idx}" onchange="handleColorImageFile(\${idx}, this)">
-      </div>
+      </label>
       <input type="text" value="\${String(color.name || '').replace(/"/g, '&quot;')}" placeholder="Nhập màu (VD: Đen, Navy...)" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400" oninput="updateColorName(\${idx}, this.value)">
       <button type="button" onclick="removeColorOptionRow(\${idx})" class="w-9 h-9 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 mt-1">
         <i class="fas fa-trash text-xs"></i>
