@@ -1302,21 +1302,29 @@ app.get('/api/admin/orders', async (c) => {
     await initDB(c.env.DB)
     const status = c.req.query('status')
     const includeInternal = c.req.query('include_internal') === '1'
-    const internalFilterSql = includeInternal ? '1=1' : `NOT ${buildInternalTestOrderWhereSql()}`
+    const internalFilterSql = includeInternal ? '1=1' : `NOT ${buildInternalTestOrderWhereSql('o')}`
     let query = `
-      SELECT *,
-             CASE WHEN LOWER(COALESCE(payment_status, ''))='paid' THEN 0 ELSE total_price END AS amount_due
-      FROM orders
+      SELECT o.*,
+             p.thumbnail AS product_thumbnail,
+             p.images AS product_images,
+             p.colors AS product_colors,
+             CASE WHEN LOWER(COALESCE(o.payment_status, ''))='paid' THEN 0 ELSE o.total_price END AS amount_due
+      FROM orders o
+      LEFT JOIN products p ON p.id = o.product_id
       WHERE ${internalFilterSql}
-      ORDER BY created_at DESC
+      ORDER BY o.created_at DESC
     `
     if (status && status !== 'all') {
       query = `
-        SELECT *,
-               CASE WHEN LOWER(COALESCE(payment_status, ''))='paid' THEN 0 ELSE total_price END AS amount_due
-        FROM orders
-        WHERE status=? AND ${internalFilterSql}
-        ORDER BY created_at DESC
+        SELECT o.*,
+               p.thumbnail AS product_thumbnail,
+               p.images AS product_images,
+               p.colors AS product_colors,
+               CASE WHEN LOWER(COALESCE(o.payment_status, ''))='paid' THEN 0 ELSE o.total_price END AS amount_due
+        FROM orders o
+        LEFT JOIN products p ON p.id = o.product_id
+        WHERE o.status=? AND ${internalFilterSql}
+        ORDER BY o.created_at DESC
       `
     }
     const stmt = status && status !== 'all'
@@ -5565,11 +5573,7 @@ function adminHTML(): string {
               <th class="px-4 py-3 text-center font-semibold text-gray-600">
                 <input id="ordersSelectAll" type="checkbox" onchange="toggleSelectAllOrders(this.checked)" class="w-4 h-4 rounded border-gray-300 text-pink-500 focus:ring-pink-400">
               </th>
-              <th class="px-4 py-3 text-left font-semibold text-gray-600">Mã ĐH</th>
-              <th id="ordersTrackingHeader" class="px-4 py-3 text-left font-semibold text-gray-600 hidden">Mã vận đơn</th>
-              <th class="px-4 py-3 text-left font-semibold text-gray-600">Khách hàng</th>
-              <th class="px-4 py-3 text-left font-semibold text-gray-600 hidden md:table-cell">Sản phẩm</th>
-              <th class="px-4 py-3 text-center font-semibold text-gray-600 hidden sm:table-cell">SL</th>
+              <th class="px-4 py-3 text-left font-semibold text-gray-600">Thông tin ĐH</th>
               <th class="px-4 py-3 text-right font-semibold text-gray-600">Tổng tiền</th>
               <th class="px-4 py-3 text-center font-semibold text-gray-600 hidden lg:table-cell">Voucher</th>
               <th class="px-4 py-3 text-center font-semibold text-gray-600">Trạng thái</th>
@@ -6729,7 +6733,7 @@ function addPresetSizes(arr) {
 
 // ── ORDERS ────────────────────────────────────────
 async function loadAdminOrders() {
-  document.getElementById('ordersTable').innerHTML = '<tr><td colspan="9" class="text-center py-12 text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></td></tr>'
+  document.getElementById('ordersTable').innerHTML = '<tr><td colspan="6" class="text-center py-12 text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></td></tr>'
   try {
     const res = await axios.get('/api/admin/orders')
     adminOrders = res.data.data || []
@@ -6742,7 +6746,7 @@ async function loadAdminOrders() {
       setTimeout(() => { window.location.href = '/admin/login' }, 400)
       return
     }
-    document.getElementById('ordersTable').innerHTML = '<tr><td colspan="9" class="text-center py-8 text-red-400">Lỗi tải dữ liệu</td></tr>'
+    document.getElementById('ordersTable').innerHTML = '<tr><td colspan="6" class="text-center py-8 text-red-400">Lỗi tải dữ liệu</td></tr>'
   }
 }
 
@@ -6812,11 +6816,37 @@ function filterOrders() {
   updateOrderSelectionUI()
 }
 
+function buildOrderSkuText(order) {
+  const color = String(order?.color || '').trim()
+  const size = String(order?.size || '').trim()
+  const bits = []
+  if (color) bits.push(color)
+  if (size) bits.push('Size ' + size)
+  return bits.length ? bits.join(' / ') : 'N/A'
+}
+
+function getOrderItemImage(order) {
+  const fallback = String(order?.product_thumbnail || order?.thumbnail || '').trim()
+    || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=80'
+  const rawImages = String(order?.product_images || '').trim()
+  const rawColors = String(order?.product_colors || '').trim()
+  const selectedColor = String(order?.color || '').trim()
+  if (!rawImages || !selectedColor) return fallback
+  let images = []
+  let colors = []
+  try { images = JSON.parse(rawImages || '[]') } catch (_) { images = [] }
+  try { colors = JSON.parse(rawColors || '[]') } catch (_) { colors = [] }
+  if (!Array.isArray(images) || !images.length) return fallback
+  if (Array.isArray(colors) && colors.length) {
+    const idx = colors.findIndex((c) => String(c || '').trim().toLowerCase() === selectedColor.toLowerCase())
+    if (idx >= 0 && String(images[idx] || '').trim()) return String(images[idx]).trim()
+  }
+  const first = images.find((img) => String(img || '').trim())
+  return first ? String(first).trim() : fallback
+}
+
 function renderOrdersTable(orders) {
   const empty = document.getElementById('ordersEmpty')
-  const showTrackingColumn = ordersViewMode === 'waiting_ship'
-  const trackingHeader = document.getElementById('ordersTrackingHeader')
-  if (trackingHeader) trackingHeader.classList.toggle('hidden', !showTrackingColumn)
   if (!orders.length) {
     document.getElementById('ordersTable').innerHTML = ''
     empty.classList.remove('hidden')
@@ -6830,36 +6860,40 @@ function renderOrdersTable(orders) {
       <input type="checkbox" class="w-4 h-4 rounded border-gray-300 text-pink-500 focus:ring-pink-400" \${selectedOrderIds.has(Number(o.id)) ? 'checked' : ''} onchange="toggleOrderSelection(\${o.id}, this.checked)">
     </td>
     <td class="px-4 py-3">
-      <button type="button"
-        onclick="copyOrderCode(decodeURIComponent('\${encodeURIComponent(String(o.order_code || '').trim())}')); return false;"
-        title="Bấm để copy mã đơn hàng"
-        class="font-mono text-xs text-blue-600 font-semibold hover:text-blue-700 transition">
-        \${o.order_code}
-      </button>
+      <div class="flex items-start gap-3">
+        <img src="\${getOrderItemImage(o)}" alt="\${o.product_name || 'product'}" class="w-12 h-12 rounded-lg object-cover border border-gray-200 bg-gray-100 flex-none" onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=80'">
+        <div class="min-w-0 space-y-0.5">
+          <div>
+            <button type="button"
+              onclick="copyOrderCode(decodeURIComponent('\${encodeURIComponent(String(o.order_code || '').trim())}')); return false;"
+              title="Bấm để copy mã đơn hàng"
+              class="font-mono text-[11px] text-blue-600 font-semibold hover:text-blue-700 transition">
+              Mã ĐH: \${o.order_code}
+            </button>
+          </div>
+          <p class="text-sm text-gray-800 font-semibold truncate max-w-[290px]">\${o.product_name} x \${o.quantity || 1}</p>
+          <div class="text-xs text-gray-500">
+            <span>\${displayCustomerName(o.customer_name)}</span>
+            <span> • </span>
+            <button type="button"
+              onclick="copyPhoneNumber(decodeURIComponent('\${encodeURIComponent(String(o.customer_phone || '').trim())}')); return false;"
+              title="Bấm để copy số điện thoại"
+              class="hover:text-blue-600 no-underline transition">\${o.customer_phone}</button>
+          </div>
+          <p class="text-xs text-gray-500">SKU: \${buildOrderSkuText(o)}</p>
+          <div>
+            \${String(o.shipping_tracking_code || '').trim()
+              ? \`<button type="button"
+                    onclick="copyTrackingCode(decodeURIComponent('\${encodeURIComponent(String(o.shipping_tracking_code || '').trim())}')); return false;"
+                    title="Bấm để copy mã đầy đủ: \${String(o.shipping_tracking_code || '').trim()}"
+                    class="font-mono text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg font-semibold hover:bg-emerald-100 transition">
+                    Mã vận đơn: \${getTrackingDisplayCode(o.shipping_tracking_code)}
+                  </button>\`
+              : '<span class="text-xs text-gray-300">Mã vận đơn: —</span>'}
+          </div>
+        </div>
+      </div>
     </td>
-    <td class="px-4 py-3 \${showTrackingColumn ? '' : 'hidden'}">
-      \${String(o.shipping_tracking_code || '').trim()
-        ? \`<button type="button"
-              onclick="copyTrackingCode(decodeURIComponent('\${encodeURIComponent(String(o.shipping_tracking_code || '').trim())}')); return false;"
-              title="Bấm để copy mã đầy đủ: \${String(o.shipping_tracking_code || '').trim()}"
-              class="font-mono text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-lg font-semibold hover:bg-emerald-100 transition">
-              \${getTrackingDisplayCode(o.shipping_tracking_code)}
-            </button>\`
-        : '<span class="text-gray-300 text-xs">—</span>'}
-    </td>
-    <td class="px-4 py-3">
-      <p class="font-medium text-gray-800 text-sm">\${displayCustomerName(o.customer_name)}</p>
-      <button type="button"
-        onclick="copyPhoneNumber(decodeURIComponent('\${encodeURIComponent(String(o.customer_phone || '').trim())}')); return false;"
-        title="Bấm để copy số điện thoại"
-        class="text-gray-500 text-xs hover:text-blue-600 no-underline transition">
-        \${o.customer_phone}
-      </button>
-    </td>
-    <td class="px-4 py-3 hidden md:table-cell">
-      <p class="text-sm text-gray-700 max-w-xs truncate">\${o.product_name}</p>
-    </td>
-    <td class="px-4 py-3 text-center text-sm font-semibold hidden sm:table-cell">\${o.quantity}</td>
     <td class="px-4 py-3 text-right">
       <p class="font-bold text-gray-800">\${fmtPrice(getOrderAmountDue(o))}</p>
       \${o.discount_amount > 0 ? \`<p class="text-xs text-green-600">-\${fmtPrice(o.discount_amount)}</p>\` : ''}
