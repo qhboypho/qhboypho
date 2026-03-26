@@ -168,6 +168,30 @@ async function initDB(db: D1Database) {
   try { await db.prepare("ALTER TABLE orders ADD COLUMN shipping_label TEXT").run() } catch (_) { }
   try { await db.prepare("ALTER TABLE orders ADD COLUMN shipping_fee REAL DEFAULT 0").run() } catch (_) { }
 
+  // Backfill old orders so selected color images stay in sync with product color mappings.
+  try {
+    const backfillRows = await db.prepare(`
+      SELECT o.id, o.color, o.selected_color_image, p.colors AS product_colors, p.thumbnail AS product_thumbnail
+      FROM orders o
+      LEFT JOIN products p ON p.id = o.product_id
+      WHERE (o.selected_color_image IS NULL OR TRIM(o.selected_color_image) = '')
+        AND TRIM(COALESCE(o.color, '')) <> ''
+        AND p.id IS NOT NULL
+      ORDER BY o.id ASC
+      LIMIT 1000
+    `).all()
+    const rows = Array.isArray(backfillRows?.results) ? backfillRows.results as any[] : []
+    for (const row of rows) {
+      const resolved = resolveSelectedColorImage(row.product_colors, row.color, row.product_thumbnail || '')
+      if (!resolved) continue
+      await db.prepare(`UPDATE orders SET selected_color_image=?, updated_at=CURRENT_TIMESTAMP WHERE id=?`)
+        .bind(resolved, row.id)
+        .run()
+    }
+  } catch (err) {
+    console.error('Failed to backfill order color images', err)
+  }
+
   // Seed initial banners if empty
   try {
     const bannerCountResult = await db.prepare("SELECT COUNT(*) as num_rows FROM hero_banners").all()
