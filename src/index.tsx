@@ -87,6 +87,7 @@ async function initDB(db: D1Database) {
       product_name TEXT NOT NULL,
       product_price REAL NOT NULL,
       color TEXT,
+      selected_color_image TEXT DEFAULT '',
       size TEXT,
       quantity INTEGER DEFAULT 1,
       total_price REAL NOT NULL,
@@ -152,6 +153,7 @@ async function initDB(db: D1Database) {
   try { await db.prepare("ALTER TABLE products ADD COLUMN display_order INTEGER DEFAULT 0").run() } catch (_) { }
   try { await db.prepare("ALTER TABLE products ADD COLUMN is_trending INTEGER DEFAULT 0").run() } catch (_) { }
   try { await db.prepare("ALTER TABLE products ADD COLUMN trending_order INTEGER DEFAULT 0").run() } catch (_) { }
+  try { await db.prepare("ALTER TABLE orders ADD COLUMN selected_color_image TEXT DEFAULT ''").run() } catch (_) { }
   try { await db.prepare("ALTER TABLE orders ADD COLUMN payment_method TEXT DEFAULT 'COD'").run() } catch (_) { }
   try { await db.prepare("ALTER TABLE orders ADD COLUMN payment_status TEXT DEFAULT 'unpaid'").run() } catch (_) { }
   try { await db.prepare("ALTER TABLE orders ADD COLUMN payment_paid_at DATETIME").run() } catch (_) { }
@@ -1209,6 +1211,16 @@ function normalizeColorOptionsInput(input: any): Array<{ name: string; image: st
   return out
 }
 
+function resolveSelectedColorImage(productColors: any, selectedColor: any, fallbackImage = ''): string {
+  const selected = String(selectedColor || '').trim().toLowerCase()
+  if (!selected) return String(fallbackImage || '').trim()
+  const colors = normalizeColorOptionsInput(productColors)
+  if (!colors.length) return String(fallbackImage || '').trim()
+  const matched = colors.find((item) => String(item.name || '').trim().toLowerCase() === selected)
+  if (matched && String(matched.image || '').trim()) return String(matched.image).trim()
+  return String(fallbackImage || '').trim()
+}
+
 function compactColorNamesJson(raw: any): string {
   let arr: any[] = []
   try { arr = JSON.parse(String(raw || '[]')) } catch { arr = [] }
@@ -1418,7 +1430,7 @@ app.post('/api/orders', async (c) => {
     const body = await c.req.json()
     const {
       customer_name, customer_phone, customer_address,
-      product_id, color, size, quantity, note, voucher_code, payment_method
+      product_id, color, selected_color_image, size, quantity, note, voucher_code, payment_method
     } = body
 
     if (!customer_name || !customer_phone || !customer_address || !product_id) {
@@ -1457,11 +1469,13 @@ app.post('/api/orders', async (c) => {
     const paymentMethod = ['COD', 'ZALOPAY', 'MOMO', 'BANK_TRANSFER'].includes(normalizedPaymentMethod)
       ? normalizedPaymentMethod
       : 'COD'
+    const selectedColorImage = String(selected_color_image || '').trim()
+      || resolveSelectedColorImage(product.colors, color, product.thumbnail || '')
 
     const result = await c.env.DB.prepare(`
       INSERT INTO orders 
-        (user_id, order_code, customer_name, customer_phone, customer_address, product_id, product_name, product_price, color, size, quantity, total_price, voucher_code, discount_amount, note, payment_method)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (user_id, order_code, customer_name, customer_phone, customer_address, product_id, product_name, product_price, color, selected_color_image, size, quantity, total_price, voucher_code, discount_amount, note, payment_method)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       getCookie(c, 'user_id') || null,
       orderCode,
@@ -1472,6 +1486,7 @@ app.post('/api/orders', async (c) => {
       product.name,
       product.price,
       color || '',
+      selectedColorImage || '',
       size || '',
       qty,
       total,
@@ -3813,7 +3828,9 @@ function addToCart(product, color, size, qty) {
       sku: product.sku || ('SKU-'+String(product.id).padStart(4,'0')),
       thumbnail: product.thumbnail || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400',
       price: product.price,
-      color, size, qty,
+      color,
+      colorImage: getSelectedColorImageFromProduct(product, color),
+      size, qty,
       checked: true
     })
   }
@@ -4268,6 +4285,7 @@ async function submitOrder() {
       customer_address: address,
       product_id: currentProduct.id,
       color: selectedColor,
+      selected_color_image: getSelectedColorImageFromProduct(currentProduct, selectedColor),
       size: selectedSize,
       quantity: orderQty,
       voucher_code: appliedVoucher ? appliedVoucher.code : '',
@@ -4425,6 +4443,14 @@ function getColorNames(raw) {
     if (item && typeof item === 'object') return String(item.name || item.label || '').trim()
     return ''
   }).filter(Boolean)
+}
+function getSelectedColorImageFromProduct(product, selectedColor) {
+  const color = String(selectedColor || '').trim().toLowerCase()
+  if (!color) return String(product?.thumbnail || '').trim()
+  const colors = normalizeColorOptions(product?.colors || [])
+  const matched = colors.find((item) => String(item.name || '').trim().toLowerCase() === color)
+  if (matched && String(matched.image || '').trim()) return String(matched.image).trim()
+  return String(product?.thumbnail || '').trim()
 }
 window.normalizeColorOptions = normalizeColorOptions
 window.getColorNames = getColorNames
@@ -4780,6 +4806,7 @@ async function submitCartOrder() {
       const res = await axios.post('/api/orders', {
         customer_name: name, customer_phone: phone, customer_address: address,
         product_id: item.productId, color: item.color, size: item.size,
+        selected_color_image: item.colorImage || '',
         quantity: item.qty,
         voucher_code: ckAppliedVoucher ? ckAppliedVoucher.code : '',
         note,
@@ -7427,14 +7454,16 @@ function renderColorOptionsEditor() {
   if (!colors.length) colors = [{ name: '', image: '' }]
   wrap.innerHTML = colors.map((color, idx) => \`
     <div class="grid grid-cols-[78px_1fr_auto] gap-3 items-start">
-      <div class="img-slot w-[78px] h-[78px] flex items-center justify-center"
+      <div class="img-slot w-[78px] h-[78px] flex items-center justify-center cursor-pointer select-none"
+        role="button" tabindex="0"
         onclick="document.getElementById('colorFile-\${idx}').click()"
+        onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('colorFile-\${idx}').click()}"
         ondragover="handleColorImageDragOver(event)"
         ondragleave="handleColorImageDragLeave(event)"
         ondrop="handleColorImageDrop(event, \${idx})">
         <img src="\${color.image || ''}" alt="" class="w-full h-full object-cover rounded-xl \${color.image ? '' : 'hidden'}" id="colorImg-\${idx}">
-        <div class="text-[11px] text-gray-400 text-center \${color.image ? 'hidden' : ''}" id="colorPlaceholder-\${idx}">
-          Kéo thả ảnh
+        <div class="text-[11px] text-gray-400 text-center px-2 leading-tight \${color.image ? 'hidden' : ''}" id="colorPlaceholder-\${idx}">
+          Bấm hoặc kéo ảnh
         </div>
         <input type="file" accept="image/*" class="hidden" id="colorFile-\${idx}" onchange="handleColorImageFile(\${idx}, this)">
       </div>
@@ -7604,7 +7633,7 @@ function buildOrderSkuText(order) {
 }
 
 function getOrderItemImage(order) {
-  const fallback = String(order?.product_thumbnail || order?.thumbnail || '').trim()
+  const fallback = String(order?.selected_color_image || order?.product_thumbnail || order?.thumbnail || '').trim()
     || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=80'
   const rawImages = String(order?.product_images || '').trim()
   const rawColors = Array.isArray(order?.product_colors) ? order.product_colors : safeJson(order?.product_colors || '[]')
