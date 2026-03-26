@@ -565,6 +565,53 @@ async function upsertAppSettings(db: D1Database, entries: Array<{ key: string, v
   }
 }
 
+async function getAppSettingValue(db: D1Database, key: string) {
+  const row = await db.prepare("SELECT value FROM app_settings WHERE key=? LIMIT 1").bind(key).first() as any
+  return String(row?.value || '')
+}
+
+function normalizeAdminUserKey(raw: any) {
+  const key = String(raw || 'admin').trim().toLowerCase().replace(/[^a-z0-9._-]+/g, '')
+  return key || 'admin'
+}
+
+async function resolveAdminProfile(db: D1Database, c: any) {
+  const adminUserKey = normalizeAdminUserKey(getCookie(c, 'admin_user_key') || 'admin')
+  const userToken = String(getCookie(c, 'user_id') || '').trim()
+  if (userToken) {
+    const uid = Number.parseInt(userToken, 10)
+    if (Number.isFinite(uid) && uid > 0) {
+      const user = await db.prepare("SELECT id, email, name, avatar, balance, is_admin FROM users WHERE id=? LIMIT 1").bind(uid).first() as any
+      if (user && Number(user.is_admin || 0) === 1) {
+        return {
+          scope: 'db-user',
+          adminUserKey,
+          userId: Number(user.id),
+          email: String(user.email || ''),
+          name: String(user.name || 'Admin'),
+          avatar: String(user.avatar || ''),
+          balance: Number(user.balance || 0),
+          is_admin: 1
+        }
+      }
+    }
+  }
+  const avatar = await getAppSettingValue(db, `admin_avatar_${adminUserKey}`)
+  const fallbackName = adminUserKey === 'admin'
+    ? 'Admin'
+    : adminUserKey.split(/[._-]/).filter(Boolean).map((s) => s.charAt(0).toUpperCase() + s.slice(1)).join(' ')
+  return {
+    scope: 'legacy-admin',
+    adminUserKey,
+    userId: 0,
+    email: `${adminUserKey}@qhclothes.local`,
+    name: fallbackName || 'Admin',
+    avatar,
+    balance: 0,
+    is_admin: 1
+  }
+}
+
 async function ghtkFetchPickupAddresses(env: any) {
   const token = String(env.GHTK_TOKEN || '').trim()
   const clientSource = String(env.GHTK_CLIENT_SOURCE || '').trim()
@@ -808,6 +855,40 @@ app.get('/api/admin/ghtk/pickup-addresses', async (c) => {
   }
 })
 
+app.get('/api/admin/profile', async (c) => {
+  try {
+    await initDB(c.env.DB)
+    const profile = await resolveAdminProfile(c.env.DB, c)
+    return c.json({ success: true, data: profile })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+app.put('/api/admin/profile/avatar', async (c) => {
+  try {
+    await initDB(c.env.DB)
+    const body: any = await c.req.json().catch(() => ({}))
+    const avatar = String(body.avatar || '').trim()
+    if (avatar && !/^data:image\/(png|jpe?g|webp);base64,/i.test(avatar)) {
+      return c.json({ success: false, error: 'INVALID_AVATAR_FORMAT' }, 400)
+    }
+    if (avatar.length > 700000) {
+      return c.json({ success: false, error: 'AVATAR_TOO_LARGE' }, 400)
+    }
+    const profile = await resolveAdminProfile(c.env.DB, c)
+    if (profile.scope === 'db-user' && Number(profile.userId || 0) > 0) {
+      await c.env.DB.prepare("UPDATE users SET avatar=? WHERE id=?").bind(avatar || null, profile.userId).run()
+    } else {
+      await upsertAppSettings(c.env.DB, [{ key: `admin_avatar_${profile.adminUserKey}`, value: avatar }])
+    }
+    const latest = await resolveAdminProfile(c.env.DB, c)
+    return c.json({ success: true, data: latest })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
 // ─── API: AUTH ─────────────────────────────────────────────────
 app.post('/api/admin/login', async (c) => {
   const body = await c.req.json()
@@ -816,6 +897,7 @@ app.post('/api/admin/login', async (c) => {
     // Ensure admin session is not mixed with a previous Google user session.
     deleteCookie(c, 'user_id', { path: '/' })
     setCookie(c, 'admin_token', 'super_secret_admin_token', { path: '/', maxAge: 86400 * 30, httpOnly: true })
+    setCookie(c, 'admin_user_key', normalizeAdminUserKey(username), { path: '/', maxAge: 86400 * 30, httpOnly: true })
     return c.json({ success: true })
   }
   return c.json({ success: false, error: 'Invalid credentials' }, 401)
@@ -831,13 +913,19 @@ app.get('/api/auth/me', async (c) => {
   let dbError = null
 
   if (isAdmin) {
-    currentUser = {
-      userId: 0,
-      email: 'admin@qhclothes.local',
-      name: 'Admin',
-      avatar: '',
-      balance: 0,
-      is_admin: 1
+    try {
+      await initDB(c.env.DB)
+      currentUser = await resolveAdminProfile(c.env.DB, c)
+    } catch (e: any) {
+      dbError = e.message
+      currentUser = {
+        userId: 0,
+        email: 'admin@qhclothes.local',
+        name: 'Admin',
+        avatar: '',
+        balance: 0,
+        is_admin: 1
+      }
     }
   } else if (userToken) {
     try {
@@ -860,6 +948,7 @@ app.get('/api/auth/me', async (c) => {
 
 app.post('/api/auth/logout', async (c) => {
   deleteCookie(c, 'admin_token', { path: '/' })
+  deleteCookie(c, 'admin_user_key', { path: '/' })
   deleteCookie(c, 'user_id', { path: '/' })
   return c.json({ success: true })
 })
@@ -5412,9 +5501,7 @@ function adminHTML(): string {
 <aside id="sidebar" class="sidebar w-64 min-h-screen fixed left-0 top-0 z-40 transform -translate-x-full md:translate-x-0 transition-transform duration-300 flex flex-col">
   <div class="p-6 border-b border-white/10">
     <div class="flex items-center gap-3">
-      <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-pink-500 to-red-500 flex items-center justify-center">
-        <i class="fas fa-tshirt text-white text-sm"></i>
-      </div>
+      <span class="inline-flex items-center justify-center"><img src="/qh-logo.png" alt="QH" class="rounded-full w-9 h-9 object-cover bg-white"></span>
       <div>
         <p class="text-white font-bold text-lg leading-tight">QH<span class="text-pink-400">Clothes</span></p>
         <p class="text-gray-400 text-xs">Admin Panel</p>
@@ -5466,9 +5553,11 @@ function adminHTML(): string {
       <h1 id="pageTitle" class="text-lg font-bold text-gray-800">Dashboard</h1>
     </div>
     <div class="flex items-center gap-3">
-      <div class="w-9 h-9 rounded-full bg-gradient-to-br from-pink-500 to-red-500 flex items-center justify-center">
-        <span class="text-white font-bold text-sm">A</span>
-      </div>
+      <input id="adminAvatarInput" type="file" accept="image/*" class="hidden" onchange="onAdminAvatarSelected(event)">
+      <button type="button" onclick="openAdminAvatarPicker()" title="Đổi avatar" class="relative w-9 h-9 rounded-full overflow-hidden border border-pink-200 bg-gradient-to-br from-pink-500 to-red-500 text-white font-bold text-sm flex items-center justify-center">
+        <img id="adminAvatarImg" src="" alt="avatar" class="w-full h-full object-cover hidden">
+        <span id="adminAvatarFallback">A</span>
+      </button>
     </div>
   </header>
 
@@ -6017,11 +6106,83 @@ let galleryImages = ['','','','','','','','','']
 let editingId = null
 let gallerySlotClickBound = false
 let ghtkPickupAddresses = []
+let adminProfile = null
 let settingsSubmenuOpen = false
 let settingsActiveSubPage = ''
 const MAX_PRODUCT_PAYLOAD_SIZE = 1200000
 
 // ── NAVIGATION ────────────────────────────────────
+function getInitialFromName(name) {
+  const text = String(name || '').trim()
+  if (!text) return 'A'
+  return text.charAt(0).toUpperCase()
+}
+
+function applyAdminAvatarUI() {
+  const img = document.getElementById('adminAvatarImg')
+  const fallback = document.getElementById('adminAvatarFallback')
+  if (!img || !fallback) return
+  const avatar = String(adminProfile?.avatar || '').trim()
+  const name = String(adminProfile?.name || 'Admin').trim()
+  fallback.textContent = getInitialFromName(name)
+  if (avatar) {
+    img.src = avatar
+    img.classList.remove('hidden')
+    fallback.classList.add('hidden')
+  } else {
+    img.src = ''
+    img.classList.add('hidden')
+    fallback.classList.remove('hidden')
+  }
+}
+
+async function loadAdminProfile() {
+  try {
+    const res = await axios.get('/api/admin/profile')
+    adminProfile = res.data?.data || null
+    applyAdminAvatarUI()
+  } catch (_) {
+    // keep default avatar fallback
+  }
+}
+
+function openAdminAvatarPicker() {
+  const input = document.getElementById('adminAvatarInput')
+  if (input) input.click()
+}
+
+async function onAdminAvatarSelected(evt) {
+  const input = evt?.target
+  const file = input?.files?.[0]
+  if (!file) return
+  if (!/^image\//i.test(String(file.type || ''))) {
+    showAdminToast('Vui lòng chọn file ảnh', 'error')
+    input.value = ''
+    return
+  }
+  const reader = new FileReader()
+  reader.onload = async function() {
+    const dataUrl = String(reader.result || '')
+    if (!dataUrl.startsWith('data:image/')) {
+      showAdminToast('File ảnh không hợp lệ', 'error')
+      input.value = ''
+      return
+    }
+    try {
+      const res = await axios.put('/api/admin/profile/avatar', { avatar: dataUrl })
+      adminProfile = res.data?.data || adminProfile
+      applyAdminAvatarUI()
+      showAdminToast('Đã cập nhật avatar', 'success')
+    } catch (e) {
+      const msg = e.response?.data?.error || 'Lưu avatar thất bại'
+      showAdminToast(msg, 'error')
+    } finally {
+      input.value = ''
+    }
+  }
+  reader.readAsDataURL(file)
+}
+
 function showPage(name) {
   ['dashboard','products','orders','vouchers','featured','settings'].forEach(p => {
     const section = document.getElementById('page-'+p)
@@ -7610,11 +7771,14 @@ async function initAdminAuth() {
       window.location.href = '/admin/login'
       return
     }
+    adminProfile = res.data?.data || null
+    applyAdminAvatarUI()
   } catch (e) {
     // 401 or error → redirect to login
     window.location.href = '/admin/login'
     return
   }
+  await loadAdminProfile()
   loadDashboard()
 }
 initAdminAuth()
