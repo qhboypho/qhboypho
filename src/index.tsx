@@ -889,15 +889,45 @@ app.put('/api/admin/profile/avatar', async (c) => {
   }
 })
 
+app.put('/api/admin/profile/password', async (c) => {
+  try {
+    await initDB(c.env.DB)
+    const body: any = await c.req.json().catch(() => ({}))
+    const oldPassword = String(body.old_password || '')
+    const newPassword = String(body.new_password || '')
+    if (!oldPassword || !newPassword) return c.json({ success: false, error: 'MISSING_PASSWORD' }, 400)
+    if (newPassword.length < 6 || newPassword.length > 64) {
+      return c.json({ success: false, error: 'PASSWORD_LENGTH_INVALID' }, 400)
+    }
+
+    const adminUserKey = normalizeAdminUserKey(getCookie(c, 'admin_user_key') || 'admin')
+    const settingKey = `admin_password_${adminUserKey}`
+    const storedPassword = await getAppSettingValue(c.env.DB, settingKey)
+    const currentPassword = storedPassword || (adminUserKey === 'admin' ? 'admin' : '')
+    if (!currentPassword || oldPassword !== currentPassword) {
+      return c.json({ success: false, error: 'OLD_PASSWORD_INCORRECT' }, 400)
+    }
+
+    await upsertAppSettings(c.env.DB, [{ key: settingKey, value: newPassword }])
+    return c.json({ success: true })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
 // ─── API: AUTH ─────────────────────────────────────────────────
 app.post('/api/admin/login', async (c) => {
+  await initDB(c.env.DB)
   const body = await c.req.json()
   const { username, password } = body
-  if (username === 'admin' && password === 'admin') {
+  const adminKey = normalizeAdminUserKey(username)
+  const storedPassword = await getAppSettingValue(c.env.DB, `admin_password_${adminKey}`)
+  const expectedPassword = storedPassword || (adminKey === 'admin' ? 'admin' : '')
+  if (expectedPassword && password === expectedPassword) {
     // Ensure admin session is not mixed with a previous Google user session.
     deleteCookie(c, 'user_id', { path: '/' })
     setCookie(c, 'admin_token', 'super_secret_admin_token', { path: '/', maxAge: 86400 * 30, httpOnly: true })
-    setCookie(c, 'admin_user_key', normalizeAdminUserKey(username), { path: '/', maxAge: 86400 * 30, httpOnly: true })
+    setCookie(c, 'admin_user_key', adminKey, { path: '/', maxAge: 86400 * 30, httpOnly: true })
     return c.json({ success: true })
   }
   return c.json({ success: false, error: 'Invalid credentials' }, 401)
@@ -5466,6 +5496,8 @@ function adminHTML(): string {
   .modal-overlay { background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); }
   .modal-card { animation: fadeIn 0.25s ease; }
   @keyframes fadeIn { from{opacity:0;transform:scale(0.95)} to{opacity:1;transform:scale(1)} }
+  .avatar-edit-overlay { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.45); opacity:0; transition:opacity 0.2s; pointer-events:none; }
+  .avatar-wrap:hover .avatar-edit-overlay { opacity:1; }
   .img-slot { aspect-ratio:1; border:2px dashed #e5e7eb; border-radius:12px; cursor:pointer; transition:all 0.2s; }
   .img-slot:hover { border-color:#e84393; background:#fdf2f8; }
   .img-slot.has-img { border-style:solid; border-color:#e84393; }
@@ -5554,10 +5586,24 @@ function adminHTML(): string {
     </div>
     <div class="flex items-center gap-3">
       <input id="adminAvatarInput" type="file" accept="image/*" class="hidden" onchange="onAdminAvatarSelected(event)">
-      <button type="button" onclick="openAdminAvatarPicker()" title="Đổi avatar" class="relative w-9 h-9 rounded-full overflow-hidden border border-pink-200 bg-gradient-to-br from-pink-500 to-red-500 text-white font-bold text-sm flex items-center justify-center">
-        <img id="adminAvatarImg" src="" alt="avatar" class="w-full h-full object-cover hidden">
-        <span id="adminAvatarFallback">A</span>
-      </button>
+      <div id="adminAvatarMenuRoot" class="relative">
+        <button type="button" onclick="toggleAdminAvatarMenu()" title="Tài khoản quản trị" class="avatar-wrap relative w-9 h-9 rounded-full overflow-hidden border border-pink-200 bg-gradient-to-br from-pink-500 to-red-500 text-white font-bold text-sm flex items-center justify-center">
+          <img id="adminAvatarImg" src="" alt="avatar" class="w-full h-full object-cover hidden">
+          <span id="adminAvatarFallback">A</span>
+          <span class="avatar-edit-overlay"><i class="fas fa-pen text-[11px] text-white"></i></span>
+        </button>
+        <div id="adminAvatarDropdown" class="hidden absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden z-50">
+          <button type="button" onclick="openAdminAvatarPicker(); closeAdminAvatarMenu();" class="w-full text-left px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+            <i class="fas fa-image text-pink-500"></i>Thay đổi ảnh đại diện
+          </button>
+          <button type="button" onclick="openChangeAdminPasswordModal(); closeAdminAvatarMenu();" class="w-full text-left px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+            <i class="fas fa-key text-amber-500"></i>Thay đổi mật khẩu admin/member quản trị
+          </button>
+          <button type="button" onclick="logoutAdminUser(); closeAdminAvatarMenu();" class="w-full text-left px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 border-t border-gray-100">
+            <i class="fas fa-right-from-bracket"></i>Logout
+          </button>
+        </div>
+      </div>
     </div>
   </header>
 
@@ -6088,6 +6134,38 @@ function adminHTML(): string {
   </div>
 </div>
 
+<!-- CHANGE ADMIN PASSWORD MODAL -->
+<div id="adminChangePasswordModal" class="fixed inset-0 modal-overlay z-50 hidden flex items-start justify-center p-4 overflow-y-auto">
+  <div class="modal-card bg-white rounded-3xl shadow-2xl w-full max-w-md my-8">
+    <div class="sticky top-0 bg-white rounded-t-3xl border-b px-6 py-4 flex items-center justify-between">
+      <h2 class="font-bold text-lg text-gray-900">Thay đổi mật khẩu</h2>
+      <button onclick="closeChangeAdminPasswordModal()" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition">
+        <i class="fas fa-times text-gray-600"></i>
+      </button>
+    </div>
+    <form onsubmit="submitAdminPasswordChange(event)" class="px-6 py-5 space-y-4">
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Mật khẩu hiện tại</label>
+        <input type="password" id="adminOldPassword" required class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
+      </div>
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Mật khẩu mới</label>
+        <input type="password" id="adminNewPassword" required minlength="6" maxlength="64" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
+      </div>
+      <div>
+        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Nhập lại mật khẩu mới</label>
+        <input type="password" id="adminConfirmPassword" required minlength="6" maxlength="64" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
+      </div>
+      <div class="pt-1 flex justify-end gap-3">
+        <button type="button" onclick="closeChangeAdminPasswordModal()" class="px-4 py-2.5 rounded-xl border text-gray-600 font-medium hover:bg-gray-50 transition">Hủy</button>
+        <button type="submit" id="adminChangePasswordBtn" class="bg-pink-500 hover:bg-pink-600 text-white px-5 py-2.5 rounded-xl font-semibold text-sm transition">
+          Cập nhật mật khẩu
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div id="adminToast" class="fixed top-6 right-6 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
@@ -6107,6 +6185,7 @@ let editingId = null
 let gallerySlotClickBound = false
 let ghtkPickupAddresses = []
 let adminProfile = null
+let adminAvatarMenuOpen = false
 let settingsSubmenuOpen = false
 let settingsActiveSubPage = ''
 const MAX_PRODUCT_PAYLOAD_SIZE = 1200000
@@ -6151,6 +6230,105 @@ function openAdminAvatarPicker() {
   if (input) input.click()
 }
 
+function closeAdminAvatarMenu() {
+  adminAvatarMenuOpen = false
+  const menu = document.getElementById('adminAvatarDropdown')
+  if (menu) menu.classList.add('hidden')
+}
+
+function toggleAdminAvatarMenu() {
+  adminAvatarMenuOpen = !adminAvatarMenuOpen
+  const menu = document.getElementById('adminAvatarDropdown')
+  if (menu) menu.classList.toggle('hidden', !adminAvatarMenuOpen)
+}
+
+function openChangeAdminPasswordModal() {
+  const modal = document.getElementById('adminChangePasswordModal')
+  if (modal) modal.classList.remove('hidden')
+  const oldInput = document.getElementById('adminOldPassword')
+  if (oldInput) setTimeout(() => oldInput.focus(), 0)
+}
+
+function closeChangeAdminPasswordModal() {
+  const modal = document.getElementById('adminChangePasswordModal')
+  if (modal) modal.classList.add('hidden')
+  const formIds = ['adminOldPassword', 'adminNewPassword', 'adminConfirmPassword']
+  formIds.forEach((id) => {
+    const el = document.getElementById(id)
+    if (el) el.value = ''
+  })
+}
+
+async function submitAdminPasswordChange(e) {
+  e.preventDefault()
+  const oldPassword = String(document.getElementById('adminOldPassword')?.value || '')
+  const newPassword = String(document.getElementById('adminNewPassword')?.value || '')
+  const confirmPassword = String(document.getElementById('adminConfirmPassword')?.value || '')
+  if (newPassword.length < 6) {
+    showAdminToast('Mật khẩu mới tối thiểu 6 ký tự', 'error')
+    return
+  }
+  if (newPassword !== confirmPassword) {
+    showAdminToast('Nhập lại mật khẩu chưa khớp', 'error')
+    return
+  }
+  const btn = document.getElementById('adminChangePasswordBtn')
+  btn.disabled = true
+  btn.textContent = 'Đang cập nhật...'
+  try {
+    await axios.put('/api/admin/profile/password', {
+      old_password: oldPassword,
+      new_password: newPassword
+    })
+    showAdminToast('Đã đổi mật khẩu thành công', 'success')
+    closeChangeAdminPasswordModal()
+  } catch (err) {
+    const msg = err.response?.data?.error || 'Đổi mật khẩu thất bại'
+    showAdminToast(msg, 'error')
+  } finally {
+    btn.disabled = false
+    btn.textContent = 'Cập nhật mật khẩu'
+  }
+}
+
+async function logoutAdminUser() {
+  try { await axios.post('/api/auth/logout') } catch (_) {}
+  window.location.href = '/admin/login'
+}
+
+function readImageAsDataURL(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result || ''))
+    reader.onerror = () => reject(new Error('FILE_READ_FAILED'))
+    reader.readAsDataURL(file)
+  })
+}
+
+function loadImageElement(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => resolve(img)
+    img.onerror = () => reject(new Error('IMAGE_LOAD_FAILED'))
+    img.src = src
+  })
+}
+
+async function compressAvatarDataUrl(dataUrl) {
+  const img = await loadImageElement(dataUrl)
+  const maxSide = 512
+  const scale = Math.min(1, maxSide / Math.max(img.width || 1, img.height || 1))
+  const w = Math.max(1, Math.round((img.width || 1) * scale))
+  const h = Math.max(1, Math.round((img.height || 1) * scale))
+  const canvas = document.createElement('canvas')
+  canvas.width = w
+  canvas.height = h
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return dataUrl
+  ctx.drawImage(img, 0, 0, w, h)
+  return canvas.toDataURL('image/jpeg', 0.85)
+}
+
 async function onAdminAvatarSelected(evt) {
   const input = evt?.target
   const file = input?.files?.[0]
@@ -6160,9 +6338,9 @@ async function onAdminAvatarSelected(evt) {
     input.value = ''
     return
   }
-  const reader = new FileReader()
-  reader.onload = async function() {
-    const dataUrl = String(reader.result || '')
+  try {
+    const rawDataUrl = await readImageAsDataURL(file)
+    const dataUrl = await compressAvatarDataUrl(rawDataUrl)
     if (!dataUrl.startsWith('data:image/')) {
       showAdminToast('File ảnh không hợp lệ', 'error')
       input.value = ''
@@ -6179,8 +6357,10 @@ async function onAdminAvatarSelected(evt) {
     } finally {
       input.value = ''
     }
+  } catch (_) {
+    showAdminToast('Không đọc được ảnh, vui lòng thử lại', 'error')
+    input.value = ''
   }
-  reader.readAsDataURL(file)
 }
 
 function showPage(name) {
@@ -7740,13 +7920,14 @@ function showAdminToast(msg, type='success') {
 // ── ESC key handler - close any open modal ──────────
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') {
-    const modals = ['productModal', 'orderDetailModal', 'arrangeSuccessModal']
+    const modals = ['productModal', 'orderDetailModal', 'arrangeSuccessModal', 'adminChangePasswordModal']
     modals.forEach(id => {
       const el = document.getElementById(id)
       if (el && !el.classList.contains('hidden')) {
         el.classList.add('hidden')
       }
     })
+    closeAdminAvatarMenu()
     document.body.style.overflow = ''
     // Also close sidebar overlay if open
     document.getElementById('sidebarOverlay').classList.add('hidden')
@@ -7756,11 +7937,31 @@ document.addEventListener('keydown', function(e) {
 
 // ── Safety: ensure all modals start hidden on page load ──
 document.addEventListener('DOMContentLoaded', function() {
-  ['productModal', 'orderDetailModal', 'arrangeSuccessModal'].forEach(id => {
+  ['productModal', 'orderDetailModal', 'arrangeSuccessModal', 'adminChangePasswordModal'].forEach(id => {
     const el = document.getElementById(id)
     if (el) el.classList.add('hidden')
   })
   document.getElementById('sidebarOverlay').classList.add('hidden')
+
+  const avatarRoot = document.getElementById('adminAvatarMenuRoot')
+  if (avatarRoot) {
+    avatarRoot.addEventListener('mouseenter', function() {
+      adminAvatarMenuOpen = true
+      const menu = document.getElementById('adminAvatarDropdown')
+      if (menu) menu.classList.remove('hidden')
+    })
+    avatarRoot.addEventListener('mouseleave', function() {
+      closeAdminAvatarMenu()
+    })
+  }
+
+  document.addEventListener('click', function(e) {
+    const target = e.target
+    if (!target) return
+    const root = document.getElementById('adminAvatarMenuRoot')
+    if (!root) return
+    if (!root.contains(target)) closeAdminAvatarMenu()
+  })
 })
 
 // Init
