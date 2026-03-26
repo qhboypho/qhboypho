@@ -1211,11 +1211,12 @@ app.get('/api/admin/products', async (c) => {
   try {
     await initDB(c.env.DB)
     const result = await c.env.DB.prepare(
-      `SELECT * FROM products ORDER BY created_at DESC`
+      `SELECT id, name, description, price, original_price, category, brand, material, thumbnail, colors, sizes, stock, is_active, is_featured, is_trending, trending_order, created_at, updated_at, display_order
+       FROM products ORDER BY created_at DESC`
     ).all()
     const rows = (result.results || []).map((row: any) => ({
       ...row,
-      color_options: parseColorOptions(row.colors),
+      colors: compactColorNamesJson(row.colors),
       color_names: compactColorNamesJson(row.colors)
     }))
     return c.json({ success: true, data: rows })
@@ -7102,13 +7103,14 @@ function renderAdminProducts(products) {
     return
   }
   grid.innerHTML = safeProducts.map(raw => {
-    const p = raw || {}
-    const name = String(p.name || 'Sản phẩm')
-    const brand = String(p.brand || '').trim()
-    const thumbnail = String(p.thumbnail || '').trim() || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'
-    const colors = getProductColorOptions(p).map((c) => c.name)
-    const sizes = safeJson(p.sizes)
-    return \`
+    try {
+      const p = raw || {}
+      const name = String(p.name || 'Sản phẩm')
+      const brand = String(p.brand || '').trim()
+      const thumbnail = String(p.thumbnail || '').trim() || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'
+      const colors = getProductColorOptions(p).map((c) => c.name).filter(Boolean)
+      const sizes = safeJson(p.sizes)
+      return \`
     <div class="bg-white rounded-2xl shadow-sm border overflow-hidden \${!p.is_active ? 'opacity-60' : ''}">
       <div class="relative h-48 bg-gray-100 overflow-hidden">
         <img src="\${thumbnail}" alt="\${name}" 
@@ -7146,6 +7148,21 @@ function renderAdminProducts(products) {
         </div>
       </div>
     </div>\`
+    } catch (err) {
+      const fallbackName = String(raw?.name || 'Sản phẩm')
+      const fallbackThumb = String(raw?.thumbnail || '').trim() || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'
+      return \`
+        <div class="bg-white rounded-2xl shadow-sm border overflow-hidden">
+          <div class="relative h-48 bg-gray-100 overflow-hidden">
+            <img src="\${fallbackThumb}" alt="\${fallbackName}" class="w-full h-full object-cover" onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'">
+          </div>
+          <div class="p-4">
+            <h3 class="font-semibold text-gray-900 text-sm mb-2 line-clamp-2 leading-tight">\${fallbackName}</h3>
+            <p class="text-xs text-red-500 mb-3">Không tải được chi tiết sản phẩm này</p>
+          </div>
+        </div>
+      \`
+    }
   }).join('')
 }
 
