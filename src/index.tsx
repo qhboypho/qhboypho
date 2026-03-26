@@ -7743,7 +7743,15 @@ function printArrangedOrdersFromModal() {
 
 async function updateOrderStatus(id, status) {
   try {
-    await axios.patch('/api/admin/orders/'+id+'/status', { status })
+    const nextStatus = String(status || '').trim().toLowerCase()
+    if (nextStatus === 'cancelled') {
+      const order = adminOrders.find((x) => Number(x.id) === Number(id))
+      const carrier = String(order?.shipping_carrier || '').trim().toUpperCase()
+      if (carrier === 'GHTK' && String(order?.shipping_tracking_code || '').trim()) {
+        showAdminToast('Dang huy don nay tren dashboard va GHTK...', 'warning')
+      }
+    }
+    await axios.patch('/api/admin/orders/'+id+'/status', { status: nextStatus })
     showAdminToast('Cập nhật trạng thái thành công', 'success')
     await loadAdminOrders()
   } catch(e) { showAdminToast('Lỗi cập nhật', 'error') }
