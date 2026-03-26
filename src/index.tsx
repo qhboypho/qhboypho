@@ -1229,7 +1229,7 @@ function normalizeColorOptionsInput(input: any): Array<{ name: string; image: st
     if (item && typeof item === 'object') {
       const name = String((item as any).name || (item as any).label || '').trim()
       const image = String((item as any).image || (item as any).image_url || '').trim()
-      if (name) out.push({ name, image })
+      if (name || image) out.push({ name, image })
     }
   }
   return out
@@ -4470,7 +4470,7 @@ function normalizeColorOptions(raw) {
       }
     }
     return { name: '', image: '' }
-  }).filter((c) => c.name)
+  }).filter((c) => c.name || c.image)
 }
 function getColorNames(raw) {
   const arr = Array.isArray(raw) ? raw : safeJson(raw)
@@ -7206,7 +7206,7 @@ async function saveProduct(e) {
   const normalizedThumbnail = String(document.getElementById('pThumbnail').value || '').trim()
   const normalizedColors = colors
     .map((c) => ({ name: String(c?.name || '').trim(), image: String(c?.image || '').trim() }))
-    .filter((c) => c.name)
+    .filter((c) => c.name || c.image)
   if (!normalizedThumbnail && imgList.length === 0) {
     showAdminToast('Trường hình ảnh là bắt buộc', 'error')
     btn.textContent = 'Lưu sản phẩm'
