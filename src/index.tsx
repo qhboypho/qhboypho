@@ -6213,10 +6213,7 @@ function getInitialFromName(name) {
 function applyAdminAvatarUI() {
   const rawAvatar = String(adminProfile?.avatar || '').trim()
   const lowerAvatar = rawAvatar.toLowerCase()
-  let avatar = ['null', 'undefined', 'none'].includes(lowerAvatar) ? '' : rawAvatar
-  if (avatar.startsWith('data:image/') && avatar.length < 2000) {
-    avatar = ''
-  }
+  const avatar = ['null', 'undefined', 'none'].includes(lowerAvatar) ? '' : rawAvatar
   const name = String(adminProfile?.name || 'QH Clothes').trim() || 'QH Clothes'
   const adminKey = String(adminProfile?.adminUserKey || 'admin').trim().toUpperCase()
 
@@ -6423,7 +6420,8 @@ async function onAdminAvatarSelected(inputOrEvent) {
 }
 
 async function handleAdminAvatarFile(file) {
-  if (!/^image\//i.test(String(file.type || ''))) {
+  const mimeType = String(file.type || '').toLowerCase()
+  if (!mimeType.startsWith('image/')) {
     showAdminToast('Vui lòng chọn file ảnh', 'error')
     return
   }
