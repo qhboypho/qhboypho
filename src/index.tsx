@@ -7823,7 +7823,9 @@ function buildOrderSkuText(order) {
 }
 
 function getOrderItemImage(order) {
-  const fallback = String(order?.selected_color_image || order?.product_thumbnail || order?.thumbnail || '').trim()
+  const selectedColorImage = String(order?.selected_color_image || '').trim()
+  if (selectedColorImage) return selectedColorImage
+  const fallback = String(order?.product_thumbnail || order?.thumbnail || '').trim()
     || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=80'
   const rawImages = String(order?.product_images || '').trim()
   const rawColors = Array.isArray(order?.product_colors) ? order.product_colors : safeJson(order?.product_colors || '[]')
