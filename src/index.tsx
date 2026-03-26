@@ -5593,7 +5593,7 @@ function adminHTML(): string {
           <span class="avatar-edit-overlay"></span>
         </button>
         <div id="adminAvatarDropdown" class="hidden absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden z-50">
-          <button type="button" onclick="triggerAdminAvatarPickerFromMenu(event)" class="w-full text-left px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+          <button type="button" onclick="triggerAdminAvatarPickerFromMenu()" class="w-full text-left px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
             <i class="fas fa-image text-pink-500"></i>Thay đổi ảnh đại diện
           </button>
           <button type="button" onclick="openChangeAdminPasswordModal(); closeAdminAvatarMenu();" class="w-full text-left px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
@@ -6237,13 +6237,27 @@ function openAdminAvatarPicker() {
   input.click()
 }
 
-function triggerAdminAvatarPickerFromMenu(event) {
-  if (event) {
-    event.preventDefault()
-    event.stopPropagation()
-  }
-  openAdminAvatarPicker()
+function triggerAdminAvatarPickerFromMenu() {
   closeAdminAvatarMenu()
+  const picker = document.createElement('input')
+  picker.type = 'file'
+  picker.accept = 'image/*'
+  picker.style.position = 'fixed'
+  picker.style.left = '-9999px'
+  picker.style.top = '-9999px'
+  document.body.appendChild(picker)
+  picker.onchange = async function() {
+    const file = picker.files && picker.files[0] ? picker.files[0] : null
+    if (file) await handleAdminAvatarFile(file)
+    document.body.removeChild(picker)
+  }
+  try {
+    if (typeof picker.showPicker === 'function') {
+      picker.showPicker()
+      return
+    }
+  } catch (_) {}
+  picker.click()
 }
 
 function closeAdminAvatarMenu() {
@@ -6369,9 +6383,13 @@ async function onAdminAvatarSelected(evt) {
   const input = evt?.target
   const file = input?.files?.[0]
   if (!file) return
+  await handleAdminAvatarFile(file)
+  input.value = ''
+}
+
+async function handleAdminAvatarFile(file) {
   if (!/^image\//i.test(String(file.type || ''))) {
     showAdminToast('Vui lòng chọn file ảnh', 'error')
-    input.value = ''
     return
   }
   try {
@@ -6379,7 +6397,6 @@ async function onAdminAvatarSelected(evt) {
     const dataUrl = await compressAvatarDataUrl(rawDataUrl)
     if (!dataUrl.startsWith('data:image/')) {
       showAdminToast('File ảnh không hợp lệ', 'error')
-      input.value = ''
       return
     }
     try {
@@ -6390,12 +6407,9 @@ async function onAdminAvatarSelected(evt) {
     } catch (e) {
       const msg = e.response?.data?.error || 'Lưu avatar thất bại'
       showAdminToast(msg, 'error')
-    } finally {
-      input.value = ''
     }
   } catch (_) {
     showAdminToast('Không đọc được ảnh, vui lòng thử lại', 'error')
-    input.value = ''
   }
 }
 
