@@ -6944,7 +6944,17 @@ async function loadAdminProducts() {
     const res = await axios.get('/api/admin/products')
     adminProducts = res.data.data || []
     renderAdminProducts(adminProducts)
-  } catch(e) { grid.innerHTML = '<div class="col-span-4 text-center py-12 text-red-400">Lỗi tải dữ liệu</div>' }
+  } catch(e) {
+    if (e && e.response && e.response.status === 401) {
+      showAdminToast('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại', 'error')
+      setTimeout(() => { window.location.href = '/admin/login' }, 400)
+      return
+    }
+    const msg = e?.response?.data?.error || e?.message || 'Lỗi tải dữ liệu'
+    grid.innerHTML = '<div class="col-span-4 text-center py-12 text-red-400">Lỗi tải dữ liệu</div>'
+    showAdminToast(msg, 'error')
+    console.error('loadAdminProducts error:', e)
+  }
 }
 
 function filterAdminProducts() {
@@ -6959,17 +6969,22 @@ function filterAdminProducts() {
 
 function renderAdminProducts(products) {
   const grid = document.getElementById('adminProductsGrid')
-  if (!products.length) {
+  const safeProducts = (Array.isArray(products) ? products : []).filter(Boolean)
+  if (!safeProducts.length) {
     grid.innerHTML = '<div class="col-span-4 text-center py-12 text-gray-400"><i class="fas fa-box-open text-4xl mb-3"></i><p>Không có sản phẩm</p></div>'
     return
   }
-  grid.innerHTML = products.map(p => {
+  grid.innerHTML = safeProducts.map(raw => {
+    const p = raw || {}
+    const name = String(p.name || 'Sản phẩm')
+    const brand = String(p.brand || '').trim()
+    const thumbnail = String(p.thumbnail || '').trim() || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'
     const colors = getColorNames(p.colors)
     const sizes = safeJson(p.sizes)
     return \`
     <div class="bg-white rounded-2xl shadow-sm border overflow-hidden \${!p.is_active ? 'opacity-60' : ''}">
       <div class="relative h-48 bg-gray-100 overflow-hidden">
-        <img src="\${p.thumbnail || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'}" alt="\${p.name}" 
+        <img src="\${thumbnail}" alt="\${name}" 
           class="w-full h-full object-cover" onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'">
         <div class="absolute top-2 left-2 flex gap-1">
           <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-white/90 text-gray-700">\${catLabel(p.category)}</span>
@@ -6982,8 +6997,8 @@ function renderAdminProducts(products) {
         </div>
       </div>
       <div class="p-4">
-        \${p.brand ? \`<p class="text-xs text-pink-500 font-medium mb-1">\${p.brand}</p>\` : ''}
-        <h3 class="font-semibold text-gray-900 text-sm mb-2 line-clamp-2 leading-tight">\${p.name}</h3>
+        \${brand ? \`<p class="text-xs text-pink-500 font-medium mb-1">\${brand}</p>\` : ''}
+        <h3 class="font-semibold text-gray-900 text-sm mb-2 line-clamp-2 leading-tight">\${name}</h3>
         <div class="flex items-center gap-2 mb-3">
           <span class="font-bold text-pink-600">\${fmtPrice(p.price)}</span>
           \${p.original_price ? \`<span class="text-xs text-gray-400 line-through">\${fmtPrice(p.original_price)}</span>\` : ''}
