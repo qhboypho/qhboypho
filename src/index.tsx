@@ -5496,7 +5496,7 @@ function adminHTML(): string {
   .modal-overlay { background:rgba(0,0,0,0.6); backdrop-filter:blur(4px); }
   .modal-card { animation: fadeIn 0.25s ease; }
   @keyframes fadeIn { from{opacity:0;transform:scale(0.95)} to{opacity:1;transform:scale(1)} }
-  .avatar-edit-overlay { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:rgba(0,0,0,0.45); opacity:0; transition:opacity 0.2s; pointer-events:none; }
+  .avatar-edit-overlay { position:absolute; inset:0; display:block; background:rgba(0,0,0,0.3); opacity:0; transition:opacity 0.2s; pointer-events:none; }
   .avatar-wrap:hover .avatar-edit-overlay { opacity:1; }
   .img-slot { aspect-ratio:1; border:2px dashed #e5e7eb; border-radius:12px; cursor:pointer; transition:all 0.2s; }
   .img-slot:hover { border-color:#e84393; background:#fdf2f8; }
@@ -5590,14 +5590,14 @@ function adminHTML(): string {
         <button type="button" onclick="toggleAdminAvatarMenu()" title="Tài khoản quản trị" class="avatar-wrap relative w-9 h-9 rounded-full overflow-hidden border border-pink-200 bg-gradient-to-br from-pink-500 to-red-500 text-white font-bold text-sm flex items-center justify-center">
           <img id="adminAvatarImg" src="" alt="avatar" class="w-full h-full object-cover hidden">
           <span id="adminAvatarFallback">A</span>
-          <span class="avatar-edit-overlay"><i class="fas fa-pen text-[11px] text-white"></i></span>
+          <span class="avatar-edit-overlay"></span>
         </button>
         <div id="adminAvatarDropdown" class="hidden absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden z-50">
           <button type="button" onclick="openAdminAvatarPicker(); closeAdminAvatarMenu();" class="w-full text-left px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
             <i class="fas fa-image text-pink-500"></i>Thay đổi ảnh đại diện
           </button>
           <button type="button" onclick="openChangeAdminPasswordModal(); closeAdminAvatarMenu();" class="w-full text-left px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
-            <i class="fas fa-key text-amber-500"></i>Thay đổi mật khẩu admin/member quản trị
+            <i class="fas fa-key text-amber-500"></i>Thay đổi mật khẩu
           </button>
           <button type="button" onclick="logoutAdminUser(); closeAdminAvatarMenu();" class="w-full text-left px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 border-t border-gray-100">
             <i class="fas fa-right-from-bracket"></i>Logout
@@ -6135,7 +6135,7 @@ function adminHTML(): string {
 </div>
 
 <!-- CHANGE ADMIN PASSWORD MODAL -->
-<div id="adminChangePasswordModal" class="fixed inset-0 modal-overlay z-50 hidden flex items-start justify-center p-4 overflow-y-auto">
+<div id="adminChangePasswordModal" onclick="if(event.target===this) closeChangeAdminPasswordModal()" style="display:none" class="fixed inset-0 modal-overlay z-50 items-start justify-center p-4 overflow-y-auto">
   <div class="modal-card bg-white rounded-3xl shadow-2xl w-full max-w-md my-8">
     <div class="sticky top-0 bg-white rounded-t-3xl border-b px-6 py-4 flex items-center justify-between">
       <h2 class="font-bold text-lg text-gray-900">Thay đổi mật khẩu</h2>
@@ -6244,14 +6244,14 @@ function toggleAdminAvatarMenu() {
 
 function openChangeAdminPasswordModal() {
   const modal = document.getElementById('adminChangePasswordModal')
-  if (modal) modal.classList.remove('hidden')
+  if (modal) modal.style.display = 'flex'
   const oldInput = document.getElementById('adminOldPassword')
   if (oldInput) setTimeout(() => oldInput.focus(), 0)
 }
 
 function closeChangeAdminPasswordModal() {
   const modal = document.getElementById('adminChangePasswordModal')
-  if (modal) modal.classList.add('hidden')
+  if (modal) modal.style.display = 'none'
   const formIds = ['adminOldPassword', 'adminNewPassword', 'adminConfirmPassword']
   formIds.forEach((id) => {
     const el = document.getElementById(id)
@@ -7920,13 +7920,14 @@ function showAdminToast(msg, type='success') {
 // ── ESC key handler - close any open modal ──────────
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') {
-    const modals = ['productModal', 'orderDetailModal', 'arrangeSuccessModal', 'adminChangePasswordModal']
+    const modals = ['productModal', 'orderDetailModal', 'arrangeSuccessModal']
     modals.forEach(id => {
       const el = document.getElementById(id)
       if (el && !el.classList.contains('hidden')) {
         el.classList.add('hidden')
       }
     })
+    closeChangeAdminPasswordModal()
     closeAdminAvatarMenu()
     document.body.style.overflow = ''
     // Also close sidebar overlay if open
@@ -7937,23 +7938,13 @@ document.addEventListener('keydown', function(e) {
 
 // ── Safety: ensure all modals start hidden on page load ──
 document.addEventListener('DOMContentLoaded', function() {
-  ['productModal', 'orderDetailModal', 'arrangeSuccessModal', 'adminChangePasswordModal'].forEach(id => {
+  ['productModal', 'orderDetailModal', 'arrangeSuccessModal'].forEach(id => {
     const el = document.getElementById(id)
     if (el) el.classList.add('hidden')
   })
+  const pwdModal = document.getElementById('adminChangePasswordModal')
+  if (pwdModal) pwdModal.style.display = 'none'
   document.getElementById('sidebarOverlay').classList.add('hidden')
-
-  const avatarRoot = document.getElementById('adminAvatarMenuRoot')
-  if (avatarRoot) {
-    avatarRoot.addEventListener('mouseenter', function() {
-      adminAvatarMenuOpen = true
-      const menu = document.getElementById('adminAvatarDropdown')
-      if (menu) menu.classList.remove('hidden')
-    })
-    avatarRoot.addEventListener('mouseleave', function() {
-      closeAdminAvatarMenu()
-    })
-  }
 
   document.addEventListener('click', function(e) {
     const target = e.target
