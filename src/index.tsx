@@ -740,6 +740,30 @@ async function ghtkFetchLabelPdf(env: any, trackingCode: string, original?: stri
   return new Uint8Array(await resp.arrayBuffer())
 }
 
+async function ghtkCancelShipment(env: any, trackingOrder: string) {
+  const token = String(env.GHTK_TOKEN || '').trim()
+  const clientSource = String(env.GHTK_CLIENT_SOURCE || '').trim()
+  if (!token || !clientSource) throw new Error('MISSING_GHTK_KEYS')
+
+  const code = String(trackingOrder || '').trim()
+  if (!code) throw new Error('MISSING_GHTK_TRACKING_CODE')
+
+  const resp = await fetch('https://services.giaohangtietkiem.vn/services/shipment/cancel/' + encodeURIComponent(code), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Token': token,
+      'X-Client-Source': clientSource
+    }
+  })
+  const body: any = await resp.json().catch(() => ({}))
+  const message = String(body?.message || '').trim()
+  const alreadyCancelled = /hủy|huy/i.test(message) && /đã|da/i.test(message)
+  if (resp.ok && body?.success) return { ok: true, alreadyCancelled: false, detail: body }
+  if (alreadyCancelled) return { ok: true, alreadyCancelled: true, detail: body }
+  return { ok: false, message: message || 'GHTK_CANCEL_FAILED', detail: body }
+}
+
 async function mergePdfBytes(files: Uint8Array[]) {
   const merged = await PDFDocument.create()
   for (const file of files) {
@@ -1459,12 +1483,32 @@ app.get('/api/admin/orders', async (c) => {
 // PATCH update order status
 app.patch('/api/admin/orders/:id/status', async (c) => {
   try {
+    await initDB(c.env.DB)
     const id = c.req.param('id')
     const { status } = await c.req.json()
+    const nextStatus = String(status || '').trim().toLowerCase()
+    const existing = await c.env.DB.prepare(`
+      SELECT id, status, shipping_carrier, shipping_tracking_code, shipping_arranged
+      FROM orders
+      WHERE id=?
+      LIMIT 1
+    `).bind(id).first() as any
+    if (!existing) return c.json({ success: false, error: 'ORDER_NOT_FOUND' }, 404)
+
+    if (nextStatus === 'cancelled') {
+      const carrier = String(existing.shipping_carrier || '').trim().toUpperCase()
+      const trackingCode = String(existing.shipping_tracking_code || '').trim()
+      if (carrier === 'GHTK' && trackingCode) {
+        const cancelRes = await ghtkCancelShipment(c.env, trackingCode)
+        if (!cancelRes.ok) {
+          return c.json({ success: false, error: cancelRes.message || 'GHTK_CANCEL_FAILED', detail: cancelRes.detail || null }, 400)
+        }
+      }
+    }
     await c.env.DB.prepare(`
       UPDATE orders SET status=?, updated_at=CURRENT_TIMESTAMP WHERE id=?
-    `).bind(status, id).run()
-    return c.json({ success: true })
+    `).bind(nextStatus, id).run()
+    return c.json({ success: true, status: nextStatus })
   } catch (e: any) {
     return c.json({ success: false, error: e.message }, 500)
   }
