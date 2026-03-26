@@ -5527,7 +5527,7 @@ function adminHTML(): string {
 </button>
 
 <!-- SIDEBAR OVERLAY (mobile) -->
-<div id="sidebarOverlay" class="fixed inset-0 mobile-overlay z-30 hidden md:hidden" onclick="toggleSidebar()"></div>
+<div id="sidebarOverlay" class="fixed inset-0 mobile-overlay z-30 md:hidden" style="display:none" onclick="toggleSidebar()"></div>
 
 <!-- SIDEBAR -->
 <aside id="sidebar" class="sidebar w-64 min-h-screen fixed left-0 top-0 z-40 transform -translate-x-full md:translate-x-0 transition-transform duration-300 flex flex-col">
@@ -6272,15 +6272,7 @@ function sanitizeAdminOverlayState() {
   })
   closeChangeAdminPasswordModal()
   closeAdminAvatarMenu()
-  const sidebarOverlay = document.getElementById('sidebarOverlay')
-  if (sidebarOverlay) {
-    sidebarOverlay.classList.add('hidden')
-    if (window.matchMedia && window.matchMedia('(min-width: 768px)').matches) {
-      sidebarOverlay.style.display = 'none'
-    } else {
-      sidebarOverlay.style.display = ''
-    }
-  }
+  syncSidebarOverlay()
   document.body.style.overflow = ''
 }
 
@@ -6460,7 +6452,30 @@ function showPage(name) {
 
 function toggleSidebar() {
   document.getElementById('sidebar').classList.toggle('-translate-x-full')
-  document.getElementById('sidebarOverlay').classList.toggle('hidden')
+  syncSidebarOverlay()
+}
+
+function syncSidebarOverlay() {
+  const sidebar = document.getElementById('sidebar')
+  const overlay = document.getElementById('sidebarOverlay')
+  if (!sidebar || !overlay) return
+  const isDesktop = window.matchMedia && window.matchMedia('(min-width: 768px)').matches
+  const sidebarOpen = !sidebar.classList.contains('-translate-x-full')
+  if (isDesktop) {
+    overlay.style.display = 'none'
+    overlay.classList.add('hidden')
+    overlay.style.pointerEvents = 'none'
+    return
+  }
+  if (sidebarOpen) {
+    overlay.style.display = 'block'
+    overlay.classList.remove('hidden')
+    overlay.style.pointerEvents = ''
+  } else {
+    overlay.style.display = 'none'
+    overlay.classList.add('hidden')
+    overlay.style.pointerEvents = 'none'
+  }
 }
 
 function setSettingsSubmenuOpen(open) {
@@ -7992,6 +8007,7 @@ document.addEventListener('keydown', function(e) {
 // ── Safety: ensure all modals start hidden on page load ──
 document.addEventListener('DOMContentLoaded', function() {
   sanitizeAdminOverlayState()
+  window.addEventListener('resize', syncSidebarOverlay)
 
   document.addEventListener('click', function(e) {
     const target = e.target
