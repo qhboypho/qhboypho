@@ -5573,8 +5573,8 @@ function adminHTML(): string {
               <th class="px-4 py-3 text-center font-semibold text-gray-600">
                 <input id="ordersSelectAll" type="checkbox" onchange="toggleSelectAllOrders(this.checked)" class="w-4 h-4 rounded border-gray-300 text-pink-500 focus:ring-pink-400">
               </th>
-              <th class="px-4 py-3 text-left font-semibold text-gray-600">Thông tin ĐH</th>
-              <th class="px-3 py-3 text-center font-semibold text-gray-600 w-16">SL</th>
+              <th class="px-4 py-3 text-left font-semibold text-gray-600 w-[360px]">Thông tin ĐH</th>
+              <th class="px-2 py-3 text-center font-semibold text-gray-600 w-12">SL</th>
               <th class="px-4 py-3 text-right font-semibold text-gray-600">Tổng tiền</th>
               <th class="px-4 py-3 text-center font-semibold text-gray-600 hidden lg:table-cell">Voucher</th>
               <th class="px-4 py-3 text-center font-semibold text-gray-600">Trạng thái</th>
@@ -6860,10 +6860,10 @@ function renderOrdersTable(orders) {
     <td class="px-4 py-3 text-center">
       <input type="checkbox" class="w-4 h-4 rounded border-gray-300 text-pink-500 focus:ring-pink-400" \${selectedOrderIds.has(Number(o.id)) ? 'checked' : ''} onchange="toggleOrderSelection(\${o.id}, this.checked)">
     </td>
-    <td class="px-4 py-3">
-      <div class="flex items-start gap-3">
+    <td class="px-4 py-3 w-[360px] align-top">
+      <div class="flex items-start gap-3 max-w-[360px]">
         <img src="\${getOrderItemImage(o)}" alt="\${o.product_name || 'product'}" class="w-12 h-12 rounded-lg object-cover border border-gray-200 bg-gray-100 flex-none" onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=80'">
-        <div class="min-w-0 space-y-0.5">
+        <div class="min-w-0 max-w-[300px] space-y-0.5">
           <div>
             <button type="button"
               onclick="copyOrderCode(decodeURIComponent('\${encodeURIComponent(String(o.order_code || '').trim())}')); return false;"
@@ -6895,8 +6895,8 @@ function renderOrdersTable(orders) {
         </div>
       </div>
     </td>
-    <td class="px-3 py-3 text-center">
-      <span class="inline-flex min-w-8 justify-center text-xs font-semibold text-gray-700 bg-gray-100 border border-gray-200 rounded-md px-2 py-1">\${o.quantity || 1}</span>
+    <td class="px-2 py-3 text-center w-12 align-top">
+      <span class="inline-flex min-w-6 justify-center text-[11px] font-semibold text-gray-700 bg-gray-100 border border-gray-200 rounded-md px-1.5 py-0.5">\${o.quantity || 1}</span>
     </td>
     <td class="px-4 py-3 text-right">
       <p class="font-bold text-gray-800">\${fmtPrice(getOrderAmountDue(o))}</p>
