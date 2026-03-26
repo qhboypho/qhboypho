@@ -1216,7 +1216,12 @@ function resolveSelectedColorImage(productColors: any, selectedColor: any, fallb
   if (!selected) return String(fallbackImage || '').trim()
   const colors = normalizeColorOptionsInput(productColors)
   if (!colors.length) return String(fallbackImage || '').trim()
-  const matched = colors.find((item) => String(item.name || '').trim().toLowerCase() === selected)
+  const matched =
+    colors.find((item) => String(item.name || '').trim().toLowerCase() === selected) ||
+    colors.find((item) => {
+      const name = String(item.name || '').trim().toLowerCase()
+      return name.includes(selected) || selected.includes(name)
+    })
   if (matched && String(matched.image || '').trim()) return String(matched.image).trim()
   return String(fallbackImage || '').trim()
 }
@@ -4293,7 +4298,7 @@ async function submitOrder() {
       customer_address: address,
       product_id: currentProduct.id,
       color: selectedColor,
-      selected_color_image: getSelectedColorImageFromProduct(currentProduct, selectedColor),
+      selected_color_image: selectedColorImage || getSelectedColorImageFromProduct(currentProduct, selectedColor),
       size: selectedSize,
       quantity: orderQty,
       voucher_code: appliedVoucher ? appliedVoucher.code : '',
@@ -4456,7 +4461,12 @@ function getSelectedColorImageFromProduct(product, selectedColor) {
   const color = String(selectedColor || '').trim().toLowerCase()
   if (!color) return String(product?.thumbnail || '').trim()
   const colors = normalizeColorOptions(product?.colors || [])
-  const matched = colors.find((item) => String(item.name || '').trim().toLowerCase() === color)
+  const matched =
+    colors.find((item) => String(item.name || '').trim().toLowerCase() === color) ||
+    colors.find((item) => {
+      const name = String(item.name || '').trim().toLowerCase()
+      return name.includes(color) || color.includes(name)
+    })
   if (matched && String(matched.image || '').trim()) return String(matched.image).trim()
   return String(product?.thumbnail || '').trim()
 }
