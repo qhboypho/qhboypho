@@ -3842,7 +3842,7 @@ function renderProducts(products) {
   }
   empty.classList.add('hidden')
   grid.innerHTML = products.map(p => {
-    const colors = getColorNames(p.colors)
+    const colors = window.getColorNames ? window.getColorNames(p.colors) : []
     const discount = p.original_price ? Math.round((1 - p.price/p.original_price)*100) : 0
     return \`
     <div class="bg-white rounded-2xl overflow-hidden card-hover shadow-sm border border-gray-100 cursor-pointer" onclick="showDetail(\${p.id})">
@@ -3912,7 +3912,7 @@ async function showDetail(id) {
   try {
     const res = await axios.get('/api/products/' + id)
     const p = res.data.data
-    const colorOptions = normalizeColorOptions(p.colors)
+    const colorOptions = window.normalizeColorOptions ? window.normalizeColorOptions(p.colors) : []
     const colors = colorOptions.map((c) => c.name)
     const sizes = safeJson(p.sizes)
     const images = safeJson(p.images)
@@ -4002,7 +4002,7 @@ async function openOrder(id) {
     updateOrderTotal()
 
     // Colors
-    const colors = getColorNames(currentProduct.colors)
+    const colors = window.getColorNames ? window.getColorNames(currentProduct.colors) : []
     const colorDiv = document.getElementById('colorOptions')
     colorDiv.innerHTML = colors.length ? colors.map(c => \`
       <button class="color-btn px-3 py-1.5 border rounded-lg text-sm hover:border-pink-400 transition" onclick="selectOrderColor('\${c}',this)">\${c}</button>
@@ -4157,7 +4157,7 @@ async function addToCartFromCard(evt, id) {
   try {
     const res = await axios.get('/api/products/' + id)
     const p = res.data.data
-    const colors = getColorNames(p.colors)
+    const colors = window.getColorNames ? window.getColorNames(p.colors) : []
     const sizes = safeJson(p.sizes)
     const color = colors.length > 0 ? colors[0] : ''
     const size = sizes.length > 0 ? sizes[0] : ''
@@ -4426,6 +4426,8 @@ function getColorNames(raw) {
     return ''
   }).filter(Boolean)
 }
+window.normalizeColorOptions = normalizeColorOptions
+window.getColorNames = getColorNames
 function formatPaymentMethod(v) {
   const key = String(v || '').toUpperCase()
   if (key === 'ZALOPAY') return 'ZaloPay'
@@ -6993,7 +6995,7 @@ function renderAdminProducts(products) {
     const name = String(p.name || 'Sản phẩm')
     const brand = String(p.brand || '').trim()
     const thumbnail = String(p.thumbnail || '').trim() || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'
-    const colors = getColorNames(p.colors)
+    const colors = window.getColorNames ? window.getColorNames(p.colors) : []
     const sizes = safeJson(p.sizes)
     return \`
     <div class="bg-white rounded-2xl shadow-sm border overflow-hidden \${!p.is_active ? 'opacity-60' : ''}">
@@ -7096,7 +7098,7 @@ async function openProductModal(id = null) {
       imgs.forEach((url, i) => { if (i < 9 && url) setGallerySlot(i, url) })
       
       // Colors & sizes
-      colors = normalizeColorOptions(p.colors)
+      colors = window.normalizeColorOptions ? window.normalizeColorOptions(p.colors) : []
       sizes = safeJson(p.sizes)
       renderColorOptionsEditor()
       renderTags('size')
