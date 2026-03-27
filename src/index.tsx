@@ -2078,22 +2078,12 @@ app.post('/api/orders/:id/payos-link', async (c) => {
 
     const existingLinkId = String(order.payment_link_id || '').trim()
     const existingCheckoutUrl = String(order.payment_checkout_url || '').trim()
-    if (existingLinkId) {
-      return c.json({
-        success: true,
-        data: {
-          paymentLinkId: existingLinkId,
-          checkoutUrl: existingCheckoutUrl || `https://pay.payos.vn/web/${encodeURIComponent(existingLinkId)}`,
-          orderCode: order.order_code
-        }
-      })
-    }
-
-    const existingPayment = await payOSGetPaymentInfo(c.env, order.payment_order_code || order.id)
+    const existingPayment = await payOSGetPaymentInfo(c.env, existingLinkId || order.payment_order_code || order.id)
     if (existingPayment) {
+      const existingPaymentStatus = String(existingPayment.status || '').trim().toUpperCase()
       const existingPaymentLinkId = String(existingPayment.id || '').trim()
-      const existingPaymentCheckoutUrl = String(existingCheckoutUrl || (existingPaymentLinkId ? `https://pay.payos.vn/web/${encodeURIComponent(existingPaymentLinkId)}` : '')).trim()
-      if (existingPaymentLinkId || existingPaymentCheckoutUrl) {
+      const existingPaymentCheckoutUrl = String(existingCheckoutUrl || existingPayment.checkoutUrl || (existingPaymentLinkId ? `https://pay.payos.vn/web/${encodeURIComponent(existingPaymentLinkId)}` : '')).trim()
+      if (existingPaymentStatus === 'PENDING' && (existingPaymentLinkId || existingPaymentCheckoutUrl)) {
         await c.env.DB.prepare(`
           UPDATE orders
           SET payment_link_id=COALESCE(NULLIF(?, ''), payment_link_id),
@@ -2128,7 +2118,7 @@ app.post('/api/orders/:id/payos-link', async (c) => {
     const amount = Math.round(Number(order.total_price || 0))
     if (amount <= 0) return c.json({ success: false, error: 'INVALID_ORDER_AMOUNT' }, 400)
 
-    const orderCodeNum = Number(order.id) // numeric order code for PayOS
+    const orderCodeNum = Math.floor(Date.now() * 10 + Math.floor(Math.random() * 10)) // numeric order code for PayOS, unique per retry
     const description = `DH${orderCodeNum}`.slice(0, 25)
     const returnUrl = `${origin}/?order=${encodeURIComponent(order.order_code)}&pay=success&provider=payos&closeTab=1`
     const cancelUrl = `${origin}/?order=${encodeURIComponent(order.order_code)}&pay=cancel&provider=payos`
