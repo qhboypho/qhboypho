@@ -7941,21 +7941,21 @@ function renderOrdersTable(orders) {
               class="hover:text-blue-600 no-underline transition">\${o.customer_phone}</button>
           </div>
           <p class="text-xs text-gray-500">SKU: \${buildOrderSkuText(o)}</p>
-          <div>
-            \${String(o.shipping_tracking_code || '').trim()
-              ? \`<button type="button"
-                    onclick="copyTrackingCode(decodeURIComponent('\${encodeURIComponent(String(o.shipping_tracking_code || '').trim())}')); return false;"
-                    title="Bấm để copy mã đầy đủ: \${String(o.shipping_tracking_code || '').trim()}"
-                    class="font-mono text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg font-semibold hover:bg-emerald-100 transition">
-                    Mã vận đơn: \${getTrackingDisplayCode(o.shipping_tracking_code)}
-                  </button>\`
-              : '<span class="text-xs text-gray-300">Mã vận đơn: —</span>'}
-          </div>
+          \${String(o.shipping_tracking_code || '').trim()
+            ? \`<div>
+                <button type="button"
+                  onclick="copyTrackingCode(decodeURIComponent('\${encodeURIComponent(String(o.shipping_tracking_code || '').trim())}')); return false;"
+                  title="Bấm để copy mã đầy đủ: \${String(o.shipping_tracking_code || '').trim()}"
+                  class="font-mono text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg font-semibold hover:bg-emerald-100 transition">
+                  Mã vận đơn: \${getTrackingDisplayCode(o.shipping_tracking_code)}
+                </button>
+              </div>\`
+            : ''}
         </div>
       </div>
     </td>
     <td class="px-2 py-3 text-center w-12 align-top">
-      <span class="inline-flex min-w-6 justify-center text-[11px] font-semibold text-gray-700 bg-gray-100 border border-gray-200 rounded-md px-1.5 py-0.5">\${o.quantity || 1}</span>
+      <span class="inline-flex min-w-6 justify-center text-[11px] \${Number(o.quantity || 1) > 1 ? 'font-bold text-gray-900 bg-amber-100 border border-amber-300 shadow-sm' : 'font-semibold text-gray-700 bg-gray-100 border border-gray-200'} rounded-md px-1.5 py-0.5">\${o.quantity || 1}</span>
     </td>
     <td class="px-4 py-3 text-right">
       <p class="font-bold text-gray-800">\${fmtPrice(getOrderAmountDue(o))}</p>
@@ -8022,13 +8022,13 @@ function renderOrdersMobileList(orders) {
                   onclick="copyPhoneNumber(decodeURIComponent('\${encodeURIComponent(String(o.customer_phone || '').trim())}')); return false;"
                   class="hover:text-blue-600 no-underline transition">\${o.customer_phone}</button>
               </div>
-              <div class="mt-1">
-                \${tracking
-                  ? \`<button type="button"
-                        onclick="copyTrackingCode(decodeURIComponent('\${encodeURIComponent(tracking)}')); return false;"
-                        class="font-mono text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg font-semibold hover:bg-emerald-100 transition">Mã vận đơn: \${getTrackingDisplayCode(tracking)}</button>\`
-                  : '<span class="text-xs text-gray-300">Mã vận đơn: —</span>'}
-              </div>
+              \${tracking
+                ? \`<div class="mt-1">
+                    <button type="button"
+                      onclick="copyTrackingCode(decodeURIComponent('\${encodeURIComponent(tracking)}')); return false;"
+                      class="font-mono text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg font-semibold hover:bg-emerald-100 transition">Mã vận đơn: \${getTrackingDisplayCode(tracking)}</button>
+                  </div>\`
+                : ''}
             </div>
           </div>
           <div class="mt-2 flex items-center justify-between gap-2">
