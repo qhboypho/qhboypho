@@ -1604,6 +1604,16 @@ app.get('/api/admin/orders', async (c) => {
     const status = c.req.query('status')
     const includeInternal = c.req.query('include_internal') === '1'
     const internalFilterSql = includeInternal ? '1=1' : `NOT ${buildInternalTestOrderWhereSql('o')}`
+    const shippingQueueOnly = c.req.query('shipping_queue') === '1'
+    const shippingQueueSql = shippingQueueOnly
+      ? `AND (
+           UPPER(COALESCE(o.payment_method, '')) = 'COD'
+           OR (
+             UPPER(COALESCE(o.payment_method, '')) IN ('BANK_TRANSFER', 'ZALOPAY')
+             AND LOWER(COALESCE(o.payment_status, '')) = 'paid'
+           )
+         )`
+      : ''
     let query = `
       SELECT o.*,
              p.thumbnail AS product_thumbnail,
@@ -1611,6 +1621,7 @@ app.get('/api/admin/orders', async (c) => {
       FROM orders o
       LEFT JOIN products p ON p.id = o.product_id
       WHERE ${internalFilterSql}
+      ${shippingQueueSql}
       ORDER BY o.created_at DESC
     `
     if (status && status !== 'all') {
@@ -1621,6 +1632,7 @@ app.get('/api/admin/orders', async (c) => {
         FROM orders o
         LEFT JOIN products p ON p.id = o.product_id
         WHERE o.status=? AND ${internalFilterSql}
+        ${shippingQueueSql}
         ORDER BY o.created_at DESC
       `
     }
