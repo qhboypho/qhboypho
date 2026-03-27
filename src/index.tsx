@@ -7886,7 +7886,9 @@ async function loadAdminOrders() {
   document.getElementById('ordersTable').innerHTML = '<tr><td colspan="7" class="text-center py-12 text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></td></tr>'
   document.getElementById('ordersMobileList').innerHTML = '<div class="py-12 text-center text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></div>'
   try {
-    const res = await axios.get('/api/admin/orders')
+    const params = new URLSearchParams()
+    params.set('shipping_queue', '1')
+    const res = await axios.get('/api/admin/orders?' + params.toString())
     adminOrders = res.data.data || []
     const validIds = new Set(adminOrders.map(o => Number(o.id)))
     selectedOrderIds = new Set(Array.from(selectedOrderIds).filter(id => validIds.has(Number(id))))
