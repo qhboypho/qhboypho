@@ -5400,7 +5400,7 @@ async function showUserOrders() {
           ? '<button class="font-mono text-xs text-blue-600 font-semibold hover:underline" onclick="resumeOrderPayment(' + o.id + ',\\'' + safeOrderCode + '\\',\\'' + methodArg + '\\')">' + o.order_code + '</button>'
           : '<span class="font-mono text-xs text-blue-600 font-semibold">' + o.order_code + '</span>'
         const resumeActionHtml = canResume
-          ? '<button class="mt-2 w-full rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-2 transition" onclick="resumeOrderPayment(' + o.id + ',\\'' + safeOrderCode + '\\',\\'' + methodArg + '\\')"><i class="fas fa-qrcode mr-1"></i>Thanh toán lại</button>'
+          ? '<button class="mt-2 w-full rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-2 transition" onclick="resumeOrderPayment(' + o.id + ',\\'' + safeOrderCode + '\\',\\'' + methodArg + '\\')"><i class="fas fa-qrcode mr-1"></i>Thanh toán</button>'
           : ''
         return '<div class="order-history-item border rounded-xl p-3">'
           + '<div class="flex justify-between items-start mb-1">' + codeHtml
@@ -5425,6 +5425,18 @@ async function resumeOrderPayment(orderId, orderCode, paymentMethod) {
   const createEndpoint = isZaloPay ? '/api/orders/' + orderId + '/zalopay-link' : '/api/orders/' + orderId + '/payos-link'
   const syncEndpoint = isZaloPay ? '/api/orders/' + orderId + '/zalopay-sync' : '/api/orders/' + orderId + '/payos-sync'
   let payTab = isZaloPay ? openOrReuseZaloPayLinkTab() : window.open('about:blank', '_blank')
+  const openCheckoutUrl = function (url) {
+    const checkoutUrl = String(url || '').trim()
+    if (!checkoutUrl) return false
+    if (payTab) {
+      try { payTab.location.href = checkoutUrl } catch (_) { payTab = null }
+      if (isZaloPay && payTab) zaloPayLinkTab = payTab
+      return true
+    }
+    payTab = window.open(checkoutUrl, '_blank')
+    if (isZaloPay && payTab) zaloPayLinkTab = payTab
+    return !!payTab
+  }
   try {
     const paymentRes = await axios.post(createEndpoint, { origin: window.location.origin })
     const paymentData = paymentRes.data?.data || {}
@@ -5443,25 +5455,47 @@ async function resumeOrderPayment(orderId, orderCode, paymentMethod) {
       showToast('Không tạo được link thanh toán ' + providerLabel, 'error', 3500)
       return
     }
-    if (payTab) {
-      payTab.location.href = checkoutUrl
-      if (isZaloPay) zaloPayLinkTab = payTab
-    } else {
-      payTab = window.open(checkoutUrl, '_blank')
-      if (isZaloPay && payTab) zaloPayLinkTab = payTab
+    if (!openCheckoutUrl(checkoutUrl)) {
+      showToast('Trình duyệt đang chặn popup, vui lòng cho phép mở tab mới', 'warning', 3800)
+      return
     }
     startOrderPaymentPolling(orderCode)
     showToast('Đang mở lại trang ' + providerLabel + ' để bạn thanh toán tiếp', 'success', 3500)
   } catch (err) {
     const errCode = err.response?.data?.error
+    const fallbackUrl = isZaloPay
+      ? String(err.response?.data?.detail?.order_url || err.response?.data?.detail?.data?.order_url || '').trim()
+      : String(err.response?.data?.detail?.checkoutUrl || err.response?.data?.detail?.data?.checkoutUrl || '').trim()
+    if (fallbackUrl && openCheckoutUrl(fallbackUrl)) {
+      startOrderPaymentPolling(orderCode)
+      showToast('Đang mở lại trang ' + providerLabel + ' để bạn thanh toán tiếp', 'success', 3500)
+      return
+    }
     if (errCode === 'ZALOPAY_CONFIG_MISSING') {
       const missing = Array.isArray(err.response?.data?.missing) ? err.response.data.missing : []
       const detail = missing.length ? (': ' + missing.join(', ')) : ''
       showToast('ZaloPay chua cau hinh day du' + detail, 'error', 5500)
       return
     }
+    if (errCode === 'PAYOS_CONFIG_MISSING') {
+      showToast('PayOS chưa cấu hình đầy đủ, vui lòng liên hệ shop', 'error', 5500)
+      return
+    }
+    if (errCode === 'PAYMENT_METHOD_NOT_BANK_TRANSFER') {
+      showToast('Đơn này không dùng phương thức chuyển khoản', 'error', 3800)
+      return
+    }
+    if (errCode === 'ORDER_NOT_FOUND') {
+      showToast('Không tìm thấy đơn hàng để thanh toán lại', 'error', 3800)
+      return
+    }
+    if (errCode === 'INVALID_ORDER_AMOUNT') {
+      showToast('Đơn hàng có số tiền không hợp lệ để thanh toán', 'error', 3800)
+      return
+    }
     try { if (payTab && !payTab.closed) payTab.close() } catch (_) { }
-    showToast('Không thể mở lại thanh toán cho đơn này', 'error', 3500)
+    const msg = err.response?.data?.error || err.message || 'Không thể mở lại thanh toán cho đơn này'
+    showToast('Không thể mở lại thanh toán: ' + msg, 'error', 4000)
   }
 }
 
