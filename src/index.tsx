@@ -5474,11 +5474,18 @@ async function showUserOrders() {
         const resumeActionHtml = canResume
           ? '<button class="mt-2 w-full rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-2 transition" onclick="resumeOrderPayment(' + o.id + ',\\'' + safeOrderCode + '\\',\\'' + methodArg + '\\')"><i class="fas fa-qrcode mr-1"></i>Thanh toán</button>'
           : ''
+        const variantText = buildOrderSkuText(o)
         return '<div class="order-history-item border rounded-xl p-3">'
           + '<div class="flex justify-between items-start mb-1">' + codeHtml
           + '<span class="text-xs px-2 py-0.5 rounded-full font-medium ' + paymentBadgeClass + '">' + paymentBadgeText + '</span></div>'
-          + '<p class="text-sm font-medium text-gray-800">' + o.product_name + '</p>'
-          + '<div class="flex justify-between items-center mt-1"><span class="text-xs text-gray-400">' + new Date(o.created_at).toLocaleDateString('vi-VN') + '</span>'
+          + '<div class="flex items-start gap-2 mt-1">'
+          + '<img src="' + getOrderItemImage(o) + '" alt="' + (o.product_name || 'product') + '" class="w-11 h-11 rounded-lg object-cover border border-gray-200 bg-gray-100 flex-none" onerror="this.src=\'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=80\'">'
+          + '<div class="min-w-0 flex-1">'
+          + '<p class="text-sm font-medium text-gray-800 leading-tight">' + o.product_name + '</p>'
+          + (variantText && variantText !== 'N/A' ? '<p class="text-xs text-gray-500 mt-0.5">' + variantText + '</p>' : '')
+          + '</div>'
+          + '</div>'
+          + '<div class="flex justify-between items-center mt-2"><span class="text-xs text-gray-400">' + new Date(o.created_at).toLocaleDateString('vi-VN') + '</span>'
           + '<span class="font-bold text-pink-600 text-sm">' + fmtPrice(getOrderAmountDue(o)) + '</span></div>'
           + resumeActionHtml
           + '</div>'
