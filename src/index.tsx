@@ -3479,6 +3479,11 @@ let pendingBankTransferOrder = null
 let bankTransferPollTimer = null
 let zaloPayLinkTab = null
 let appliedVoucher = null   // { code, discount_amount }
+let detailColorOptions = []
+let detailSelectedColor = ''
+let detailSelectedColorImage = ''
+let detailSelectedColorIndex = -1
+let detailSelectedProductId = null
 
 // ── CART STATE ─────────────────────────────────────
 // cart = [{ cartId, productId, name, sku, thumbnail, price, color, size, qty, checked }]
@@ -4024,14 +4029,19 @@ async function showDetail(id) {
     const res = await axios.get('/api/products/' + id)
     const p = res.data.data
     const colorOptions = getProductColorOptions(p)
-    const colors = colorOptions.map((c) => c.name)
+    detailColorOptions = Array.isArray(colorOptions) ? colorOptions : []
+    detailSelectedProductId = Number(p.id || id)
+    detailSelectedColorIndex = -1
+    detailSelectedColor = ''
+    detailSelectedColorImage = ''
     const sizes = safeJson(p.sizes)
     const images = safeJson(p.images)
+    const defaultMainImage = String(p.thumbnail || detailColorOptions[0]?.image || images[0] || '').trim()
     const discount = p.original_price ? Math.round((1 - p.price/p.original_price)*100) : 0
     document.getElementById('detailContent').innerHTML = \`
     <div class="grid md:grid-cols-2 gap-6">
       <div>
-        <img id="mainDetailImg" src="\${p.thumbnail || images[0] || ''}" alt="\${p.name}" class="w-full rounded-2xl h-80 object-cover mb-3">
+        <img id="mainDetailImg" src="\${defaultMainImage}" alt="\${p.name}" class="w-full rounded-2xl h-80 object-cover mb-3">
         <div class="img-gallery grid grid-cols-4 gap-2">
           \${[p.thumbnail, ...images].filter((v,i,a)=>v&&a.indexOf(v)===i).slice(0,8).map(img => \`
           <img src="\${img}" alt="" class="w-full h-16 object-cover rounded-lg border-2 border-transparent hover:border-pink-400"
@@ -4047,11 +4057,22 @@ async function showDetail(id) {
         </div>
         \${p.description ? \`<p class="text-gray-600 text-sm leading-relaxed mb-4">\${p.description}</p>\` : ''}
         \${p.material ? \`<p class="text-sm text-gray-500 mb-4"><strong>Chất liệu:</strong> \${p.material}</p>\` : ''}
-        \${colors.length ? \`
+        \${detailColorOptions.length ? \`
         <div class="mb-4">
           <p class="text-sm font-semibold mb-2">Màu sắc: <span class="text-pink-500" id="detailColorLabel"></span></p>
-          <div class="flex flex-wrap gap-2">
-            \${colors.map(c => \`<button class="px-3 py-1.5 border rounded-lg text-sm hover:border-pink-400 hover:text-pink-600 transition" onclick="selectDetailColor('\${c}',this)">\${c}</button>\`).join('')}
+          <div class="grid grid-cols-2 sm:grid-cols-3 gap-3" id="detailColorGrid">
+            \${detailColorOptions.map((item, idx) => \`<button type="button"
+              class="detail-color-card group overflow-hidden rounded-2xl border-2 border-gray-200 bg-white text-left transition hover:border-pink-300 hover:shadow-sm"
+              onclick="selectDetailColorByIndex(\${idx}, this)">
+              <div class="relative aspect-[4/5] bg-gray-100 overflow-hidden">
+                \${item.image
+                  ? \`<img src="\${item.image}" alt="\${item.name}" class="w-full h-full object-cover transition duration-300 group-hover:scale-[1.02]">\`
+                  : \`<div class="w-full h-full flex items-center justify-center text-gray-300 text-xs">Không có ảnh</div>\`}
+              </div>
+              <div class="px-2.5 py-2 text-center">
+                <span class="block text-sm font-medium text-gray-900 leading-tight">\${item.name}</span>
+              </div>
+            </button>\`).join('')}
           </div>
         </div>\` : ''}
         \${sizes.length ? \`
@@ -4067,13 +4088,28 @@ async function showDetail(id) {
       </div>
     </div>\`
     document.getElementById('detailOverlay').classList.remove('hidden')
+    if (detailColorOptions.length) {
+      const initialButton = document.querySelector('#detailColorGrid .detail-color-card')
+      if (initialButton) selectDetailColorByIndex(0, initialButton)
+    } else {
+      const label = document.getElementById('detailColorLabel')
+      if (label) label.textContent = ''
+    }
   } catch(e) { showToast('Không thể tải chi tiết sản phẩm', 'error') }
 }
 
-function selectDetailColor(c, btn) {
-  btn.closest('.flex').querySelectorAll('button').forEach(b => b.classList.remove('bg-pink-50','border-pink-400','text-pink-600'))
-  btn.classList.add('bg-pink-50','border-pink-400','text-pink-600')
-  document.getElementById('detailColorLabel').textContent = c
+function selectDetailColorByIndex(idx, btn) {
+  const item = Array.isArray(detailColorOptions) ? detailColorOptions[idx] : null
+  if (!item) return
+  detailSelectedColorIndex = idx
+  detailSelectedColor = String(item.name || '').trim()
+  detailSelectedColorImage = String(item.image || '').trim() || String(document.getElementById('mainDetailImg')?.src || '').trim()
+  const mainImg = document.getElementById('mainDetailImg')
+  if (mainImg && detailSelectedColorImage) mainImg.src = detailSelectedColorImage
+  const label = document.getElementById('detailColorLabel')
+  if (label) label.textContent = detailSelectedColor
+  document.querySelectorAll('.detail-color-card').forEach(b => b.classList.remove('border-pink-500','ring-2','ring-pink-100','shadow-sm'))
+  if (btn) btn.classList.add('border-pink-500','ring-2','ring-pink-100','shadow-sm')
 }
 function selectDetailSize(s, btn) {
   btn.closest('.flex').querySelectorAll('button').forEach(b => b.classList.remove('active','bg-gray-900','text-white'))
@@ -4124,6 +4160,14 @@ async function openOrder(id) {
         <span>\${item.name}</span>
       </button>
     \`).join('') : '<p class="text-gray-400 text-sm">Không có lựa chọn màu</p>'
+    const shouldPrefillFromDetail = Number(detailSelectedProductId || 0) === Number(currentProduct?.id || 0) && detailSelectedColor
+    if (shouldPrefillFromDetail) {
+      const matchedIndex = orderColorOptions.findIndex((item) => String(item.name || '').trim().toLowerCase() === String(detailSelectedColor || '').trim().toLowerCase())
+      if (matchedIndex >= 0) {
+        const btn = colorDiv.querySelectorAll('.color-btn')[matchedIndex]
+        selectOrderColorByIndex(matchedIndex, btn || null)
+      }
+    }
 
     // Sizes
     const sizes = safeJson(currentProduct.sizes)
@@ -4140,7 +4184,7 @@ async function openOrder(id) {
 
 function selectOrderColor(c, colorImage, btn) {
   document.querySelectorAll('.color-btn').forEach(b => b.classList.remove('active','bg-pink-50','border-pink-400','text-pink-600'))
-  btn.classList.add('active','bg-pink-50','border-pink-400','text-pink-600')
+  if (btn) btn.classList.add('active','bg-pink-50','border-pink-400','text-pink-600')
   selectedColor = c
   selectedColorImage = String(colorImage || '').trim() || getSelectedColorImageFromProduct(currentProduct, c) || (currentProduct?.thumbnail || '')
   const preview = document.getElementById('orderProductImg')
