@@ -2059,7 +2059,8 @@ app.post('/api/orders/:id/payos-link', async (c) => {
     if (!origin) return c.json({ success: false, error: 'MISSING_ORIGIN' }, 400)
 
     const order = await c.env.DB.prepare(`
-      SELECT id, order_code, total_price, customer_name, customer_phone, product_name, quantity, payment_method, payment_status
+      SELECT id, order_code, total_price, customer_name, customer_phone, product_name, quantity,
+             payment_method, payment_status, payment_link_id, payment_checkout_url, payment_order_code
       FROM orders WHERE id=?
     `).bind(id).first() as any
     if (!order) return c.json({ success: false, error: 'ORDER_NOT_FOUND' }, 404)
@@ -2086,6 +2087,35 @@ app.post('/api/orders/:id/payos-link', async (c) => {
           orderCode: order.order_code
         }
       })
+    }
+
+    const existingPayment = await payOSGetPaymentInfo(c.env, order.payment_order_code || order.id)
+    if (existingPayment) {
+      const existingPaymentLinkId = String(existingPayment.id || '').trim()
+      const existingPaymentCheckoutUrl = String(existingCheckoutUrl || (existingPaymentLinkId ? `https://pay.payos.vn/web/${encodeURIComponent(existingPaymentLinkId)}` : '')).trim()
+      if (existingPaymentLinkId || existingPaymentCheckoutUrl) {
+        await c.env.DB.prepare(`
+          UPDATE orders
+          SET payment_link_id=COALESCE(NULLIF(?, ''), payment_link_id),
+              payment_checkout_url=COALESCE(NULLIF(?, ''), payment_checkout_url),
+              payment_order_code=COALESCE(NULLIF(?, 0), payment_order_code),
+              updated_at=CURRENT_TIMESTAMP
+          WHERE id=?
+        `).bind(
+          existingPaymentLinkId || null,
+          existingPaymentCheckoutUrl || null,
+          Number(existingPayment.orderCode || order.payment_order_code || order.id || 0),
+          id
+        ).run()
+        return c.json({
+          success: true,
+          data: {
+            paymentLinkId: existingPaymentLinkId || existingPayment.id || '',
+            checkoutUrl: existingPaymentCheckoutUrl || '',
+            orderCode: order.order_code
+          }
+        })
+      }
     }
 
     const clientId = String((c.env as any).PAYOS_CLIENT_ID || '')
