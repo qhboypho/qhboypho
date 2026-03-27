@@ -5435,6 +5435,14 @@ async function showUserOrders() {
   try {
     const res = await axios.get('/api/user/orders')
     let orders = res.data.data || []
+    const escapeHtml = function (value) {
+      return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+    }
     const unpaidGatewayOrders = orders.filter(function (o) {
       const method = String(o.payment_method || '').toUpperCase()
       const unpaid = String(o.payment_status || '').toLowerCase() !== 'paid'
@@ -5468,6 +5476,8 @@ async function showUserOrders() {
           && orderStatus !== 'done'
         const safeOrderCode = String(o.order_code || '').replace(/'/g, "\\'")
         const methodArg = paymentMethod.replace(/'/g, "\\'")
+        const variantText = buildOrderSkuText(o)
+        const itemImage = getOrderItemImage(o)
         const codeHtml = canResume
           ? '<button class="font-mono text-xs text-blue-600 font-semibold hover:underline" onclick="resumeOrderPayment(' + o.id + ',\\'' + safeOrderCode + '\\',\\'' + methodArg + '\\')">' + o.order_code + '</button>'
           : '<span class="font-mono text-xs text-blue-600 font-semibold">' + o.order_code + '</span>'
@@ -5477,8 +5487,14 @@ async function showUserOrders() {
         return '<div class="order-history-item border rounded-xl p-3">'
           + '<div class="flex justify-between items-start mb-1">' + codeHtml
           + '<span class="text-xs px-2 py-0.5 rounded-full font-medium ' + paymentBadgeClass + '">' + paymentBadgeText + '</span></div>'
-          + '<p class="text-sm font-medium text-gray-800">' + o.product_name + '</p>'
-          + '<div class="flex justify-between items-center mt-1"><span class="text-xs text-gray-400">' + new Date(o.created_at).toLocaleDateString('vi-VN') + '</span>'
+          + '<div class="flex items-start gap-2 mt-1">'
+          + '<img src="' + escapeHtml(itemImage) + '" alt="' + escapeHtml(o.product_name || 'product') + '" class="w-11 h-11 rounded-lg object-cover border border-gray-200 bg-gray-100 flex-none" onerror="this.src=\'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=80\'">'
+          + '<div class="min-w-0 flex-1">'
+          + '<p class="text-sm font-medium text-gray-800 leading-tight">' + escapeHtml(o.product_name || '') + '</p>'
+          + '<p class="text-xs text-gray-500 mt-0.5">' + escapeHtml(variantText) + '</p>'
+          + '</div>'
+          + '</div>'
+          + '<div class="flex justify-between items-center mt-2"><span class="text-xs text-gray-400">' + new Date(o.created_at).toLocaleDateString('vi-VN') + '</span>'
           + '<span class="font-bold text-pink-600 text-sm">' + fmtPrice(getOrderAmountDue(o)) + '</span></div>'
           + resumeActionHtml
           + '</div>'
