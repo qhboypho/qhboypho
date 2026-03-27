@@ -6047,7 +6047,6 @@ function adminHTML(): string {
               <th class="px-4 py-3 text-right font-semibold text-gray-600">Tổng tiền</th>
               <th class="px-4 py-3 text-center font-semibold text-gray-600 hidden lg:table-cell">Voucher</th>
               <th class="px-4 py-3 text-center font-semibold text-gray-600">Trạng thái</th>
-              <th class="px-4 py-3 text-center font-semibold text-gray-600">Thao tác</th>
             </tr>
           </thead>
           <tbody id="ordersTable"></tbody>
@@ -7932,13 +7931,19 @@ function renderOrdersTable(orders) {
             </button>
           </div>
           <p class="text-sm text-gray-800 font-semibold truncate max-w-[290px]">\${o.product_name}</p>
-          <div class="text-xs text-gray-500">
+          <div class="text-xs text-gray-500 flex items-center gap-1.5 flex-wrap">
             <span>\${displayCustomerName(o.customer_name)}</span>
             <span> • </span>
             <button type="button"
               onclick="copyPhoneNumber(decodeURIComponent('\${encodeURIComponent(String(o.customer_phone || '').trim())}')); return false;"
               title="Bấm để copy số điện thoại"
               class="hover:text-blue-600 no-underline transition">\${o.customer_phone}</button>
+            <button type="button"
+              onclick="showOrderDetail(\${o.id})"
+              class="ml-1 inline-flex items-center justify-center w-6 h-6 rounded-md bg-blue-50 text-blue-600 hover:bg-blue-100 transition"
+              title="Chi tiết">
+              <i class="fas fa-eye text-[10px]"></i>
+            </button>
           </div>
           <p class="text-xs text-gray-500">SKU: \${buildOrderSkuText(o)}</p>
           \${String(o.shipping_tracking_code || '').trim()
@@ -7975,16 +7980,6 @@ function renderOrdersTable(orders) {
         <option value="cancelled" \${o.status==='cancelled'?'selected':''}>Huỷ</option>
       </select>
     </td>
-    <td class="px-4 py-3 text-center">
-      <div class="flex justify-center gap-1">
-        <button onclick="showOrderDetail(\${o.id})" class="p-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition" title="Chi tiết">
-          <i class="fas fa-eye text-xs"></i>
-        </button>
-        <button onclick="deleteOrder(\${o.id})" class="p-1.5 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition" title="Xoá">
-          <i class="fas fa-trash text-xs"></i>
-        </button>
-      </div>
-    </td>
   </tr>\`).join('')
   renderOrdersMobileList(orders)
   updateOrderSelectionUI()
@@ -8015,12 +8010,18 @@ function renderOrdersMobileList(orders) {
           <div class="mt-2 flex items-start gap-2">
             <img src="\${getOrderItemImage(o)}" alt="\${o.product_name || 'product'}" class="w-11 h-11 rounded-lg object-cover border border-gray-200 bg-gray-100 flex-none" onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=80'">
             <div class="min-w-0 flex-1">
-              <div class="text-xs text-gray-500">
+              <div class="text-xs text-gray-500 flex items-center gap-1.5 flex-wrap">
                 <span>\${displayCustomerName(o.customer_name)}</span>
                 <span> • </span>
                 <button type="button"
                   onclick="copyPhoneNumber(decodeURIComponent('\${encodeURIComponent(String(o.customer_phone || '').trim())}')); return false;"
                   class="hover:text-blue-600 no-underline transition">\${o.customer_phone}</button>
+                <button type="button"
+                  onclick="showOrderDetail(\${o.id})"
+                  class="ml-1 inline-flex items-center justify-center w-6 h-6 rounded-md bg-blue-50 text-blue-600 hover:bg-blue-100 transition"
+                  title="Chi tiết">
+                  <i class="fas fa-eye text-[10px]"></i>
+                </button>
               </div>
               \${tracking
                 ? \`<div class="mt-1">
@@ -8039,14 +8040,7 @@ function renderOrdersMobileList(orders) {
               <option value="done" \${o.status==='done'?'selected':''}>Hoàn thành</option>
               <option value="cancelled" \${o.status==='cancelled'?'selected':''}>Huỷ</option>
             </select>
-            <div class="flex items-center gap-1">
-              <button onclick="showOrderDetail(\${o.id})" class="p-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition" title="Chi tiết">
-                <i class="fas fa-eye text-xs"></i>
-              </button>
-              <button onclick="deleteOrder(\${o.id})" class="p-1.5 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition" title="Xoá">
-                <i class="fas fa-trash text-xs"></i>
-              </button>
-            </div>
+            <div class="flex items-center gap-1"></div>
           </div>
         </div>
       </div>
