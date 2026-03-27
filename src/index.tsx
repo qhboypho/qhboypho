@@ -5140,8 +5140,8 @@ function renderCollapsedBanners(banners) {
     </div>\`
   }).join('')}
   </div>
-  <div class="absolute flex items-center gap-1.5 bg-white/20 backdrop-blur-sm rounded-full px-3 py-1.5 text-white text-xs font-medium cursor-pointer hover:bg-white/30 transition whitespace-nowrap" style="bottom:-28px;left:50%;transform:translateX(-50%);z-index:100" onclick="expandBanners()">
-    <i class="fas fa-expand-alt mr-1 text-pink-300"></i>Xem tất cả \${len} ảnh
+  <div class="absolute flex items-center gap-1.5 bg-white/20 backdrop-blur-sm rounded-full px-3 py-1.5 text-white text-xs font-medium cursor-pointer hover:bg-white/30 transition whitespace-nowrap" style="bottom:-28px;left:50%;transform:translateX(-50%);z-index:5" onclick="expandBanners()">
+    <i class="fas fa-expand-alt mr-1 text-pink-300"></i>Các mẫu thịnh hành
   </div>\`
   container.style.paddingBottom = '36px'
   // Hover expand
