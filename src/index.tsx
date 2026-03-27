@@ -3208,7 +3208,7 @@ function storefrontHTML(): string {
 
 <!-- PRODUCT DETAIL POPUP -->
 <div id="detailOverlay" class="fixed inset-0 overlay hidden flex items-center justify-center p-4" style="z-index:1001;">
-  <div class="popup-card bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+  <div class="popup-card bg-white rounded-3xl shadow-2xl w-full max-w-md md:max-w-[56rem] max-h-[90vh] overflow-y-auto">
     <div class="sticky top-0 bg-white rounded-t-3xl border-b px-6 py-4 flex items-center justify-between">
       <h3 class="font-display text-xl font-bold text-gray-900">Chi tiết sản phẩm</h3>
       <button onclick="closeDetail()" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition">
@@ -4064,7 +4064,7 @@ async function showDetail(id) {
             \${detailColorOptions.map((item, idx) => \`<button type="button"
               class="detail-color-card group overflow-hidden rounded-2xl border-2 border-gray-200 bg-white text-left transition hover:border-pink-300 hover:shadow-sm"
               onclick="selectDetailColorByIndex(\${idx}, this)">
-              <div class="relative aspect-[4/5] bg-gray-100 overflow-hidden">
+              <div class="relative aspect-square bg-gray-100 overflow-hidden">
                 \${item.image
                   ? \`<img src="\${item.image}" alt="\${item.name}" class="w-full h-full object-cover transition duration-300 group-hover:scale-[1.02]">\`
                   : \`<div class="w-full h-full flex items-center justify-center text-gray-300 text-xs">Không có ảnh</div>\`}
