@@ -5389,18 +5389,27 @@ async function showUserOrders() {
         const paymentBadgeClass = paymentPaid ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
         const paymentBadgeText = paymentPaid ? 'Đã thanh toán' : 'Chưa thanh toán'
         const paymentMethod = String(o.payment_method || '').toUpperCase()
-        const canResume = !paymentPaid && (paymentMethod === 'BANK_TRANSFER' || paymentMethod === 'ZALOPAY')
+        const orderStatus = String(o.status || '').toLowerCase()
+        const canResume = !paymentPaid
+          && (paymentMethod === 'BANK_TRANSFER' || paymentMethod === 'ZALOPAY')
+          && orderStatus !== 'cancelled'
+          && orderStatus !== 'done'
         const safeOrderCode = String(o.order_code || '').replace(/'/g, "\\'")
         const methodArg = paymentMethod.replace(/'/g, "\\'")
         const codeHtml = canResume
           ? '<button class="font-mono text-xs text-blue-600 font-semibold hover:underline" onclick="resumeOrderPayment(' + o.id + ',\\'' + safeOrderCode + '\\',\\'' + methodArg + '\\')">' + o.order_code + '</button>'
           : '<span class="font-mono text-xs text-blue-600 font-semibold">' + o.order_code + '</span>'
+        const resumeActionHtml = canResume
+          ? '<button class="mt-2 w-full rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-2 transition" onclick="resumeOrderPayment(' + o.id + ',\\'' + safeOrderCode + '\\',\\'' + methodArg + '\\')"><i class="fas fa-qrcode mr-1"></i>Thanh toán lại</button>'
+          : ''
         return '<div class="order-history-item border rounded-xl p-3">'
           + '<div class="flex justify-between items-start mb-1">' + codeHtml
           + '<span class="text-xs px-2 py-0.5 rounded-full font-medium ' + paymentBadgeClass + '">' + paymentBadgeText + '</span></div>'
           + '<p class="text-sm font-medium text-gray-800">' + o.product_name + '</p>'
           + '<div class="flex justify-between items-center mt-1"><span class="text-xs text-gray-400">' + new Date(o.created_at).toLocaleDateString('vi-VN') + '</span>'
-          + '<span class="font-bold text-pink-600 text-sm">' + fmtPrice(getOrderAmountDue(o)) + '</span></div></div>'
+          + '<span class="font-bold text-pink-600 text-sm">' + fmtPrice(getOrderAmountDue(o)) + '</span></div>'
+          + resumeActionHtml
+          + '</div>'
       }).join('') + '</div>'
   } catch { content.innerHTML = '<div class="text-center py-8 text-red-400">Lỗi tải dữ liệu</div>' }
 }
