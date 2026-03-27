@@ -1948,7 +1948,7 @@ app.post('/api/orders/:id/zalopay-link', async (c) => {
     if (!origin) return c.json({ success: false, error: 'MISSING_ORIGIN' }, 400)
 
     const order = await c.env.DB.prepare(`
-      SELECT id, order_code, total_price, customer_name, customer_phone, product_name, quantity, payment_method, payment_status
+      SELECT id, order_code, total_price, customer_name, customer_phone, product_name, quantity, payment_method, payment_status, payment_link_id, payment_checkout_url, payment_order_code
       FROM orders WHERE id=?
     `).bind(id).first() as any
     if (!order) return c.json({ success: false, error: 'ORDER_NOT_FOUND' }, 404)
@@ -5408,7 +5408,7 @@ async function showUserOrders() {
         const paymentMethod = String(o.payment_method || '').toUpperCase()
         const orderStatus = String(o.status || '').toLowerCase()
         const canResume = !paymentPaid
-          && (paymentMethod === 'BANK_TRANSFER' || paymentMethod === 'ZALOPAY')
+          && paymentMethod === 'BANK_TRANSFER'
           && orderStatus !== 'cancelled'
           && orderStatus !== 'done'
         const safeOrderCode = String(o.order_code || '').replace(/'/g, "\\'")
