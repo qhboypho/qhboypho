@@ -100,6 +100,7 @@ async function initDB(db: D1Database) {
       payment_ref TEXT,
       payment_provider TEXT,
       payment_link_id TEXT,
+      payment_checkout_url TEXT,
       payment_order_code INTEGER,
       shipping_arranged INTEGER DEFAULT 0,
       shipping_arranged_at DATETIME,
@@ -160,6 +161,7 @@ async function initDB(db: D1Database) {
   try { await db.prepare("ALTER TABLE orders ADD COLUMN payment_ref TEXT").run() } catch (_) { }
   try { await db.prepare("ALTER TABLE orders ADD COLUMN payment_provider TEXT").run() } catch (_) { }
   try { await db.prepare("ALTER TABLE orders ADD COLUMN payment_link_id TEXT").run() } catch (_) { }
+  try { await db.prepare("ALTER TABLE orders ADD COLUMN payment_checkout_url TEXT").run() } catch (_) { }
   try { await db.prepare("ALTER TABLE orders ADD COLUMN payment_order_code INTEGER").run() } catch (_) { }
   try { await db.prepare("ALTER TABLE orders ADD COLUMN shipping_arranged INTEGER DEFAULT 0").run() } catch (_) { }
   try { await db.prepare("ALTER TABLE orders ADD COLUMN shipping_arranged_at DATETIME").run() } catch (_) { }
@@ -2073,6 +2075,19 @@ app.post('/api/orders/:id/payos-link', async (c) => {
       return c.json({ success: true, data: { alreadyPaid: true, orderCode: order.order_code } })
     }
 
+    const existingLinkId = String(order.payment_link_id || '').trim()
+    const existingCheckoutUrl = String(order.payment_checkout_url || '').trim()
+    if (existingLinkId) {
+      return c.json({
+        success: true,
+        data: {
+          paymentLinkId: existingLinkId,
+          checkoutUrl: existingCheckoutUrl || `https://pay.payos.vn/web/${encodeURIComponent(existingLinkId)}`,
+          orderCode: order.order_code
+        }
+      })
+    }
+
     const clientId = String((c.env as any).PAYOS_CLIENT_ID || '')
     const apiKey = String((c.env as any).PAYOS_API_KEY || '')
     const checksumKey = String((c.env as any).PAYOS_CHECKSUM_KEY || '')
@@ -2125,11 +2140,13 @@ app.post('/api/orders/:id/payos-link', async (c) => {
       UPDATE orders
       SET payment_provider='PAYOS',
           payment_link_id=?,
+          payment_checkout_url=?,
           payment_order_code=?,
           updated_at=CURRENT_TIMESTAMP
       WHERE id=?
     `).bind(
       payosRes.data.paymentLinkId || null,
+      payosRes.data.checkoutUrl || null,
       orderCodeNum,
       id
     ).run()
