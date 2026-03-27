@@ -2491,6 +2491,19 @@ app.get('/api/admin/stats', async (c) => {
     const totalProducts = await c.env.DB.prepare(`SELECT COUNT(*) as count FROM products WHERE is_active=1`).first() as any
     const totalOrders = await c.env.DB.prepare(`SELECT COUNT(*) as count FROM orders WHERE ${internalFilterSql}`).first() as any
     const pendingOrders = await c.env.DB.prepare(`SELECT COUNT(*) as count FROM orders WHERE status='pending' AND ${internalFilterSql}`).first() as any
+    const shippingQueueOrders = await c.env.DB.prepare(`
+      SELECT COUNT(*) as count
+      FROM orders
+      WHERE ${internalFilterSql}
+        AND status NOT IN ('shipping', 'done', 'cancelled')
+        AND (
+          UPPER(COALESCE(payment_method, '')) = 'COD'
+          OR (
+            UPPER(COALESCE(payment_method, '')) IN ('BANK_TRANSFER', 'ZALOPAY')
+            AND LOWER(COALESCE(payment_status, '')) = 'paid'
+          )
+        )
+    `).first() as any
     const revenue = await c.env.DB.prepare(`SELECT SUM(total_price) as total FROM orders WHERE status != 'cancelled' AND ${internalFilterSql}`).first() as any
     const recentOrdersRes = await c.env.DB.prepare(`
       SELECT *,
@@ -2508,6 +2521,7 @@ app.get('/api/admin/stats', async (c) => {
         totalProducts: totalProducts?.count || 0,
         totalOrders: totalOrders?.count || 0,
         pendingOrders: pendingOrders?.count || 0,
+        shippingQueueOrders: shippingQueueOrders?.count || 0,
         revenue: revenue?.total || 0,
         recentOrders: recentOrders.results || []
       }
@@ -7235,8 +7249,9 @@ async function loadDashboard() {
     document.getElementById('statPending').textContent = d.pendingOrders
     document.getElementById('statRevenue').textContent = fmtPrice(d.revenue)
     
-    if (d.pendingOrders > 0) {
-      document.getElementById('pendingBadge').textContent = d.pendingOrders
+    const shippingQueueOrders = Number(d.shippingQueueOrders || 0)
+    if (shippingQueueOrders > 0) {
+      document.getElementById('pendingBadge').textContent = shippingQueueOrders
       document.getElementById('pendingBadge').classList.remove('hidden')
     }
     
