@@ -2593,6 +2593,7 @@ function storefrontHTML(): string {
   .field-error input, .field-error textarea { border-color: #e84393 !important; box-shadow: 0 0 0 3px rgba(232,67,147,0.15) !important; }
   .field-error select { border-color: #e84393 !important; box-shadow: 0 0 0 3px rgba(232,67,147,0.15) !important; }
   .field-error .payment-method-btn { border-color: #e84393 !important; box-shadow: 0 0 0 3px rgba(232,67,147,0.12) !important; }
+  .field-error .color-btn, .field-error .size-btn { border-color: #e84393 !important; box-shadow: 0 0 0 3px rgba(232,67,147,0.12) !important; }
   .address-option-item { width: 100%; text-align: left; padding: 9px 12px; font-size: 14px; line-height: 1.4; }
   .address-option-item:hover { background: #fdf2f8; color: #be185d; }
   .address-option-item.active { background: #ec4899; color: #fff; font-weight: 600; }
@@ -3043,7 +3044,7 @@ function storefrontHTML(): string {
         <!-- Color -->
         <div id="fieldColor">
           <label class="block text-sm font-semibold text-gray-700 mb-2 field-title">
-            <i class="fas fa-palette text-pink-400 mr-1"></i>Màu sắc
+            <i class="fas fa-palette text-pink-400 mr-1"></i>Màu sắc *
           </label>
           <div id="colorOptions" class="flex flex-wrap gap-2"></div>
         </div>
@@ -3051,7 +3052,7 @@ function storefrontHTML(): string {
         <!-- Size -->
         <div id="sizeSection">
           <label class="block text-sm font-semibold text-gray-700 mb-2 field-title">
-            <i class="fas fa-ruler text-pink-400 mr-1"></i>Size
+            <i class="fas fa-ruler text-pink-400 mr-1"></i>Size *
           </label>
           <div id="sizeOptions" class="flex flex-wrap gap-2"></div>
         </div>
@@ -4187,7 +4188,7 @@ async function openOrder(id) {
     document.getElementById('subtotalRow').classList.add('hidden')
     document.querySelectorAll('.payment-method-btn').forEach(b => b.classList.remove('active','border-pink-500','bg-pink-50'))
     // Clear field errors
-    ;['fieldName','fieldPhone','fieldAddress','fieldColor','fieldPaymentMethod'].forEach(id => {
+    ;['fieldName','fieldPhone','fieldAddress','fieldColor','sizeSection','fieldPaymentMethod'].forEach(id => {
       document.getElementById(id)?.classList.remove('field-error','shake')
     })
     updateOrderTotal()
@@ -4252,6 +4253,7 @@ function selectOrderSize(s, btn) {
   document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active','bg-gray-900','text-white','border-gray-900'))
   if (btn) btn.classList.add('active','bg-gray-900','text-white','border-gray-900')
   selectedSize = s
+  document.getElementById('sizeSection')?.classList.remove('field-error','shake')
 }
 function selectPaymentMethod(method, btn) {
   document.querySelectorAll('.payment-method-btn').forEach(b => b.classList.remove('active','border-pink-500','bg-pink-50'))
@@ -4454,6 +4456,9 @@ async function submitOrder() {
   const phone = document.getElementById('orderPhone').value.trim()
   const addressPayload = getAddressPayload('order')
   const address = addressPayload.address
+  const sizes = safeJson(currentProduct?.sizes)
+  const hasColorOptions = Array.isArray(orderColorOptions) ? orderColorOptions.length > 0 : false
+  const hasSizeOptions = Array.isArray(sizes) ? sizes.length > 0 : false
 
   // Validate with shake + scroll
   if (!name) { shakeField('fieldName'); return }
@@ -4462,6 +4467,10 @@ async function submitOrder() {
   clearFieldError('fieldPhone')
   if (!addressPayload.valid) { shakeField('fieldAddress'); return }
   clearFieldError('fieldAddress')
+  if (hasColorOptions && !selectedColor) { shakeField('fieldColor'); return }
+  clearFieldError('fieldColor')
+  if (hasSizeOptions && !selectedSize) { shakeField('sizeSection'); return }
+  clearFieldError('sizeSection')
   if (!selectedPaymentMethod) { shakeField('fieldPaymentMethod'); return }
   clearFieldError('fieldPaymentMethod')
   if (selectedPaymentMethod === 'ZALOPAY') {
