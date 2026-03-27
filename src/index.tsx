@@ -3483,6 +3483,7 @@ let detailColorOptions = []
 let detailSelectedColor = ''
 let detailSelectedColorImage = ''
 let detailSelectedColorIndex = -1
+let detailSelectedSize = ''
 let detailSelectedProductId = null
 
 // ── CART STATE ─────────────────────────────────────
@@ -4034,6 +4035,7 @@ async function showDetail(id) {
     detailSelectedColorIndex = -1
     detailSelectedColor = ''
     detailSelectedColorImage = ''
+    detailSelectedSize = ''
     const sizes = safeJson(p.sizes)
     const images = safeJson(p.images)
     const defaultMainImage = String(p.thumbnail || detailColorOptions[0]?.image || images[0] || '').trim()
@@ -4112,8 +4114,12 @@ function selectDetailColorByIndex(idx, btn) {
   if (btn) btn.classList.add('border-pink-500','ring-2','ring-pink-100','shadow-sm')
 }
 function selectDetailSize(s, btn) {
-  btn.closest('.flex').querySelectorAll('button').forEach(b => b.classList.remove('active','bg-gray-900','text-white'))
-  btn.classList.add('active','bg-gray-900','text-white')
+  detailSelectedSize = String(s || '').trim()
+  const group = btn?.closest('.flex')
+  if (group) {
+    group.querySelectorAll('button').forEach(b => b.classList.remove('active','bg-gray-900','text-white'))
+  }
+  if (btn) btn.classList.add('active','bg-gray-900','text-white')
 }
 function closeDetail() { document.getElementById('detailOverlay').classList.add('hidden') }
 
@@ -4176,6 +4182,14 @@ async function openOrder(id) {
       <button class="size-btn px-3 py-1.5 border rounded-lg text-sm font-medium hover:border-pink-400 transition" onclick="selectOrderSize('\${s}',this)">\${s}</button>
     \`).join('') : '<p class="text-gray-400 text-sm">Không có size</p>'
     document.getElementById('sizeSection').style.display = sizes.length ? '' : 'none'
+    const shouldPrefillSizeFromDetail = Number(detailSelectedProductId || 0) === Number(currentProduct?.id || 0) && detailSelectedSize
+    if (shouldPrefillSizeFromDetail) {
+      const matchedSizeIndex = sizes.findIndex((s) => String(s || '').trim().toLowerCase() === String(detailSelectedSize || '').trim().toLowerCase())
+      if (matchedSizeIndex >= 0) {
+        const btn = sizeDiv.querySelectorAll('.size-btn')[matchedSizeIndex]
+        selectOrderSize(String(sizes[matchedSizeIndex] || ''), btn || null)
+      }
+    }
 
     document.getElementById('orderOverlay').classList.remove('hidden')
     document.body.style.overflow = 'hidden'
@@ -4199,7 +4213,7 @@ function selectOrderColorByIndex(idx, btn) {
 }
 function selectOrderSize(s, btn) {
   document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active','bg-gray-900','text-white','border-gray-900'))
-  btn.classList.add('active','bg-gray-900','text-white','border-gray-900')
+  if (btn) btn.classList.add('active','bg-gray-900','text-white','border-gray-900')
   selectedSize = s
 }
 function selectPaymentMethod(method, btn) {
