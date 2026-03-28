@@ -207,8 +207,8 @@ async function initDB(db: D1Database) {
     if (count === 0) {
       const initialBanners = [
         ['https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=500', 'M?i nh?t', 'B? suu t?p Spring 2026', 'T? 299.000d', null, 1],
-        ['https://images.unsplash.com/photo-1550614000-4b95d4edc457?w=500', 'BÃ¡n ch?y', 'Phong CÃ¡ch Ãu?ng Ph?', 'Gi?m 20%', null, 2],
-        ['https://images.unsplash.com/photo-1492707892479-7bc8d5a4ee93?w=500', 'Nam gi?i', 'L?ch lÃ£m & Tinh t?', 'T? 450.000d', null, 3]
+        ['https://images.unsplash.com/photo-1550614000-4b95d4edc457?w=500', 'Bán chạy', 'Phong Cách Đường Phố', 'Giảm 20%', null, 2],
+        ['https://images.unsplash.com/photo-1492707892479-7bc8d5a4ee93?w=500', 'Nam giới', 'Lịch lãm & Tinh tế', 'Từ 450.000đ', null, 3]
       ]
       for (const [img, sub, title, price, pid, order] of initialBanners) {
         await db.prepare("INSERT INTO hero_banners (image_url, subtitle, title, price, product_id, display_order) VALUES (?, ?, ?, ?, ?, ?)").bind(img, sub, title, price, pid, order).run()
@@ -789,7 +789,7 @@ async function ghtkCancelShipment(env: any, trackingOrder: string) {
   })
   const body: any = await resp.json().catch(() => ({}))
   const message = String(body?.message || '').trim()
-  const alreadyCancelled = /h?y|huy/i.test(message) && /dÃ£|da/i.test(message)
+  const alreadyCancelled = /hủy|huy/i.test(message) && /đã|da/i.test(message)
   if (resp.ok && body?.success) return { ok: true, alreadyCancelled: false, detail: body }
   if (alreadyCancelled) return { ok: true, alreadyCancelled: true, detail: body }
   return { ok: false, message: message || 'GHTK_CANCEL_FAILED', detail: body }
@@ -1217,7 +1217,7 @@ app.get('/api/admin/products/:id', async (c) => {
     await initDB(c.env.DB)
     const id = c.req.param('id')
     const row = await c.env.DB.prepare(`SELECT * FROM products WHERE id = ?`).bind(id).first()
-    if (!row) return c.json({ success: false, error: 'KhÃ´ng tÃ¬m th?y s?n ph?m' }, 404)
+    if (!row) return c.json({ success: false, error: 'Không tìm thấy sản phẩm' }, 404)
     const images = (() => {
       try {
         const parsed = JSON.parse(String((row as any).images || '[]'))

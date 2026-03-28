@@ -4,7 +4,7 @@ export function adminLoginHTML(): string {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>�ang nh?p Admin � QH Clothes</title>
+<title>Đăng nhập Admin – QH Clothes</title>
 <link rel="icon" type="image/png" href="/qh-logo.png">
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
@@ -39,27 +39,27 @@ export function adminLoginHTML(): string {
     <!-- Login Card -->
     <div class="glass-card rounded-3xl p-8" id="loginCard">
       <h2 class="text-white text-xl font-bold mb-6 text-center">
-        <i class="fas fa-lock text-pink-400 mr-2"></i>�ang nh?p qu?n tr?
+        <i class="fas fa-lock text-pink-400 mr-2"></i>Đăng nhập quản trị
       </h2>
       <div id="loginError" class="hidden mb-4 bg-red-500/20 border border-red-500/30 text-red-300 text-sm px-4 py-3 rounded-xl text-center">
         <i class="fas fa-exclamation-circle mr-1"></i><span id="loginErrorText"></span>
       </div>
       <div class="space-y-4">
         <div>
-          <label class="block text-gray-300 text-sm font-medium mb-2"><i class="fas fa-user text-pink-400 mr-1"></i>T�n dang nh?p</label>
-          <input type="text" id="loginUsername" placeholder="Nh?p t�n dang nh?p" class="input-dark w-full px-4 py-3 rounded-xl text-sm" autofocus>
+          <label class="block text-gray-300 text-sm font-medium mb-2"><i class="fas fa-user text-pink-400 mr-1"></i>Tên đăng nhập</label>
+          <input type="text" id="loginUsername" placeholder="Nhập tên đăng nhập" class="input-dark w-full px-4 py-3 rounded-xl text-sm" autofocus>
         </div>
         <div>
-          <label class="block text-gray-300 text-sm font-medium mb-2"><i class="fas fa-key text-pink-400 mr-1"></i>M?t kh?u</label>
+          <label class="block text-gray-300 text-sm font-medium mb-2"><i class="fas fa-key text-pink-400 mr-1"></i>Mật khẩu</label>
           <div class="relative">
-            <input type="password" id="loginPassword" placeholder="Nh?p m?t kh?u" class="input-dark w-full px-4 py-3 rounded-xl text-sm pr-10">
+            <input type="password" id="loginPassword" placeholder="Nhập mật khẩu" class="input-dark w-full px-4 py-3 rounded-xl text-sm pr-10">
             <button type="button" onclick="togglePasswordVisibility()" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-pink-400 transition">
               <i id="togglePwIcon" class="fas fa-eye text-sm"></i>
             </button>
           </div>
         </div>
         <button onclick="doLogin()" id="loginBtn" class="btn-login w-full text-white py-3.5 rounded-xl font-bold text-sm mt-2">
-          <i class="fas fa-sign-in-alt mr-2"></i>�ang nh?p
+          <i class="fas fa-sign-in-alt mr-2"></i>Đăng nhập
         </button>
       </div>
     </div>
@@ -85,29 +85,26 @@ export function adminLoginHTML(): string {
     const card = document.getElementById('loginCard')
     errEl.classList.add('hidden')
     if (!username || !password) {
-      errText.textContent = 'Vui l�ng nh?p d?y d? th�ng tin'
+      errText.textContent = 'Vui lòng nhập đầy đủ thông tin'
       errEl.classList.remove('hidden')
       card.classList.remove('shake'); void card.offsetWidth; card.classList.add('shake')
       return
     }
     btn.disabled = true
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>�ang x? l�...'
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Đang xử lý...'
     try {
       await axios.post('/api/admin/login', { username, password })
       window.location.href = '/admin/dashboard'
     } catch (e) {
-      errText.textContent = 'Sai t�n dang nh?p ho?c m?t kh?u'
+      errText.textContent = 'Sai tên đăng nhập hoặc mật khẩu'
       errEl.classList.remove('hidden')
       card.classList.remove('shake'); void card.offsetWidth; card.classList.add('shake')
     } finally {
       btn.disabled = false
-      btn.innerHTML = '<i class="fas fa-sign-in-alt mr-2"></i>�ang nh?p'
+      btn.innerHTML = '<i class="fas fa-sign-in-alt mr-2"></i>Đăng nhập'
     }
   }
 </script>
 </body>
 </html>`
 }
-
-
-

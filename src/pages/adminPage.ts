@@ -4,7 +4,7 @@ export function adminHTML(): string {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin � QH Clothes</title>
+<title>Admin – QH Clothes</title>
 <script src="https://cdn.tailwindcss.com"><\/script>
 <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"><\/script>
@@ -82,33 +82,33 @@ export function adminHTML(): string {
       <i class="fas fa-chart-pie w-5"></i>Dashboard
     </button>
     <button class="nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium" data-page="products" onclick="showPage('products')">
-      <i class="fas fa-tshirt w-5"></i>S?n ph?m
+      <i class="fas fa-tshirt w-5"></i>Sản phẩm
     </button>
     <button class="nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium" data-page="orders" onclick="showPage('orders')">
-      <i class="fas fa-clipboard-list w-5"></i>�on h�ng
+      <i class="fas fa-clipboard-list w-5"></i>Đơn hàng
       <span id="pendingBadge" class="ml-auto bg-pink-500 text-white text-xs rounded-full px-2 py-0.5 hidden"></span>
     </button>
     <button class="nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium" data-page="vouchers" onclick="showPage('vouchers')">
       <i class="fas fa-ticket-alt w-5"></i>Voucher
     </button>
     <button class="nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium" data-page="featured" onclick="showPage('featured')">
-      <i class="fas fa-star w-5"></i>S?n ph?m N?i B?t
+      <i class="fas fa-star w-5"></i>Sản phẩm Nổi Bật
     </button>
     <button id="settingsMenuBtn" class="nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium" onclick="toggleSettingsMenu()">
       <i class="fas fa-gear w-5"></i>
-      <span>C�i d?t</span>
+      <span>Cài đặt</span>
       <i id="settingsMenuChevron" class="fas fa-chevron-down ml-auto text-xs transition-transform"></i>
     </button>
     <div id="settingsSubmenu" class="hidden ml-5 mt-1 space-y-1">
       <button class="nav-sub-item w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg text-gray-400 text-sm font-medium" data-sub-page="settings-warehouse" onclick="openSettingsWarehouse()">
-        <i class="fas fa-warehouse w-4"></i>C�i d?t kho h�ng
+        <i class="fas fa-warehouse w-4"></i>Cài đặt kho hàng
       </button>
     </div>
   </nav>
   
   <div class="p-4 border-t border-white/10">
     <a href="/" target="_blank" class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 text-sm hover:text-pink-400 transition">
-      <i class="fas fa-external-link-alt w-5"></i>Xem trang ch?
+      <i class="fas fa-external-link-alt w-5"></i>Xem trang chủ
     </a>
   </div>
 </aside>
@@ -122,7 +122,7 @@ export function adminHTML(): string {
     </div>
     <div class="flex items-center gap-3">
       <div id="adminAvatarMenuRoot" class="relative">
-        <button type="button" onclick="toggleAdminAvatarMenu()" title="T�i kho?n qu?n tr?" class="w-auto max-w-[260px] rounded-full bg-gray-900 text-white pl-1.5 pr-3 py-1.5 flex items-center gap-2 shadow-sm hover:bg-gray-800 transition">
+        <button type="button" onclick="toggleAdminAvatarMenu()" title="Tài khoản quản trị" class="w-auto max-w-[260px] rounded-full bg-gray-900 text-white pl-1.5 pr-3 py-1.5 flex items-center gap-2 shadow-sm hover:bg-gray-800 transition">
           <span class="relative w-8 h-8 rounded-full overflow-hidden bg-gray-50 text-gray-700 font-bold text-xs flex items-center justify-center flex-none">
             <img id="adminHeaderAvatarImg" src="" alt="avatar" class="w-full h-full object-cover hidden">
             <span id="adminHeaderAvatarFallback">A</span>
@@ -141,12 +141,12 @@ export function adminHTML(): string {
               <div class="min-w-0">
                 <p id="adminMenuProfileName" class="text-sm font-semibold text-gray-900 truncate">QH Clothes</p>
                 <p id="adminMenuShopCode" class="text-xs text-gray-400 truncate">Shop Code: ADMIN</p>
-                <p class="text-xs text-gray-400">T? b�n h�ng</p>
+                <p class="text-xs text-gray-400">Tự bán hàng</p>
               </div>
             </div>
           </div>
           <button type="button" onclick="openChangeAdminPasswordModal(); closeAdminAvatarMenu();" class="w-full text-left px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
-            <i class="fas fa-key text-amber-500"></i>Thay d?i m?t kh?u
+            <i class="fas fa-key text-amber-500"></i>Thay đổi mật khẩu
           </button>
           <button type="button" onclick="logoutAdminUser(); closeAdminAvatarMenu();" class="w-full text-left px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 border-t border-gray-100">
             <i class="fas fa-right-from-bracket"></i>Logout
@@ -161,25 +161,25 @@ export function adminHTML(): string {
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
       <div class="stat-card rounded-2xl p-5 text-white" style="--from:#e84393;--to:#c0392b">
         <div class="flex justify-between items-start">
-          <div><p class="text-white/80 text-sm">S?n ph?m</p><p id="statProducts" class="text-3xl font-bold mt-1">�</p></div>
+          <div><p class="text-white/80 text-sm">Sản phẩm</p><p id="statProducts" class="text-3xl font-bold mt-1">—</p></div>
           <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center"><i class="fas fa-tshirt"></i></div>
         </div>
       </div>
       <div class="stat-card rounded-2xl p-5 text-white" style="--from:#667eea;--to:#764ba2">
         <div class="flex justify-between items-start">
-          <div><p class="text-white/80 text-sm">�on h�ng</p><p id="statOrders" class="text-3xl font-bold mt-1">�</p></div>
+          <div><p class="text-white/80 text-sm">Đơn hàng</p><p id="statOrders" class="text-3xl font-bold mt-1">—</p></div>
           <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center"><i class="fas fa-shopping-bag"></i></div>
         </div>
       </div>
       <div class="stat-card rounded-2xl p-5 text-white" style="--from:#f093fb;--to:#f5576c">
         <div class="flex justify-between items-start">
-          <div><p class="text-white/80 text-sm">Ch? x? l�</p><p id="statPending" class="text-3xl font-bold mt-1">�</p></div>
+          <div><p class="text-white/80 text-sm">Chờ xử lý</p><p id="statPending" class="text-3xl font-bold mt-1">—</p></div>
           <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center"><i class="fas fa-clock"></i></div>
         </div>
       </div>
       <div class="stat-card rounded-2xl p-5 text-white" style="--from:#43e97b;--to:#38f9d7">
         <div class="flex justify-between items-start">
-          <div><p class="text-white/80 text-sm">Doanh thu</p><p id="statRevenue" class="text-2xl font-bold mt-1">�</p></div>
+          <div><p class="text-white/80 text-sm">Doanh thu</p><p id="statRevenue" class="text-2xl font-bold mt-1">—</p></div>
           <div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center"><i class="fas fa-coins"></i></div>
         </div>
       </div>
@@ -187,8 +187,8 @@ export function adminHTML(): string {
     
     <div class="bg-white rounded-2xl shadow-sm border p-6">
       <div class="flex items-center justify-between mb-4">
-        <h2 class="font-bold text-gray-800">�on h�ng g?n d�y</h2>
-        <button onclick="showPage('orders')" class="text-pink-500 text-sm hover:underline">Xem t?t c?</button>
+        <h2 class="font-bold text-gray-800">Đơn hàng gần đây</h2>
+        <button onclick="showPage('orders')" class="text-pink-500 text-sm hover:underline">Xem tất cả</button>
       </div>
       <div id="recentOrdersTable" class="overflow-x-auto">
         <div class="text-center py-8 text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></div>
@@ -200,17 +200,17 @@ export function adminHTML(): string {
   <div id="page-products" class="p-6 hidden">
     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
       <div class="flex gap-2 items-center">
-        <input type="text" id="productSearch" placeholder="T�m s?n ph?m..." oninput="filterAdminProducts()" 
+        <input type="text" id="productSearch" placeholder="Tìm sản phẩm..." oninput="filterAdminProducts()" 
           class="border rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-pink-400 w-48">
         <select id="productCatFilter" onchange="filterAdminProducts()" class="border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-pink-400">
-          <option value="">T?t c?</option>
+          <option value="">Tất cả</option>
           <option value="unisex">Unisex</option>
           <option value="male">Nam</option>
-          <option value="female">N?</option>
+          <option value="female">Nữ</option>
         </select>
       </div>
       <button onclick="openProductModal()" class="btn-pink text-white px-5 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2">
-        <i class="fas fa-plus"></i>Th�m s?n ph?m
+        <i class="fas fa-plus"></i>Thêm sản phẩm
       </button>
     </div>
     
@@ -222,29 +222,29 @@ export function adminHTML(): string {
     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
       <div class="flex gap-2 flex-wrap items-center">
         <select id="orderStatusFilter" onchange="filterOrders()" class="border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-pink-400">
-          <option value="all">T?t c? tr?ng th�i</option>
-          <option value="pending">Ch? x? l�</option>
-          <option value="confirmed">�� x�c nh?n</option>
-          <option value="shipping">�ang giao</option>
-          <option value="done">Ho�n th�nh</option>
-          <option value="cancelled">�� h?y</option>
+          <option value="all">Tất cả trạng thái</option>
+          <option value="pending">Chờ xử lý</option>
+          <option value="confirmed">Đã xác nhận</option>
+          <option value="shipping">Đang giao</option>
+          <option value="done">Hoàn thành</option>
+          <option value="cancelled">Đã hủy</option>
         </select>
-        <input type="text" id="orderSearch" placeholder="T�m t�n/S�T/m�..." oninput="filterOrders()" 
+        <input type="text" id="orderSearch" placeholder="Tìm tên/SĐT/mã..." oninput="filterOrders()" 
           class="border rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-pink-400 w-48">
         <button id="ordersModeArrangeBtn" onclick="setOrdersViewMode('to_arrange')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-semibold inline-flex items-center gap-2 transition">
           <i class="fas fa-truck-loading"></i>
-          <span>S?p x?p v?n chuy?n</span>
+          <span>Sắp xếp vận chuyển</span>
           <span id="ordersToArrangeCount" class="bg-white/20 px-2 py-0.5 rounded-full text-xs">0</span>
         </button>
         <button id="ordersModeWaitingBtn" onclick="setOrdersViewMode('waiting_ship')" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-semibold inline-flex items-center gap-2 transition border border-gray-200">
           <i class="fas fa-box-open"></i>
-          <span>�ang ch? v?n chuy?n</span>
+          <span>Đang chờ vận chuyển</span>
           <span id="ordersWaitingShipCount" class="bg-gray-200 text-gray-700 px-2 py-0.5 rounded-full text-xs">0</span>
         </button>
       </div>
       <div class="flex items-center gap-2">
         <button onclick="exportExcel()" class="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2 transition">
-          <i class="fas fa-file-excel"></i>Xu?t Excel
+          <i class="fas fa-file-excel"></i>Xuất Excel
         </button>
       </div>
     </div>
@@ -257,11 +257,11 @@ export function adminHTML(): string {
               <th class="px-4 py-3 text-center font-semibold text-gray-600">
                 <input id="ordersSelectAll" type="checkbox" onchange="toggleSelectAllOrders(this.checked)" class="w-4 h-4 rounded border-gray-300 text-pink-500 focus:ring-pink-400">
               </th>
-              <th class="px-4 py-3 text-left font-semibold text-gray-600 w-[360px]">Th�ng tin �H</th>
+              <th class="px-4 py-3 text-left font-semibold text-gray-600 w-[360px]">Thông tin ĐH</th>
               <th class="px-2 py-3 text-center font-semibold text-gray-600 w-12">SL</th>
-              <th class="px-4 py-3 text-right font-semibold text-gray-600">T?ng ti?n</th>
+              <th class="px-4 py-3 text-right font-semibold text-gray-600">Tổng tiền</th>
               <th class="px-4 py-3 text-center font-semibold text-gray-600 hidden lg:table-cell">Voucher</th>
-              <th class="px-4 py-3 text-center font-semibold text-gray-600">Tr?ng th�i</th>
+              <th class="px-4 py-3 text-center font-semibold text-gray-600">Trạng thái</th>
             </tr>
           </thead>
           <tbody id="ordersTable"></tbody>
@@ -269,7 +269,7 @@ export function adminHTML(): string {
       </div>
       <div id="ordersMobileList" class="md:hidden divide-y"></div>
       <div id="ordersEmpty" class="hidden text-center py-16 text-gray-400">
-        <i class="fas fa-inbox text-4xl mb-3"></i><p>Kh�ng c� don h�ng n�o</p>
+        <i class="fas fa-inbox text-4xl mb-3"></i><p>Không có đơn hàng nào</p>
       </div>
     </div>
     <div id="orderStats" class="mt-4 text-sm text-gray-500 text-right"></div>
@@ -278,19 +278,19 @@ export function adminHTML(): string {
   <div id="ordersBulkActionBar" class="hidden fixed left-1/2 -translate-x-1/2 z-[70]" style="bottom: 200px;">
     <div class="bg-white/95 backdrop-blur border border-gray-200 shadow-2xl rounded-2xl px-3 py-2 flex items-center gap-2">
       <button id="bulkArrangeShipBtn" onclick="arrangeSelectedForShipping()" class="hidden bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2 transition">
-        <i class="fas fa-truck-loading"></i><span id="bulkArrangeShipText">S?p x?p v?n chuy?n</span>
+        <i class="fas fa-truck-loading"></i><span id="bulkArrangeShipText">Sắp xếp vận chuyển</span>
       </button>
       <button id="bulkDeleteOrdersBtn" onclick="deleteSelectedOrders()" class="hidden bg-red-600 hover:bg-red-700 text-white px-4 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2 transition">
-        <i class="fas fa-trash"></i><span id="bulkDeleteOrdersText">Xo� d� ch?n</span>
+        <i class="fas fa-trash"></i><span id="bulkDeleteOrdersText">Xoá đã chọn</span>
       </button>
     </div>
   </div>
 
   <div id="shippingBulkActionBar" class="hidden fixed bottom-5 left-1/2 -translate-x-1/2 z-[70]">
     <div class="bg-white border border-gray-200 shadow-2xl rounded-2xl px-3 py-2 flex items-center gap-2">
-      <span id="shippingBulkSelectedText" class="text-sm text-gray-700 px-2">�� ch?n 0 don</span>
+      <span id="shippingBulkSelectedText" class="text-sm text-gray-700 px-2">Đã chọn 0 đơn</span>
       <button onclick="printSelectedOrders()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition">
-        In don h�ng lo?t
+        In đơn hàng loạt
       </button>
     </div>
   </div>
@@ -301,12 +301,12 @@ export function adminHTML(): string {
       <!-- Create Voucher Form -->
       <div class="bg-white rounded-2xl shadow-sm border p-6">
         <h2 class="font-bold text-gray-800 text-lg mb-5 flex items-center gap-2">
-          <i class="fas fa-plus-circle text-pink-500"></i>T?o Voucher m?i
+          <i class="fas fa-plus-circle text-pink-500"></i>Tạo Voucher mới
         </h2>
         <form onsubmit="createVoucher(event)" class="space-y-4">
           <div>
             <label class="block text-sm font-semibold text-gray-700 mb-1.5">
-              <i class="fas fa-coins text-pink-400 mr-1"></i>S? ti?n gi?m (VN�) *
+              <i class="fas fa-coins text-pink-400 mr-1"></i>Số tiền giảm (VNĐ) *
             </label>
             <input type="number" id="vDiscount" placeholder="VD: 50000" min="1000" required
               class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
@@ -314,14 +314,14 @@ export function adminHTML(): string {
           <div class="grid grid-cols-2 gap-3">
             <div>
               <label class="block text-sm font-semibold text-gray-700 mb-1.5">
-                <i class="fas fa-calendar-check text-pink-400 mr-1"></i>Hi?u l?c t? *
+                <i class="fas fa-calendar-check text-pink-400 mr-1"></i>Hiệu lực từ *
               </label>
               <input type="datetime-local" id="vFrom" required
                 class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
             </div>
             <div>
               <label class="block text-sm font-semibold text-gray-700 mb-1.5">
-                <i class="fas fa-calendar-times text-pink-400 mr-1"></i>H?t h?n *
+                <i class="fas fa-calendar-times text-pink-400 mr-1"></i>Hết hạn *
               </label>
               <input type="datetime-local" id="vTo" required
                 class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
@@ -329,7 +329,7 @@ export function adminHTML(): string {
           </div>
           <div>
             <label class="block text-sm font-semibold text-gray-700 mb-1.5">
-              <i class="fas fa-barcode text-pink-400 mr-1"></i>M� tu? ch?nh <span class="text-gray-400 font-normal">(d? tr?ng = t? sinh)</span>
+              <i class="fas fa-barcode text-pink-400 mr-1"></i>Mã tuỳ chỉnh <span class="text-gray-400 font-normal">(để trống = tự sinh)</span>
             </label>
             <input type="text" id="vCode" placeholder="VD: SUMMER30"
               class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 uppercase tracking-wider"
@@ -337,21 +337,21 @@ export function adminHTML(): string {
           </div>
           <div>
             <label class="block text-sm font-semibold text-gray-700 mb-1.5">
-              <i class="fas fa-users text-pink-400 mr-1"></i>Gi?i h?n lu?t d�ng <span class="text-gray-400 font-normal">(0 = kh�ng gi?i h?n)</span>
+              <i class="fas fa-users text-pink-400 mr-1"></i>Giới hạn lượt dùng <span class="text-gray-400 font-normal">(0 = không giới hạn)</span>
             </label>
             <input type="number" id="vLimit" placeholder="0" min="0" value="0"
               class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
           </div>
           <button type="submit" id="createVoucherBtn" class="btn-pink w-full text-white py-3 rounded-xl font-bold text-sm">
-            <i class="fas fa-magic mr-2"></i>T?o & Sinh m� Voucher
+            <i class="fas fa-magic mr-2"></i>Tạo & Sinh mã Voucher
           </button>
         </form>
         <!-- Generated code display -->
         <div id="generatedCode" class="hidden mt-4 p-4 rounded-2xl bg-gradient-to-r from-pink-50 to-red-50 border border-pink-200 text-center">
-          <p class="text-xs text-gray-500 mb-1">M� voucher v?a t?o:</p>
+          <p class="text-xs text-gray-500 mb-1">Mã voucher vừa tạo:</p>
           <p id="generatedCodeText" class="text-2xl font-bold tracking-widest text-pink-600 font-mono"></p>
           <button onclick="copyCode()" class="mt-2 text-xs text-gray-500 hover:text-pink-500 transition">
-            <i class="fas fa-copy mr-1"></i>Sao ch�p
+            <i class="fas fa-copy mr-1"></i>Sao chép
           </button>
         </div>
       </div>
@@ -360,10 +360,10 @@ export function adminHTML(): string {
       <div class="bg-white rounded-2xl shadow-sm border p-6">
         <div class="flex items-center justify-between mb-4">
           <h2 class="font-bold text-gray-800 text-lg flex items-center gap-2">
-            <i class="fas fa-list text-pink-500"></i>Danh s�ch Voucher
+            <i class="fas fa-list text-pink-500"></i>Danh sách Voucher
           </h2>
           <button onclick="loadVouchers()" class="text-sm text-pink-500 hover:underline">
-            <i class="fas fa-sync-alt mr-1"></i>L�m m?i
+            <i class="fas fa-sync-alt mr-1"></i>Làm mới
           </button>
         </div>
         <div id="voucherList" class="space-y-3 max-h-[500px] overflow-y-auto scrollbar-thin pr-1">
@@ -379,23 +379,23 @@ export function adminHTML(): string {
       <div class="flex items-center justify-between mb-2">
         <div>
           <h2 class="font-bold text-gray-800 text-xl flex items-center gap-2">
-            <i class="fas fa-star text-amber-400"></i>Qu?n l� S?n ph?m N?i B?t
+            <i class="fas fa-star text-amber-400"></i>Quản lý Sản phẩm Nổi Bật
           </h2>
-          <p class="text-sm text-gray-500 mt-1">Ch?n s?n ph?m mu?n hi?n th? n?i b?t v� s?p x?p th? t?. Khi kh�ch b?m v�o, s? m? modal chi ti?t s?n ph?m.</p>
+          <p class="text-sm text-gray-500 mt-1">Chọn sản phẩm muốn hiển thị nổi bật và sắp xếp thứ tự. Khi khách bấm vào, sẽ mở modal chi tiết sản phẩm.</p>
         </div>
         <div class="flex items-center gap-3">
           <span id="featuredCount" class="text-sm font-semibold text-amber-600 bg-amber-50 px-3 py-1.5 rounded-xl border border-amber-200">
-            <i class="fas fa-star mr-1"></i>0 s?n ph?m n?i b?t
+            <i class="fas fa-star mr-1"></i>0 sản phẩm nổi bật
           </span>
           <button onclick="saveFeaturedOrder()" id="saveFeaturedBtn" class="bg-gradient-to-r from-amber-400 to-orange-400 hover:from-amber-500 hover:to-orange-500 text-white px-5 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2 transition shadow-sm">
-            <i class="fas fa-save"></i>Luu th? t?
+            <i class="fas fa-save"></i>Lưu thứ tự
           </button>
         </div>
       </div>
 
       <!-- Featured Preview Strip -->
       <div id="featuredPreviewStrip" class="hidden bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-4 mb-4">
-        <p class="text-xs font-semibold text-amber-700 uppercase tracking-wider mb-3"><i class="fas fa-eye mr-1"></i>Xem tru?c th? t? hi?n th?</p>
+        <p class="text-xs font-semibold text-amber-700 uppercase tracking-wider mb-3"><i class="fas fa-eye mr-1"></i>Xem trước thứ tự hiển thị</p>
         <div id="featuredPreviewItems" class="flex gap-3 overflow-x-auto pb-2"></div>
       </div>
     </div>
@@ -404,9 +404,9 @@ export function adminHTML(): string {
     <div class="bg-white rounded-2xl shadow-sm border overflow-hidden">
       <div class="border-b px-6 py-4 flex items-center gap-3 bg-gray-50">
         <i class="fas fa-list text-gray-400"></i>
-        <span class="text-sm font-semibold text-gray-700">T?t c? s?n ph?m � T�ch ch?n d? d�nh d?u n?i b?t</span>
+        <span class="text-sm font-semibold text-gray-700">Tất cả sản phẩm – Tích chọn để đánh dấu nổi bật</span>
         <div class="ml-auto flex gap-2">
-          <input type="text" id="featuredSearch" placeholder="T�m s?n ph?m..." oninput="filterFeaturedProducts()"
+          <input type="text" id="featuredSearch" placeholder="Tìm sản phẩm..." oninput="filterFeaturedProducts()"
             class="border rounded-xl px-3 py-1.5 text-sm focus:outline-none focus:border-amber-400 w-44">
         </div>
       </div>
@@ -421,7 +421,7 @@ export function adminHTML(): string {
     <div class="bg-white rounded-2xl shadow-sm border p-4 mb-4">
       <div class="flex items-center gap-2">
         <button type="button" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-          <i class="fas fa-warehouse"></i>C�i d?t kho h�ng
+          <i class="fas fa-warehouse"></i>Cài đặt kho hàng
         </button>
       </div>
     </div>
@@ -429,48 +429,48 @@ export function adminHTML(): string {
     <div class="bg-white rounded-2xl shadow-sm border p-6 mb-6">
       <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
         <h2 class="font-bold text-gray-800 text-lg flex items-center gap-2">
-          <i class="fas fa-warehouse text-emerald-500"></i>C�i d?t kho l?y h�ng GHTK
+          <i class="fas fa-warehouse text-emerald-500"></i>Cài đặt kho lấy hàng GHTK
         </h2>
         <button onclick="syncGhtkPickupAddresses()" id="syncGhtkPickupBtn" class="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm font-medium transition flex items-center gap-2">
-          <i class="fas fa-rotate"></i> �?ng b? kho t? GHTK
+          <i class="fas fa-rotate"></i> Đồng bộ kho từ GHTK
         </button>
       </div>
-      <p class="text-sm text-gray-500 mb-4">Ch?n kho d� t?o tr�n GHTK d? d�ng m?c d?nh khi b?m S?p x?p v?n chuy?n.</p>
+      <p class="text-sm text-gray-500 mb-4">Chọn kho đã tạo trên GHTK để dùng mặc định khi bấm Sắp xếp vận chuyển.</p>
       <div class="grid md:grid-cols-2 gap-4">
         <div class="md:col-span-2">
-          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Kho l?y h�ng t? GHTK</label>
+          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Kho lấy hàng từ GHTK</label>
           <select id="ghtkPickupAddressId" onchange="applySelectedGhtkWarehouse()" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-400">
-            <option value="">-- Ch?n kho d?ng b? --</option>
+            <option value="">-- Chọn kho đồng bộ --</option>
           </select>
-          <p id="ghtkPickupHint" class="text-xs text-gray-500 mt-1.5">N?u chua th?y kho, b?m "�?ng b? kho t? GHTK".</p>
+          <p id="ghtkPickupHint" class="text-xs text-gray-500 mt-1.5">Nếu chưa thấy kho, bấm "Đồng bộ kho từ GHTK".</p>
         </div>
         <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-1.5">T�n ngu?i l?y h�ng</label>
+          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Tên người lấy hàng</label>
           <input type="text" id="ghtkPickName" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-400">
         </div>
         <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-1.5">S? di?n tho?i l?y h�ng</label>
+          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Số điện thoại lấy hàng</label>
           <input type="text" id="ghtkPickTel" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-400">
         </div>
         <div class="md:col-span-2">
-          <label class="block text-sm font-semibold text-gray-700 mb-1.5">�?a ch? l?y h�ng (chi ti?t)</label>
+          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Địa chỉ lấy hàng (chi tiết)</label>
           <input type="text" id="ghtkPickAddress" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-400">
         </div>
         <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-1.5">T?nh/Th�nh</label>
+          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Tỉnh/Thành</label>
           <input type="text" id="ghtkPickProvince" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-400">
         </div>
         <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Qu?n/Huy?n</label>
+          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Quận/Huyện</label>
           <input type="text" id="ghtkPickDistrict" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-400">
         </div>
         <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Phu?ng/X�</label>
+          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Phường/Xã</label>
           <input type="text" id="ghtkPickWard" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-400">
         </div>
         <div class="md:col-span-2 flex justify-end">
           <button onclick="saveGhtkPickupConfig()" id="saveGhtkPickupBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2 transition">
-            <i class="fas fa-save"></i>Luu c?u h�nh kho GHTK
+            <i class="fas fa-save"></i>Lưu cấu hình kho GHTK
           </button>
         </div>
       </div>
@@ -483,7 +483,7 @@ export function adminHTML(): string {
 <div id="productModal" class="fixed inset-0 modal-overlay z-50 hidden flex items-start justify-center p-4 overflow-y-auto">
   <div class="modal-card bg-white rounded-3xl shadow-2xl w-full max-w-3xl my-4">
     <div class="sticky top-0 bg-white rounded-t-3xl border-b px-6 py-4 flex items-center justify-between">
-      <h2 id="modalTitle" class="font-bold text-xl text-gray-900">Th�m s?n ph?m m?i</h2>
+      <h2 id="modalTitle" class="font-bold text-xl text-gray-900">Thêm sản phẩm mới</h2>
       <button onclick="closeProductModal()" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition">
         <i class="fas fa-times text-gray-600"></i>
       </button>
@@ -495,23 +495,23 @@ export function adminHTML(): string {
       <!-- Basic Info -->
       <div class="grid md:grid-cols-2 gap-4">
         <div class="md:col-span-2">
-          <label class="block text-sm font-semibold mb-1.5 text-gray-700">T�n s?n ph?m *</label>
-          <input type="text" id="pName" required placeholder="VD: �o thun Unisex Premium" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-100">
+          <label class="block text-sm font-semibold mb-1.5 text-gray-700">Tên sản phẩm *</label>
+          <input type="text" id="pName" required placeholder="VD: Áo thun Unisex Premium" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-100">
         </div>
         <div class="md:col-span-2">
-          <label class="block text-sm font-semibold mb-2 text-gray-700"><i class="fas fa-images text-pink-400 mr-1"></i>H�nh ?nh *</label>
-          <p class="text-xs text-gray-400 mb-2">?nh ch�nh hi?n th? ? khung l?n b�n tr�i, ?nh ph? n?m ? c�c khung nh? b�n ph?i.</p>
+          <label class="block text-sm font-semibold mb-2 text-gray-700"><i class="fas fa-images text-pink-400 mr-1"></i>Hình ảnh *</label>
+          <p class="text-xs text-gray-400 mb-2">Ảnh chính hiển thị ở khung lớn bên trái, ảnh phụ nằm ở các khung nhỏ bên phải.</p>
           <div class="grid md:grid-cols-3 gap-3 items-start">
             <div class="md:col-span-1">
               <div class="img-slot w-full flex flex-col items-center justify-center p-3 min-h-[220px]" id="thumbnailPreviewBox" onclick="document.getElementById('thumbnailInput').click()" ondragover="handleImageDragOver(event)" ondragleave="handleImageDragLeave(event)" ondrop="handleImageDrop(event, 'thumbnail', -1)">
                 <img id="thumbnailPreview" src="" alt="" draggable="true" ondragstart="startImageReorderDrag(event, 'thumbnail', -1)" class="w-full h-full object-cover rounded-xl hidden">
                 <div id="thumbnailPlaceholder" class="flex flex-col items-center gap-1 text-gray-400">
                   <i class="fas fa-camera text-2xl"></i>
-                  <span class="text-sm font-medium">T?i l�n ?nh ch�nh</span>
+                  <span class="text-sm font-medium">Tải lên ảnh chính</span>
                 </div>
               </div>
               <input type="file" id="thumbnailInput" accept="image/*" multiple class="hidden" onchange="handleThumbnailFile(this)">
-              <input type="url" id="pThumbnail" placeholder="D�n URL ?nh ch�nh..." class="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-pink-400 mt-2" oninput="previewThumbnail(this.value)">
+              <input type="url" id="pThumbnail" placeholder="Dán URL ảnh chính..." class="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-pink-400 mt-2" oninput="previewThumbnail(this.value)">
             </div>
             <div class="md:col-span-2">
               <div class="grid grid-cols-2 sm:grid-cols-3 gap-3" id="galleryGrid">
@@ -520,66 +520,66 @@ export function adminHTML(): string {
                   <img id="galleryImg-${i}" src="" alt="" draggable="true" ondragstart="startImageReorderDrag(event, 'gallery', ${i})" class="w-full h-full object-cover rounded-xl hidden absolute inset-0">
                   <div class="flex flex-col items-center gap-1 text-gray-400 text-center p-2" id="slotPlaceholder-${i}">
                     <i class="fas fa-plus text-base"></i>
-                    <span class="text-xs">?nh ${i + 1}</span>
+                    <span class="text-xs">Ảnh ${i + 1}</span>
                   </div>
                   <button type="button" class="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full items-center justify-center hidden text-xs z-10"
-                    id="slotDel-${i}" onclick="removeGalleryImg(${i})">�</button>
+                    id="slotDel-${i}" onclick="removeGalleryImg(${i})">×</button>
                   <input type="file" accept="image/*" multiple class="hidden" id="galleryFile-${i}" onchange="handleGalleryFile(${i},this)">
                 </div>`).join('')}
               </div>
-              <p class="text-xs text-gray-400 mt-2">Nh?n v�o t?ng � d? th�m ?nh ph? ho?c d�n URL nhanh b�n du?i.</p>
+              <p class="text-xs text-gray-400 mt-2">Nhấn vào từng ô để thêm ảnh phụ hoặc dán URL nhanh bên dưới.</p>
               <div class="mt-2 flex gap-2">
-                <input type="url" id="galleryUrlInput" placeholder="D�n URL ?nh ph?..." class="flex-1 border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-pink-400">
-                <button type="button" onclick="addGalleryUrl()" class="btn-pink text-white px-4 py-2 rounded-xl text-sm font-semibold">Th�m</button>
+                <input type="url" id="galleryUrlInput" placeholder="Dán URL ảnh phụ..." class="flex-1 border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-pink-400">
+                <button type="button" onclick="addGalleryUrl()" class="btn-pink text-white px-4 py-2 rounded-xl text-sm font-semibold">Thêm</button>
               </div>
             </div>
           </div>
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1.5 text-gray-700">Gi� b�n (VN�) *</label>
+          <label class="block text-sm font-semibold mb-1.5 text-gray-700">Giá bán (VNĐ) *</label>
           <input type="number" id="pPrice" required placeholder="299000" min="0" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1.5 text-gray-700">Gi� g?c (VN�)</label>
+          <label class="block text-sm font-semibold mb-1.5 text-gray-700">Giá gốc (VNĐ)</label>
           <input type="number" id="pOriginalPrice" placeholder="399000" min="0" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1.5 text-gray-700">Danh m?c</label>
+          <label class="block text-sm font-semibold mb-1.5 text-gray-700">Danh mục</label>
           <select id="pCategory" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
             <option value="unisex">Unisex</option>
             <option value="male">Nam</option>
-            <option value="female">N?</option>
+            <option value="female">Nữ</option>
           </select>
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1.5 text-gray-700">Thuong hi?u</label>
+          <label class="block text-sm font-semibold mb-1.5 text-gray-700">Thương hiệu</label>
           <input type="text" id="pBrand" placeholder="VD: QH Clothes" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
         </div>
         <div class="md:col-span-2">
-          <label class="block text-sm font-semibold mb-1.5 text-gray-700">Ch?t li?u</label>
+          <label class="block text-sm font-semibold mb-1.5 text-gray-700">Chất liệu</label>
           <input type="text" id="pMaterial" placeholder="VD: 100% Cotton Combed" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
         </div>
         <div class="md:col-span-2">
-          <label class="block text-sm font-semibold mb-1.5 text-gray-700">M� t?</label>
-          <textarea id="pDescription" rows="3" placeholder="M� t? chi ti?t v? s?n ph?m..." class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 resize-none"></textarea>
+          <label class="block text-sm font-semibold mb-1.5 text-gray-700">Mô tả</label>
+          <textarea id="pDescription" rows="3" placeholder="Mô tả chi tiết về sản phẩm..." class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 resize-none"></textarea>
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1.5 text-gray-700">S? lu?ng t?n kho</label>
+          <label class="block text-sm font-semibold mb-1.5 text-gray-700">Số lượng tồn kho</label>
           <input type="number" id="pStock" placeholder="100" min="0" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
         </div>
         <div class="flex items-center gap-6 pt-4">
           <label class="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" id="pFeatured" class="w-4 h-4 accent-pink-500">
-            <span class="text-sm font-medium text-gray-700">S?n ph?m n?i b?t</span>
+            <span class="text-sm font-medium text-gray-700">Sản phẩm nổi bật</span>
           </label>
           <label class="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" id="pTrending" class="w-4 h-4 accent-pink-500">
-            <span class="text-sm font-medium text-gray-700">S?n ph?m th?nh h�nh</span>
+            <span class="text-sm font-medium text-gray-700">Sản phẩm thịnh hành</span>
           </label>
           <div class="flex items-center gap-2">
-            <label for="pTrendingOrder" class="text-sm font-medium text-gray-700 whitespace-nowrap">V? tr� hi?n th?</label>
+            <label for="pTrendingOrder" class="text-sm font-medium text-gray-700 whitespace-nowrap">Vị trí hiển thị</label>
             <select id="pTrendingOrder" class="border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-pink-400">
-              <option value="0">T? d?ng</option>
+              <option value="0">Tự động</option>
               <option value="1">1</option>
               <option value="2">2</option>
               <option value="3">3</option>
@@ -596,39 +596,39 @@ export function adminHTML(): string {
           </div>
           <label class="flex items-center gap-2 cursor-pointer">
             <input type="checkbox" id="pActive" checked class="w-4 h-4 accent-pink-500">
-            <span class="text-sm font-medium text-gray-700">Hi?n th?</span>
+            <span class="text-sm font-medium text-gray-700">Hiển thị</span>
           </label>
         </div>
       </div>
       <!-- Colors -->
       <div>
-        <label class="block text-sm font-semibold mb-2 text-gray-700"><i class="fas fa-palette text-pink-400 mr-1"></i>M�u s?c</label>
+        <label class="block text-sm font-semibold mb-2 text-gray-700"><i class="fas fa-palette text-pink-400 mr-1"></i>Màu sắc</label>
         <div id="colorOptionsEditor" class="space-y-2"></div>
         <button type="button" onclick="addColorOptionRow()" class="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-pink-600 transition">
-          <i class="fas fa-plus"></i>Th�m l?a ch?n
+          <i class="fas fa-plus"></i>Thêm lựa chọn
         </button>
       </div>
       
       <!-- Sizes -->
       <div>
-        <label class="block text-sm font-semibold mb-2 text-gray-700"><i class="fas fa-ruler text-pink-400 mr-1"></i>Size s?</label>
+        <label class="block text-sm font-semibold mb-2 text-gray-700"><i class="fas fa-ruler text-pink-400 mr-1"></i>Size số</label>
         <div class="flex flex-wrap gap-2 mb-2">
-          <button type="button" onclick="addPresetSizes(['XS','S','M','L','XL','XXL'])" class="px-3 py-1.5 border rounded-lg text-xs text-gray-600 hover:border-pink-400 hover:text-pink-600 transition">+ XS?XXL</button>
-          <button type="button" onclick="addPresetSizes(['28','29','30','31','32','33','34'])" class="px-3 py-1.5 border rounded-lg text-xs text-gray-600 hover:border-pink-400 hover:text-pink-600 transition">+ Size qu?n</button>
-          <button type="button" onclick="addPresetSizes(['35','36','37','38','39','40','41','42'])" class="px-3 py-1.5 border rounded-lg text-xs text-gray-600 hover:border-pink-400 hover:text-pink-600 transition">+ Size gi�y</button>
+          <button type="button" onclick="addPresetSizes(['XS','S','M','L','XL','XXL'])" class="px-3 py-1.5 border rounded-lg text-xs text-gray-600 hover:border-pink-400 hover:text-pink-600 transition">+ XS→XXL</button>
+          <button type="button" onclick="addPresetSizes(['28','29','30','31','32','33','34'])" class="px-3 py-1.5 border rounded-lg text-xs text-gray-600 hover:border-pink-400 hover:text-pink-600 transition">+ Size quần</button>
+          <button type="button" onclick="addPresetSizes(['35','36','37','38','39','40','41','42'])" class="px-3 py-1.5 border rounded-lg text-xs text-gray-600 hover:border-pink-400 hover:text-pink-600 transition">+ Size giày</button>
         </div>
         <div id="sizeTags" class="flex flex-wrap gap-2 mb-2 min-h-[36px]"></div>
         <div class="flex gap-2">
           <input type="text" id="sizeInput" placeholder="VD: S, M, L, XL, 28, 29..." class="flex-1 border rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-pink-400"
             onkeydown="if(event.key==='Enter'){event.preventDefault();addTag('size')}">
-          <button type="button" onclick="addTag('size')" class="btn-pink text-white px-4 py-2 rounded-xl text-sm">Th�m</button>
+          <button type="button" onclick="addTag('size')" class="btn-pink text-white px-4 py-2 rounded-xl text-sm">Thêm</button>
         </div>
       </div>
       
       <div class="flex gap-3 pt-2">
-        <button type="button" onclick="closeProductModal()" class="flex-1 border-2 border-gray-200 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-50 transition">Hu?</button>
+        <button type="button" onclick="closeProductModal()" class="flex-1 border-2 border-gray-200 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-50 transition">Huỷ</button>
         <button type="submit" class="flex-1 btn-pink text-white py-3 rounded-xl font-semibold">
-          <i class="fas fa-save mr-2"></i><span id="saveBtn">Luu s?n ph?m</span>
+          <i class="fas fa-save mr-2"></i><span id="saveBtn">Lưu sản phẩm</span>
         </button>
       </div>
     </form>
@@ -639,7 +639,7 @@ export function adminHTML(): string {
 <div id="orderDetailModal" class="fixed inset-0 modal-overlay z-50 hidden flex items-center justify-center p-4">
   <div class="modal-card bg-white rounded-3xl shadow-2xl w-full max-w-lg">
     <div class="border-b px-6 py-4 flex items-center justify-between">
-      <h2 class="font-bold text-xl text-gray-900">Chi ti?t don h�ng</h2>
+      <h2 class="font-bold text-xl text-gray-900">Chi tiết đơn hàng</h2>
       <button onclick="document.getElementById('orderDetailModal').classList.add('hidden')" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center">
         <i class="fas fa-times"></i>
       </button>
@@ -652,7 +652,7 @@ export function adminHTML(): string {
 <div id="arrangeSuccessModal" class="fixed inset-0 modal-overlay z-[80] hidden flex items-center justify-center p-4">
   <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
     <div class="px-6 py-4 border-b flex items-center justify-between">
-      <h3 class="font-bold text-lg text-gray-900">S?p x?p v?n chuy?n</h3>
+      <h3 class="font-bold text-lg text-gray-900">Sắp xếp vận chuyển</h3>
       <button onclick="closeArrangeSuccessModal()" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center">
         <i class="fas fa-times text-gray-600"></i>
       </button>
@@ -661,12 +661,12 @@ export function adminHTML(): string {
       <div class="mx-auto mb-3 w-14 h-14 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
         <i class="fas fa-check text-xl"></i>
       </div>
-      <p id="arrangeSuccessText" class="text-gray-800 font-semibold">�� s?p x?p v?n chuy?n th�nh c�ng 0 don h�ng.</p>
+      <p id="arrangeSuccessText" class="text-gray-800 font-semibold">Đã sắp xếp vận chuyển thành công 0 đơn hàng.</p>
       <button id="arrangeModalPrintBtn" onclick="printArrangedOrdersFromModal()" class="mt-5 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 rounded-xl font-semibold text-sm inline-flex items-center gap-2 transition">
-        <i class="fas fa-print"></i>In don
+        <i class="fas fa-print"></i>In đơn
       </button>
       <div id="arrangeFailedWrap" class="hidden mt-4 text-left bg-amber-50 border border-amber-200 rounded-xl p-3">
-        <p class="text-xs font-semibold text-amber-700 mb-2">�on l?i khi t?o v?n don GHTK</p>
+        <p class="text-xs font-semibold text-amber-700 mb-2">Đơn lỗi khi tạo vận đơn GHTK</p>
         <div id="arrangeFailedList" class="max-h-32 overflow-auto space-y-1 text-xs text-amber-800"></div>
       </div>
     </div>
@@ -677,28 +677,28 @@ export function adminHTML(): string {
 <div id="adminChangePasswordModal" onclick="if(event.target===this) closeChangeAdminPasswordModal()" style="display:none" class="fixed inset-0 modal-overlay z-50 items-start justify-center p-4 overflow-y-auto">
   <div class="modal-card bg-white rounded-3xl shadow-2xl w-full max-w-md my-8">
     <div class="sticky top-0 bg-white rounded-t-3xl border-b px-6 py-4 flex items-center justify-between">
-      <h2 class="font-bold text-lg text-gray-900">Thay d?i m?t kh?u</h2>
+      <h2 class="font-bold text-lg text-gray-900">Thay đổi mật khẩu</h2>
       <button onclick="closeChangeAdminPasswordModal()" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition">
         <i class="fas fa-times text-gray-600"></i>
       </button>
     </div>
     <form onsubmit="submitAdminPasswordChange(event)" class="px-6 py-5 space-y-4">
       <div>
-        <label class="block text-sm font-semibold text-gray-700 mb-1.5">M?t kh?u hi?n t?i</label>
+        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Mật khẩu hiện tại</label>
         <input type="password" id="adminOldPassword" required class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
       </div>
       <div>
-        <label class="block text-sm font-semibold text-gray-700 mb-1.5">M?t kh?u m?i</label>
+        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Mật khẩu mới</label>
         <input type="password" id="adminNewPassword" required minlength="6" maxlength="64" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
       </div>
       <div>
-        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Nh?p l?i m?t kh?u m?i</label>
+        <label class="block text-sm font-semibold text-gray-700 mb-1.5">Nhập lại mật khẩu mới</label>
         <input type="password" id="adminConfirmPassword" required minlength="6" maxlength="64" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
       </div>
       <div class="pt-1 flex justify-end gap-3">
-        <button type="button" onclick="closeChangeAdminPasswordModal()" class="px-4 py-2.5 rounded-xl border text-gray-600 font-medium hover:bg-gray-50 transition">H?y</button>
+        <button type="button" onclick="closeChangeAdminPasswordModal()" class="px-4 py-2.5 rounded-xl border text-gray-600 font-medium hover:bg-gray-50 transition">Hủy</button>
         <button type="submit" id="adminChangePasswordBtn" class="bg-pink-500 hover:bg-pink-600 text-white px-5 py-2.5 rounded-xl font-semibold text-sm transition">
-          C?p nh?t m?t kh?u
+          Cập nhật mật khẩu
         </button>
       </div>
     </form>
@@ -709,7 +709,7 @@ export function adminHTML(): string {
 <div id="adminToast" class="fixed top-6 right-6 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
 <script>
-// -- STATE -----------------------------------------
+// ── STATE ─────────────────────────────────────────
 let adminProducts = []
 let adminOrders = []
 let selectedOrderIds = new Set()
@@ -730,7 +730,7 @@ let settingsActiveSubPage = ''
 let selectedColorImage = ''
 const MAX_PRODUCT_PAYLOAD_SIZE = 1200000
 
-// -- NAVIGATION ------------------------------------
+// ── NAVIGATION ────────────────────────────────────
 function getInitialFromName(name) {
   const text = String(name || '').trim()
   if (!text) return 'A'
@@ -869,29 +869,29 @@ async function submitAdminPasswordChange(e) {
   const newPassword = String(document.getElementById('adminNewPassword')?.value || '')
   const confirmPassword = String(document.getElementById('adminConfirmPassword')?.value || '')
   if (newPassword.length < 6) {
-    showAdminToast('M?t kh?u m?i t?i thi?u 6 k� t?', 'error')
+    showAdminToast('Mật khẩu mới tối thiểu 6 ký tự', 'error')
     return
   }
   if (newPassword !== confirmPassword) {
-    showAdminToast('Nh?p l?i m?t kh?u chua kh?p', 'error')
+    showAdminToast('Nhập lại mật khẩu chưa khớp', 'error')
     return
   }
   const btn = document.getElementById('adminChangePasswordBtn')
   btn.disabled = true
-  btn.textContent = '�ang c?p nh?t...'
+  btn.textContent = 'Đang cập nhật...'
   try {
     await axios.put('/api/admin/profile/password', {
       old_password: oldPassword,
       new_password: newPassword
     })
-    showAdminToast('�� d?i m?t kh?u th�nh c�ng', 'success')
+    showAdminToast('Đã đổi mật khẩu thành công', 'success')
     closeChangeAdminPasswordModal()
   } catch (err) {
-    const msg = err.response?.data?.error || '�?i m?t kh?u th?t b?i'
+    const msg = err.response?.data?.error || 'Đổi mật khẩu thất bại'
     showAdminToast(msg, 'error')
   } finally {
     btn.disabled = false
-    btn.textContent = 'C?p nh?t m?t kh?u'
+    btn.textContent = 'Cập nhật mật khẩu'
   }
 }
 
@@ -949,7 +949,7 @@ async function onAdminAvatarSelected(inputOrEvent) {
 async function handleAdminAvatarFile(file) {
   const mimeType = String(file.type || '').toLowerCase()
   if (!mimeType.startsWith('image/')) {
-    showAdminToast('Vui l�ng ch?n file ?nh', 'error')
+    showAdminToast('Vui lòng chọn file ảnh', 'error')
     return
   }
   try {
@@ -959,11 +959,11 @@ async function handleAdminAvatarFile(file) {
     if (dataUrl.length > 700000) dataUrl = await compressAvatarDataUrl(rawDataUrl, 384, 0.75)
     if (dataUrl.length > 700000) dataUrl = await compressAvatarDataUrl(rawDataUrl, 320, 0.7)
     if (!dataUrl.startsWith('data:image/')) {
-      showAdminToast('File ?nh kh�ng h?p l?', 'error')
+      showAdminToast('File ảnh không hợp lệ', 'error')
       return
     }
     if (dataUrl.length > 700000) {
-      showAdminToast('?nh qu� l?n, vui l�ng ch?n ?nh nh? hon', 'error')
+      showAdminToast('Ảnh quá lớn, vui lòng chọn ảnh nhỏ hơn', 'error')
       return
     }
     const prevAvatar = String(adminProfile?.avatar || '').trim()
@@ -975,15 +975,15 @@ async function handleAdminAvatarFile(file) {
       applyAdminAvatarUI()
       applyAvatarSrcDirect(String(adminProfile?.avatar || dataUrl))
       loadAdminProfile()
-      showAdminToast('�� c?p nh?t avatar', 'success')
+      showAdminToast('Đã cập nhật avatar', 'success')
     } catch (e) {
       adminProfile = { ...(adminProfile || {}), avatar: prevAvatar }
       applyAdminAvatarUI()
-      const msg = e.response?.data?.error || 'Luu avatar th?t b?i'
+      const msg = e.response?.data?.error || 'Lưu avatar thất bại'
       showAdminToast(msg, 'error')
     }
   } catch (_) {
-    showAdminToast('Kh�ng d?c du?c ?nh, vui l�ng th? l?i', 'error')
+    showAdminToast('Không đọc được ảnh, vui lòng thử lại', 'error')
   }
 }
 
@@ -1007,7 +1007,7 @@ function showPage(name) {
     settingsActiveSubPage = ''
     document.querySelectorAll('.nav-sub-item').forEach(b => b.classList.remove('active'))
   }
-  const titles = {dashboard:'Dashboard', products:'Qu?n l� S?n ph?m', orders:'Qu?n l� �on h�ng', vouchers:'Qu?n l� Voucher', featured:'S?n ph?m N?i B?t', settings:'C�i d?t'}
+  const titles = {dashboard:'Dashboard', products:'Quản lý Sản phẩm', orders:'Quản lý Đơn hàng', vouchers:'Quản lý Voucher', featured:'Sản phẩm Nổi Bật', settings:'Cài đặt'}
   document.getElementById('pageTitle').textContent = titles[name] || name
 
   if (name === 'dashboard') loadDashboard()
@@ -1075,7 +1075,7 @@ function openSettingsWarehouse() {
   showPage('settings')
 }
 
-// -- FEATURED PRODUCTS ----------------------------
+// ── FEATURED PRODUCTS ────────────────────────────
 let allProductsForFeatured = []
 let featuredOrderMap = {} // { productId: displayOrder }
 
@@ -1093,7 +1093,7 @@ async function loadFeaturedAdmin() {
     renderFeaturedProductsList(allProductsForFeatured)
     updateFeaturedPreview()
   } catch(e) {
-    listEl.innerHTML = '<div class="py-12 text-center text-red-400">L?i t?i d? li?u</div>'
+    listEl.innerHTML = '<div class="py-12 text-center text-red-400">Lỗi tải dữ liệu</div>'
   }
 }
 
@@ -1108,7 +1108,7 @@ function filterFeaturedProducts() {
 function renderFeaturedProductsList(products) {
   const listEl = document.getElementById('featuredProductsList')
   if (!products.length) {
-    listEl.innerHTML = '<div class="py-12 text-center text-gray-400"><i class="fas fa-box-open text-4xl mb-3"></i><p>Kh�ng c� s?n ph?m n�o</p></div>'
+    listEl.innerHTML = '<div class="py-12 text-center text-gray-400"><i class="fas fa-box-open text-4xl mb-3"></i><p>Không có sản phẩm nào</p></div>'
     return
   }
 
@@ -1141,7 +1141,7 @@ function renderFeaturedProductsList(products) {
       <!-- Info -->
       <div class="flex-1 min-w-0">
         <div class="flex items-center gap-2">
-          \${isFeatured ? '<span class="text-xs bg-amber-400 text-white px-2 py-0.5 rounded-full font-semibold">? N?i b?t</span>' : ''}
+          \${isFeatured ? '<span class="text-xs bg-amber-400 text-white px-2 py-0.5 rounded-full font-semibold">⭐ Nổi bật</span>' : ''}
           \${p.brand ? \`<span class="text-xs text-pink-500 font-medium">\${p.brand}</span>\` : ''}
         </div>
         <p class="font-semibold text-gray-800 text-sm mt-0.5 truncate">\${p.name}</p>
@@ -1149,7 +1149,7 @@ function renderFeaturedProductsList(products) {
       </div>
       <!-- Order Input (only if featured) -->
       <div class="flex-none w-32 \${isFeatured ? '' : 'opacity-30 pointer-events-none'}">
-        <label class="block text-xs text-gray-500 mb-1 text-center">Th? t?</label>
+        <label class="block text-xs text-gray-500 mb-1 text-center">Thứ tự</label>
         <input type="number" min="1" max="99" value="\${order || 1}"
           id="order-\${p.id}"
           onchange="updateFeaturedOrder(\${p.id}, this.value)"
@@ -1158,7 +1158,7 @@ function renderFeaturedProductsList(products) {
       <!-- Badge Status -->
       <div class="flex-none">
         <span class="text-xs px-2 py-1 rounded-full \${p.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}">
-          \${p.is_active ? '? �ang b�n' : '? �� ?n'}
+          \${p.is_active ? '● Đang bán' : '○ Đã ẩn'}
         </span>
       </div>
     </div>\`
@@ -1196,7 +1196,7 @@ function updateFeaturedPreview() {
     .sort((a,b) => (featuredOrderMap[a.id]||0) - (featuredOrderMap[b.id]||0))
 
   const countEl = document.getElementById('featuredCount')
-  countEl.innerHTML = \`<i class="fas fa-star mr-1"></i>\${featured.length} s?n ph?m n?i b?t\`
+  countEl.innerHTML = \`<i class="fas fa-star mr-1"></i>\${featured.length} sản phẩm nổi bật\`
 
   const strip = document.getElementById('featuredPreviewStrip')
   const previewItems = document.getElementById('featuredPreviewItems')
@@ -1222,7 +1222,7 @@ function updateFeaturedPreview() {
 async function saveFeaturedOrder() {
   const btn = document.getElementById('saveFeaturedBtn')
   btn.disabled = true
-  btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>�ang luu...'
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Đang lưu...'
   
   try {
     const promises = allProductsForFeatured.map(p => {
@@ -1234,17 +1234,17 @@ async function saveFeaturedOrder() {
       })
     })
     await Promise.all(promises)
-    showAdminToast('�� luu s?n ph?m n?i b?t th�nh c�ng!', 'success')
+    showAdminToast('Đã lưu sản phẩm nổi bật thành công!', 'success')
     loadFeaturedAdmin()
   } catch(e) {
-    showAdminToast('L?i luu d? li?u: ' + (e.response?.data?.error || e.message), 'error')
+    showAdminToast('Lỗi lưu dữ liệu: ' + (e.response?.data?.error || e.message), 'error')
   } finally {
     btn.disabled = false
-    btn.innerHTML = '<i class="fas fa-save"></i>Luu th? t?'
+    btn.innerHTML = '<i class="fas fa-save"></i>Lưu thứ tự'
   }
 }
 
-// -- BANNERS --------------------------------------
+// ── BANNERS ──────────────────────────────────────
 async function loadSettingsAdmin() {
   try {
     const pickupRes = await axios.get('/api/admin/ghtk/pickup-config')
@@ -1252,7 +1252,7 @@ async function loadSettingsAdmin() {
     fillGhtkPickupConfig(pickupCfg)
     await syncGhtkPickupAddresses(true, pickupCfg.pickAddressId || '')
   } catch (e) {
-    showAdminToast('L?i t?i d? li?u c�i d?t kho GHTK', 'error')
+    showAdminToast('Lỗi tải dữ liệu cài đặt kho GHTK', 'error')
   }
 }
 
@@ -1269,7 +1269,7 @@ function fillGhtkPickupConfig(cfg) {
 function renderGhtkPickupAddressOptions(selectedId = '') {
   const select = document.getElementById('ghtkPickupAddressId')
   if (!select) return
-  const options = ['<option value="">-- Ch?n kho d?ng b? --</option>']
+  const options = ['<option value="">-- Chọn kho đồng bộ --</option>']
   ghtkPickupAddresses.forEach(item => {
     const text = [item.pick_name || 'Kho', item.full_address || '', item.pick_tel || ''].filter(Boolean).join(' | ')
     options.push('<option value="' + (item.pick_address_id || '') + '">' + text + '</option>')
@@ -1295,22 +1295,22 @@ async function syncGhtkPickupAddresses(silent = false, selectedId = '') {
   const btn = document.getElementById('syncGhtkPickupBtn')
   const currentSelected = selectedId || document.getElementById('ghtkPickupAddressId').value
   btn.disabled = true
-  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> �ang d?ng b?...'
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang đồng bộ...'
   try {
     const res = await axios.get('/api/admin/ghtk/pickup-addresses')
     ghtkPickupAddresses = res.data.data || []
     renderGhtkPickupAddressOptions(currentSelected)
     document.getElementById('ghtkPickupHint').textContent = ghtkPickupAddresses.length
-      ? ('�� d?ng b? ' + ghtkPickupAddresses.length + ' kho t? GHTK.')
-      : 'Chua t�m th?y kho tr�n GHTK.'
-    if (!silent) showAdminToast('�� d?ng b? kho GHTK', 'success')
+      ? ('Đã đồng bộ ' + ghtkPickupAddresses.length + ' kho từ GHTK.')
+      : 'Chưa tìm thấy kho trên GHTK.'
+    if (!silent) showAdminToast('Đã đồng bộ kho GHTK', 'success')
   } catch (e) {
     const msg = e.response?.data?.error || e.message || 'SYNC_GHTK_FAILED'
-    if (!silent) showAdminToast('�?ng b? kho th?t b?i: ' + msg, 'error')
-    document.getElementById('ghtkPickupHint').textContent = 'Kh�ng d?ng b? du?c kho t? GHTK: ' + msg
+    if (!silent) showAdminToast('Đồng bộ kho thất bại: ' + msg, 'error')
+    document.getElementById('ghtkPickupHint').textContent = 'Không đồng bộ được kho từ GHTK: ' + msg
   } finally {
     btn.disabled = false
-    btn.innerHTML = '<i class="fas fa-rotate"></i> �?ng b? kho t? GHTK'
+    btn.innerHTML = '<i class="fas fa-rotate"></i> Đồng bộ kho từ GHTK'
   }
 }
 
@@ -1326,20 +1326,20 @@ async function saveGhtkPickupConfig() {
     pick_ward: document.getElementById('ghtkPickWard').value.trim()
   }
   btn.disabled = true
-  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> �ang luu...'
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang lưu...'
   try {
     await axios.put('/api/admin/ghtk/pickup-config', payload)
-    showAdminToast('�� luu c?u h�nh kho GHTK', 'success')
+    showAdminToast('Đã lưu cấu hình kho GHTK', 'success')
   } catch (e) {
-    showAdminToast('Luu c?u h�nh kho th?t b?i', 'error')
+    showAdminToast('Lưu cấu hình kho thất bại', 'error')
   } finally {
     btn.disabled = false
-    btn.innerHTML = '<i class="fas fa-save"></i>Luu c?u h�nh kho GHTK'
+    btn.innerHTML = '<i class="fas fa-save"></i>Lưu cấu hình kho GHTK'
   }
 }
 
 
-// -- DASHBOARD -------------------------------------
+// ── DASHBOARD ─────────────────────────────────────
 async function loadDashboard() {
   try {
     const res = await axios.get('/api/admin/stats')
@@ -1357,24 +1357,24 @@ async function loadDashboard() {
     
     const recent = (d.recentOrders || []).filter(o => !isInternalTestOrder(o))
     if (!recent.length) {
-      document.getElementById('recentOrdersTable').innerHTML = '<div class="text-center py-8 text-gray-400">Chua c� don h�ng n�o</div>'
+      document.getElementById('recentOrdersTable').innerHTML = '<div class="text-center py-8 text-gray-400">Chưa có đơn hàng nào</div>'
       return
     }
-    document.getElementById('recentOrdersTable').innerHTML = '<table class="w-full text-sm"><thead><tr class="border-b text-gray-500"><th class="py-2 text-left pr-4">M� �H</th><th class="py-2 text-left pr-4">Kh�ch h�ng</th><th class="py-2 text-right pr-4">C�n ph?i thu</th><th class="py-2 text-center">Tr?ng th�i</th></tr></thead><tbody>' +
+    document.getElementById('recentOrdersTable').innerHTML = '<table class="w-full text-sm"><thead><tr class="border-b text-gray-500"><th class="py-2 text-left pr-4">Mã ĐH</th><th class="py-2 text-left pr-4">Khách hàng</th><th class="py-2 text-right pr-4">Còn phải thu</th><th class="py-2 text-center">Trạng thái</th></tr></thead><tbody>' +
       recent.map(o => '<tr class="border-b last:border-0"><td class="py-2 pr-4 font-mono text-xs text-blue-600">' + o.order_code + '</td><td class="py-2 pr-4">' + displayCustomerName(o.customer_name) + '</td><td class="py-2 pr-4 text-right font-semibold">' + fmtPrice(getOrderAmountDue(o)) + '</td><td class="py-2 text-center"><span class="badge badge-' + o.status + '">' + statusLabel(o.status) + '</span></td></tr>').join('') +
       '</tbody></table>'
   } catch(e) {
     if (e && e.response && e.response.status === 401) {
-      showAdminToast('Phi�n dang nh?p d� h?t h?n, vui l�ng dang nh?p l?i', 'error')
+      showAdminToast('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại', 'error')
       setTimeout(() => { window.location.href = '/admin/login' }, 400)
       return
     }
-    document.getElementById('recentOrdersTable').innerHTML = '<div class="text-center py-8 text-red-400">L?i t?i d? li?u dashboard</div>'
+    document.getElementById('recentOrdersTable').innerHTML = '<div class="text-center py-8 text-red-400">Lỗi tải dữ liệu dashboard</div>'
     console.error(e)
   }
 }
 
-// -- PRODUCTS -------------------------------------
+// ── PRODUCTS ─────────────────────────────────────
 async function loadAdminProducts() {
   const grid = document.getElementById('adminProductsGrid')
   grid.innerHTML = '<div class="col-span-4 text-center py-12 text-gray-400"><i class="fas fa-spinner fa-spin text-3xl"></i></div>'
@@ -1384,12 +1384,12 @@ async function loadAdminProducts() {
     renderAdminProducts(adminProducts)
   } catch(e) {
     if (e && e.response && e.response.status === 401) {
-      showAdminToast('Phi�n dang nh?p d� h?t h?n, vui l�ng dang nh?p l?i', 'error')
+      showAdminToast('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại', 'error')
       setTimeout(() => { window.location.href = '/admin/login' }, 400)
       return
     }
-    const msg = e?.response?.data?.error || e?.message || 'L?i t?i d? li?u'
-    grid.innerHTML = '<div class="col-span-4 text-center py-12 text-red-400">L?i t?i d? li?u</div>'
+    const msg = e?.response?.data?.error || e?.message || 'Lỗi tải dữ liệu'
+    grid.innerHTML = '<div class="col-span-4 text-center py-12 text-red-400">Lỗi tải dữ liệu</div>'
     showAdminToast(msg, 'error')
     console.error('loadAdminProducts error:', e)
   }
@@ -1409,13 +1409,13 @@ function renderAdminProducts(products) {
   const grid = document.getElementById('adminProductsGrid')
   const safeProducts = (Array.isArray(products) ? products : []).filter(Boolean)
   if (!safeProducts.length) {
-    grid.innerHTML = '<div class="col-span-4 text-center py-12 text-gray-400"><i class="fas fa-box-open text-4xl mb-3"></i><p>Kh�ng c� s?n ph?m</p></div>'
+    grid.innerHTML = '<div class="col-span-4 text-center py-12 text-gray-400"><i class="fas fa-box-open text-4xl mb-3"></i><p>Không có sản phẩm</p></div>'
     return
   }
   grid.innerHTML = safeProducts.map(raw => {
     try {
       const p = raw || {}
-      const name = String(p.name || 'S?n ph?m')
+      const name = String(p.name || 'Sản phẩm')
       const brand = String(p.brand || '').trim()
       const thumbnail = String(p.thumbnail || '').trim() || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'
       const colors = getProductColorOptions(p).map((c) => c.name).filter(Boolean)
@@ -1427,8 +1427,8 @@ function renderAdminProducts(products) {
           class="w-full h-full object-cover" onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'">
         <div class="absolute top-2 left-2 flex gap-1">
           <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-white/90 text-gray-700">\${catLabel(p.category)}</span>
-          \${p.is_featured ? '<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-400 text-white">? Hot</span>' : ''}
-          \${p.is_trending ? '<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-500 text-white">?? Trend</span>' : ''}
+          \${p.is_featured ? '<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-400 text-white">⭐ Hot</span>' : ''}
+          \${p.is_trending ? '<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-500 text-white">🔥 Trend</span>' : ''}
           \${p.is_trending && (p.trending_order||0) > 0 ? \`<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-500 text-white">#\${p.trending_order}</span>\` : ''}
         </div>
         <div class="absolute top-2 right-2">
@@ -1444,12 +1444,12 @@ function renderAdminProducts(products) {
         </div>
         \${colors.length ? \`<div class="flex flex-wrap gap-1 mb-2">\${colors.slice(0,3).map(c=>\`<span class="text-xs bg-pink-50 text-pink-600 px-2 py-0.5 rounded-full">\${c}</span>\`).join('')}\${colors.length>3?\`<span class="text-xs text-gray-400">+\${colors.length-3}</span>\`:''}</div>\` : ''}
         \${sizes.length ? \`<div class="flex flex-wrap gap-1 mb-3">\${sizes.slice(0,4).map(s=>\`<span class="text-xs border text-gray-600 px-1.5 py-0.5 rounded">\${s}</span>\`).join('')}\${sizes.length>4?\`<span class="text-xs text-gray-400">+\${sizes.length-4}</span>\`:''}</div>\` : ''}
-        <p class="text-xs text-gray-400 mb-3">T?n kho: <span class="font-semibold text-gray-700">\${p.stock || 0}</span></p>
+        <p class="text-xs text-gray-400 mb-3">Tồn kho: <span class="font-semibold text-gray-700">\${p.stock || 0}</span></p>
         <div class="flex gap-2">
           <button onclick="openProductModal(\${p.id})" class="flex-1 py-2 border-2 border-pink-200 text-pink-600 rounded-xl text-xs font-semibold hover:bg-pink-50 transition">
-            <i class="fas fa-edit mr-1"></i>S?a
+            <i class="fas fa-edit mr-1"></i>Sửa
           </button>
-          <button onclick="toggleProductActive(\${p.id})" class="py-2 px-3 border-2 border-gray-200 rounded-xl text-xs hover:bg-gray-50 transition" title="\${p.is_active ? '?n' : 'Hi?n'}">
+          <button onclick="toggleProductActive(\${p.id})" class="py-2 px-3 border-2 border-gray-200 rounded-xl text-xs hover:bg-gray-50 transition" title="\${p.is_active ? 'Ẩn' : 'Hiện'}">
             <i class="fas fa-\${p.is_active ? 'eye-slash' : 'eye'} text-gray-500"></i>
           </button>
           <button onclick="deleteProduct(\${p.id})" class="py-2 px-3 border-2 border-red-200 text-red-500 rounded-xl text-xs hover:bg-red-50 transition">
@@ -1460,7 +1460,7 @@ function renderAdminProducts(products) {
     </div>\`
     } catch (err) {
       const p = raw || {}
-      const name = String(p.name || 'S?n ph?m')
+      const name = String(p.name || 'Sản phẩm')
       const thumbnail = String(p.thumbnail || '').trim() || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'
       const isActive = !!p.is_active
       const price = Number(p.price || 0)
@@ -1478,12 +1478,12 @@ function renderAdminProducts(products) {
           <div class="flex items-center gap-2 mb-3">
             <span class="font-bold text-pink-600">\${fmtPrice(price)}</span>
           </div>
-          <p class="text-xs text-gray-400 mb-3">T?n kho: <span class="font-semibold text-gray-700">\${p.stock || 0}</span></p>
+          <p class="text-xs text-gray-400 mb-3">Tồn kho: <span class="font-semibold text-gray-700">\${p.stock || 0}</span></p>
           <div class="flex gap-2">
             <button onclick="openProductModal(\${p.id})" class="flex-1 py-2 border-2 border-pink-200 text-pink-600 rounded-xl text-xs font-semibold hover:bg-pink-50 transition">
-              <i class="fas fa-edit mr-1"></i>S?a
+              <i class="fas fa-edit mr-1"></i>Sửa
             </button>
-            <button onclick="toggleProductActive(\${p.id})" class="py-2 px-3 border-2 border-gray-200 rounded-xl text-xs hover:bg-gray-50 transition" title="\${isActive ? '?n' : 'Hi?n'}">
+            <button onclick="toggleProductActive(\${p.id})" class="py-2 px-3 border-2 border-gray-200 rounded-xl text-xs hover:bg-gray-50 transition" title="\${isActive ? 'Ẩn' : 'Hiện'}">
               <i class="fas fa-\${isActive ? 'eye-slash' : 'eye'} text-gray-500"></i>
             </button>
             <button onclick="deleteProduct(\${p.id})" class="py-2 px-3 border-2 border-red-200 text-red-500 rounded-xl text-xs hover:bg-red-50 transition">
@@ -1500,20 +1500,20 @@ async function toggleProductActive(id) {
   try {
     await axios.patch('/api/admin/products/' + id + '/toggle')
     loadAdminProducts()
-    showAdminToast('�� c?p nh?t tr?ng th�i', 'success')
-  } catch(e) { showAdminToast('L?i c?p nh?t', 'error') }
+    showAdminToast('Đã cập nhật trạng thái', 'success')
+  } catch(e) { showAdminToast('Lỗi cập nhật', 'error') }
 }
 
 async function deleteProduct(id) {
-  if (!confirm('B?n ch?c ch?n mu?n xo� s?n ph?m n�y?')) return
+  if (!confirm('Bạn chắc chắn muốn xoá sản phẩm này?')) return
   try {
     await axios.delete('/api/admin/products/' + id)
     loadAdminProducts()
-    showAdminToast('�� xo� s?n ph?m', 'success')
-  } catch(e) { showAdminToast('L?i xo� s?n ph?m', 'error') }
+    showAdminToast('Đã xoá sản phẩm', 'success')
+  } catch(e) { showAdminToast('Lỗi xoá sản phẩm', 'error') }
 }
 
-// -- PRODUCT MODAL ---------------------------------
+// ── PRODUCT MODAL ─────────────────────────────────
 async function openProductModal(id = null) {
   editingId = id
   colors = []
@@ -1540,7 +1540,7 @@ async function openProductModal(id = null) {
   }
   
   resetProductForm()
-  document.getElementById('modalTitle').textContent = id ? 'Ch?nh s?a s?n ph?m' : 'Th�m s?n ph?m m?i'
+  document.getElementById('modalTitle').textContent = id ? 'Chỉnh sửa sản phẩm' : 'Thêm sản phẩm mới'
   
   // Bind gallery slots
   for (let i = 0; i < 9; i++) {
@@ -1580,7 +1580,7 @@ async function openProductModal(id = null) {
       renderColorOptionsEditor()
       renderTags('size')
     } catch(e) {
-      const msg = e?.response?.data?.error || e?.message || 'L?i t?i s?n ph?m'
+      const msg = e?.response?.data?.error || e?.message || 'Lỗi tải sản phẩm'
       console.error('openProductModal error:', e)
       showAdminToast(msg, 'error')
       return
@@ -1612,7 +1612,7 @@ function resetProductForm() {
 async function saveProduct(e) {
   e.preventDefault()
   const btn = document.getElementById('saveBtn')
-  btn.textContent = '�ang luu...'
+  btn.textContent = 'Đang lưu...'
   
   const imgList = galleryImages.filter(v => v && v.trim())
   const normalizedThumbnail = String(document.getElementById('pThumbnail').value || '').trim()
@@ -1620,8 +1620,8 @@ async function saveProduct(e) {
     .map((c) => ({ name: String(c?.name || '').trim(), image: String(c?.image || '').trim() }))
     .filter((c) => c.name || c.image)
   if (!normalizedThumbnail && imgList.length === 0) {
-    showAdminToast('Tru?ng h�nh ?nh l� b?t bu?c', 'error')
-    btn.textContent = 'Luu s?n ph?m'
+    showAdminToast('Trường hình ảnh là bắt buộc', 'error')
+    btn.textContent = 'Lưu sản phẩm'
     return
   }
   
@@ -1645,30 +1645,30 @@ async function saveProduct(e) {
   }
   const payloadSize = JSON.stringify(data).length
   if (payloadSize > MAX_PRODUCT_PAYLOAD_SIZE) {
-    showAdminToast('?nh qu� n?ng, vui l�ng gi?m dung lu?ng ho?c s? lu?ng ?nh', 'error')
-    btn.textContent = 'Luu s?n ph?m'
+    showAdminToast('Ảnh quá nặng, vui lòng giảm dung lượng hoặc số lượng ảnh', 'error')
+    btn.textContent = 'Lưu sản phẩm'
     return
   }
   
   try {
     if (editingId) {
       await axios.put('/api/admin/products/' + editingId, data)
-      showAdminToast('C?p nh?t s?n ph?m th�nh c�ng!', 'success')
+      showAdminToast('Cập nhật sản phẩm thành công!', 'success')
     } else {
       await axios.post('/api/admin/products', data)
-      showAdminToast('Th�m s?n ph?m th�nh c�ng!', 'success')
+      showAdminToast('Thêm sản phẩm thành công!', 'success')
     }
     closeProductModal()
     loadAdminProducts()
   } catch(e) {
-    const msg = e.response?.data?.error || e.message || 'L?i luu s?n ph?m'
+    const msg = e.response?.data?.error || e.message || 'Lỗi lưu sản phẩm'
     showAdminToast(msg, 'error')
   } finally {
-    btn.textContent = 'Luu s?n ph?m'
+    btn.textContent = 'Lưu sản phẩm'
   }
 }
 
-// -- GALLERY ---------------------------------------
+// ── GALLERY ───────────────────────────────────────
 function handleGallerySlotClick(i) {
   const hasImg = galleryImages[i]
   if (!hasImg) {
@@ -1744,7 +1744,7 @@ async function handleImageDrop(event, targetType, targetIndex = -1) {
   }
   const files = Array.from(event.dataTransfer?.files || []).filter(f => f.type && f.type.startsWith('image/'))
   if (!files.length) {
-    showAdminToast('Vui l�ng k�o th? file ?nh h?p l?', 'warning')
+    showAdminToast('Vui lòng kéo thả file ảnh hợp lệ', 'warning')
     return
   }
   await applyMultipleImagesFrom(files, targetType, targetIndex)
@@ -1817,10 +1817,10 @@ async function applyMultipleImagesFrom(files, targetType, startIndex = 0) {
       fileIndex++
     }
     if (fileIndex < files.length) {
-      showAdminToast('�� d?y � ?nh, m?t s? ?nh chua du?c th�m', 'warning')
+      showAdminToast('Đã đầy ô ảnh, một số ảnh chưa được thêm', 'warning')
     }
   } catch (e) {
-    showAdminToast('Kh�ng th? x? l� ?nh, vui l�ng th? ?nh kh�c', 'error')
+    showAdminToast('Không thể xử lý ảnh, vui lòng thử ảnh khác', 'error')
   }
 }
 
@@ -1828,7 +1828,7 @@ function addGalleryUrl() {
   const url = document.getElementById('galleryUrlInput').value.trim()
   if (!url) return
   const emptySlot = galleryImages.findIndex(v => !v)
-  if (emptySlot === -1) { showAdminToast('�� d?y 9 ?nh', 'error'); return }
+  if (emptySlot === -1) { showAdminToast('Đã đầy 9 ảnh', 'error'); return }
   setGallerySlot(emptySlot, url)
   document.getElementById('galleryUrlInput').value = ''
 }
@@ -1878,7 +1878,7 @@ function fileToOptimizedDataURL(file, maxWidth = 1200, quality = 0.82) {
   })
 }
 
-// -- TAGS (Colors/Sizes) ----------------------------
+// ── TAGS (Colors/Sizes) ────────────────────────────
 function addTag(type) {
   const input = document.getElementById(type === 'size' ? 'sizeInput' : '')
   if (!input) return
@@ -1899,7 +1899,7 @@ function renderTags(type) {
   if (type !== 'size') return
   const container = document.getElementById('sizeTags')
   container.innerHTML = sizes.map(v => \`
-    <span class="tag-item">\${v}<span class="tag-del" onclick="removeTag('size','\${v}')">�</span></span>
+    <span class="tag-item">\${v}<span class="tag-del" onclick="removeTag('size','\${v}')">×</span></span>
   \`).join('')
 }
 
@@ -1915,7 +1915,7 @@ function renderColorOptionsEditor() {
         ondrop="handleColorImageDrop(event, \${idx})">
         <img src="\${color.image || ''}" alt="" class="w-full h-full object-cover rounded-xl \${color.image ? '' : 'hidden'}" id="colorImg-\${idx}">
         <div class="text-[11px] text-gray-400 text-center px-2 leading-tight \${color.image ? 'hidden' : ''}" id="colorPlaceholder-\${idx}">
-          B?m ho?c k�o ?nh
+          Bấm hoặc kéo ảnh
         </div>
         <input type="file" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" id="colorFile-\${idx}" onchange="handleColorImageFile(\${idx}, this)">
         <div class="\${color.image ? 'absolute inset-0 hidden group-hover:flex items-center justify-center bg-black/45 text-white transition z-20' : 'hidden'}" id="colorOverlay-\${idx}">
@@ -1924,7 +1924,7 @@ function renderColorOptionsEditor() {
           </button>
         </div>
       </div>
-      <input type="text" value="\${String(color.name || '').replace(/"/g, '&quot;')}" placeholder="Nh?p m�u (VD: �en, Navy...)" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400" oninput="updateColorName(\${idx}, this.value)">
+      <input type="text" value="\${String(color.name || '').replace(/"/g, '&quot;')}" placeholder="Nhập màu (VD: Đen, Navy...)" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400" oninput="updateColorName(\${idx}, this.value)">
       <button type="button" onclick="removeColorOptionRow(\${idx})" class="w-9 h-9 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 mt-1">
         <i class="fas fa-trash text-xs"></i>
       </button>
@@ -1987,7 +1987,7 @@ async function applyColorImageFile(idx, file) {
     colors[idx].image = await fileToOptimizedDataURL(file, 500, 0.85)
     renderColorOptionsEditor()
   } catch (_) {
-    showAdminToast('Kh�ng th? x? l� ?nh m�u', 'error')
+    showAdminToast('Không thể xử lý ảnh màu', 'error')
   }
 }
 
@@ -1996,7 +1996,7 @@ function addPresetSizes(arr) {
   renderTags('size')
 }
 
-// -- ORDERS ----------------------------------------
+// ── ORDERS ────────────────────────────────────────
 async function loadAdminOrders() {
   document.getElementById('ordersTable').innerHTML = '<tr><td colspan="7" class="text-center py-12 text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></td></tr>'
   document.getElementById('ordersMobileList').innerHTML = '<div class="py-12 text-center text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></div>'
@@ -2010,13 +2010,13 @@ async function loadAdminOrders() {
     filterOrders()
   } catch(e) {
     if (e && e.response && e.response.status === 401) {
-      showAdminToast('Phi�n dang nh?p d� h?t h?n, vui l�ng dang nh?p l?i', 'error')
+      showAdminToast('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại', 'error')
       setTimeout(() => { window.location.href = '/admin/login' }, 400)
       return
     }
-    const msg = e?.response?.data?.error || e?.message || 'L?i t?i d? li?u'
-    document.getElementById('ordersTable').innerHTML = '<tr><td colspan="7" class="text-center py-8 text-red-400">L?i t?i d? li?u</td></tr>'
-    document.getElementById('ordersMobileList').innerHTML = '<div class="py-8 text-center text-red-400">L?i t?i d? li?u</div>'
+    const msg = e?.response?.data?.error || e?.message || 'Lỗi tải dữ liệu'
+    document.getElementById('ordersTable').innerHTML = '<tr><td colspan="7" class="text-center py-8 text-red-400">Lỗi tải dữ liệu</td></tr>'
+    document.getElementById('ordersMobileList').innerHTML = '<div class="py-8 text-center text-red-400">Lỗi tải dữ liệu</div>'
     showAdminToast(msg, 'error')
     console.error('loadAdminOrders error:', e)
   }
@@ -2083,8 +2083,8 @@ function filterOrders() {
   filteredAdminOrders = filtered
   renderOrdersTable(filtered)
   const total = filtered.reduce((s,o) => s + getOrderAmountDue(o), 0)
-  const modeLabel = ordersViewMode === 'waiting_ship' ? '�ang ch? v?n chuy?n' : 'S?p x?p v?n chuy?n'
-  document.getElementById('orderStats').textContent = \`\${modeLabel}: \${filtered.length} don � T?ng: \${fmtPrice(total)}\`
+  const modeLabel = ordersViewMode === 'waiting_ship' ? 'Đang chờ vận chuyển' : 'Sắp xếp vận chuyển'
+  document.getElementById('orderStats').textContent = \`\${modeLabel}: \${filtered.length} đơn – Tổng: \${fmtPrice(total)}\`
   updateOrderSelectionUI()
 }
 
@@ -2143,23 +2143,23 @@ function renderOrdersTable(orders) {
           <div>
             <button type="button"
               onclick="copyOrderCode(decodeURIComponent('\${encodeURIComponent(String(o.order_code || '').trim())}')); return false;"
-              title="B?m d? copy m� don h�ng"
+              title="Bấm để copy mã đơn hàng"
               class="font-mono text-[11px] text-blue-600 font-semibold hover:text-blue-700 transition">
-              M� �H: \${o.order_code}
+              Mã ĐH: \${o.order_code}
             </button>
           </div>
           <p class="text-sm text-gray-800 font-semibold truncate max-w-[290px]">\${o.product_name}</p>
           <div class="text-xs text-gray-500 flex items-center gap-1.5 flex-wrap">
             <span>\${displayCustomerName(o.customer_name)}</span>
-            <span> � </span>
+            <span> • </span>
             <button type="button"
               onclick="copyPhoneNumber(decodeURIComponent('\${encodeURIComponent(String(o.customer_phone || '').trim())}')); return false;"
-              title="B?m d? copy s? di?n tho?i"
+              title="Bấm để copy số điện thoại"
               class="hover:text-blue-600 no-underline transition">\${o.customer_phone}</button>
             <button type="button"
               onclick="showOrderDetail(\${o.id})"
               class="ml-1 inline-flex items-center justify-center w-6 h-6 rounded-md bg-blue-50 text-blue-600 hover:bg-blue-100 transition"
-              title="Chi ti?t">
+              title="Chi tiết">
               <i class="fas fa-eye text-[10px]"></i>
             </button>
           </div>
@@ -2168,9 +2168,9 @@ function renderOrdersTable(orders) {
             ? \`<div>
                 <button type="button"
                   onclick="copyTrackingCode(decodeURIComponent('\${encodeURIComponent(String(o.shipping_tracking_code || '').trim())}')); return false;"
-                  title="B?m d? copy m� d?y d?: \${String(o.shipping_tracking_code || '').trim()}"
+                  title="Bấm để copy mã đầy đủ: \${String(o.shipping_tracking_code || '').trim()}"
                   class="font-mono text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg font-semibold hover:bg-emerald-100 transition">
-                  M� v?n don: \${getTrackingDisplayCode(o.shipping_tracking_code)}
+                  Mã vận đơn: \${getTrackingDisplayCode(o.shipping_tracking_code)}
                 </button>
               </div>\`
             : ''}
@@ -2187,15 +2187,15 @@ function renderOrdersTable(orders) {
       <div class="mt-1 flex justify-end">\${paymentMethodTagHTML(o.payment_method, o.payment_status)}</div>
     </td>
     <td class="px-4 py-3 text-center hidden lg:table-cell">
-      \${o.voucher_code ? \`<span class="font-mono text-xs bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 rounded-lg font-semibold">\${o.voucher_code}</span>\` : '<span class="text-gray-300 text-xs">�</span>'}
+      \${o.voucher_code ? \`<span class="font-mono text-xs bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 rounded-lg font-semibold">\${o.voucher_code}</span>\` : '<span class="text-gray-300 text-xs">—</span>'}
     </td>
     <td class="px-4 py-3 text-center">
       <select onchange="updateOrderStatus(\${o.id}, this.value)" class="text-xs border rounded-lg px-2 py-1 focus:outline-none badge badge-\${o.status}" style="max-width:120px">
-        <option value="pending" \${o.status==='pending'?'selected':''}>Ch? x? l�</option>
-        <option value="confirmed" \${o.status==='confirmed'?'selected':''}>X�c nh?n</option>
-        <option value="shipping" \${o.status==='shipping'?'selected':''}>�ang giao</option>
-        <option value="done" \${o.status==='done'?'selected':''}>Ho�n th�nh</option>
-        <option value="cancelled" \${o.status==='cancelled'?'selected':''}>Hu?</option>
+        <option value="pending" \${o.status==='pending'?'selected':''}>Chờ xử lý</option>
+        <option value="confirmed" \${o.status==='confirmed'?'selected':''}>Xác nhận</option>
+        <option value="shipping" \${o.status==='shipping'?'selected':''}>Đang giao</option>
+        <option value="done" \${o.status==='done'?'selected':''}>Hoàn thành</option>
+        <option value="cancelled" \${o.status==='cancelled'?'selected':''}>Huỷ</option>
       </select>
     </td>
   </tr>\`).join('')
@@ -2216,9 +2216,9 @@ function renderOrdersMobileList(orders) {
             <div class="min-w-0">
               <button type="button"
                 onclick="copyOrderCode(decodeURIComponent('\${encodeURIComponent(String(o.order_code || '').trim())}')); return false;"
-                class="font-mono text-[11px] text-blue-600 font-semibold truncate max-w-[200px]">M� �H: \${o.order_code}</button>
+                class="font-mono text-[11px] text-blue-600 font-semibold truncate max-w-[200px]">Mã ĐH: \${o.order_code}</button>
               <p class="text-sm font-semibold text-gray-800 truncate">\${o.product_name}</p>
-              <p class="text-xs text-gray-500">SKU: \${buildOrderSkuText(o)} � SL: \${o.quantity || 1}</p>
+              <p class="text-xs text-gray-500">SKU: \${buildOrderSkuText(o)} • SL: \${o.quantity || 1}</p>
             </div>
             <div class="text-right flex-none">
               <p class="text-sm font-bold text-gray-800">\${fmtPrice(getOrderAmountDue(o))}</p>
@@ -2230,14 +2230,14 @@ function renderOrdersMobileList(orders) {
             <div class="min-w-0 flex-1">
               <div class="text-xs text-gray-500 flex items-center gap-1.5 flex-wrap">
                 <span>\${displayCustomerName(o.customer_name)}</span>
-                <span> � </span>
+                <span> • </span>
                 <button type="button"
                   onclick="copyPhoneNumber(decodeURIComponent('\${encodeURIComponent(String(o.customer_phone || '').trim())}')); return false;"
                   class="hover:text-blue-600 no-underline transition">\${o.customer_phone}</button>
                 <button type="button"
                   onclick="showOrderDetail(\${o.id})"
                   class="ml-1 inline-flex items-center justify-center w-6 h-6 rounded-md bg-blue-50 text-blue-600 hover:bg-blue-100 transition"
-                  title="Chi ti?t">
+                  title="Chi tiết">
                   <i class="fas fa-eye text-[10px]"></i>
                 </button>
               </div>
@@ -2245,18 +2245,18 @@ function renderOrdersMobileList(orders) {
                 ? \`<div class="mt-1">
                     <button type="button"
                       onclick="copyTrackingCode(decodeURIComponent('\${encodeURIComponent(tracking)}')); return false;"
-                      class="font-mono text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg font-semibold hover:bg-emerald-100 transition">M� v?n don: \${getTrackingDisplayCode(tracking)}</button>
+                      class="font-mono text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg font-semibold hover:bg-emerald-100 transition">Mã vận đơn: \${getTrackingDisplayCode(tracking)}</button>
                   </div>\`
                 : ''}
             </div>
           </div>
           <div class="mt-2 flex items-center justify-between gap-2">
             <select onchange="updateOrderStatus(\${o.id}, this.value)" class="text-xs border rounded-lg px-2 py-1 focus:outline-none badge badge-\${o.status}" style="max-width:124px">
-              <option value="pending" \${o.status==='pending'?'selected':''}>Ch? x? l�</option>
-              <option value="confirmed" \${o.status==='confirmed'?'selected':''}>X�c nh?n</option>
-              <option value="shipping" \${o.status==='shipping'?'selected':''}>�ang giao</option>
-              <option value="done" \${o.status==='done'?'selected':''}>Ho�n th�nh</option>
-              <option value="cancelled" \${o.status==='cancelled'?'selected':''}>Hu?</option>
+              <option value="pending" \${o.status==='pending'?'selected':''}>Chờ xử lý</option>
+              <option value="confirmed" \${o.status==='confirmed'?'selected':''}>Xác nhận</option>
+              <option value="shipping" \${o.status==='shipping'?'selected':''}>Đang giao</option>
+              <option value="done" \${o.status==='done'?'selected':''}>Hoàn thành</option>
+              <option value="cancelled" \${o.status==='cancelled'?'selected':''}>Huỷ</option>
             </select>
             <div class="flex items-center gap-1"></div>
           </div>
@@ -2302,8 +2302,8 @@ function updateOrderSelectionUI() {
   }
   if (arrangeText) {
     arrangeText.textContent = anySelectedVisible
-      ? ('S?p x?p v?n chuy?n (' + checkedVisible + ')')
-      : 'S?p x?p v?n chuy?n'
+      ? ('Sắp xếp vận chuyển (' + checkedVisible + ')')
+      : 'Sắp xếp vận chuyển'
   }
   if (bulkBtn) {
     const showDelete = ordersViewMode !== 'waiting_ship' && anySelectedVisible
@@ -2315,14 +2315,14 @@ function updateOrderSelectionUI() {
     bulkBar.classList.toggle('hidden', !showBar)
   }
   if (bulkText) {
-    bulkText.textContent = anySelectedVisible ? ('Xo� d� ch?n (' + checkedVisible + ')') : 'Xo� d� ch?n'
+    bulkText.textContent = anySelectedVisible ? ('Xoá đã chọn (' + checkedVisible + ')') : 'Xoá đã chọn'
   }
   if (shipBar) {
     const showShipBar = ordersViewMode === 'waiting_ship' && anySelectedVisible
     shipBar.classList.toggle('hidden', !showShipBar)
   }
   if (shipBarText) {
-    shipBarText.textContent = '�� ch?n ' + checkedVisible + ' don'
+    shipBarText.textContent = 'Đã chọn ' + checkedVisible + ' đơn'
   }
   if (selectAll) {
     const allVisibleChecked = visibleIds.length > 0 && checkedVisible === visibleIds.length
@@ -2334,14 +2334,14 @@ function updateOrderSelectionUI() {
 async function deleteSelectedOrders() {
   const ids = Array.from(selectedOrderIds)
   if (!ids.length) return
-  if (!confirm('Xo� ' + ids.length + ' don d� ch?n?')) return
+  if (!confirm('Xoá ' + ids.length + ' đơn đã chọn?')) return
   try {
     await Promise.all(ids.map(id => axios.delete('/api/admin/orders/' + id)))
     selectedOrderIds.clear()
-    showAdminToast('�� xo� ' + ids.length + ' don h�ng', 'success')
+    showAdminToast('Đã xoá ' + ids.length + ' đơn hàng', 'success')
     await loadAdminOrders()
   } catch (e) {
-    showAdminToast('L?i xo� h�ng lo?t', 'error')
+    showAdminToast('Lỗi xoá hàng loạt', 'error')
   }
 }
 
@@ -2363,7 +2363,7 @@ async function arrangeSelectedForShipping() {
     openArrangeSuccessModal(arrangedOrdersForPrint.length, failed)
     await loadAdminOrders()
   } catch (e) {
-    showAdminToast('L?i s?p x?p v?n chuy?n', 'error')
+    showAdminToast('Lỗi sắp xếp vận chuyển', 'error')
   }
 }
 
@@ -2372,11 +2372,11 @@ function printSelectedOrders() {
   if (!selected.length) return
   const ghtkOrders = extractGHTKPrintableOrders(selected)
   if (!ghtkOrders.length) {
-    showAdminToast('Chua c� m� v?n don GHTK d? in nh�n', 'warning')
+    showAdminToast('Chưa có mã vận đơn GHTK để in nhãn', 'warning')
     return
   }
   if (ghtkOrders.length < selected.length) {
-    showAdminToast('M?t s? don chua c� m� v?n don, ch? in c�c don d� c� m� GHTK', 'warning')
+    showAdminToast('Một số đơn chưa có mã vận đơn, chỉ in các đơn đã có mã GHTK', 'warning')
   }
   openGHTKLabelsPdf(ghtkOrders.map(o => Number(o.id)))
 }
@@ -2386,26 +2386,26 @@ function openGHTKLabelsPdf(orderIds) {
   if (!ids.length) return
   const url = '/api/admin/orders/ghtk/print-labels?ids=' + encodeURIComponent(ids.join(',')) + '&original=portrait&page_size=A6'
   const tab = window.open(url, '_blank')
-  if (!tab) showAdminToast('Tr�nh duy?t dang ch?n m? PDF nh�n GHTK', 'error')
+  if (!tab) showAdminToast('Trình duyệt đang chặn mở PDF nhãn GHTK', 'error')
 }
 
 function openPrintOrdersPopup(selected) {
   if (!Array.isArray(selected) || !selected.length) return
   const rows = selected.map(o =>
     '<div class="order-card">'
-    + '<div class="row"><strong>M� don:</strong><span>' + (o.order_code || '') + '</span></div>'
-    + '<div class="row"><strong>Kh�ch:</strong><span>' + displayCustomerName(o.customer_name || '') + '</span></div>'
-    + '<div class="row"><strong>S�T:</strong><span>' + (o.customer_phone || '') + '</span></div>'
-    + '<div class="row"><strong>�?a ch?:</strong><span>' + (o.customer_address || '') + '</span></div>'
-    + '<div class="row"><strong>S?n ph?m:</strong><span>' + (o.product_name || '') + ' x ' + (o.quantity || 0) + '</span></div>'
-    + '<div class="row"><strong>Thanh to�n:</strong><span>' + formatPaymentMethod(o.payment_method) + ' (' + paymentStatusLabel(o.payment_status) + ')</span></div>'
-    + '<div class="row total"><strong>C?n thu:</strong><span>' + fmtPrice(getOrderAmountDue(o)) + '</span></div>'
+    + '<div class="row"><strong>Mã đơn:</strong><span>' + (o.order_code || '') + '</span></div>'
+    + '<div class="row"><strong>Khách:</strong><span>' + displayCustomerName(o.customer_name || '') + '</span></div>'
+    + '<div class="row"><strong>SĐT:</strong><span>' + (o.customer_phone || '') + '</span></div>'
+    + '<div class="row"><strong>Địa chỉ:</strong><span>' + (o.customer_address || '') + '</span></div>'
+    + '<div class="row"><strong>Sản phẩm:</strong><span>' + (o.product_name || '') + ' x ' + (o.quantity || 0) + '</span></div>'
+    + '<div class="row"><strong>Thanh toán:</strong><span>' + formatPaymentMethod(o.payment_method) + ' (' + paymentStatusLabel(o.payment_status) + ')</span></div>'
+    + '<div class="row total"><strong>Cần thu:</strong><span>' + fmtPrice(getOrderAmountDue(o)) + '</span></div>'
     + '</div>'
   ).join('')
 
   const popup = window.open('', '_blank', 'width=1080,height=760')
   if (!popup) {
-    showAdminToast('Tr�nh duy?t dang ch?n popup in don', 'error')
+    showAdminToast('Trình duyệt đang chặn popup in đơn', 'error')
     return
   }
   popup.onload = function() {
@@ -2415,7 +2415,7 @@ function openPrintOrdersPopup(selected) {
     + '<html lang="vi">'
     + '<head>'
     + '<meta charset="UTF-8" />'
-    + '<title>In don h�ng lo?t</title>'
+    + '<title>In đơn hàng loạt</title>'
     + '<style>'
     + 'body{font-family:Arial,sans-serif;margin:16px;color:#111827;}'
     + 'h1{margin:0 0 8px;font-size:22px;}'
@@ -2429,8 +2429,8 @@ function openPrintOrdersPopup(selected) {
     + '</style>'
     + '</head>'
     + '<body>'
-    + '<h1>In don h�ng lo?t</h1>'
-    + '<div class="meta">S? don: ' + selected.length + ' � In l�c: ' + new Date().toLocaleString('vi-VN') + '</div>'
+    + '<h1>In đơn hàng loạt</h1>'
+    + '<div class="meta">Số đơn: ' + selected.length + ' • In lúc: ' + new Date().toLocaleString('vi-VN') + '</div>'
     + '<div class="grid">' + rows + '</div>'
     + '</body></html>'
   popup.document.write(html)
@@ -2447,19 +2447,19 @@ function extractGHTKPrintableOrders(rows) {
 }
 
 function mapArrangeErrorText(code) {
-  if (code === 'ORDER_NOT_FOUND') return 'Kh�ng t�m th?y don'
-  if (code === 'ORDER_CLOSED') return '�on d� d�ng/h?y'
-  if (code === 'MISSING_GHTK_KEYS') return 'Thi?u GHTK_TOKEN ho?c GHTK_CLIENT_SOURCE'
-  if (code === 'MISSING_GHTK_PICKUP_CONFIG') return 'Thi?u c?u h�nh d?a ch? l?y h�ng GHTK'
-  if (code === 'INVALID_CUSTOMER_ADDRESS_FORMAT') return '�?a ch? kh�ch chua h?p l? v� kh�ng c� fallback'
-  if (code === 'GHTK_TRACKING_EMPTY') return 'GHTK kh�ng tr? m� v?n don'
-  return String(code || 'L?i kh�ng x�c d?nh')
+  if (code === 'ORDER_NOT_FOUND') return 'Không tìm thấy đơn'
+  if (code === 'ORDER_CLOSED') return 'Đơn đã đóng/hủy'
+  if (code === 'MISSING_GHTK_KEYS') return 'Thiếu GHTK_TOKEN hoặc GHTK_CLIENT_SOURCE'
+  if (code === 'MISSING_GHTK_PICKUP_CONFIG') return 'Thiếu cấu hình địa chỉ lấy hàng GHTK'
+  if (code === 'INVALID_CUSTOMER_ADDRESS_FORMAT') return 'Địa chỉ khách chưa hợp lệ và không có fallback'
+  if (code === 'GHTK_TRACKING_EMPTY') return 'GHTK không trả mã vận đơn'
+  return String(code || 'Lỗi không xác định')
 }
 
 function openArrangeSuccessModal(count, failedList) {
   const text = document.getElementById('arrangeSuccessText')
   const failed = Array.isArray(failedList) ? failedList : []
-  if (text) text.textContent = '�� s?p x?p v?n chuy?n th�nh c�ng ' + count + ' don h�ng.'
+  if (text) text.textContent = 'Đã sắp xếp vận chuyển thành công ' + count + ' đơn hàng.'
   const printBtn = document.getElementById('arrangeModalPrintBtn')
   if (printBtn) printBtn.classList.toggle('hidden', count <= 0)
   const failWrap = document.getElementById('arrangeFailedWrap')
@@ -2471,7 +2471,7 @@ function openArrangeSuccessModal(count, failedList) {
       failListEl.innerHTML = failed.map((f) => {
         const code = String(f.order_code || f.id || 'N/A')
         const reason = mapArrangeErrorText(f.error)
-        return '<div>� <span class="font-semibold">' + code + '</span>: ' + reason + '</div>'
+        return '<div>• <span class="font-semibold">' + code + '</span>: ' + reason + '</div>'
       }).join('')
     } else {
       failListEl.innerHTML = ''
@@ -2489,13 +2489,13 @@ function closeArrangeSuccessModal() {
 
 function printArrangedOrdersFromModal() {
   if (!arrangedOrdersForPrint.length) {
-    showAdminToast('Kh�ng c� don d? in', 'warning')
+    showAdminToast('Không có đơn để in', 'warning')
     closeArrangeSuccessModal()
     return
   }
   const ghtkOrders = extractGHTKPrintableOrders(arrangedOrdersForPrint)
   if (!ghtkOrders.length) {
-    showAdminToast('Chua c� m� v?n don GHTK d? in nh�n', 'warning')
+    showAdminToast('Chưa có mã vận đơn GHTK để in nhãn', 'warning')
     return
   }
   openGHTKLabelsPdf(ghtkOrders.map((o) => Number(o.id)))
@@ -2513,19 +2513,19 @@ async function updateOrderStatus(id, status) {
       }
     }
     await axios.patch('/api/admin/orders/'+id+'/status', { status: nextStatus })
-    showAdminToast('C?p nh?t tr?ng th�i th�nh c�ng', 'success')
+    showAdminToast('Cập nhật trạng thái thành công', 'success')
     await loadAdminOrders()
-  } catch(e) { showAdminToast('L?i c?p nh?t', 'error') }
+  } catch(e) { showAdminToast('Lỗi cập nhật', 'error') }
 }
 
 async function deleteOrder(id) {
-  if (!confirm('Xo� don h�ng n�y?')) return
+  if (!confirm('Xoá đơn hàng này?')) return
   try {
     await axios.delete('/api/admin/orders/'+id)
     selectedOrderIds.delete(Number(id))
-    showAdminToast('�� xo� don h�ng', 'success')
+    showAdminToast('Đã xoá đơn hàng', 'success')
     loadAdminOrders()
-  } catch(e) { showAdminToast('L?i xo�', 'error') }
+  } catch(e) { showAdminToast('Lỗi xoá', 'error') }
 }
 
 function showOrderDetail(id) {
@@ -2535,28 +2535,28 @@ function showOrderDetail(id) {
   <div class="space-y-3 pb-4">
     <div class="grid grid-cols-2 gap-3">
       <div class="bg-gray-50 rounded-xl p-3">
-        <p class="text-xs text-gray-500">M� don h�ng</p>
+        <p class="text-xs text-gray-500">Mã đơn hàng</p>
         <p class="font-bold text-blue-600">\${o.order_code}</p>
       </div>
       <div class="bg-gray-50 rounded-xl p-3">
-        <p class="text-xs text-gray-500">Tr?ng th�i</p>
+        <p class="text-xs text-gray-500">Trạng thái</p>
         <span class="badge badge-\${o.status}">\${statusLabel(o.status)}</span>
       </div>
     </div>
     <div class="bg-pink-50 rounded-xl p-3">
-      <p class="text-xs text-gray-500 mb-1">Kh�ch h�ng</p>
+      <p class="text-xs text-gray-500 mb-1">Khách hàng</p>
       <p class="font-semibold">\${displayCustomerName(o.customer_name)}</p>
       <p class="text-sm text-gray-600">\${o.customer_phone}</p>
       <p class="text-sm text-gray-600">\${o.customer_address}</p>
-      <p class="text-sm text-gray-600 mt-1"><span class="text-gray-500">Thanh to�n:</span> \${formatPaymentMethod(o.payment_method)}</p>
-      <p class="text-sm text-gray-600"><span class="text-gray-500">Tr?ng th�i TT:</span> <span class="\${paymentStatusClass(o.payment_status)} px-2 py-0.5 rounded-full text-xs">\${paymentStatusLabel(o.payment_status)}</span></p>
-      \${o.payment_paid_at ? \`<p class="text-xs text-green-600 mt-1">�� thanh to�n l�c: \${new Date(o.payment_paid_at).toLocaleString('vi-VN')}</p>\` : ''}
+      <p class="text-sm text-gray-600 mt-1"><span class="text-gray-500">Thanh toán:</span> \${formatPaymentMethod(o.payment_method)}</p>
+      <p class="text-sm text-gray-600"><span class="text-gray-500">Trạng thái TT:</span> <span class="\${paymentStatusClass(o.payment_status)} px-2 py-0.5 rounded-full text-xs">\${paymentStatusLabel(o.payment_status)}</span></p>
+      \${o.payment_paid_at ? \`<p class="text-xs text-green-600 mt-1">Đã thanh toán lúc: \${new Date(o.payment_paid_at).toLocaleString('vi-VN')}</p>\` : ''}
     </div>
     <div class="bg-gray-50 rounded-xl p-3">
-      <p class="text-xs text-gray-500 mb-1">S?n ph?m</p>
+      <p class="text-xs text-gray-500 mb-1">Sản phẩm</p>
       <p class="font-semibold">\${o.product_name}</p>
       <div class="flex gap-2 mt-1 flex-wrap">
-        \${o.color ? \`<span class="text-xs bg-pink-50 text-pink-600 px-2 py-0.5 rounded-full border border-pink-200">M�u: \${o.color}</span>\` : ''}
+        \${o.color ? \`<span class="text-xs bg-pink-50 text-pink-600 px-2 py-0.5 rounded-full border border-pink-200">Màu: \${o.color}</span>\` : ''}
         \${o.size ? \`<span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full border">Size: \${o.size}</span>\` : ''}
         <span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full border">SL: \${o.quantity}</span>
       </div>
@@ -2564,7 +2564,7 @@ function showOrderDetail(id) {
     \${o.voucher_code ? \`
     <div class="bg-green-50 rounded-xl p-3 flex justify-between items-center">
       <div>
-        <p class="text-xs text-gray-500">Voucher �p d?ng</p>
+        <p class="text-xs text-gray-500">Voucher áp dụng</p>
         <p class="font-mono font-bold text-green-700 text-sm">\${o.voucher_code}</p>
       </div>
       <span class="font-bold text-green-600">-\${fmtPrice(o.discount_amount)}</span>
@@ -2572,49 +2572,49 @@ function showOrderDetail(id) {
     <div class="bg-gradient-to-r from-pink-50 to-red-50 rounded-xl p-3 space-y-1">
       \${o.discount_amount > 0 ? \`
       <div class="flex justify-between text-sm">
-        <span class="text-gray-500">T?m t�nh:</span>
+        <span class="text-gray-500">Tạm tính:</span>
         <span class="text-gray-700">\${fmtPrice(o.product_price * o.quantity)}</span>
       </div>
       <div class="flex justify-between text-sm">
-        <span class="text-green-600">Gi?m gi�:</span>
+        <span class="text-green-600">Giảm giá:</span>
         <span class="text-green-600 font-semibold">-\${fmtPrice(o.discount_amount)}</span>
       </div>\` : ''}
       <div class="flex justify-between items-center">
-        <span class="font-semibold text-gray-700">C�n ph?i thu:</span>
+        <span class="font-semibold text-gray-700">Còn phải thu:</span>
         <span class="text-xl font-bold text-pink-600">\${fmtPrice(getOrderAmountDue(o))}</span>
       </div>
-      \${String(o.payment_status || '').toLowerCase() === 'paid' ? '<p class="text-xs text-green-600">�on n�y d� thanh to�n online, khi in don hi?n th? 0d.</p>' : ''}
+      \${String(o.payment_status || '').toLowerCase() === 'paid' ? '<p class="text-xs text-green-600">Đơn này đã thanh toán online, khi in đơn hiển thị 0đ.</p>' : ''}
     </div>
-    \${o.note ? \`<div class="bg-yellow-50 rounded-xl p-3"><p class="text-xs text-gray-500">Ghi ch�</p><p class="text-sm">\${o.note}</p></div>\` : ''}
-    <p class="text-xs text-gray-400 text-right">�?t l�c: \${new Date(o.created_at).toLocaleString('vi-VN')}</p>
+    \${o.note ? \`<div class="bg-yellow-50 rounded-xl p-3"><p class="text-xs text-gray-500">Ghi chú</p><p class="text-sm">\${o.note}</p></div>\` : ''}
+    <p class="text-xs text-gray-400 text-right">Đặt lúc: \${new Date(o.created_at).toLocaleString('vi-VN')}</p>
   </div>\`
   document.getElementById('orderDetailModal').classList.remove('hidden')
 }
 
-// -- EXCEL EXPORT ----------------------------------
+// ── EXCEL EXPORT ──────────────────────────────────
 function exportExcel() {
-  if (!adminOrders.length) { showAdminToast('Kh�ng c� d? li?u d? xu?t', 'error'); return }
+  if (!adminOrders.length) { showAdminToast('Không có dữ liệu để xuất', 'error'); return }
 
   const data = adminOrders.map((o, i) => ({
     'STT': i + 1,
-    'M� don h�ng': o.order_code,
-    'H? v� t�n': displayCustomerName(o.customer_name),
-    'S? di?n tho?i': o.customer_phone,
-    '�?a ch?': o.customer_address,
-    'S?n ph?m': o.product_name,
-    '�on gi�': o.product_price,
-    'M�u s?c': o.color || '',
+    'Mã đơn hàng': o.order_code,
+    'Họ và tên': displayCustomerName(o.customer_name),
+    'Số điện thoại': o.customer_phone,
+    'Địa chỉ': o.customer_address,
+    'Sản phẩm': o.product_name,
+    'Đơn giá': o.product_price,
+    'Màu sắc': o.color || '',
     'Size': o.size || '',
-    'S? lu?ng': o.quantity,
-    'Phuong th?c thanh to�n': formatPaymentMethod(o.payment_method),
-    'Tr?ng th�i thanh to�n': paymentStatusLabel(o.payment_status),
+    'Số lượng': o.quantity,
+    'Phương thức thanh toán': formatPaymentMethod(o.payment_method),
+    'Trạng thái thanh toán': paymentStatusLabel(o.payment_status),
     'Voucher': o.voucher_code || '',
-    'Gi?m gi�': o.discount_amount || 0,
-    'T?ng ti?n': getOrderAmountDue(o),
-    'Ghi ch�': o.note || '',
-    'Tr?ng th�i': statusLabel(o.status),
-    'Thanh to�n l�c': o.payment_paid_at ? new Date(o.payment_paid_at).toLocaleString('vi-VN') : '',
-    'Ng�y d?t': new Date(o.created_at).toLocaleString('vi-VN')
+    'Giảm giá': o.discount_amount || 0,
+    'Tổng tiền': getOrderAmountDue(o),
+    'Ghi chú': o.note || '',
+    'Trạng thái': statusLabel(o.status),
+    'Thanh toán lúc': o.payment_paid_at ? new Date(o.payment_paid_at).toLocaleString('vi-VN') : '',
+    'Ngày đặt': new Date(o.created_at).toLocaleString('vi-VN')
   }))
 
   const ws = XLSX.utils.json_to_sheet(data)
@@ -2623,12 +2623,12 @@ function exportExcel() {
     {wch:12},{wch:12},{wch:8},{wch:8},{wch:14},{wch:12},{wch:12},{wch:20},{wch:12},{wch:18}
   ]
   const wb = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(wb, ws, '�on h�ng')
+  XLSX.utils.book_append_sheet(wb, ws, 'Đơn hàng')
   XLSX.writeFile(wb, 'DonHang_QHClothes_' + new Date().toISOString().split('T')[0] + '.xlsx')
-  showAdminToast('Xu?t Excel th�nh c�ng!', 'success')
+  showAdminToast('Xuất Excel thành công!', 'success')
 }
 
-// -- VOUCHERS --------------------------------------
+// ── VOUCHERS ──────────────────────────────────────
 async function loadVouchers() {
   const list = document.getElementById('voucherList')
   list.innerHTML = '<div class="text-center py-8 text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></div>'
@@ -2636,7 +2636,7 @@ async function loadVouchers() {
     const res = await axios.get('/api/admin/vouchers')
     const vouchers = res.data.data || []
     if (!vouchers.length) {
-      list.innerHTML = '<div class="text-center py-8 text-gray-400"><i class="fas fa-ticket-alt text-4xl mb-2"></i><p>Chua c� voucher n�o</p></div>'
+      list.innerHTML = '<div class="text-center py-8 text-gray-400"><i class="fas fa-ticket-alt text-4xl mb-2"></i><p>Chưa có voucher nào</p></div>'
       return
     }
     list.innerHTML = vouchers.map(v => {
@@ -2652,14 +2652,14 @@ async function loadVouchers() {
           <div class="flex items-center gap-2 flex-wrap">
             <span class="font-mono font-bold text-lg tracking-widest \${isValid ? 'text-green-700' : 'text-gray-500'}">\${v.code}</span>
             <span class="text-xs px-2 py-0.5 rounded-full font-medium \${isValid ? 'bg-green-100 text-green-700' : expired ? 'bg-gray-100 text-gray-500' : notStarted ? 'bg-blue-100 text-blue-600' : 'bg-red-100 text-red-600'}">
-              \${isValid ? '? Hi?u l?c' : expired ? '? H?t h?n' : notStarted ? '?? Chua b?t d?u' : '?? T?t'}
+              \${isValid ? '✅ Hiệu lực' : expired ? '⏰ Hết hạn' : notStarted ? '🕐 Chưa bắt đầu' : '🚫 Tắt'}
             </span>
           </div>
           <div class="flex gap-1 shrink-0">
-            <button onclick="toggleVoucher(\${v.id})" class="p-1.5 rounded-lg text-xs \${v.is_active ? 'bg-amber-50 text-amber-600 hover:bg-amber-100' : 'bg-green-50 text-green-600 hover:bg-green-100'} transition" title="\${v.is_active ? 'T?t' : 'B?t'}">
+            <button onclick="toggleVoucher(\${v.id})" class="p-1.5 rounded-lg text-xs \${v.is_active ? 'bg-amber-50 text-amber-600 hover:bg-amber-100' : 'bg-green-50 text-green-600 hover:bg-green-100'} transition" title="\${v.is_active ? 'Tắt' : 'Bật'}">
               <i class="fas fa-\${v.is_active ? 'toggle-off' : 'toggle-on'}"></i>
             </button>
-            <button onclick="deleteVoucher(\${v.id})" class="p-1.5 bg-red-50 text-red-500 hover:bg-red-100 rounded-lg text-xs transition" title="Xo�">
+            <button onclick="deleteVoucher(\${v.id})" class="p-1.5 bg-red-50 text-red-500 hover:bg-red-100 rounded-lg text-xs transition" title="Xoá">
               <i class="fas fa-trash"></i>
             </button>
           </div>
@@ -2669,16 +2669,16 @@ async function loadVouchers() {
           <span class="text-gray-400">|</span>
           <span class="text-gray-500 text-xs">
             <i class="fas fa-calendar text-gray-400 mr-1"></i>
-            \${new Date(v.valid_from).toLocaleDateString('vi-VN')} ? \${new Date(v.valid_to).toLocaleDateString('vi-VN')}
+            \${new Date(v.valid_from).toLocaleDateString('vi-VN')} → \${new Date(v.valid_to).toLocaleDateString('vi-VN')}
           </span>
         </div>
         <div class="flex gap-3 mt-1.5 text-xs text-gray-500">
-          <span><i class="fas fa-users mr-1 text-gray-400"></i>�� d�ng: <strong>\${v.used_count}</strong>\${v.usage_limit > 0 ? '/'+v.usage_limit : ' (kh�ng gi?i h?n)'}</span>
+          <span><i class="fas fa-users mr-1 text-gray-400"></i>Đã dùng: <strong>\${v.used_count}</strong>\${v.usage_limit > 0 ? '/'+v.usage_limit : ' (không giới hạn)'}</span>
         </div>
       </div>\`
     }).join('')
   } catch(e) {
-    list.innerHTML = '<div class="text-center text-red-400 py-8">L?i t?i d? li?u</div>'
+    list.innerHTML = '<div class="text-center text-red-400 py-8">Lỗi tải dữ liệu</div>'
   }
 }
 
@@ -2686,7 +2686,7 @@ async function createVoucher(e) {
   e.preventDefault()
   const btn = document.getElementById('createVoucherBtn')
   btn.disabled = true
-  btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>�ang t?o...'
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Đang tạo...'
   try {
     const res = await axios.post('/api/admin/vouchers', {
       discount_amount: document.getElementById('vDiscount').value,
@@ -2698,14 +2698,14 @@ async function createVoucher(e) {
     const code = res.data.code
     document.getElementById('generatedCode').classList.remove('hidden')
     document.getElementById('generatedCodeText').textContent = code
-    showAdminToast('T?o voucher ' + code + ' th�nh c�ng!', 'success')
+    showAdminToast('Tạo voucher ' + code + ' thành công!', 'success')
     e.target.reset()
     loadVouchers()
   } catch(err) {
-    showAdminToast('L?i t?o voucher: ' + (err.response?.data?.error || 'Unknown'), 'error')
+    showAdminToast('Lỗi tạo voucher: ' + (err.response?.data?.error || 'Unknown'), 'error')
   } finally {
     btn.disabled = false
-    btn.innerHTML = '<i class="fas fa-magic mr-2"></i>T?o & Sinh m� Voucher'
+    btn.innerHTML = '<i class="fas fa-magic mr-2"></i>Tạo & Sinh mã Voucher'
   }
 }
 
@@ -2713,25 +2713,25 @@ async function toggleVoucher(id) {
   try {
     await axios.patch('/api/admin/vouchers/' + id + '/toggle')
     loadVouchers()
-    showAdminToast('�� c?p nh?t tr?ng th�i voucher', 'success')
-  } catch(e) { showAdminToast('L?i', 'error') }
+    showAdminToast('Đã cập nhật trạng thái voucher', 'success')
+  } catch(e) { showAdminToast('Lỗi', 'error') }
 }
 
 async function deleteVoucher(id) {
-  if (!confirm('Xo� voucher n�y?')) return
+  if (!confirm('Xoá voucher này?')) return
   try {
     await axios.delete('/api/admin/vouchers/' + id)
     loadVouchers()
-    showAdminToast('�� xo� voucher', 'success')
-  } catch(e) { showAdminToast('L?i xo�', 'error') }
+    showAdminToast('Đã xoá voucher', 'success')
+  } catch(e) { showAdminToast('Lỗi xoá', 'error') }
 }
 
 function copyCode() {
   const code = document.getElementById('generatedCodeText').textContent
-  navigator.clipboard.writeText(code).then(() => showAdminToast('�� sao ch�p: ' + code, 'success'))
+  navigator.clipboard.writeText(code).then(() => showAdminToast('Đã sao chép: ' + code, 'success'))
 }
 
-// -- UTILS -----------------------------------------
+// ── UTILS ─────────────────────────────────────────
 function fmtPrice(p) { return new Intl.NumberFormat('vi-VN',{style:'currency',currency:'VND'}).format(p||0) }
 function getOrderAmountDue(order) {
   if (order && order.amount_due !== undefined && order.amount_due !== null) {
@@ -2742,7 +2742,7 @@ function getOrderAmountDue(order) {
     : Number(order?.total_price || 0)
 }
 function paymentStatusLabel(v) {
-  return String(v || '').toLowerCase() === 'paid' ? '�� thanh to�n' : 'Chua thanh to�n'
+  return String(v || '').toLowerCase() === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán'
 }
 function paymentStatusClass(v) {
   return String(v || '').toLowerCase() === 'paid'
@@ -2751,17 +2751,17 @@ function paymentStatusClass(v) {
 }
 function formatPaymentMethod(v) {
   const key = String(v || '').toUpperCase()
-  if (key === 'BANK_TRANSFER') return 'Chuy?n kho?n ng�n h�ng'
-  if (key === 'MOMO') return 'V� di?n t? MoMo'
+  if (key === 'BANK_TRANSFER') return 'Chuyển khoản ngân hàng'
+  if (key === 'MOMO') return 'Ví điện tử MoMo'
   if (key === 'ZALOPAY') return 'ZaloPay'
-  return 'COD - Thanh to�n khi giao'
+  return 'COD - Thanh toán khi giao'
 }
 function paymentMethodTagHTML(method, paymentStatus) {
   const key = String(method || '').toUpperCase()
   const paid = String(paymentStatus || '').toLowerCase() === 'paid'
   const paidMark = paid ? '<i class="fas fa-check-circle text-green-600"></i>' : ''
   if (key === 'BANK_TRANSFER') {
-    return '<span class="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200"><i class="fas fa-university"></i>CK ng�n h�ng ' + paidMark + '</span>'
+    return '<span class="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200"><i class="fas fa-university"></i>CK ngân hàng ' + paidMark + '</span>'
   }
   if (key === 'MOMO') {
     return '<span class="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-pink-50 text-pink-700 border border-pink-200"><i class="fas fa-wallet"></i>MoMo ' + paidMark + '</span>'
@@ -2774,9 +2774,9 @@ function paymentMethodTagHTML(method, paymentStatus) {
 function displayCustomerName(name) {
   let n = String(name || '').trim()
   while (n.indexOf('  ') >= 0) n = n.replace('  ', ' ')
-  if (/^Tr?n\s+C�ng\s+Hi?u[a-z]$/i.test(n)) return 'Tr?n C�ng Hi?u'
+  if (/^Trần\s+Công\s+Hiếu[a-z]$/i.test(n)) return 'Trần Công Hiếu'
   if (n.toLowerCase().endsWith("'s")) n = n.slice(0, -2)
-  // Fix common input artifact: Vietnamese char + stray latin suffix (e.g. "Hi?us")
+  // Fix common input artifact: Vietnamese char + stray latin suffix (e.g. "Hiếus")
   if (n.length >= 2) {
     const last = n.charAt(n.length - 1)
     const prev = n.charAt(n.length - 2)
@@ -2818,28 +2818,28 @@ async function copyTextValue(value, successMessage) {
       document.execCommand('copy')
       document.body.removeChild(ta)
     }
-    showAdminToast(successMessage || '�� copy', 'success')
+    showAdminToast(successMessage || 'Đã copy', 'success')
     return true
   } catch (_) {
-    showAdminToast('Kh�ng th? copy', 'error')
+    showAdminToast('Không thể copy', 'error')
     return false
   }
 }
 
 async function copyTrackingCode(fullCode) {
-  await copyTextValue(fullCode, '�� copy m� v?n don d?y d?')
+  await copyTextValue(fullCode, 'Đã copy mã vận đơn đầy đủ')
 }
 
 async function copyPhoneNumber(phone) {
-  await copyTextValue(phone, '�� copy s? di?n tho?i')
+  await copyTextValue(phone, 'Đã copy số điện thoại')
 }
 
 async function copyOrderCode(orderCode) {
-  await copyTextValue(orderCode, '�� copy m� don h�ng')
+  await copyTextValue(orderCode, 'Đã copy mã đơn hàng')
 }
 function safeJson(v) { try { return JSON.parse(v||'[]') } catch { return [] } }
-function catLabel(c) { return {unisex:'Unisex',male:'Nam',female:'N?'}[c]||c }
-function statusLabel(s) { return {pending:'Ch? x? l�',confirmed:'X�c nh?n',shipping:'�ang giao',done:'Ho�n th�nh',cancelled:'�� h?y'}[s]||s }
+function catLabel(c) { return {unisex:'Unisex',male:'Nam',female:'Nữ'}[c]||c }
+function statusLabel(s) { return {pending:'Chờ xử lý',confirmed:'Xác nhận',shipping:'Đang giao',done:'Hoàn thành',cancelled:'Đã hủy'}[s]||s }
 
 function showAdminToast(msg, type='success') {
   const c = document.getElementById('adminToast')
@@ -2850,7 +2850,7 @@ function showAdminToast(msg, type='success') {
   setTimeout(() => { t.style.opacity='0'; t.style.transform='translateX(100%)'; t.style.transition='all 0.3s'; setTimeout(()=>t.remove(),300) }, 3000)
 }
 
-// -- ESC key handler - close any open modal ----------
+// ── ESC key handler - close any open modal ──────────
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') {
     const modals = ['productModal', 'orderDetailModal', 'arrangeSuccessModal']
@@ -2869,7 +2869,7 @@ document.addEventListener('keydown', function(e) {
   }
 })
 
-// -- Safety: ensure all modals start hidden on page load --
+// ── Safety: ensure all modals start hidden on page load ──
 document.addEventListener('DOMContentLoaded', function() {
   sanitizeAdminOverlayState()
   window.addEventListener('resize', syncSidebarOverlay)
@@ -2895,7 +2895,7 @@ async function initAdminAuth() {
     adminProfile = res.data?.data || null
     applyAdminAvatarUI()
   } catch (e) {
-    // 401 or error ? redirect to login
+    // 401 or error → redirect to login
     window.location.href = '/admin/login'
     return
   }
@@ -2908,3 +2908,4 @@ initAdminAuth()
 </html>`
 }
 
+export default app
