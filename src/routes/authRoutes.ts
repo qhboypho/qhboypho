@@ -1,5 +1,6 @@
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie'
 import type { Hono } from 'hono'
+import type { AppBindings } from '../types/app'
 
 type AuthRouteDeps = {
   initDB: (db: D1Database) => Promise<void>
@@ -9,7 +10,7 @@ type AuthRouteDeps = {
   upsertAppSettings: (db: D1Database, entries: Array<{ key: string, value: string }>) => Promise<void>
 }
 
-export function registerAuthRoutes(app: Hono<any>, deps: AuthRouteDeps) {
+export function registerAuthRoutes(app: Hono<{ Bindings: AppBindings }>, deps: AuthRouteDeps) {
   app.get('/api/admin/profile', async (c) => {
     try {
       await deps.initDB(c.env.DB)

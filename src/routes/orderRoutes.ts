@@ -1,5 +1,6 @@
 import { getCookie } from 'hono/cookie'
 import type { Hono } from 'hono'
+import type { AppBindings } from '../types/app'
 
 type OrderRouteDeps = {
   initDB: (db: D1Database) => Promise<void>
@@ -25,7 +26,7 @@ async function generateUniqueOrderCode(db: D1Database) {
   return 'QH' + fallback
 }
 
-export function registerOrderRoutes(app: Hono<any>, deps: OrderRouteDeps) {
+export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: OrderRouteDeps) {
   app.get('/api/user/orders', async (c) => {
     const userId = getCookie(c, 'user_id')
     if (!userId) return c.json({ success: false, error: 'Unauthorized' }, 401)

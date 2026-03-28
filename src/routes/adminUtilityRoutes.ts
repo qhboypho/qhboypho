@@ -1,5 +1,6 @@
 import { getCookie } from 'hono/cookie'
 import type { Hono } from 'hono'
+import type { AppBindings } from '../types/app'
 
 type AdminUtilityRouteDeps = {
   initDB: (db: D1Database) => Promise<void>
@@ -8,7 +9,7 @@ type AdminUtilityRouteDeps = {
   ghtkFetchPickupAddresses: (env: any) => Promise<any>
 }
 
-export function registerAdminUtilityRoutes(app: Hono<any>, deps: AdminUtilityRouteDeps) {
+export function registerAdminUtilityRoutes(app: Hono<{ Bindings: AppBindings }>, deps: AdminUtilityRouteDeps) {
   app.get('/api/hero_banners', async (c) => {
     await deps.initDB(c.env.DB)
     const result = await c.env.DB.prepare("SELECT * FROM hero_banners WHERE is_active=1 ORDER BY display_order ASC").all()

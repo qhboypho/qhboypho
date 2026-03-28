@@ -1,4 +1,5 @@
 import type { Hono } from 'hono'
+import type { AppBindings } from '../types/app'
 
 type PaymentRouteDeps = {
   initDB: (db: D1Database) => Promise<void>
@@ -17,7 +18,7 @@ type PaymentRouteDeps = {
   payOSGetPaymentInfo: (env: any, paymentLinkIdOrOrderCode: string | number) => Promise<any>
 }
 
-export function registerPaymentRoutes(app: Hono<any>, deps: PaymentRouteDeps) {
+export function registerPaymentRoutes(app: Hono<{ Bindings: AppBindings }>, deps: PaymentRouteDeps) {
   app.post('/api/webhooks/casso', async (c) => {
     try {
       const body = await c.req.json()

@@ -1,0 +1,29 @@
+export type AppBindings = {
+  DB: D1Database
+  GOOGLE_CLIENT_ID?: string
+  GOOGLE_CLIENT_SECRET?: string
+  CASSO_SECURE_TOKEN?: string
+  PAYOS_CLIENT_ID?: string
+  PAYOS_API_KEY?: string
+  PAYOS_CHECKSUM_KEY?: string
+  ZALOPAY_APP_ID?: string
+  ZALOPAY_KEY1?: string
+  ZALOPAY_KEY2?: string
+  ZALOPAY_CREATE_ENDPOINT?: string
+  ZALOPAY_QUERY_ENDPOINT?: string
+  ZALOPAY_CALLBACK_URL?: string
+  GHTK_TOKEN?: string
+  GHTK_CLIENT_SOURCE?: string
+  GHTK_PICK_NAME?: string
+  GHTK_PICK_ADDRESS?: string
+  GHTK_PICK_PROVINCE?: string
+  GHTK_PICK_DISTRICT?: string
+  GHTK_PICK_WARD?: string
+  GHTK_PICK_TEL?: string
+  GHTK_FALLBACK_PROVINCE?: string
+  GHTK_FALLBACK_DISTRICT?: string
+  GHTK_FALLBACK_WARD?: string
+  GHTK_DEFAULT_WEIGHT_KG?: string
+  GHTK_LABEL_ORIGINAL?: string
+  GHTK_LABEL_PAGE_SIZE?: string
+}

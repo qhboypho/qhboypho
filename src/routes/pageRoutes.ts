@@ -1,10 +1,11 @@
 import { getCookie } from 'hono/cookie'
 import type { Hono } from 'hono'
+import type { AppBindings } from '../types/app'
 import { storefrontHTML } from '../pages/storefrontPage'
 import { adminHTML } from '../pages/adminPage'
 import { adminLoginHTML } from '../pages/adminLoginPage'
 
-export function registerPageRoutes(app: Hono<any>) {
+export function registerPageRoutes(app: Hono<{ Bindings: AppBindings }>) {
   app.get('/admin', (c) => c.redirect('/admin/dashboard'))
 
   app.get('/admin/login', (c) => c.html(adminLoginHTML()))

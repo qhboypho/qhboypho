@@ -1,4 +1,5 @@
 import type { Hono } from 'hono'
+import type { AppBindings } from '../types/app'
 
 type ProductRouteDeps = {
   initDB: (db: D1Database) => Promise<void>
@@ -53,7 +54,7 @@ function compactColorNamesJson(raw: any): string {
   return JSON.stringify(names)
 }
 
-export function registerProductRoutes(app: Hono<any>, deps: ProductRouteDeps) {
+export function registerProductRoutes(app: Hono<{ Bindings: AppBindings }>, deps: ProductRouteDeps) {
   app.get('/api/products', async (c) => {
     try {
       await deps.initDB(c.env.DB)

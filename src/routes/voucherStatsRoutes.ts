@@ -1,11 +1,12 @@
 import type { Hono } from 'hono'
+import type { AppBindings } from '../types/app'
 
 type VoucherStatsRouteDeps = {
   initDB: (db: D1Database) => Promise<void>
   buildInternalTestOrderWhereSql: (alias?: string) => string
 }
 
-export function registerVoucherStatsRoutes(app: Hono<any>, deps: VoucherStatsRouteDeps) {
+export function registerVoucherStatsRoutes(app: Hono<{ Bindings: AppBindings }>, deps: VoucherStatsRouteDeps) {
   app.post('/api/vouchers/validate', async (c) => {
     try {
       await deps.initDB(c.env.DB)
