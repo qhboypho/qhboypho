@@ -102,6 +102,17 @@
   @keyframes slideOutRight { from { transform:translateX(0); opacity:1; } to { transform:translateX(100%); opacity:0; } }
   .order-history-item { transition: all 0.2s; }
   .order-history-item:hover { background: #fdf2f8; }
+  .order-history-title {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.35;
+    max-height: calc(1.35em * 2);
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
   @keyframes spinSlow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
   @keyframes glowSpin { 0% { filter: hue-rotate(0deg) drop-shadow(0 0 6px rgba(99,102,241,0.7)); } 50% { filter: hue-rotate(60deg) drop-shadow(0 0 10px rgba(139,92,246,0.9)); } 100% { filter: hue-rotate(0deg) drop-shadow(0 0 6px rgba(99,102,241,0.7)); } }
   .logo-spinner { position:relative; display:inline-flex; align-items:center; justify-content:center; }
@@ -2943,7 +2954,7 @@ async function showUserOrders() {
           + '<div class="min-w-0 flex-1">'
           + '<div class="flex justify-between items-start gap-2 mb-1">' + codeHtml
           + '<span class="text-xs px-2 py-0.5 rounded-full font-medium ' + paymentBadgeClass + ' whitespace-nowrap">' + paymentBadgeText + '</span></div>'
-          + '<p class="text-sm font-semibold text-gray-800 leading-snug">' + productTitle + '</p>'
+          + '<p class="text-sm font-semibold text-gray-800 leading-snug order-history-title">' + productTitle + '</p>'
           + '<p class="text-xs text-gray-500 mt-1">Màu: ' + escapeHtml(colorText) + ' | Size: ' + escapeHtml(sizeText) + '</p>'
           + '<div class="flex justify-between items-center mt-2 gap-2"><span class="text-xs text-gray-400">' + new Date(o.created_at).toLocaleDateString('vi-VN') + '</span>'
           + '<span class="font-bold text-pink-600 text-sm whitespace-nowrap">' + fmtPrice(getOrderAmountDue(o)) + '</span></div>'
