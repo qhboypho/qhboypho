@@ -31,11 +31,13 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
     const userId = getCookie(c, 'user_id')
     if (!userId) return c.json({ success: false, error: 'Unauthorized' }, 401)
     const orders = await c.env.DB.prepare(`
-      SELECT *,
-             CASE WHEN LOWER(COALESCE(payment_status, ''))='paid' THEN 0 ELSE total_price END AS amount_due
-      FROM orders
-      WHERE user_id=?
-      ORDER BY created_at DESC
+      SELECT o.*,
+             p.thumbnail AS product_thumbnail,
+             CASE WHEN LOWER(COALESCE(o.payment_status, ''))='paid' THEN 0 ELSE o.total_price END AS amount_due
+      FROM orders o
+      LEFT JOIN products p ON p.id = o.product_id
+      WHERE o.user_id=?
+      ORDER BY o.created_at DESC
     `).bind(userId).all()
     return c.json({ success: true, data: orders.results || [] })
   })

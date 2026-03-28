@@ -4,18 +4,18 @@ export function storefrontHTML(): string {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>QH Clothes – Phong Cách Thời Trang Hot Trend</title>
-<meta name="description" content="Thời trang hot trend cho giới trẻ, cập nhập các mẫu mới và thịnh hành nhất. Mua sắm phong cách, dẫn đầu xu hướng, giá cực chất tại QH Clothes.">
-<meta name="keywords" content="QH Boypho, QH Clothes, boypho, girlpho, Hiếu Quỳnh, thời trang hot trend, thời trang giới trẻ, quần áo nam nữ, local brand, áo thun unisex, áo khoác nam nữ, mẫu mới thịnh hành">
+<title>QH Clothes Ã¢â‚¬â€œ Phong CÃƒÂ¡ch ThÃ¡Â»Âi Trang Hot Trend</title>
+<meta name="description" content="ThÃ¡Â»Âi trang hot trend cho giÃ¡Â»â€ºi trÃ¡ÂºÂ», cÃ¡ÂºÂ­p nhÃ¡ÂºÂ­p cÃƒÂ¡c mÃ¡ÂºÂ«u mÃ¡Â»â€ºi vÃƒÂ  thÃ¡Â»â€¹nh hÃƒÂ nh nhÃ¡ÂºÂ¥t. Mua sÃ¡ÂºÂ¯m phong cÃƒÂ¡ch, dÃ¡ÂºÂ«n Ã„â€˜Ã¡ÂºÂ§u xu hÃ†Â°Ã¡Â»â€ºng, giÃƒÂ¡ cÃ¡Â»Â±c chÃ¡ÂºÂ¥t tÃ¡ÂºÂ¡i QH Clothes.">
+<meta name="keywords" content="QH Boypho, QH Clothes, boypho, girlpho, HiÃ¡ÂºÂ¿u QuÃ¡Â»Â³nh, thÃ¡Â»Âi trang hot trend, thÃ¡Â»Âi trang giÃ¡Â»â€ºi trÃ¡ÂºÂ», quÃ¡ÂºÂ§n ÃƒÂ¡o nam nÃ¡Â»Â¯, local brand, ÃƒÂ¡o thun unisex, ÃƒÂ¡o khoÃƒÂ¡c nam nÃ¡Â»Â¯, mÃ¡ÂºÂ«u mÃ¡Â»â€ºi thÃ¡Â»â€¹nh hÃƒÂ nh">
 <meta name="author" content="QH Clothes">
 <meta name="robots" content="index, follow">
-<meta property="og:title" content="QH Clothes – Phong Cách Thời Trang Hot Trend">
-<meta property="og:description" content="Thời trang hot trend cho giới trẻ, cập nhập các mẫu mới và thịnh hành nhất.">
+<meta property="og:title" content="QH Clothes Ã¢â‚¬â€œ Phong CÃƒÂ¡ch ThÃ¡Â»Âi Trang Hot Trend">
+<meta property="og:description" content="ThÃ¡Â»Âi trang hot trend cho giÃ¡Â»â€ºi trÃ¡ÂºÂ», cÃ¡ÂºÂ­p nhÃ¡ÂºÂ­p cÃƒÂ¡c mÃ¡ÂºÂ«u mÃ¡Â»â€ºi vÃƒÂ  thÃ¡Â»â€¹nh hÃƒÂ nh nhÃ¡ÂºÂ¥t.">
 <meta property="og:image" content="/qh-logo.png">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="QH Clothes – Phong Cách Thời Trang Hot Trend">
-<meta name="twitter:description" content="Thời trang hot trend cho giới trẻ, cập nhập các mẫu mới và thịnh hành nhất.">
+<meta name="twitter:title" content="QH Clothes Ã¢â‚¬â€œ Phong CÃƒÂ¡ch ThÃ¡Â»Âi Trang Hot Trend">
+<meta name="twitter:description" content="ThÃ¡Â»Âi trang hot trend cho giÃ¡Â»â€ºi trÃ¡ÂºÂ», cÃ¡ÂºÂ­p nhÃ¡ÂºÂ­p cÃƒÂ¡c mÃ¡ÂºÂ«u mÃ¡Â»â€ºi vÃƒÂ  thÃ¡Â»â€¹nh hÃƒÂ nh nhÃ¡ÂºÂ¥t.">
 <meta name="twitter:image" content="/qh-logo.png">
 <link rel="icon" type="image/png" href="/qh-logo.png">
 <link rel="apple-touch-icon" href="/qh-logo.png">
@@ -109,7 +109,7 @@ export function storefrontHTML(): string {
   .logo-spinner::after { content:''; position:absolute; inset:-3px; border-radius:50%; background:conic-gradient(from 0deg, #6366f1, #8b5cf6, #a855f7, #6366f1); animation: spinSlow 8s linear infinite; filter:blur(8px); opacity:0.6; z-index:0; }
   .logo-spinner img { position:relative; z-index:1; border-radius:50%; width:36px; height:36px; object-fit:cover; animation: spinSlow 12s linear infinite; background:white; }
 
-  /* ── HERO BANNERS EXPAND ────────────────────────── */
+  /* Ã¢â€â‚¬Ã¢â€â‚¬ HERO BANNERS EXPAND Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ */
   #heroBannersWrapper {
     position: relative;
     cursor: pointer;
@@ -253,9 +253,9 @@ export function storefrontHTML(): string {
       <span class="inline-flex items-center justify-center"><img src="/qh-logo.png" alt="QH" class="rounded-full w-9 h-9 object-cover bg-white"></span><span class="text-2xl font-display text-white font-bold tracking-wide ml-1.5"><span class="text-pink-400">Clothes</span></span>
     </a>
     <div class="hidden md:flex items-center gap-6 text-sm text-gray-300">
-      <a href="#products" class="hover:text-pink-400 transition">Sản phẩm</a>
-      <a href="#about" class="hover:text-pink-400 transition">Về chúng tôi</a>
-      <a href="#contact" class="hover:text-pink-400 transition">Liên hệ</a>
+      <a href="#products" class="hover:text-pink-400 transition">SÃ¡ÂºÂ£n phÃ¡ÂºÂ©m</a>
+      <a href="#about" class="hover:text-pink-400 transition">VÃ¡Â»Â chÃƒÂºng tÃƒÂ´i</a>
+      <a href="#contact" class="hover:text-pink-400 transition">LiÃƒÂªn hÃ¡Â»â€¡</a>
     </div>
     <div class="flex items-center gap-3">
       <button onclick="openCart()" id="cartNavBtn" class="relative text-white hover:text-pink-400 transition p-2">
@@ -265,7 +265,7 @@ export function storefrontHTML(): string {
       <!-- Wallet / Top-up -->
       <button onclick="openTopupModal()" id="walletNavBtn" class="hidden items-center gap-1.5 bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-xl transition text-xs font-medium">
         <i class="fas fa-wallet text-pink-400"></i>
-        <span id="walletBalanceNav">0đ</span>
+        <span id="walletBalanceNav">0Ã„â€˜</span>
       </button>
       <!-- User Avatar / Login -->
       <button onclick="toggleUserMenu()" id="userAvatarBtn" class="relative text-white hover:text-pink-400 transition p-1">
@@ -284,9 +284,9 @@ export function storefrontHTML(): string {
   </div>
   <!-- Mobile menu -->
   <div id="mobileMenu" class="hidden md:hidden border-t border-white/10 py-4 px-4 flex flex-col gap-3">
-    <a href="#products" class="text-gray-300 hover:text-pink-400" onclick="toggleMobileMenu()">Sản phẩm</a>
-    <a href="#about" class="text-gray-300 hover:text-pink-400" onclick="toggleMobileMenu()">Về chúng tôi</a>
-    <a href="#contact" class="text-gray-300 hover:text-pink-400" onclick="toggleMobileMenu()">Liên hệ</a>
+    <a href="#products" class="text-gray-300 hover:text-pink-400" onclick="toggleMobileMenu()">SÃ¡ÂºÂ£n phÃ¡ÂºÂ©m</a>
+    <a href="#about" class="text-gray-300 hover:text-pink-400" onclick="toggleMobileMenu()">VÃ¡Â»Â chÃƒÂºng tÃƒÂ´i</a>
+    <a href="#contact" class="text-gray-300 hover:text-pink-400" onclick="toggleMobileMenu()">LiÃƒÂªn hÃ¡Â»â€¡</a>
   </div>
 </nav>
 
@@ -294,28 +294,28 @@ export function storefrontHTML(): string {
 <section class="gradient-hero min-h-screen flex items-center pt-16" id="hero">
   <div class="max-w-7xl mx-auto px-4 py-20 grid md:grid-cols-2 gap-12 items-center">
     <div>
-      <p class="text-pink-400 font-medium tracking-widest uppercase text-sm mb-4">Bộ sưu tập mới 2026</p>
+      <p class="text-pink-400 font-medium tracking-widest uppercase text-sm mb-4">BÃ¡Â»â„¢ sÃ†Â°u tÃ¡ÂºÂ­p mÃ¡Â»â€ºi 2026</p>
       <h1 class="font-display text-5xl md:text-6xl text-white font-bold leading-tight mb-6">
-        Phong Cách<br><span style="background:linear-gradient(135deg,#e84393,#f39c12);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent">Không Giới Hạn</span>
+        Phong CÃƒÂ¡ch<br><span style="background:linear-gradient(135deg,#e84393,#f39c12);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent">KhÃƒÂ´ng GiÃ¡Â»â€ºi HÃ¡ÂºÂ¡n</span>
       </h1>
-      <p class="text-gray-300 text-lg mb-8 leading-relaxed">Khám phá bộ sưu tập thời trang cao cấp dành cho cả nam lẫn nữ. Chất lượng vải premium, thiết kế tinh tế – thể hiện cá tính của bạn.</p>
+      <p class="text-gray-300 text-lg mb-8 leading-relaxed">KhÃƒÂ¡m phÃƒÂ¡ bÃ¡Â»â„¢ sÃ†Â°u tÃ¡ÂºÂ­p thÃ¡Â»Âi trang cao cÃ¡ÂºÂ¥p dÃƒÂ nh cho cÃ¡ÂºÂ£ nam lÃ¡ÂºÂ«n nÃ¡Â»Â¯. ChÃ¡ÂºÂ¥t lÃ†Â°Ã¡Â»Â£ng vÃ¡ÂºÂ£i premium, thiÃ¡ÂºÂ¿t kÃ¡ÂºÂ¿ tinh tÃ¡ÂºÂ¿ Ã¢â‚¬â€œ thÃ¡Â»Æ’ hiÃ¡Â»â€¡n cÃƒÂ¡ tÃƒÂ­nh cÃ¡Â»Â§a bÃ¡ÂºÂ¡n.</p>
       <div class="flex gap-4 flex-wrap">
         <a href="#products" class="btn-primary text-white px-8 py-3 rounded-full font-semibold">
-          <i class="fas fa-shopping-bag mr-2"></i>Mua sắm ngay
+          <i class="fas fa-shopping-bag mr-2"></i>Mua sÃ¡ÂºÂ¯m ngay
         </a>
         <a href="#about" class="border border-white/30 text-white px-8 py-3 rounded-full font-semibold hover:bg-white/10 transition">
-          Khám phá thêm
+          KhÃƒÂ¡m phÃƒÂ¡ thÃƒÂªm
         </a>
       </div>
       <div class="mt-12 grid grid-cols-3 gap-6">
-        <div class="text-center"><p class="text-3xl font-bold text-white">500+</p><p class="text-gray-400 text-sm">Sản phẩm</p></div>
-        <div class="text-center"><p class="text-3xl font-bold text-white">10K+</p><p class="text-gray-400 text-sm">Khách hàng</p></div>
-        <div class="text-center"><p class="text-3xl font-bold text-white">4.9★</p><p class="text-gray-400 text-sm">Đánh giá</p></div>
+        <div class="text-center"><p class="text-3xl font-bold text-white">500+</p><p class="text-gray-400 text-sm">SÃ¡ÂºÂ£n phÃ¡ÂºÂ©m</p></div>
+        <div class="text-center"><p class="text-3xl font-bold text-white">10K+</p><p class="text-gray-400 text-sm">KhÃƒÂ¡ch hÃƒÂ ng</p></div>
+        <div class="text-center"><p class="text-3xl font-bold text-white">4.9Ã¢Ëœâ€¦</p><p class="text-gray-400 text-sm">Ã„ÂÃƒÂ¡nh giÃƒÂ¡</p></div>
       </div>
     </div>
     <div class="flex justify-center" id="heroBannersWrapper">
       <!-- Collapsed / stacked state -->
-      <div id="heroBannersCollapsed" title="Click để xem thêm">
+      <div id="heroBannersCollapsed" title="Click Ã„â€˜Ã¡Â»Æ’ xem thÃƒÂªm">
         <!-- will be rendered by JS -->
         <div class="relative w-80 h-96">
           <div class="absolute inset-0 bg-gradient-to-br from-pink-500/20 to-purple-600/20 rounded-3xl rotate-6"></div>
@@ -328,8 +328,8 @@ export function storefrontHTML(): string {
 
     <!-- Expanded fullscreen overlay -->
     <div id="heroBannersExpanded" onclick="handleBannerOverlayClick(event)">
-      <p id="heroBannersExpandedTitle">🔥 Đang thịnh hành</p>
-      <p id="heroBannersExpandedSubtitle" class="text-white/70 text-xs md:text-sm text-center mb-4">Đây là những sản phẩm hot nhất và đang được đặt mua nhiều nhất ở thời điểm hiện tại.</p>
+      <p id="heroBannersExpandedTitle">Ã°Å¸â€Â¥ Ã„Âang thÃ¡Â»â€¹nh hÃƒÂ nh</p>
+      <p id="heroBannersExpandedSubtitle" class="text-white/70 text-xs md:text-sm text-center mb-4">Ã„ÂÃƒÂ¢y lÃƒÂ  nhÃ¡Â»Â¯ng sÃ¡ÂºÂ£n phÃ¡ÂºÂ©m hot nhÃ¡ÂºÂ¥t vÃƒÂ  Ã„â€˜ang Ã„â€˜Ã†Â°Ã¡Â»Â£c Ã„â€˜Ã¡ÂºÂ·t mua nhiÃ¡Â»Âu nhÃ¡ÂºÂ¥t Ã¡Â»Å¸ thÃ¡Â»Âi Ã„â€˜iÃ¡Â»Æ’m hiÃ¡Â»â€¡n tÃ¡ÂºÂ¡i.</p>
       <div id="heroBannersExpandedInner">
         <!-- filled by JS -->
       </div>
@@ -340,14 +340,14 @@ export function storefrontHTML(): string {
 <!-- FILTER BAR -->
 <section class="sticky top-16 z-40 bg-white shadow-sm border-b" id="filterBar">
   <div class="max-w-7xl mx-auto px-4 py-3 flex gap-3 overflow-x-auto scrollbar-none items-center">
-    <span class="text-sm text-gray-500 whitespace-nowrap font-medium">Lọc:</span>
-    <button class="filter-btn active whitespace-nowrap px-4 py-1.5 rounded-full border text-sm font-medium transition" data-cat="all" onclick="filterProducts('all',this)">Tất cả</button>
+    <span class="text-sm text-gray-500 whitespace-nowrap font-medium">LÃ¡Â»Âc:</span>
+    <button class="filter-btn active whitespace-nowrap px-4 py-1.5 rounded-full border text-sm font-medium transition" data-cat="all" onclick="filterProducts('all',this)">TÃ¡ÂºÂ¥t cÃ¡ÂºÂ£</button>
     <button class="filter-btn whitespace-nowrap px-4 py-1.5 rounded-full border text-sm font-medium transition text-gray-600 hover:border-red-400" data-cat="unisex" onclick="filterProducts('unisex',this)">Unisex</button>
     <button class="filter-btn whitespace-nowrap px-4 py-1.5 rounded-full border text-sm font-medium transition text-gray-600 hover:border-red-400" data-cat="male" onclick="filterProducts('male',this)">Nam</button>
-    <button class="filter-btn whitespace-nowrap px-4 py-1.5 rounded-full border text-sm font-medium transition text-gray-600 hover:border-red-400" data-cat="female" onclick="filterProducts('female',this)">Nữ</button>
+    <button class="filter-btn whitespace-nowrap px-4 py-1.5 rounded-full border text-sm font-medium transition text-gray-600 hover:border-red-400" data-cat="female" onclick="filterProducts('female',this)">NÃ¡Â»Â¯</button>
     <div class="flex-1"></div>
     <div class="relative">
-      <input type="text" id="searchInput" placeholder="Tìm sản phẩm..." 
+      <input type="text" id="searchInput" placeholder="TÃƒÂ¬m sÃ¡ÂºÂ£n phÃ¡ÂºÂ©m..." 
         class="pl-8 pr-4 py-1.5 border rounded-full text-sm focus:outline-none focus:border-pink-400 w-48"
         oninput="searchProducts(this.value)">
       <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
@@ -358,9 +358,9 @@ export function storefrontHTML(): string {
 <!-- PRODUCTS -->
 <section class="max-w-7xl mx-auto px-4 py-16" id="products">
   <div class="text-center mb-12">
-    <p class="text-pink-500 font-medium tracking-widest uppercase text-sm">Khám phá ngay</p>
-    <h2 class="font-display text-4xl font-bold text-gray-900 mt-2">Sản Phẩm Nổi Bật</h2>
-    <p class="text-gray-500 mt-3">Những thiết kế được yêu thích nhất từ bộ sưu tập của chúng tôi</p>
+    <p class="text-pink-500 font-medium tracking-widest uppercase text-sm">KhÃƒÂ¡m phÃƒÂ¡ ngay</p>
+    <h2 class="font-display text-4xl font-bold text-gray-900 mt-2">SÃ¡ÂºÂ£n PhÃ¡ÂºÂ©m NÃ¡Â»â€¢i BÃ¡ÂºÂ­t</h2>
+    <p class="text-gray-500 mt-3">NhÃ¡Â»Â¯ng thiÃ¡ÂºÂ¿t kÃ¡ÂºÂ¿ Ã„â€˜Ã†Â°Ã¡Â»Â£c yÃƒÂªu thÃƒÂ­ch nhÃ¡ÂºÂ¥t tÃ¡Â»Â« bÃ¡Â»â„¢ sÃ†Â°u tÃ¡ÂºÂ­p cÃ¡Â»Â§a chÃƒÂºng tÃƒÂ´i</p>
   </div>
   <div id="productsGrid" class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
     <!-- skeleton placeholders -->
@@ -372,7 +372,7 @@ export function storefrontHTML(): string {
   </div>
   <div id="emptyState" class="hidden text-center py-20">
     <i class="fas fa-box-open text-6xl text-gray-300 mb-4"></i>
-    <p class="text-gray-400 text-lg">Không tìm thấy sản phẩm nào</p>
+    <p class="text-gray-400 text-lg">KhÃƒÂ´ng tÃƒÂ¬m thÃ¡ÂºÂ¥y sÃ¡ÂºÂ£n phÃ¡ÂºÂ©m nÃƒÂ o</p>
   </div>
 </section>
 
@@ -380,10 +380,10 @@ export function storefrontHTML(): string {
 <section class="bg-white py-16" id="about">
   <div class="max-w-7xl mx-auto px-4">
     <div class="grid md:grid-cols-4 gap-8 text-center">
-      <div class="p-6"><div class="w-14 h-14 bg-pink-50 rounded-2xl flex items-center justify-center mx-auto mb-4"><i class="fas fa-truck text-pink-500 text-2xl"></i></div><h3 class="font-semibold text-gray-800 mb-2">Giao hàng toàn quốc</h3><p class="text-gray-500 text-sm">Giao tận nơi, nhanh chóng, an toàn</p></div>
-      <div class="p-6"><div class="w-14 h-14 bg-pink-50 rounded-2xl flex items-center justify-center mx-auto mb-4"><i class="fas fa-shield-alt text-pink-500 text-2xl"></i></div><h3 class="font-semibold text-gray-800 mb-2">Chất lượng đảm bảo</h3><p class="text-gray-500 text-sm">100% vải cao cấp, kiểm định chặt chẽ</p></div>
-      <div class="p-6"><div class="w-14 h-14 bg-pink-50 rounded-2xl flex items-center justify-center mx-auto mb-4"><i class="fas fa-undo text-pink-500 text-2xl"></i></div><h3 class="font-semibold text-gray-800 mb-2">Đổi trả dễ dàng</h3><p class="text-gray-500 text-sm">7 ngày đổi trả, không cần lý do</p></div>
-      <div class="p-6"><div class="w-14 h-14 bg-pink-50 rounded-2xl flex items-center justify-center mx-auto mb-4"><i class="fas fa-headset text-pink-500 text-2xl"></i></div><h3 class="font-semibold text-gray-800 mb-2">Hỗ trợ 24/7</h3><p class="text-gray-500 text-sm">Tư vấn nhiệt tình, tận tâm</p></div>
+      <div class="p-6"><div class="w-14 h-14 bg-pink-50 rounded-2xl flex items-center justify-center mx-auto mb-4"><i class="fas fa-truck text-pink-500 text-2xl"></i></div><h3 class="font-semibold text-gray-800 mb-2">Giao hÃƒÂ ng toÃƒÂ n quÃ¡Â»â€˜c</h3><p class="text-gray-500 text-sm">Giao tÃ¡ÂºÂ­n nÃ†Â¡i, nhanh chÃƒÂ³ng, an toÃƒÂ n</p></div>
+      <div class="p-6"><div class="w-14 h-14 bg-pink-50 rounded-2xl flex items-center justify-center mx-auto mb-4"><i class="fas fa-shield-alt text-pink-500 text-2xl"></i></div><h3 class="font-semibold text-gray-800 mb-2">ChÃ¡ÂºÂ¥t lÃ†Â°Ã¡Â»Â£ng Ã„â€˜Ã¡ÂºÂ£m bÃ¡ÂºÂ£o</h3><p class="text-gray-500 text-sm">100% vÃ¡ÂºÂ£i cao cÃ¡ÂºÂ¥p, kiÃ¡Â»Æ’m Ã„â€˜Ã¡Â»â€¹nh chÃ¡ÂºÂ·t chÃ¡ÂºÂ½</p></div>
+      <div class="p-6"><div class="w-14 h-14 bg-pink-50 rounded-2xl flex items-center justify-center mx-auto mb-4"><i class="fas fa-undo text-pink-500 text-2xl"></i></div><h3 class="font-semibold text-gray-800 mb-2">Ã„ÂÃ¡Â»â€¢i trÃ¡ÂºÂ£ dÃ¡Â»â€¦ dÃƒÂ ng</h3><p class="text-gray-500 text-sm">7 ngÃƒÂ y Ã„â€˜Ã¡Â»â€¢i trÃ¡ÂºÂ£, khÃƒÂ´ng cÃ¡ÂºÂ§n lÃƒÂ½ do</p></div>
+      <div class="p-6"><div class="w-14 h-14 bg-pink-50 rounded-2xl flex items-center justify-center mx-auto mb-4"><i class="fas fa-headset text-pink-500 text-2xl"></i></div><h3 class="font-semibold text-gray-800 mb-2">HÃ¡Â»â€” trÃ¡Â»Â£ 24/7</h3><p class="text-gray-500 text-sm">TÃ†Â° vÃ¡ÂºÂ¥n nhiÃ¡Â»â€¡t tÃƒÂ¬nh, tÃ¡ÂºÂ­n tÃƒÂ¢m</p></div>
     </div>
   </div>
 </section>
@@ -396,27 +396,27 @@ export function storefrontHTML(): string {
         <span class="logo-spinner"><img src="/qh-logo.png" alt="QH"></span>
         <span>QH<span class="text-pink-400">Clothes</span></span>
       </h3>
-      <p class="text-gray-400 text-sm leading-relaxed">Thương hiệu thời trang Việt Nam cao cấp, mang phong cách hiện đại đến với mọi người.</p>
+      <p class="text-gray-400 text-sm leading-relaxed">ThÃ†Â°Ã†Â¡ng hiÃ¡Â»â€¡u thÃ¡Â»Âi trang ViÃ¡Â»â€¡t Nam cao cÃ¡ÂºÂ¥p, mang phong cÃƒÂ¡ch hiÃ¡Â»â€¡n Ã„â€˜Ã¡ÂºÂ¡i Ã„â€˜Ã¡ÂºÂ¿n vÃ¡Â»â€ºi mÃ¡Â»Âi ngÃ†Â°Ã¡Â»Âi.</p>
     </div>
     <div>
-      <h4 class="font-semibold mb-4">Liên kết nhanh</h4>
+      <h4 class="font-semibold mb-4">LiÃƒÂªn kÃ¡ÂºÂ¿t nhanh</h4>
       <div class="flex flex-col gap-2 text-gray-400 text-sm">
-        <a href="#products" class="hover:text-pink-400 transition">Sản phẩm</a>
-        <a href="#about" class="hover:text-pink-400 transition">Về chúng tôi</a>
-        <a href="/admin" class="hover:text-pink-400 transition">Quản trị</a>
+        <a href="#products" class="hover:text-pink-400 transition">SÃ¡ÂºÂ£n phÃ¡ÂºÂ©m</a>
+        <a href="#about" class="hover:text-pink-400 transition">VÃ¡Â»Â chÃƒÂºng tÃƒÂ´i</a>
+        <a href="/admin" class="hover:text-pink-400 transition">QuÃ¡ÂºÂ£n trÃ¡Â»â€¹</a>
       </div>
     </div>
     <div>
-      <h4 class="font-semibold mb-4">Liên hệ</h4>
+      <h4 class="font-semibold mb-4">LiÃƒÂªn hÃ¡Â»â€¡</h4>
       <div class="flex flex-col gap-2 text-gray-400 text-sm">
         <p><i class="fas fa-phone mr-2 text-pink-400"></i>0987 654 321</p>
         <p><i class="fas fa-envelope mr-2 text-pink-400"></i>hello@qhclothes.com</p>
-        <p><i class="fas fa-map-marker-alt mr-2 text-pink-400"></i>TP. Hồ Chí Minh, Việt Nam</p>
+        <p><i class="fas fa-map-marker-alt mr-2 text-pink-400"></i>TP. HÃ¡Â»â€œ ChÃƒÂ­ Minh, ViÃ¡Â»â€¡t Nam</p>
       </div>
     </div>
   </div>
   <div class="max-w-7xl mx-auto px-4 mt-8 pt-8 border-t border-white/10 text-center text-gray-500 text-sm">
-    © 2026 QH Clothes. All rights reserved.
+    Ã‚Â© 2026 QH Clothes. All rights reserved.
   </div>
 </footer>
 
@@ -424,7 +424,7 @@ export function storefrontHTML(): string {
 <div id="orderOverlay" class="fixed inset-0 overlay z-50 hidden flex items-center justify-center p-4">
   <div class="popup-card bg-white rounded-3xl shadow-2xl w-full max-w-md md:max-w-[56rem] max-h-[90vh] overflow-y-auto" id="orderPopupCard">
     <div class="sticky top-0 bg-white rounded-t-3xl border-b px-6 py-4 flex items-center justify-between">
-      <h3 class="font-display text-xl font-bold text-gray-900">Đặt hàng nhanh</h3>
+      <h3 class="font-display text-xl font-bold text-gray-900">Ã„ÂÃ¡ÂºÂ·t hÃƒÂ ng nhanh</h3>
       <button onclick="closeOrder()" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition">
         <i class="fas fa-times text-gray-600"></i>
       </button>
@@ -441,79 +441,79 @@ export function storefrontHTML(): string {
       </div>
 
       <div class="space-y-4">
-        <!-- Họ tên -->
+        <!-- HÃ¡Â»Â tÃƒÂªn -->
         <div id="fieldName">
           <label class="block text-sm font-semibold text-gray-700 mb-1.5 field-title">
-            <i class="fas fa-user text-pink-400 mr-1"></i>Họ và tên *
+            <i class="fas fa-user text-pink-400 mr-1"></i>HÃ¡Â»Â vÃƒÂ  tÃƒÂªn *
           </label>
-          <input type="text" id="orderName" placeholder="Nhập họ và tên"
+          <input type="text" id="orderName" placeholder="NhÃ¡ÂºÂ­p hÃ¡Â»Â vÃƒÂ  tÃƒÂªn"
             class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
         </div>
-        <!-- SĐT -->
+        <!-- SÃ„ÂT -->
         <div id="fieldPhone">
           <label class="block text-sm font-semibold text-gray-700 mb-1.5 field-title">
-            <i class="fas fa-phone text-pink-400 mr-1"></i>Số điện thoại *
+            <i class="fas fa-phone text-pink-400 mr-1"></i>SÃ¡Â»â€˜ Ã„â€˜iÃ¡Â»â€¡n thoÃ¡ÂºÂ¡i *
           </label>
           <input type="tel" id="orderPhone" placeholder="0987 654 321"
             class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
         </div>
-        <!-- Địa chỉ -->
+        <!-- Ã„ÂÃ¡Â»â€¹a chÃ¡Â»â€° -->
         <div id="fieldAddress">
           <label class="block text-sm font-semibold text-gray-700 mb-1.5 field-title">
-            <i class="fas fa-map-marker-alt text-pink-400 mr-1"></i>Địa chỉ giao hàng *
+            <i class="fas fa-map-marker-alt text-pink-400 mr-1"></i>Ã„ÂÃ¡Â»â€¹a chÃ¡Â»â€° giao hÃƒÂ ng *
           </label>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
             <div id="orderProvinceDropdown" class="relative">
               <button type="button" id="orderProvinceTrigger" onclick="toggleAddressDropdown('order','province')"
                 class="w-full border rounded-xl px-3.5 py-2.5 text-sm bg-white text-left flex items-center justify-between focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
-                <span id="orderProvinceLabel" class="text-gray-500">Chọn tỉnh/thành</span>
+                <span id="orderProvinceLabel" class="text-gray-500">ChÃ¡Â»Ân tÃ¡Â»â€°nh/thÃƒÂ nh</span>
                 <i class="fas fa-chevron-down text-gray-400 text-xs"></i>
               </button>
               <div id="orderProvinceMenu" class="hidden absolute z-[90] mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
                 <div class="p-2 border-b bg-gray-50">
-                  <input type="text" id="orderProvinceSearch" placeholder="Tìm tỉnh/thành..."
+                  <input type="text" id="orderProvinceSearch" placeholder="TÃƒÂ¬m tÃ¡Â»â€°nh/thÃƒÂ nh..."
                     oninput="onAddressDropdownSearchInput('order','province')"
                     class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
                 </div>
                 <div id="orderProvinceOptions" class="max-h-56 overflow-auto"></div>
               </div>
               <select id="orderProvince" onchange="onAddressProvinceChange('order')" class="hidden">
-                <option value="">Chọn tỉnh/thành</option>
+                <option value="">ChÃ¡Â»Ân tÃ¡Â»â€°nh/thÃƒÂ nh</option>
               </select>
             </div>
             <div id="orderCommuneDropdown" class="relative">
               <button type="button" id="orderCommuneTrigger" onclick="toggleAddressDropdown('order','commune')"
                 class="w-full border rounded-xl px-3.5 py-2.5 text-sm bg-white text-left flex items-center justify-between focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
-                <span id="orderCommuneLabel" class="text-gray-500">Chọn phường/xã</span>
+                <span id="orderCommuneLabel" class="text-gray-500">ChÃ¡Â»Ân phÃ†Â°Ã¡Â»Âng/xÃƒÂ£</span>
                 <i class="fas fa-chevron-down text-gray-400 text-xs"></i>
               </button>
               <div id="orderCommuneMenu" class="hidden absolute z-[90] mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
                 <div class="p-2 border-b bg-gray-50">
-                  <input type="text" id="orderCommuneSearch" placeholder="Tìm phường/xã..."
+                  <input type="text" id="orderCommuneSearch" placeholder="TÃƒÂ¬m phÃ†Â°Ã¡Â»Âng/xÃƒÂ£..."
                     oninput="onAddressDropdownSearchInput('order','commune')"
                     class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
                 </div>
                 <div id="orderCommuneOptions" class="max-h-56 overflow-auto"></div>
               </div>
               <select id="orderCommune" onchange="onAddressCommuneChange('order')" class="hidden">
-                <option value="">Chọn phường/xã</option>
+                <option value="">ChÃ¡Â»Ân phÃ†Â°Ã¡Â»Âng/xÃƒÂ£</option>
               </select>
             </div>
           </div>
           <input type="text" id="orderAddressDetail"
-            placeholder="Số nhà, tên đường..."
+            placeholder="SÃ¡Â»â€˜ nhÃƒÂ , tÃƒÂªn Ã„â€˜Ã†Â°Ã¡Â»Âng..."
             class="mt-2.5 w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200"
             oninput="clearFieldError('fieldAddress'); syncAddressFullText('order')">
           <input type="text" id="orderAddress"
             readonly
-            placeholder="Địa chỉ đầy đủ sẽ tự động ghép tại đây"
+            placeholder="Ã„ÂÃ¡Â»â€¹a chÃ¡Â»â€° Ã„â€˜Ã¡ÂºÂ§y Ã„â€˜Ã¡Â»Â§ sÃ¡ÂºÂ½ tÃ¡Â»Â± Ã„â€˜Ã¡Â»â„¢ng ghÃƒÂ©p tÃ¡ÂºÂ¡i Ã„â€˜ÃƒÂ¢y"
             class="mt-2.5 w-full border rounded-xl px-4 py-2.5 text-sm bg-gray-50 text-gray-600 focus:outline-none">
         </div>
         
         <!-- Color -->
         <div id="fieldColor">
           <label class="block text-sm font-semibold text-gray-700 mb-2 field-title">
-            <i class="fas fa-palette text-pink-400 mr-1"></i>Màu sắc *
+            <i class="fas fa-palette text-pink-400 mr-1"></i>MÃƒÂ u sÃ¡ÂºÂ¯c *
           </label>
           <div id="colorOptions" class="flex flex-wrap gap-2"></div>
         </div>
@@ -529,10 +529,10 @@ export function storefrontHTML(): string {
         <!-- Quantity -->
         <div>
           <label class="block text-sm font-semibold text-gray-700 mb-2">
-            <i class="fas fa-sort-numeric-up text-pink-400 mr-1"></i>Số lượng
+            <i class="fas fa-sort-numeric-up text-pink-400 mr-1"></i>SÃ¡Â»â€˜ lÃ†Â°Ã¡Â»Â£ng
           </label>
           <div class="flex items-center gap-3">
-            <button onclick="changeQty(-1)" class="w-9 h-9 rounded-full border-2 border-gray-300 flex items-center justify-center hover:border-pink-400 hover:text-pink-500 transition font-bold">−</button>
+            <button onclick="changeQty(-1)" class="w-9 h-9 rounded-full border-2 border-gray-300 flex items-center justify-center hover:border-pink-400 hover:text-pink-500 transition font-bold">Ã¢Ë†â€™</button>
             <span id="qtyDisplay" class="text-xl font-bold w-8 text-center">1</span>
             <button onclick="changeQty(1)" class="w-9 h-9 rounded-full border-2 border-gray-300 flex items-center justify-center hover:border-pink-400 hover:text-pink-500 transition font-bold">+</button>
           </div>
@@ -541,15 +541,15 @@ export function storefrontHTML(): string {
         <!-- Voucher -->
         <div id="fieldVoucher">
           <label class="block text-sm font-semibold text-gray-700 mb-1.5 field-title">
-            <i class="fas fa-tag text-pink-400 mr-1"></i>Mã giảm giá (tuỳ chọn)
+            <i class="fas fa-tag text-pink-400 mr-1"></i>MÃƒÂ£ giÃ¡ÂºÂ£m giÃƒÂ¡ (tuÃ¡Â»Â³ chÃ¡Â»Ân)
           </label>
           <div class="flex gap-2">
-            <input type="text" id="orderVoucher" placeholder="Nhập mã voucher..."
+            <input type="text" id="orderVoucher" placeholder="NhÃ¡ÂºÂ­p mÃƒÂ£ voucher..."
               class="flex-1 border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200 uppercase tracking-wider"
               oninput="this.value=this.value.toUpperCase()">
             <button onclick="applyVoucher()" id="voucherBtn"
               class="px-4 py-2.5 bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-sm font-semibold transition whitespace-nowrap">
-              Áp dụng
+              ÃƒÂp dÃ¡Â»Â¥ng
             </button>
           </div>
           <div id="voucherStatus" class="mt-2 hidden"></div>
@@ -558,17 +558,17 @@ export function storefrontHTML(): string {
         <!-- Note -->
         <div>
           <label class="block text-sm font-semibold text-gray-700 mb-1.5">
-            <i class="fas fa-sticky-note text-pink-400 mr-1"></i>Ghi chú (tuỳ chọn)
+            <i class="fas fa-sticky-note text-pink-400 mr-1"></i>Ghi chÃƒÂº (tuÃ¡Â»Â³ chÃ¡Â»Ân)
           </label>
-          <input type="text" id="orderNote" placeholder="Ghi chú cho đơn hàng..."
+          <input type="text" id="orderNote" placeholder="Ghi chÃƒÂº cho Ã„â€˜Ã†Â¡n hÃƒÂ ng..."
             class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
         </div>
 
         <div id="fieldPaymentMethod">
           <label class="block text-sm font-semibold text-gray-700 mb-1.5 field-title">
-            <i class="fas fa-credit-card text-pink-400 mr-1"></i>Chọn phương thức thanh toán *
+            <i class="fas fa-credit-card text-pink-400 mr-1"></i>ChÃ¡Â»Ân phÃ†Â°Ã†Â¡ng thÃ¡Â»Â©c thanh toÃƒÂ¡n *
           </label>
-          <p class="text-xs text-red-500 mb-2">Trường này là bắt buộc</p>
+          <p class="text-xs text-red-500 mb-2">TrÃ†Â°Ã¡Â»Âng nÃƒÂ y lÃƒÂ  bÃ¡ÂºÂ¯t buÃ¡Â»â„¢c</p>
           <div class="space-y-2">
             <button type="button" class="payment-method-btn w-full flex items-center gap-3 border rounded-xl px-3 py-2.5 text-left hover:border-pink-400 transition"
               onclick="selectPaymentMethod('COD', this)">
@@ -577,7 +577,7 @@ export function storefrontHTML(): string {
               </span>
               <span>
                 <span class="block text-sm font-semibold text-gray-800">COD</span>
-                <span class="block text-xs text-gray-500">Thanh toán khi giao</span>
+                <span class="block text-xs text-gray-500">Thanh toÃƒÂ¡n khi giao</span>
               </span>
             </button>
 
@@ -589,7 +589,7 @@ export function storefrontHTML(): string {
               </button>
               <button type="button" class="text-sm font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1"
                 onclick="openZaloPayLink(event)">
-                Liên kết <i class="fas fa-chevron-right text-xs"></i>
+                LiÃƒÂªn kÃ¡ÂºÂ¿t <i class="fas fa-chevron-right text-xs"></i>
               </button>
             </div>
 
@@ -598,7 +598,7 @@ export function storefrontHTML(): string {
               <span class="w-8 h-8 rounded-full bg-pink-100 text-pink-600 flex items-center justify-center">
                 <i class="fas fa-wallet"></i>
               </span>
-              <span class="block text-sm font-semibold text-gray-800">Ví điện tử MoMo</span>
+              <span class="block text-sm font-semibold text-gray-800">VÃƒÂ­ Ã„â€˜iÃ¡Â»â€¡n tÃ¡Â»Â­ MoMo</span>
             </button>
 
             <button type="button" class="payment-method-btn w-full flex items-center gap-3 border rounded-xl px-3 py-2.5 text-left hover:border-pink-400 transition"
@@ -606,7 +606,7 @@ export function storefrontHTML(): string {
               <span class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
                 <i class="fas fa-university"></i>
               </span>
-              <span class="block text-sm font-semibold text-gray-800">Chuyển khoản ngân hàng</span>
+              <span class="block text-sm font-semibold text-gray-800">ChuyÃ¡Â»Æ’n khoÃ¡ÂºÂ£n ngÃƒÂ¢n hÃƒÂ ng</span>
             </button>
           </div>
         </div>
@@ -614,27 +614,27 @@ export function storefrontHTML(): string {
         <!-- Total -->
         <div class="bg-gradient-to-r from-pink-50 to-red-50 rounded-2xl p-4 space-y-1.5">
           <div id="subtotalRow" class="flex justify-between items-center hidden">
-            <span class="text-sm text-gray-500">Tạm tính:</span>
-            <span id="orderSubtotal" class="text-sm font-semibold text-gray-700">0đ</span>
+            <span class="text-sm text-gray-500">TÃ¡ÂºÂ¡m tÃƒÂ­nh:</span>
+            <span id="orderSubtotal" class="text-sm font-semibold text-gray-700">0Ã„â€˜</span>
           </div>
           <div id="discountRow" class="flex justify-between items-center hidden">
-            <span class="text-sm text-green-600 font-medium"><i class="fas fa-tag mr-1"></i>Giảm giá:</span>
-            <span id="orderDiscount" class="text-sm font-bold text-green-600">-0đ</span>
+            <span class="text-sm text-green-600 font-medium"><i class="fas fa-tag mr-1"></i>GiÃ¡ÂºÂ£m giÃƒÂ¡:</span>
+            <span id="orderDiscount" class="text-sm font-bold text-green-600">-0Ã„â€˜</span>
           </div>
           <div class="flex justify-between items-center">
-            <span class="font-semibold text-gray-700">Tổng cộng:</span>
-            <span id="orderTotal" class="text-2xl font-bold text-pink-600">0đ</span>
+            <span class="font-semibold text-gray-700">TÃ¡Â»â€¢ng cÃ¡Â»â„¢ng:</span>
+            <span id="orderTotal" class="text-2xl font-bold text-pink-600">0Ã„â€˜</span>
           </div>
         </div>
         
         <div class="flex gap-2">
           <button onclick="addCurrentToCart()" id="addToCartBtn"
             class="flex-shrink-0 flex items-center justify-center gap-2 bg-gray-800 hover:bg-gray-700 text-white px-4 py-3.5 rounded-xl font-semibold text-sm transition">
-            <i class="fas fa-shopping-bag"></i><span class="hidden sm:inline">Giỏ hàng</span>
+            <i class="fas fa-shopping-bag"></i><span class="hidden sm:inline">GiÃ¡Â»Â hÃƒÂ ng</span>
           </button>
           <button onclick="submitOrder()" id="submitOrderBtn"
             class="btn-primary flex-1 text-white py-3.5 rounded-xl font-bold text-base">
-            <i class="fas fa-bolt mr-2"></i>Đặt ngay
+            <i class="fas fa-bolt mr-2"></i>Ã„ÂÃ¡ÂºÂ·t ngay
           </button>
         </div>
       </div>
@@ -647,7 +647,7 @@ export function storefrontHTML(): string {
   <div class="popup-card bg-white rounded-3xl shadow-2xl w-full max-w-md max-h-[92vh] overflow-y-auto">
     <div class="sticky top-0 bg-white rounded-t-3xl border-b px-6 py-4 flex items-center justify-between">
       <h3 class="font-display text-xl font-bold text-gray-900">
-        <i class="fas fa-qrcode text-pink-500 mr-2"></i>Quét mã QR để thanh toán
+        <i class="fas fa-qrcode text-pink-500 mr-2"></i>QuÃƒÂ©t mÃƒÂ£ QR Ã„â€˜Ã¡Â»Æ’ thanh toÃƒÂ¡n
       </h3>
       <button onclick="closeOrderBankTransferModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition">
         <i class="fas fa-times text-gray-600"></i>
@@ -656,15 +656,15 @@ export function storefrontHTML(): string {
     <div class="px-6 py-5">
       <div class="border rounded-2xl p-4 bg-gray-50">
         <div class="flex justify-center mb-3">
-          <img id="orderBankQrImg" src="" alt="VietQR thanh toán đơn hàng" class="w-56 h-56 object-contain rounded-xl border bg-white">
+          <img id="orderBankQrImg" src="" alt="VietQR thanh toÃƒÂ¡n Ã„â€˜Ã†Â¡n hÃƒÂ ng" class="w-56 h-56 object-contain rounded-xl border bg-white">
         </div>
         <div class="space-y-2 text-sm">
           <div class="flex justify-between items-center bg-white rounded-lg px-3 py-2 border">
-            <span class="text-gray-500">Ngân hàng</span>
+            <span class="text-gray-500">NgÃƒÂ¢n hÃƒÂ ng</span>
             <span class="font-bold text-gray-800">MB Bank</span>
           </div>
           <div class="flex justify-between items-center bg-white rounded-lg px-3 py-2 border">
-            <span class="text-gray-500">Số TK</span>
+            <span class="text-gray-500">SÃ¡Â»â€˜ TK</span>
             <span class="font-bold text-gray-800">
               <span id="orderBankAccountNo"></span>
               <button type="button" class="ml-1 text-gray-400 hover:text-gray-600" onclick="copyBankValue(document.getElementById('orderBankAccountNo').textContent)">
@@ -673,11 +673,11 @@ export function storefrontHTML(): string {
             </span>
           </div>
           <div class="flex justify-between items-center bg-white rounded-lg px-3 py-2 border">
-            <span class="text-gray-500">Chủ TK</span>
+            <span class="text-gray-500">ChÃ¡Â»Â§ TK</span>
             <span class="font-bold text-gray-800" id="orderBankAccountName"></span>
           </div>
           <div class="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-            <p class="text-amber-700 text-xs font-semibold mb-1">Nội dung CK (BẮT BUỘC)</p>
+            <p class="text-amber-700 text-xs font-semibold mb-1">NÃ¡Â»â„¢i dung CK (BÃ¡ÂºÂ®T BUÃ¡Â»ËœC)</p>
             <div class="flex items-center justify-between">
               <span id="orderBankTransferContent" class="font-mono font-bold text-amber-800"></span>
               <button type="button" class="text-amber-500 hover:text-amber-700" onclick="copyBankValue(document.getElementById('orderBankTransferContent').textContent)">
@@ -686,17 +686,17 @@ export function storefrontHTML(): string {
             </div>
           </div>
           <div class="flex justify-between items-center bg-white rounded-lg px-3 py-2 border">
-            <span class="text-gray-500">Số tiền</span>
+            <span class="text-gray-500">SÃ¡Â»â€˜ tiÃ¡Â»Ân</span>
             <span class="font-bold text-pink-600" id="orderBankAmountDisplay"></span>
           </div>
           <div class="flex justify-between items-center bg-white rounded-lg px-3 py-2 border">
-            <span class="text-gray-500">Mã đơn</span>
+            <span class="text-gray-500">MÃƒÂ£ Ã„â€˜Ã†Â¡n</span>
             <span class="font-mono font-bold text-blue-600" id="orderBankOrderCode"></span>
           </div>
         </div>
       </div>
       <div class="mt-4 bg-blue-50 border border-blue-200 rounded-xl px-3 py-2 text-xs text-blue-700">
-        Sau khi chuyển khoản, đơn hàng sẽ được xác nhận khi shop đối soát giao dịch.
+        Sau khi chuyÃ¡Â»Æ’n khoÃ¡ÂºÂ£n, Ã„â€˜Ã†Â¡n hÃƒÂ ng sÃ¡ÂºÂ½ Ã„â€˜Ã†Â°Ã¡Â»Â£c xÃƒÂ¡c nhÃ¡ÂºÂ­n khi shop Ã„â€˜Ã¡Â»â€˜i soÃƒÂ¡t giao dÃ¡Â»â€¹ch.
       </div>
     </div>
   </div>
@@ -707,8 +707,8 @@ export function storefrontHTML(): string {
     <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-green-100 text-green-600 flex items-center justify-center">
       <i class="fas fa-check text-xl"></i>
     </div>
-    <p class="text-green-600 font-bold text-lg">Đã thanh toán thành công</p>
-    <p class="text-sm text-gray-600 mt-1">Đơn hàng đã được ghi nhận.</p>
+    <p class="text-green-600 font-bold text-lg">Ã„ÂÃƒÂ£ thanh toÃƒÂ¡n thÃƒÂ nh cÃƒÂ´ng</p>
+    <p class="text-sm text-gray-600 mt-1">Ã„ÂÃ†Â¡n hÃƒÂ ng Ã„â€˜ÃƒÂ£ Ã„â€˜Ã†Â°Ã¡Â»Â£c ghi nhÃ¡ÂºÂ­n.</p>
     <p class="text-xs font-mono text-blue-600 mt-2" id="orderPaidNoticeCode"></p>
   </div>
 </div>
@@ -717,7 +717,7 @@ export function storefrontHTML(): string {
 <div id="detailOverlay" class="fixed inset-0 overlay hidden flex items-center justify-center p-4" style="z-index:1001;">
   <div class="popup-card bg-white rounded-3xl shadow-2xl w-full max-w-md md:max-w-[56rem] max-h-[90vh] overflow-y-auto">
     <div class="sticky top-0 bg-white rounded-t-3xl border-b px-6 py-4 flex items-center justify-between">
-      <h3 class="font-display text-xl font-bold text-gray-900">Chi tiết sản phẩm</h3>
+      <h3 class="font-display text-xl font-bold text-gray-900">Chi tiÃ¡ÂºÂ¿t sÃ¡ÂºÂ£n phÃ¡ÂºÂ©m</h3>
       <button onclick="closeDetail()" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition">
         <i class="fas fa-times text-gray-600"></i>
       </button>
@@ -737,8 +737,8 @@ export function storefrontHTML(): string {
           <i class="fas fa-arrow-left text-sm"></i>
         </button>
         <div>
-          <h2 id="cartTitle" class="font-display text-lg font-bold">Giỏ hàng</h2>
-          <p id="cartSubtitle" class="text-xs text-gray-300">Chưa có sản phẩm</p>
+          <h2 id="cartTitle" class="font-display text-lg font-bold">GiÃ¡Â»Â hÃƒÂ ng</h2>
+          <p id="cartSubtitle" class="text-xs text-gray-300">ChÃ†Â°a cÃƒÂ³ sÃ¡ÂºÂ£n phÃ¡ÂºÂ©m</p>
         </div>
       </div>
       <button onclick="closeCart()" class="w-9 h-9 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 transition">
@@ -752,11 +752,11 @@ export function storefrontHTML(): string {
       <div id="cartCheckAllBar" class="hidden flex items-center gap-3 px-5 py-3 bg-gray-50 border-b flex-shrink-0">
         <label class="flex items-center gap-2 cursor-pointer select-none">
           <input type="checkbox" id="checkAll" onchange="toggleCheckAll(this)" class="w-4 h-4 accent-pink-500 cursor-pointer">
-          <span class="text-sm font-medium text-gray-700">Chọn tất cả</span>
+          <span class="text-sm font-medium text-gray-700">ChÃ¡Â»Ân tÃ¡ÂºÂ¥t cÃ¡ÂºÂ£</span>
         </label>
         <span id="selectedCount" class="ml-auto text-xs text-gray-400"></span>
         <button onclick="removeChecked()" id="deleteCheckedBtn" class="hidden text-xs text-red-500 hover:text-red-600 font-medium transition">
-          <i class="fas fa-trash mr-1"></i>Xoá đã chọn
+          <i class="fas fa-trash mr-1"></i>XoÃƒÂ¡ Ã„â€˜ÃƒÂ£ chÃ¡Â»Ân
         </button>
       </div>
 
@@ -768,12 +768,12 @@ export function storefrontHTML(): string {
       <!-- Cart Footer -->
       <div id="cartFooter" class="hidden flex-shrink-0 border-t bg-white px-5 py-4">
         <div class="flex items-center justify-between mb-3">
-          <span class="text-gray-600 font-medium">Tổng cộng (<span id="cartSelectedItems">0</span> sản phẩm):</span>
-          <span id="cartTotalPrice" class="text-xl font-bold text-pink-600">0đ</span>
+          <span class="text-gray-600 font-medium">TÃ¡Â»â€¢ng cÃ¡Â»â„¢ng (<span id="cartSelectedItems">0</span> sÃ¡ÂºÂ£n phÃ¡ÂºÂ©m):</span>
+          <span id="cartTotalPrice" class="text-xl font-bold text-pink-600">0Ã„â€˜</span>
         </div>
         <button onclick="proceedToCheckout()" id="checkoutBtn"
           class="btn-primary w-full text-white py-3.5 rounded-xl font-bold text-base disabled:opacity-50">
-          <i class="fas fa-credit-card mr-2"></i>Xác nhận & Đặt hàng
+          <i class="fas fa-credit-card mr-2"></i>XÃƒÂ¡c nhÃ¡ÂºÂ­n & Ã„ÂÃ¡ÂºÂ·t hÃƒÂ ng
         </button>
       </div>
     </div>
@@ -787,90 +787,90 @@ export function storefrontHTML(): string {
 
       <!-- Form -->
       <div class="flex-1 overflow-y-auto px-5 py-4">
-        <h3 class="font-display text-base font-bold text-gray-800 mb-4">Thông tin giao hàng</h3>
+        <h3 class="font-display text-base font-bold text-gray-800 mb-4">ThÃƒÂ´ng tin giao hÃƒÂ ng</h3>
         <div class="space-y-4">
-          <!-- Họ tên -->
+          <!-- HÃ¡Â»Â tÃƒÂªn -->
           <div id="ckFieldName">
             <label class="block text-sm font-semibold text-gray-700 mb-1.5 field-title">
-              <i class="fas fa-user text-pink-400 mr-1"></i>Họ và tên *
+              <i class="fas fa-user text-pink-400 mr-1"></i>HÃ¡Â»Â vÃƒÂ  tÃƒÂªn *
             </label>
-            <input type="text" id="ckName" placeholder="Nhập họ và tên"
+            <input type="text" id="ckName" placeholder="NhÃ¡ÂºÂ­p hÃ¡Â»Â vÃƒÂ  tÃƒÂªn"
               class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200"
               oninput="clearCheckoutError('ckFieldName')">
           </div>
-          <!-- SĐT -->
+          <!-- SÃ„ÂT -->
           <div id="ckFieldPhone">
             <label class="block text-sm font-semibold text-gray-700 mb-1.5 field-title">
-              <i class="fas fa-phone text-pink-400 mr-1"></i>Số điện thoại *
+              <i class="fas fa-phone text-pink-400 mr-1"></i>SÃ¡Â»â€˜ Ã„â€˜iÃ¡Â»â€¡n thoÃ¡ÂºÂ¡i *
             </label>
             <input type="tel" id="ckPhone" placeholder="0987 654 321"
               class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200"
               oninput="clearCheckoutError('ckFieldPhone')">
           </div>
-          <!-- Địa chỉ -->
+          <!-- Ã„ÂÃ¡Â»â€¹a chÃ¡Â»â€° -->
           <div id="ckFieldAddress">
             <label class="block text-sm font-semibold text-gray-700 mb-1.5 field-title">
-              <i class="fas fa-map-marker-alt text-pink-400 mr-1"></i>Địa chỉ giao hàng *
+              <i class="fas fa-map-marker-alt text-pink-400 mr-1"></i>Ã„ÂÃ¡Â»â€¹a chÃ¡Â»â€° giao hÃƒÂ ng *
             </label>
             <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
               <div id="ckProvinceDropdown" class="relative">
                 <button type="button" id="ckProvinceTrigger" onclick="toggleAddressDropdown('ck','province')"
                   class="w-full border rounded-xl px-3.5 py-2.5 text-sm bg-white text-left flex items-center justify-between focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
-                  <span id="ckProvinceLabel" class="text-gray-500">Chọn tỉnh/thành</span>
+                  <span id="ckProvinceLabel" class="text-gray-500">ChÃ¡Â»Ân tÃ¡Â»â€°nh/thÃƒÂ nh</span>
                   <i class="fas fa-chevron-down text-gray-400 text-xs"></i>
                 </button>
                 <div id="ckProvinceMenu" class="hidden absolute z-[90] mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
                   <div class="p-2 border-b bg-gray-50">
-                    <input type="text" id="ckProvinceSearch" placeholder="Tìm tỉnh/thành..."
+                    <input type="text" id="ckProvinceSearch" placeholder="TÃƒÂ¬m tÃ¡Â»â€°nh/thÃƒÂ nh..."
                       oninput="onAddressDropdownSearchInput('ck','province')"
                       class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
                   </div>
                   <div id="ckProvinceOptions" class="max-h-56 overflow-auto"></div>
                 </div>
                 <select id="ckProvince" onchange="onAddressProvinceChange('ck')" class="hidden">
-                  <option value="">Chọn tỉnh/thành</option>
+                  <option value="">ChÃ¡Â»Ân tÃ¡Â»â€°nh/thÃƒÂ nh</option>
                 </select>
               </div>
               <div id="ckCommuneDropdown" class="relative">
                 <button type="button" id="ckCommuneTrigger" onclick="toggleAddressDropdown('ck','commune')"
                   class="w-full border rounded-xl px-3.5 py-2.5 text-sm bg-white text-left flex items-center justify-between focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
-                  <span id="ckCommuneLabel" class="text-gray-500">Chọn phường/xã</span>
+                  <span id="ckCommuneLabel" class="text-gray-500">ChÃ¡Â»Ân phÃ†Â°Ã¡Â»Âng/xÃƒÂ£</span>
                   <i class="fas fa-chevron-down text-gray-400 text-xs"></i>
                 </button>
                 <div id="ckCommuneMenu" class="hidden absolute z-[90] mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
                   <div class="p-2 border-b bg-gray-50">
-                    <input type="text" id="ckCommuneSearch" placeholder="Tìm phường/xã..."
+                    <input type="text" id="ckCommuneSearch" placeholder="TÃƒÂ¬m phÃ†Â°Ã¡Â»Âng/xÃƒÂ£..."
                       oninput="onAddressDropdownSearchInput('ck','commune')"
                       class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
                   </div>
                   <div id="ckCommuneOptions" class="max-h-56 overflow-auto"></div>
                 </div>
                 <select id="ckCommune" onchange="onAddressCommuneChange('ck')" class="hidden">
-                  <option value="">Chọn phường/xã</option>
+                  <option value="">ChÃ¡Â»Ân phÃ†Â°Ã¡Â»Âng/xÃƒÂ£</option>
                 </select>
               </div>
             </div>
             <input type="text" id="ckAddressDetail"
-              placeholder="Số nhà, tên đường..."
+              placeholder="SÃ¡Â»â€˜ nhÃƒÂ , tÃƒÂªn Ã„â€˜Ã†Â°Ã¡Â»Âng..."
               class="mt-2.5 w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200"
               oninput="clearCheckoutError('ckFieldAddress'); syncAddressFullText('ck')">
             <input type="text" id="ckAddress"
               readonly
-              placeholder="Địa chỉ đầy đủ sẽ tự động ghép tại đây"
+              placeholder="Ã„ÂÃ¡Â»â€¹a chÃ¡Â»â€° Ã„â€˜Ã¡ÂºÂ§y Ã„â€˜Ã¡Â»Â§ sÃ¡ÂºÂ½ tÃ¡Â»Â± Ã„â€˜Ã¡Â»â„¢ng ghÃƒÂ©p tÃ¡ÂºÂ¡i Ã„â€˜ÃƒÂ¢y"
               class="mt-2.5 w-full border rounded-xl px-4 py-2.5 text-sm bg-gray-50 text-gray-600 focus:outline-none">
           </div>
           <!-- Voucher -->
           <div id="ckFieldVoucher">
             <label class="block text-sm font-semibold text-gray-700 mb-1.5">
-              <i class="fas fa-tag text-pink-400 mr-1"></i>Mã giảm giá (tuỳ chọn)
+              <i class="fas fa-tag text-pink-400 mr-1"></i>MÃƒÂ£ giÃ¡ÂºÂ£m giÃƒÂ¡ (tuÃ¡Â»Â³ chÃ¡Â»Ân)
             </label>
             <div class="flex gap-2">
-              <input type="text" id="ckVoucher" placeholder="Nhập mã voucher..."
+              <input type="text" id="ckVoucher" placeholder="NhÃ¡ÂºÂ­p mÃƒÂ£ voucher..."
                 class="flex-1 border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200 uppercase tracking-wider"
                 oninput="this.value=this.value.toUpperCase()">
               <button onclick="applyCkVoucher()" id="ckVoucherBtn"
                 class="px-4 py-2.5 bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-sm font-semibold transition whitespace-nowrap">
-                Áp dụng
+                ÃƒÂp dÃ¡Â»Â¥ng
               </button>
             </div>
             <div id="ckVoucherStatus" class="mt-2 hidden"></div>
@@ -878,24 +878,24 @@ export function storefrontHTML(): string {
           <!-- Note -->
           <div>
             <label class="block text-sm font-semibold text-gray-700 mb-1.5">
-              <i class="fas fa-sticky-note text-pink-400 mr-1"></i>Ghi chú (tuỳ chọn)
+              <i class="fas fa-sticky-note text-pink-400 mr-1"></i>Ghi chÃƒÂº (tuÃ¡Â»Â³ chÃ¡Â»Ân)
             </label>
-            <input type="text" id="ckNote" placeholder="Ghi chú cho đơn hàng..."
+            <input type="text" id="ckNote" placeholder="Ghi chÃƒÂº cho Ã„â€˜Ã†Â¡n hÃƒÂ ng..."
               class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
           </div>
           <!-- Total box -->
           <div class="bg-gradient-to-r from-pink-50 to-red-50 rounded-2xl p-4 space-y-1.5">
             <div id="ckSubtotalRow" class="hidden flex justify-between items-center">
-              <span class="text-sm text-gray-500">Tạm tính:</span>
-              <span id="ckSubtotal" class="text-sm font-semibold text-gray-700">0đ</span>
+              <span class="text-sm text-gray-500">TÃ¡ÂºÂ¡m tÃƒÂ­nh:</span>
+              <span id="ckSubtotal" class="text-sm font-semibold text-gray-700">0Ã„â€˜</span>
             </div>
             <div id="ckDiscountRow" class="hidden flex justify-between items-center">
-              <span class="text-sm text-green-600 font-medium"><i class="fas fa-tag mr-1"></i>Giảm giá:</span>
-              <span id="ckDiscount" class="text-sm font-bold text-green-600">-0đ</span>
+              <span class="text-sm text-green-600 font-medium"><i class="fas fa-tag mr-1"></i>GiÃ¡ÂºÂ£m giÃƒÂ¡:</span>
+              <span id="ckDiscount" class="text-sm font-bold text-green-600">-0Ã„â€˜</span>
             </div>
             <div class="flex justify-between items-center">
-              <span class="font-semibold text-gray-700">Tổng cộng:</span>
-              <span id="ckTotal" class="text-2xl font-bold text-pink-600">0đ</span>
+              <span class="font-semibold text-gray-700">TÃ¡Â»â€¢ng cÃ¡Â»â„¢ng:</span>
+              <span id="ckTotal" class="text-2xl font-bold text-pink-600">0Ã„â€˜</span>
             </div>
           </div>
         </div>
@@ -905,7 +905,7 @@ export function storefrontHTML(): string {
       <div class="flex-shrink-0 border-t bg-white px-5 py-4">
         <button onclick="submitCartOrder()" id="submitCartBtn"
           class="btn-primary w-full text-white py-3.5 rounded-xl font-bold text-base">
-          <i class="fas fa-shopping-cart mr-2"></i>Đặt hàng ngay
+          <i class="fas fa-shopping-cart mr-2"></i>Ã„ÂÃ¡ÂºÂ·t hÃƒÂ ng ngay
         </button>
       </div>
     </div>
@@ -920,17 +920,17 @@ export function storefrontHTML(): string {
     <!-- Header -->
     <div class="bg-gradient-to-r from-gray-900 to-gray-800 text-white px-5 py-5 flex-shrink-0">
       <div class="flex items-center justify-between mb-4">
-        <h2 class="font-display text-lg font-bold">Tài khoản</h2>
+        <h2 class="font-display text-lg font-bold">TÃƒÂ i khoÃ¡ÂºÂ£n</h2>
         <button onclick="closeUserMenu()" class="w-8 h-8 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 transition">
           <i class="fas fa-times"></i>
         </button>
       </div>
       <!-- Guest state -->
       <div id="userMenuGuest">
-        <p class="text-gray-300 text-sm mb-3">Đăng nhập để lưu lịch sử đơn hàng</p>
+        <p class="text-gray-300 text-sm mb-3">Ã„ÂÃ„Æ’ng nhÃ¡ÂºÂ­p Ã„â€˜Ã¡Â»Æ’ lÃ†Â°u lÃ¡Â»â€¹ch sÃ¡Â»Â­ Ã„â€˜Ã†Â¡n hÃƒÂ ng</p>
         <button onclick="loginWithGoogle()" class="w-full flex items-center justify-center gap-3 bg-white text-gray-800 px-4 py-3 rounded-xl font-semibold text-sm hover:bg-gray-100 transition">
           <svg width="18" height="18" viewBox="0 0 18 18"><path d="M17.6 9.2c0-.6-.1-1.2-.2-1.8H9v3.4h4.8c-.2 1.1-.8 2-1.7 2.6v2.2h2.8c1.6-1.5 2.7-3.7 2.7-6.4z" fill="#4285F4"/><path d="M9 18c2.4 0 4.5-.8 6-2.2l-2.8-2.2c-.8.6-1.9.9-3.2.9-2.5 0-4.5-1.7-5.3-3.9H.8v2.3C2.3 16 5.4 18 9 18z" fill="#34A853"/><path d="M3.7 10.7c-.2-.6-.3-1.2-.3-1.7s.1-1.2.3-1.7V5H.8C.3 6 0 7.2 0 9s.3 3 .8 4l2.9-2.3z" fill="#FBBC05"/><path d="M9 3.6c1.4 0 2.6.5 3.5 1.4l2.6-2.6C13.5.9 11.4 0 9 0 5.4 0 2.3 2 .8 5l2.9 2.3c.8-2.2 2.8-3.7 5.3-3.7z" fill="#EA4335"/></svg>
-          Đăng nhập bằng Google
+          Ã„ÂÃ„Æ’ng nhÃ¡ÂºÂ­p bÃ¡ÂºÂ±ng Google
         </button>
       </div>
       <!-- Logged in state -->
@@ -948,14 +948,14 @@ export function storefrontHTML(): string {
     <div class="flex-1 overflow-y-auto px-4 py-4">
       <nav class="space-y-1">
         <button onclick="showUserAccount()" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-pink-50 hover:text-pink-600 transition text-sm font-medium text-left">
-          <i class="fas fa-user-circle w-5 text-pink-400"></i>Quản lý tài khoản
+          <i class="fas fa-user-circle w-5 text-pink-400"></i>QuÃ¡ÂºÂ£n lÃƒÂ½ tÃƒÂ i khoÃ¡ÂºÂ£n
         </button>
         <button onclick="showUserOrders()" id="userOrdersBtn" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-pink-50 hover:text-pink-600 transition text-sm font-medium text-left">
-          <i class="fas fa-clipboard-list w-5 text-pink-400"></i>Lịch sử mua hàng
+          <i class="fas fa-clipboard-list w-5 text-pink-400"></i>LÃ¡Â»â€¹ch sÃ¡Â»Â­ mua hÃƒÂ ng
         </button>
         <button onclick="showWalletInMenu()" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-pink-50 hover:text-pink-600 transition text-sm font-medium text-left">
-          <i class="fas fa-wallet w-5 text-pink-400"></i>Nạp tiền vào ví
-          <span id="walletBalanceMenu" class="ml-auto text-xs bg-green-50 text-green-600 px-2 py-0.5 rounded-full font-semibold">0đ</span>
+          <i class="fas fa-wallet w-5 text-pink-400"></i>NÃ¡ÂºÂ¡p tiÃ¡Â»Ân vÃƒÂ o vÃƒÂ­
+          <span id="walletBalanceMenu" class="ml-auto text-xs bg-green-50 text-green-600 px-2 py-0.5 rounded-full font-semibold">0Ã„â€˜</span>
         </button>
       </nav>
       <!-- Content area -->
@@ -964,7 +964,7 @@ export function storefrontHTML(): string {
     <!-- Logout (only when logged in) -->
     <div id="userMenuLogoutArea" class="hidden flex-shrink-0 border-t px-5 py-4">
       <button onclick="logoutUser()" class="w-full flex items-center justify-center gap-2 border-2 border-red-200 text-red-500 py-2.5 rounded-xl font-semibold text-sm hover:bg-red-50 transition">
-        <i class="fas fa-sign-out-alt"></i>Đăng xuất
+        <i class="fas fa-sign-out-alt"></i>Ã„ÂÃ„Æ’ng xuÃ¡ÂºÂ¥t
       </button>
     </div>
   </div>
@@ -993,7 +993,7 @@ let detailSelectedColorIndex = -1
 let detailSelectedSize = ''
 let detailSelectedProductId = null
 
-// ── CART STATE ─────────────────────────────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬ CART STATE Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 // cart = [{ cartId, productId, name, sku, thumbnail, price, color, size, qty, checked }]
 let cart = []
 let cartStep = 1  // 1=list, 2=checkout
@@ -1129,7 +1129,7 @@ function renderAddressDropdownList(scope, type, keyword = '') {
   const labelEl = document.getElementById(dIds.labelId)
   if (!selectEl || !optionsEl || !labelEl) return
 
-  const placeholder = String(selectEl.options?.[0]?.textContent || (type === 'province' ? 'Chọn tỉnh/thành' : 'Chọn phường/xã'))
+  const placeholder = String(selectEl.options?.[0]?.textContent || (type === 'province' ? 'ChÃ¡Â»Ân tÃ¡Â»â€°nh/thÃƒÂ nh' : 'ChÃ¡Â»Ân phÃ†Â°Ã¡Â»Âng/xÃƒÂ£'))
   const selectedCode = String(selectEl.value || '').trim()
   const selectedOpt = Array.from(selectEl.options).find((opt, idx) => idx > 0 && String(opt.value || '').trim() === selectedCode)
   labelEl.textContent = selectedOpt ? String(selectedOpt.textContent || '') : placeholder
@@ -1142,7 +1142,7 @@ function renderAddressDropdownList(scope, type, keyword = '') {
   const filtered = getFilteredAddressOptions(list, keyword)
 
   if (!filtered.length) {
-    optionsEl.innerHTML = '<div class="px-3 py-2 text-sm text-gray-400">Không tìm thấy kết quả</div>'
+    optionsEl.innerHTML = '<div class="px-3 py-2 text-sm text-gray-400">KhÃƒÂ´ng tÃƒÂ¬m thÃ¡ÂºÂ¥y kÃ¡ÂºÂ¿t quÃ¡ÂºÂ£</div>'
     return
   }
 
@@ -1156,7 +1156,7 @@ function renderProvinceOptionsForScope(scope, keyword = '') {
   const ids = getAddressScopeElements(scope)
   const provinceEl = document.getElementById(ids.provinceId)
   const filtered = getFilteredAddressOptions(addressProvinceOptions, keyword)
-  setAddressSelectOptions(provinceEl, filtered, filtered.length ? 'Chọn tỉnh/thành' : 'Không tìm thấy tỉnh/thành')
+  setAddressSelectOptions(provinceEl, filtered, filtered.length ? 'ChÃ¡Â»Ân tÃ¡Â»â€°nh/thÃƒÂ nh' : 'KhÃƒÂ´ng tÃƒÂ¬m thÃ¡ÂºÂ¥y tÃ¡Â»â€°nh/thÃƒÂ nh')
   renderAddressDropdownList(scope, 'province', keyword)
 }
 
@@ -1168,8 +1168,8 @@ function renderCommuneOptionsForScope(scope, keyword = '') {
   const list = provinceCode ? (addressCommuneOptionsByProvince[provinceCode] || []) : []
   const filtered = getFilteredAddressOptions(list, keyword)
   const placeholder = provinceCode
-    ? (filtered.length ? 'Chọn phường/xã' : 'Không tìm thấy phường/xã')
-    : 'Chọn phường/xã'
+    ? (filtered.length ? 'ChÃ¡Â»Ân phÃ†Â°Ã¡Â»Âng/xÃƒÂ£' : 'KhÃƒÂ´ng tÃƒÂ¬m thÃ¡ÂºÂ¥y phÃ†Â°Ã¡Â»Âng/xÃƒÂ£')
+    : 'ChÃ¡Â»Ân phÃ†Â°Ã¡Â»Âng/xÃƒÂ£'
   setAddressSelectOptions(communeEl, filtered, placeholder)
   renderAddressDropdownList(scope, 'commune', keyword)
 }
@@ -1242,7 +1242,7 @@ function resetAddressScope(scope) {
   addressDropdownSearchState[scope + ':commune'] = ''
   renderProvinceOptionsForScope(scope)
   if (provinceEl) provinceEl.value = ''
-  if (communeEl) setAddressSelectOptions(communeEl, [], 'Chọn phường/xã')
+  if (communeEl) setAddressSelectOptions(communeEl, [], 'ChÃ¡Â»Ân phÃ†Â°Ã¡Â»Âng/xÃƒÂ£')
   renderAddressDropdownList(scope, 'province', '')
   renderAddressDropdownList(scope, 'commune', '')
   if (detailEl) detailEl.value = ''
@@ -1255,7 +1255,7 @@ async function onAddressProvinceChange(scope) {
   const communeEl = document.getElementById(ids.communeId)
   const selectedCode = String(provinceEl?.value || '').trim()
   addressDropdownSearchState[scope + ':commune'] = ''
-  setAddressSelectOptions(communeEl, [], selectedCode ? 'Đang tải phường/xã...' : 'Chọn phường/xã')
+  setAddressSelectOptions(communeEl, [], selectedCode ? 'Ã„Âang tÃ¡ÂºÂ£i phÃ†Â°Ã¡Â»Âng/xÃƒÂ£...' : 'ChÃ¡Â»Ân phÃ†Â°Ã¡Â»Âng/xÃƒÂ£')
   renderAddressDropdownList(scope, 'commune', '')
   if (!selectedCode) {
     renderCommuneOptionsForScope(scope)
@@ -1268,8 +1268,8 @@ async function onAddressProvinceChange(scope) {
     await fetchAddressCommunesByProvince(selectedCode)
     renderCommuneOptionsForScope(scope)
   } catch (_) {
-    setAddressSelectOptions(communeEl, [], 'Không tải được phường/xã')
-    showToast('Không tải được danh sách phường/xã. Vui lòng thử lại.', 'error', 4500)
+    setAddressSelectOptions(communeEl, [], 'KhÃƒÂ´ng tÃ¡ÂºÂ£i Ã„â€˜Ã†Â°Ã¡Â»Â£c phÃ†Â°Ã¡Â»Âng/xÃƒÂ£')
+    showToast('KhÃƒÂ´ng tÃ¡ÂºÂ£i Ã„â€˜Ã†Â°Ã¡Â»Â£c danh sÃƒÂ¡ch phÃ†Â°Ã¡Â»Âng/xÃƒÂ£. Vui lÃƒÂ²ng thÃ¡Â»Â­ lÃ¡ÂºÂ¡i.', 'error', 4500)
   }
   syncAddressFullText(scope)
   if (scope === 'ck') clearCheckoutError(ids.fieldId)
@@ -1444,7 +1444,7 @@ function addToCart(product, color, size, qty) {
   saveCart()
 }
 
-// ── INIT ──────────────────────────────────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬ INIT Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 async function loadProducts() {
   try {
     const res = await axios.get('/api/products')
@@ -1452,7 +1452,7 @@ async function loadProducts() {
     filteredProducts = [...allProducts]
     renderProducts(filteredProducts)
   } catch(e) {
-    document.getElementById('productsGrid').innerHTML = '<div class="col-span-4 text-center text-gray-400 py-12"><i class="fas fa-exclamation-circle text-4xl mb-3"></i><p>Không thể tải sản phẩm</p></div>'
+    document.getElementById('productsGrid').innerHTML = '<div class="col-span-4 text-center text-gray-400 py-12"><i class="fas fa-exclamation-circle text-4xl mb-3"></i><p>KhÃƒÂ´ng thÃ¡Â»Æ’ tÃ¡ÂºÂ£i sÃ¡ÂºÂ£n phÃ¡ÂºÂ©m</p></div>'
   }
 }
 
@@ -1475,9 +1475,9 @@ function renderProducts(products) {
           alt="\${p.name}" class="w-full product-img-main" loading="lazy"
           onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'">
         \${discount > 0 ? \`<span class="absolute top-3 left-3 badge-sale text-white text-xs font-bold px-2 py-1 rounded-full">-\${discount}%</span>\` : ''}
-        \${p.is_featured ? \`<span class="absolute top-3 right-3 bg-amber-400 text-white text-xs font-bold px-2 py-1 rounded-full">⭐ Hot</span>\` : ''}
+        \${p.is_featured ? \`<span class="absolute top-3 right-3 bg-amber-400 text-white text-xs font-bold px-2 py-1 rounded-full">Ã¢Â­Â Hot</span>\` : ''}
         <div class="absolute inset-0 bg-black/0 hover:bg-black/10 transition flex items-center justify-center opacity-0 hover:opacity-100">
-          <span class="bg-white/90 text-gray-800 px-3 py-1 rounded-full text-xs font-semibold">Xem chi tiết</span>
+          <span class="bg-white/90 text-gray-800 px-3 py-1 rounded-full text-xs font-semibold">Xem chi tiÃ¡ÂºÂ¿t</span>
         </div>
       </div>
       <div class="p-3 md:p-4">
@@ -1497,7 +1497,7 @@ function renderProducts(products) {
             class="btn-primary flex-1 text-white py-2 rounded-xl text-sm font-semibold">
             <i class="fas fa-bolt mr-1"></i>Mua ngay
           </button>
-          <button onclick="event.stopPropagation();addToCartFromCard(event, \${p.id})" title="Thêm vào giỏ hàng"
+          <button onclick="event.stopPropagation();addToCartFromCard(event, \${p.id})" title="ThÃƒÂªm vÃƒÂ o giÃ¡Â»Â hÃƒÂ ng"
             class="w-10 h-9 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-white rounded-xl transition group relative">
             <i class="fas fa-shopping-bag text-sm"></i>
           </button>
@@ -1507,7 +1507,7 @@ function renderProducts(products) {
   }).join('')
 }
 
-// ── FILTER & SEARCH ────────────────────────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬ FILTER & SEARCH Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 function filterProducts(cat, btn) {
   document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'))
   btn.classList.add('active')
@@ -1531,7 +1531,7 @@ function searchProducts(q) {
   renderProducts(filteredProducts)
 }
 
-// ── PRODUCT DETAIL ─────────────────────────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬ PRODUCT DETAIL Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 async function showDetail(id) {
   try {
     const res = await axios.get('/api/products/' + id)
@@ -1565,10 +1565,10 @@ async function showDetail(id) {
           \${p.original_price ? \`<span class="text-gray-400 line-through">\${fmtPrice(p.original_price)}</span><span class="badge-sale text-white text-xs px-2 py-1 rounded-full">-\${discount}%</span>\` : ''}
         </div>
         \${p.description ? \`<p class="text-gray-600 text-sm leading-relaxed mb-4">\${p.description}</p>\` : ''}
-        \${p.material ? \`<p class="text-sm text-gray-500 mb-4"><strong>Chất liệu:</strong> \${p.material}</p>\` : ''}
+        \${p.material ? \`<p class="text-sm text-gray-500 mb-4"><strong>ChÃ¡ÂºÂ¥t liÃ¡Â»â€¡u:</strong> \${p.material}</p>\` : ''}
         \${detailColorOptions.length ? \`
         <div class="mb-4">
-          <p class="text-sm font-semibold mb-2">Màu sắc: <span class="text-pink-500" id="detailColorLabel"></span></p>
+          <p class="text-sm font-semibold mb-2">MÃƒÂ u sÃ¡ÂºÂ¯c: <span class="text-pink-500" id="detailColorLabel"></span></p>
           <div class="grid grid-cols-2 sm:grid-cols-3 gap-3" id="detailColorGrid">
             \${detailColorOptions.map((item, idx) => \`<button type="button"
               class="detail-color-card group overflow-hidden rounded-2xl border-2 border-gray-200 bg-white text-left transition hover:border-pink-300 hover:shadow-sm"
@@ -1576,7 +1576,7 @@ async function showDetail(id) {
               <div class="relative aspect-square bg-gray-100 overflow-hidden">
                 \${item.image
                   ? \`<img src="\${item.image}" alt="\${item.name}" class="w-full h-full object-cover transition duration-300 group-hover:scale-[1.02]">\`
-                  : \`<div class="w-full h-full flex items-center justify-center text-gray-300 text-xs">Không có ảnh</div>\`}
+                  : \`<div class="w-full h-full flex items-center justify-center text-gray-300 text-xs">KhÃƒÂ´ng cÃƒÂ³ Ã¡ÂºÂ£nh</div>\`}
               </div>
               <div class="px-2.5 py-2 text-center">
                 <span class="block text-sm font-medium text-gray-900 leading-tight">\${item.name}</span>
@@ -1592,7 +1592,7 @@ async function showDetail(id) {
           </div>
         </div>\` : ''}
         <button onclick="closeDetail();collapseBanners();openOrder(\${p.id})" class="btn-primary w-full text-white py-3.5 rounded-xl font-bold text-base">
-          <i class="fas fa-shopping-cart mr-2"></i>Đặt hàng ngay
+          <i class="fas fa-shopping-cart mr-2"></i>Ã„ÂÃ¡ÂºÂ·t hÃƒÂ ng ngay
         </button>
       </div>
     </div>\`
@@ -1604,7 +1604,7 @@ async function showDetail(id) {
       const label = document.getElementById('detailColorLabel')
       if (label) label.textContent = ''
     }
-  } catch(e) { showToast('Không thể tải chi tiết sản phẩm', 'error') }
+  } catch(e) { showToast('KhÃƒÂ´ng thÃ¡Â»Æ’ tÃ¡ÂºÂ£i chi tiÃ¡ÂºÂ¿t sÃ¡ÂºÂ£n phÃ¡ÂºÂ©m', 'error') }
 }
 
 function selectDetailColorByIndex(idx, btn) {
@@ -1630,7 +1630,7 @@ function selectDetailSize(s, btn) {
 }
 function closeDetail() { document.getElementById('detailOverlay').classList.add('hidden') }
 
-// ── ORDER POPUP ────────────────────────────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬ ORDER POPUP Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 async function openOrder(id) {
   try {
     await ensureAddressKitReady()
@@ -1672,7 +1672,7 @@ async function openOrder(id) {
         \${item.image ? \`<img src="\${item.image}" alt="" class="w-5 h-5 rounded-md object-cover border border-gray-200">\` : '<span class="w-5 h-5 rounded-md bg-gray-100 border border-gray-200"></span>'}
         <span>\${item.name}</span>
       </button>
-    \`).join('') : '<p class="text-gray-400 text-sm">Không có lựa chọn màu</p>'
+    \`).join('') : '<p class="text-gray-400 text-sm">KhÃƒÂ´ng cÃƒÂ³ lÃ¡Â»Â±a chÃ¡Â»Ân mÃƒÂ u</p>'
     const shouldPrefillFromDetail = Number(detailSelectedProductId || 0) === Number(currentProduct?.id || 0) && detailSelectedColor
     if (shouldPrefillFromDetail) {
       const matchedIndex = orderColorOptions.findIndex((item) => String(item.name || '').trim().toLowerCase() === String(detailSelectedColor || '').trim().toLowerCase())
@@ -1687,7 +1687,7 @@ async function openOrder(id) {
     const sizeDiv = document.getElementById('sizeOptions')
     sizeDiv.innerHTML = sizes.length ? sizes.map(s => \`
       <button class="size-btn px-3 py-1.5 border rounded-lg text-sm font-medium hover:border-pink-400 transition" onclick="selectOrderSize('\${s}',this)">\${s}</button>
-    \`).join('') : '<p class="text-gray-400 text-sm">Không có size</p>'
+    \`).join('') : '<p class="text-gray-400 text-sm">KhÃƒÂ´ng cÃƒÂ³ size</p>'
     document.getElementById('sizeSection').style.display = sizes.length ? '' : 'none'
     const shouldPrefillSizeFromDetail = Number(detailSelectedProductId || 0) === Number(currentProduct?.id || 0) && detailSelectedSize
     if (shouldPrefillSizeFromDetail) {
@@ -1700,7 +1700,7 @@ async function openOrder(id) {
 
     document.getElementById('orderOverlay').classList.remove('hidden')
     document.body.style.overflow = 'hidden'
-  } catch(e) { showToast('Lỗi khi tải sản phẩm', 'error') }
+  } catch(e) { showToast('LÃ¡Â»â€”i khi tÃ¡ÂºÂ£i sÃ¡ÂºÂ£n phÃ¡ÂºÂ©m', 'error') }
 }
 
 function selectOrderColor(c, colorImage, btn) {
@@ -1844,7 +1844,7 @@ function animateFlyToCart(imgUrl, sourceEl) {
   setTimeout(() => chip.remove(), 760)
 }
 
-// Add to cart from product card – always add directly, pick first color/size as default
+// Add to cart from product card Ã¢â‚¬â€œ always add directly, pick first color/size as default
 async function addToCartFromCard(evt, id) {
   try {
     const res = await axios.get('/api/products/' + id)
@@ -1855,11 +1855,11 @@ async function addToCartFromCard(evt, id) {
     const size = sizes.length > 0 ? sizes[0] : ''
     animateFlyToCart(resolveFlyImage(p), evt?.currentTarget || evt?.target || null)
     addToCart(p, color, size, 1)
-    showToast('Đã thêm "' + p.name + '" vào giỏ hàng!', 'success', 2500)
-  } catch(e) { showToast('Lỗi khi thêm vào giỏ', 'error') }
+    showToast('Ã„ÂÃƒÂ£ thÃƒÂªm "' + p.name + '" vÃƒÂ o giÃ¡Â»Â hÃƒÂ ng!', 'success', 2500)
+  } catch(e) { showToast('LÃ¡Â»â€”i khi thÃƒÂªm vÃƒÂ o giÃ¡Â»Â', 'error') }
 }
 
-// ── VOUCHER ────────────────────────────────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬ VOUCHER Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 async function applyVoucher() {
   const code = document.getElementById('orderVoucher').value.trim().toUpperCase()
   const statusEl = document.getElementById('voucherStatus')
@@ -1867,7 +1867,7 @@ async function applyVoucher() {
   
   if (!code) {
     statusEl.className = 'mt-2 voucher-error rounded-xl px-3 py-2 text-sm text-red-600 font-medium'
-    statusEl.innerHTML = '<i class="fas fa-times-circle mr-1"></i>Vui lòng nhập mã voucher'
+    statusEl.innerHTML = '<i class="fas fa-times-circle mr-1"></i>Vui lÃƒÂ²ng nhÃ¡ÂºÂ­p mÃƒÂ£ voucher'
     statusEl.classList.remove('hidden')
     return
   }
@@ -1880,16 +1880,16 @@ async function applyVoucher() {
     const res = await axios.post('/api/vouchers/validate', { code })
     appliedVoucher = res.data.data
     statusEl.className = 'mt-2 voucher-success rounded-xl px-3 py-2 text-sm text-green-700 font-semibold flex items-center gap-2'
-    statusEl.innerHTML = \`<i class="fas fa-check-circle text-green-500"></i>Áp dụng thành công! Giảm <strong>\${fmtPrice(appliedVoucher.discount_amount)}</strong>\`
+    statusEl.innerHTML = \`<i class="fas fa-check-circle text-green-500"></i>ÃƒÂp dÃ¡Â»Â¥ng thÃƒÂ nh cÃƒÂ´ng! GiÃ¡ÂºÂ£m <strong>\${fmtPrice(appliedVoucher.discount_amount)}</strong>\`
     statusEl.classList.remove('hidden')
     updateOrderTotal()
     document.getElementById('orderVoucher').classList.add('border-green-400','bg-green-50')
   } catch(err) {
     appliedVoucher = null
     const errCode = err.response?.data?.error
-    const msg = errCode === 'VOUCHER_LIMIT' ? 'Voucher đã hết lượt sử dụng'
-              : errCode === 'INVALID_VOUCHER' ? 'Mã không hợp lệ hoặc đã hết hạn'
-              : 'Không thể áp dụng mã này'
+    const msg = errCode === 'VOUCHER_LIMIT' ? 'Voucher Ã„â€˜ÃƒÂ£ hÃ¡ÂºÂ¿t lÃ†Â°Ã¡Â»Â£t sÃ¡Â»Â­ dÃ¡Â»Â¥ng'
+              : errCode === 'INVALID_VOUCHER' ? 'MÃƒÂ£ khÃƒÂ´ng hÃ¡Â»Â£p lÃ¡Â»â€¡ hoÃ¡ÂºÂ·c Ã„â€˜ÃƒÂ£ hÃ¡ÂºÂ¿t hÃ¡ÂºÂ¡n'
+              : 'KhÃƒÂ´ng thÃ¡Â»Æ’ ÃƒÂ¡p dÃ¡Â»Â¥ng mÃƒÂ£ nÃƒÂ y'
     statusEl.className = 'mt-2 voucher-error rounded-xl px-3 py-2 text-sm text-red-600 font-medium flex items-center gap-1'
     statusEl.innerHTML = \`<i class="fas fa-times-circle mr-1"></i>\${msg}\`
     statusEl.classList.remove('hidden')
@@ -1897,13 +1897,13 @@ async function applyVoucher() {
     updateOrderTotal()
   } finally {
     btn.disabled = false
-    btn.innerHTML = appliedVoucher ? '<i class="fas fa-check mr-1"></i>Đã áp dụng' : 'Áp dụng'
+    btn.innerHTML = appliedVoucher ? '<i class="fas fa-check mr-1"></i>Ã„ÂÃƒÂ£ ÃƒÂ¡p dÃ¡Â»Â¥ng' : 'ÃƒÂp dÃ¡Â»Â¥ng'
     if (appliedVoucher) btn.classList.replace('bg-gray-800','bg-green-600')
     else btn.className = 'px-4 py-2.5 bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-sm font-semibold transition whitespace-nowrap'
   }
 }
 
-// ── VALIDATION SHAKE + SCROLL ─────────────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬ VALIDATION SHAKE + SCROLL Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 function shakeField(fieldId) {
   const el = document.getElementById(fieldId)
   if (!el) return
@@ -1919,7 +1919,7 @@ function clearFieldError(fieldId) {
   document.getElementById(fieldId)?.classList.remove('field-error')
 }
 
-// ── SUBMIT ORDER ───────────────────────────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬ SUBMIT ORDER Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 async function submitOrder() {
   const name = document.getElementById('orderName').value.trim()
   const phone = document.getElementById('orderPhone').value.trim()
@@ -1949,7 +1949,7 @@ async function submitOrder() {
 
   const btn = document.getElementById('submitOrderBtn')
   btn.disabled = true
-  btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Đang xử lý...'
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Ã„Âang xÃ¡Â»Â­ lÃƒÂ½...'
   let payTabRef = null
   if (selectedPaymentMethod === 'BANK_TRANSFER') {
     try { payTabRef = window.open('about:blank', '_blank') } catch (_) { payTabRef = null }
@@ -1985,11 +1985,11 @@ async function submitOrder() {
         const payos = await axios.post('/api/orders/' + orderId + '/payos-link', { origin: window.location.origin })
         payosData = payos.data?.data || null
       } catch (_) {
-        showToast('PayOS tạm lỗi, đang chuyển sang QR dự phòng.', 'error', 4500)
+        showToast('PayOS tÃ¡ÂºÂ¡m lÃ¡Â»â€”i, Ã„â€˜ang chuyÃ¡Â»Æ’n sang QR dÃ¡Â»Â± phÃƒÂ²ng.', 'error', 4500)
       }
       if (payosData?.alreadyPaid) {
         onOrderMarkedPaid(orderCode)
-        showToast('Đơn ' + orderCode + ' đã được thanh toán trước đó.', 'success', 4500)
+        showToast('Ã„ÂÃ†Â¡n ' + orderCode + ' Ã„â€˜ÃƒÂ£ Ã„â€˜Ã†Â°Ã¡Â»Â£c thanh toÃƒÂ¡n trÃ†Â°Ã¡Â»â€ºc Ã„â€˜ÃƒÂ³.', 'success', 4500)
         return
       }
       const checkoutUrl = String(payosData?.checkoutUrl || '').trim()
@@ -2001,9 +2001,9 @@ async function submitOrder() {
         if (!payTab) payTab = window.open(checkoutUrl, '_blank')
         if (payTab) {
           startOrderPaymentPolling(orderCode)
-          showToast(\`Đơn \${orderCode}: đã mở tab PayOS, vui lòng hoàn tất thanh toán.\`, 'success', 5000)
+          showToast(\`Ã„ÂÃ†Â¡n \${orderCode}: Ã„â€˜ÃƒÂ£ mÃ¡Â»Å¸ tab PayOS, vui lÃƒÂ²ng hoÃƒÂ n tÃ¡ÂºÂ¥t thanh toÃƒÂ¡n.\`, 'success', 5000)
         } else {
-          showToast('Trình duyệt đang chặn popup, hiển thị QR dự phòng để bạn thanh toán thủ công.', 'error', 5000)
+          showToast('TrÃƒÂ¬nh duyÃ¡Â»â€¡t Ã„â€˜ang chÃ¡ÂºÂ·n popup, hiÃ¡Â»Æ’n thÃ¡Â»â€¹ QR dÃ¡Â»Â± phÃƒÂ²ng Ã„â€˜Ã¡Â»Æ’ bÃ¡ÂºÂ¡n thanh toÃƒÂ¡n thÃ¡Â»Â§ cÃƒÂ´ng.', 'error', 5000)
           openOrderBankTransferModal({
             orderCode,
             orderId,
@@ -2021,7 +2021,7 @@ async function submitOrder() {
           transferContent: 'DH' + orderId,
           paymentLinkId: payosData?.paymentLinkId || ''
         })
-        showToast(\`Đơn hàng \${orderCode} đã tạo. Vui lòng chuyển khoản để hoàn tất.\`, 'success', 5000)
+        showToast(\`Ã„ÂÃ†Â¡n hÃƒÂ ng \${orderCode} Ã„â€˜ÃƒÂ£ tÃ¡ÂºÂ¡o. Vui lÃƒÂ²ng chuyÃ¡Â»Æ’n khoÃ¡ÂºÂ£n Ã„â€˜Ã¡Â»Æ’ hoÃƒÂ n tÃ¡ÂºÂ¥t.\`, 'success', 5000)
       }
     } else if (selectedPaymentMethod === 'ZALOPAY') {
       let zaloData = null
@@ -2041,14 +2041,14 @@ async function submitOrder() {
 
       if (zaloData?.alreadyPaid) {
         onOrderMarkedPaid(orderCode)
-        showToast('Đơn ' + orderCode + ' đã được thanh toán trước đó.', 'success', 4500)
+        showToast('Ã„ÂÃ†Â¡n ' + orderCode + ' Ã„â€˜ÃƒÂ£ Ã„â€˜Ã†Â°Ã¡Â»Â£c thanh toÃƒÂ¡n trÃ†Â°Ã¡Â»â€ºc Ã„â€˜ÃƒÂ³.', 'success', 4500)
         return
       }
 
       const checkoutUrl = String(zaloData?.orderUrl || '').trim()
       if (!checkoutUrl) {
         try { if (payTabRef && !payTabRef.closed) payTabRef.close() } catch (_) { }
-        showToast('Không tạo được liên kết thanh toán ZaloPay.', 'error', 4500)
+        showToast('KhÃƒÂ´ng tÃ¡ÂºÂ¡o Ã„â€˜Ã†Â°Ã¡Â»Â£c liÃƒÂªn kÃ¡ÂºÂ¿t thanh toÃƒÂ¡n ZaloPay.', 'error', 4500)
         return
       }
 
@@ -2061,34 +2061,34 @@ async function submitOrder() {
       if (payTab) {
         zaloPayLinkTab = payTab
         startOrderPaymentPolling(orderCode)
-        showToast(\`Đơn \${orderCode}: đã mở tab ZaloPay, vui lòng quét QR để thanh toán.\`, 'success', 5000)
+        showToast(\`Ã„ÂÃ†Â¡n \${orderCode}: Ã„â€˜ÃƒÂ£ mÃ¡Â»Å¸ tab ZaloPay, vui lÃƒÂ²ng quÃƒÂ©t QR Ã„â€˜Ã¡Â»Æ’ thanh toÃƒÂ¡n.\`, 'success', 5000)
       } else {
-        // Fallback: popup bị chặn, điều hướng luôn tại tab hiện tại
+        // Fallback: popup bÃ¡Â»â€¹ chÃ¡ÂºÂ·n, Ã„â€˜iÃ¡Â»Âu hÃ†Â°Ã¡Â»â€ºng luÃƒÂ´n tÃ¡ÂºÂ¡i tab hiÃ¡Â»â€¡n tÃ¡ÂºÂ¡i
         startOrderPaymentPolling(orderCode)
         window.location.href = checkoutUrl
       }
     } else {
-      showToast(\`🎉 Đặt hàng thành công! Mã đơn: \${orderCode}\`, 'success', 5000)
+      showToast(\`Ã°Å¸Å½â€° Ã„ÂÃ¡ÂºÂ·t hÃƒÂ ng thÃƒÂ nh cÃƒÂ´ng! MÃƒÂ£ Ã„â€˜Ã†Â¡n: \${orderCode}\`, 'success', 5000)
     }
   } catch(e) {
     try { if (payTabRef && !payTabRef.closed) payTabRef.close() } catch (_) { }
     const errCode = e.response?.data?.error
     if (errCode === 'INVALID_VOUCHER' || errCode === 'VOUCHER_LIMIT') {
-      showToast('Voucher không còn hiệu lực, vui lòng thử lại', 'error')
+      showToast('Voucher khÃƒÂ´ng cÃƒÂ²n hiÃ¡Â»â€¡u lÃ¡Â»Â±c, vui lÃƒÂ²ng thÃ¡Â»Â­ lÃ¡ÂºÂ¡i', 'error')
       appliedVoucher = null
       updateOrderTotal()
-      document.getElementById('voucherBtn').innerHTML = 'Áp dụng'
+      document.getElementById('voucherBtn').innerHTML = 'ÃƒÂp dÃ¡Â»Â¥ng'
       document.getElementById('voucherBtn').className = 'px-4 py-2.5 bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-sm font-semibold transition whitespace-nowrap'
     } else if (errCode === 'ZALOPAY_CONFIG_MISSING') {
       const missing = Array.isArray(e.response?.data?.missing) ? e.response.data.missing : []
       const detail = missing.length ? (': ' + missing.join(', ')) : ''
       showToast('ZaloPay chua cau hinh day du' + detail, 'error', 5500)
     } else {
-      showToast('Đặt hàng thất bại, thử lại sau', 'error')
+      showToast('Ã„ÂÃ¡ÂºÂ·t hÃƒÂ ng thÃ¡ÂºÂ¥t bÃ¡ÂºÂ¡i, thÃ¡Â»Â­ lÃ¡ÂºÂ¡i sau', 'error')
     }
   } finally {
     btn.disabled = false
-    btn.innerHTML = '<i class="fas fa-shopping-cart mr-2"></i>Đặt hàng ngay'
+    btn.innerHTML = '<i class="fas fa-shopping-cart mr-2"></i>Ã„ÂÃ¡ÂºÂ·t hÃƒÂ ng ngay'
   }
 }
 
@@ -2101,7 +2101,7 @@ function addCurrentToCart() {
   showToast('Da them "' + currentProduct.name + '" vao gio hang!', 'success', 2500)
 }
 
-// ── UTILS ──────────────────────────────────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬ UTILS Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 function fmtPrice(p) { return new Intl.NumberFormat('vi-VN',{style:'currency',currency:'VND'}).format(p) }
 function safeJson(v) { try { return JSON.parse(v||'[]') } catch { return [] } }
 function normalizeColorOptions(raw) {
@@ -2151,12 +2151,12 @@ window.getColorNames = getColorNames
 function formatPaymentMethod(v) {
   const key = String(v || '').toUpperCase()
   if (key === 'ZALOPAY') return 'ZaloPay'
-  if (key === 'MOMO') return 'Ví điện tử MoMo'
-  if (key === 'BANK_TRANSFER') return 'Chuyển khoản ngân hàng'
-  return 'COD - Thanh toán khi giao'
+  if (key === 'MOMO') return 'VÃƒÂ­ Ã„â€˜iÃ¡Â»â€¡n tÃ¡Â»Â­ MoMo'
+  if (key === 'BANK_TRANSFER') return 'ChuyÃ¡Â»Æ’n khoÃ¡ÂºÂ£n ngÃƒÂ¢n hÃƒÂ ng'
+  return 'COD - Thanh toÃƒÂ¡n khi giao'
 }
 function paymentStatusLabel(v) {
-  return String(v || '').toLowerCase() === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán'
+  return String(v || '').toLowerCase() === 'paid' ? 'Ã„ÂÃƒÂ£ thanh toÃƒÂ¡n' : 'ChÃ†Â°a thanh toÃƒÂ¡n'
 }
 function paymentStatusClass(v) {
   return String(v || '').toLowerCase() === 'paid'
@@ -2185,7 +2185,7 @@ function toggleMobileMenu() {
   const m = document.getElementById('mobileMenu')
   m.classList.toggle('hidden')
 }
-// ── CART MODAL ────────────────────────────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬ CART MODAL Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 function openCart() {
   cartStep = 1
   ckAppliedVoucher = null
@@ -2195,7 +2195,7 @@ function openCart() {
   document.getElementById('cartStep2').classList.remove('flex')
   document.getElementById('cartStep1').classList.remove('hidden')
   document.getElementById('cartBackBtn').classList.add('hidden')
-  document.getElementById('cartTitle').textContent = 'Giỏ hàng'
+  document.getElementById('cartTitle').textContent = 'GiÃ¡Â»Â hÃƒÂ ng'
   document.body.style.overflow = 'hidden'
 }
 function closeCart() {
@@ -2211,7 +2211,7 @@ function cartGoBack() {
   document.getElementById('cartStep2').classList.remove('flex')
   document.getElementById('cartStep1').classList.remove('hidden')
   document.getElementById('cartBackBtn').classList.add('hidden')
-  document.getElementById('cartTitle').textContent = 'Giỏ hàng'
+  document.getElementById('cartTitle').textContent = 'GiÃ¡Â»Â hÃƒÂ ng'
   updateCartHeaderSubtitle()
 }
 
@@ -2332,7 +2332,7 @@ function removeChecked() {
   renderCartStep1()
 }
 
-// ── SWIPE TO DELETE ────────────────────────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬ SWIPE TO DELETE Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 function setupSwipeToDelete() {
   document.querySelectorAll('.cart-item').forEach(itemEl => {
     const inner = itemEl.querySelector('.cart-item-inner')
@@ -2374,14 +2374,14 @@ function setupSwipeToDelete() {
   })
 }
 
-// ── CHECKOUT from CART ────────────────────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬ CHECKOUT from CART Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 async function proceedToCheckout() {
   const checked = cart.filter(i=>i.checked)
-  if (checked.length === 0) { showToast('Vui lòng chọn ít nhất 1 sản phẩm','error'); return }
+  if (checked.length === 0) { showToast('Vui lÃƒÂ²ng chÃ¡Â»Ân ÃƒÂ­t nhÃ¡ÂºÂ¥t 1 sÃ¡ÂºÂ£n phÃ¡ÂºÂ©m','error'); return }
   try {
     await ensureAddressKitReady()
   } catch (_) {
-    showToast('Không tải được danh mục địa chỉ, vui lòng thử lại.', 'error', 4500)
+    showToast('KhÃƒÂ´ng tÃ¡ÂºÂ£i Ã„â€˜Ã†Â°Ã¡Â»Â£c danh mÃ¡Â»Â¥c Ã„â€˜Ã¡Â»â€¹a chÃ¡Â»â€°, vui lÃƒÂ²ng thÃ¡Â»Â­ lÃ¡ÂºÂ¡i.', 'error', 4500)
     return
   }
   // Build summary
@@ -2399,7 +2399,7 @@ async function proceedToCheckout() {
   ckAppliedVoucher = null
   document.getElementById('ckVoucher').value = ''
   document.getElementById('ckVoucherStatus').classList.add('hidden')
-  document.getElementById('ckVoucherBtn').textContent = 'Áp dụng'
+  document.getElementById('ckVoucherBtn').textContent = 'ÃƒÂp dÃ¡Â»Â¥ng'
   document.getElementById('ckVoucherBtn').className = 'px-4 py-2.5 bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-sm font-semibold transition whitespace-nowrap'
   updateCkTotal()
   // show step2
@@ -2408,7 +2408,7 @@ async function proceedToCheckout() {
   document.getElementById('cartStep2').classList.remove('hidden')
   document.getElementById('cartStep2').classList.add('flex')
   document.getElementById('cartBackBtn').classList.remove('hidden')
-  document.getElementById('cartTitle').textContent = 'Xác nhận đơn hàng'
+  document.getElementById('cartTitle').textContent = 'XÃƒÂ¡c nhÃ¡ÂºÂ­n Ã„â€˜Ã†Â¡n hÃƒÂ ng'
   document.getElementById('cartSubtitle').textContent = checked.reduce(function(s,i){return s+i.qty},0) + ' san pham'
 }
 
@@ -2434,7 +2434,7 @@ async function applyCkVoucher() {
   const btn = document.getElementById('ckVoucherBtn')
   if (!code) {
     statusEl.className='mt-2 voucher-error rounded-xl px-3 py-2 text-sm text-red-600 font-medium'
-    statusEl.innerHTML='<i class="fas fa-times-circle mr-1"></i>Vui lòng nhập mã voucher'
+    statusEl.innerHTML='<i class="fas fa-times-circle mr-1"></i>Vui lÃƒÂ²ng nhÃ¡ÂºÂ­p mÃƒÂ£ voucher'
     statusEl.classList.remove('hidden'); return
   }
   btn.disabled=true; btn.innerHTML='<i class="fas fa-spinner fa-spin"></i>'
@@ -2450,7 +2450,7 @@ async function applyCkVoucher() {
   } catch(err) {
     ckAppliedVoucher = null
     const errCode = err.response?.data?.error
-    const msg = errCode==='VOUCHER_LIMIT'?'Voucher đã hết lượt':errCode==='INVALID_VOUCHER'?'Mã không hợp lệ hoặc hết hạn':'Không thể áp dụng'
+    const msg = errCode==='VOUCHER_LIMIT'?'Voucher Ã„â€˜ÃƒÂ£ hÃ¡ÂºÂ¿t lÃ†Â°Ã¡Â»Â£t':errCode==='INVALID_VOUCHER'?'MÃƒÂ£ khÃƒÂ´ng hÃ¡Â»Â£p lÃ¡Â»â€¡ hoÃ¡ÂºÂ·c hÃ¡ÂºÂ¿t hÃ¡ÂºÂ¡n':'KhÃƒÂ´ng thÃ¡Â»Æ’ ÃƒÂ¡p dÃ¡Â»Â¥ng'
     statusEl.className='mt-2 voucher-error rounded-xl px-3 py-2 text-sm text-red-600 font-medium flex items-center gap-1'
     statusEl.innerHTML='<i class="fas fa-times-circle mr-1"></i>' + msg
     statusEl.classList.remove('hidden')
@@ -2458,7 +2458,7 @@ async function applyCkVoucher() {
     updateCkTotal()
   } finally {
     btn.disabled=false
-    btn.innerHTML = ckAppliedVoucher ? '<i class="fas fa-check mr-1"></i>Đã áp dụng' : 'Áp dụng'
+    btn.innerHTML = ckAppliedVoucher ? '<i class="fas fa-check mr-1"></i>Ã„ÂÃƒÂ£ ÃƒÂ¡p dÃ¡Â»Â¥ng' : 'ÃƒÂp dÃ¡Â»Â¥ng'
     if(ckAppliedVoucher) btn.classList.replace('bg-gray-800','bg-green-600')
     else btn.className='px-4 py-2.5 bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-sm font-semibold transition whitespace-nowrap'
   }
@@ -2492,7 +2492,7 @@ async function submitCartOrder() {
   const checkedItems = cart.filter(i=>i.checked)
   const btn = document.getElementById('submitCartBtn')
   btn.disabled=true
-  btn.innerHTML='<i class="fas fa-spinner fa-spin mr-2"></i>Đang xử lý...'
+  btn.innerHTML='<i class="fas fa-spinner fa-spin mr-2"></i>Ã„Âang xÃ¡Â»Â­ lÃƒÂ½...'
 
   try {
     const codes = []
@@ -2516,14 +2516,14 @@ async function submitCartOrder() {
   } catch(e) {
     const errCode = e.response?.data?.error
     if (errCode==='INVALID_VOUCHER'||errCode==='VOUCHER_LIMIT') {
-      showToast('Voucher không còn hiệu lực','error')
+      showToast('Voucher khÃƒÂ´ng cÃƒÂ²n hiÃ¡Â»â€¡u lÃ¡Â»Â±c','error')
       ckAppliedVoucher=null; updateCkTotal()
-      document.getElementById('ckVoucherBtn').innerHTML='Áp dụng'
+      document.getElementById('ckVoucherBtn').innerHTML='ÃƒÂp dÃ¡Â»Â¥ng'
       document.getElementById('ckVoucherBtn').className='px-4 py-2.5 bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-sm font-semibold transition whitespace-nowrap'
-    } else { showToast('Đặt hàng thất bại, thử lại sau','error') }
+    } else { showToast('Ã„ÂÃ¡ÂºÂ·t hÃƒÂ ng thÃ¡ÂºÂ¥t bÃ¡ÂºÂ¡i, thÃ¡Â»Â­ lÃ¡ÂºÂ¡i sau','error') }
   } finally {
     btn.disabled=false
-    btn.innerHTML='<i class="fas fa-shopping-cart mr-2"></i>Đặt hàng ngay'
+    btn.innerHTML='<i class="fas fa-shopping-cart mr-2"></i>Ã„ÂÃ¡ÂºÂ·t hÃƒÂ ng ngay'
   }
 }
 
@@ -2556,7 +2556,7 @@ document.addEventListener('keydown', (e) => {
   el.addEventListener('change', clearFn)
 })
 
-// ── DYNAMIC HERO BANNERS ──────────────────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬ DYNAMIC HERO BANNERS Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 let heroBannersData = []
 let heroBannersIsExpanded = false
 
@@ -2580,7 +2580,7 @@ function mapTrendingProductsToHeroCards(products) {
     const categoryLabel = p.category === 'male' ? 'Nam' : p.category === 'female' ? 'Nu' : 'Unisex'
     return {
       image_url: p.thumbnail || imgs[0] || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400',
-      subtitle: categoryLabel + ' · Dang thinh hanh',
+      subtitle: categoryLabel + ' Ã‚Â· Dang thinh hanh',
       title: p.name || '',
       price: fmtPrice(p.price || 0),
       product_id: p.id,
@@ -2628,7 +2628,7 @@ function renderCollapsedBanners(banners) {
     container.innerHTML = \`<div class="relative w-full h-full rounded-3xl border border-white/20 bg-white/5 flex items-center justify-center text-center px-6">
       <div>
         <i class="fas fa-fire text-2xl text-pink-300 mb-2"></i>
-        <p class="text-white/80 text-sm font-medium">Chưa có sản phẩm thịnh hành</p>
+        <p class="text-white/80 text-sm font-medium">ChÃ†Â°a cÃƒÂ³ sÃ¡ÂºÂ£n phÃ¡ÂºÂ©m thÃ¡Â»â€¹nh hÃƒÂ nh</p>
       </div>
     </div>\`
     return
@@ -2656,7 +2656,7 @@ function renderCollapsedBanners(banners) {
   }).join('')}
   </div>
   <div class="absolute flex items-center gap-1.5 bg-white/20 backdrop-blur-sm rounded-full px-3 py-1.5 text-white text-xs font-medium cursor-pointer hover:bg-white/30 transition whitespace-nowrap" style="bottom:-28px;left:50%;transform:translateX(-50%);z-index:5" onclick="expandBanners()">
-    <i class="fas fa-expand-alt mr-1 text-pink-300"></i>Các mẫu thịnh hành
+    <i class="fas fa-expand-alt mr-1 text-pink-300"></i>CÃƒÂ¡c mÃ¡ÂºÂ«u thÃ¡Â»â€¹nh hÃƒÂ nh
   </div>\`
   container.style.paddingBottom = '36px'
   // Hover expand
@@ -2667,7 +2667,7 @@ function renderExpandedBanners(banners) {
   const inner = document.getElementById('heroBannersExpandedInner')
   const title = document.getElementById('heroBannersExpandedTitle')
   if (!inner) return
-  if (title) title.textContent = \`🔥 Đang thịnh hành (\${banners.length} mẫu)\`
+  if (title) title.textContent = \`Ã°Å¸â€Â¥ Ã„Âang thÃ¡Â»â€¹nh hÃƒÂ nh (\${banners.length} mÃ¡ÂºÂ«u)\`
   inner.innerHTML = banners.map(b => {
     if (b.product_id) {
       return \`<a href="javascript:void(0)" class="hero-banner-card" onclick="showDetail(\${b.product_id})">
@@ -2734,7 +2734,7 @@ loadProducts()
 checkUserAuth()
 handlePaymentReturnFlow()
 ensureAddressKitReady().catch(() => {
-  showToast('Không tải được danh mục tỉnh/phường. Bạn có thể thử lại sau.', 'error', 4500)
+  showToast('KhÃƒÂ´ng tÃ¡ÂºÂ£i Ã„â€˜Ã†Â°Ã¡Â»Â£c danh mÃ¡Â»Â¥c tÃ¡Â»â€°nh/phÃ†Â°Ã¡Â»Âng. BÃ¡ÂºÂ¡n cÃƒÂ³ thÃ¡Â»Æ’ thÃ¡Â»Â­ lÃ¡ÂºÂ¡i sau.', 'error', 4500)
 })
 
 window.addEventListener('message', function (event) {
@@ -2745,7 +2745,7 @@ window.addEventListener('message', function (event) {
   }
 })
 
-// ── USER AUTH & MENU ──────────────────────────────
+// Ã¢â€â‚¬Ã¢â€â‚¬ USER AUTH & MENU Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 async function checkUserAuth() {
   try {
     const res = await axios.get('/api/auth/me')
@@ -2773,7 +2773,7 @@ async function checkUserAuth() {
   }
 }
 
-function fmtBalance(v) { return new Intl.NumberFormat('vi-VN').format(v||0) + 'đ' }
+function fmtBalance(v) { return new Intl.NumberFormat('vi-VN').format(v||0) + 'Ã„â€˜' }
 
 function updateUserUI() {
   const defaultAvatar = document.getElementById('userAvatarDefault')
@@ -2852,17 +2852,17 @@ async function logoutUser() {
   syncCartScope(true)
   updateUserUI()
   closeUserMenu()
-  showToast('Đã đăng xuất thành công', 'success')
+  showToast('Ã„ÂÃƒÂ£ Ã„â€˜Ã„Æ’ng xuÃ¡ÂºÂ¥t thÃƒÂ nh cÃƒÂ´ng', 'success')
 }
 
 function showUserAccount() {
   const content = document.getElementById('userMenuContent')
   if (!currentUser) {
-    content.innerHTML = '<div class="text-center py-8 text-gray-400"><i class="fas fa-lock text-3xl mb-3"></i><p>Vui lòng đăng nhập để xem thông tin</p></div>'
+    content.innerHTML = '<div class="text-center py-8 text-gray-400"><i class="fas fa-lock text-3xl mb-3"></i><p>Vui lÃƒÂ²ng Ã„â€˜Ã„Æ’ng nhÃ¡ÂºÂ­p Ã„â€˜Ã¡Â»Æ’ xem thÃƒÂ´ng tin</p></div>'
     return
   }
   content.innerHTML = '<div class="bg-white rounded-2xl border p-4 space-y-3">'
-    + '<h3 class="font-semibold text-gray-800 mb-3"><i class="fas fa-user-circle text-pink-400 mr-2"></i>Thông tin tài khoản</h3>'
+    + '<h3 class="font-semibold text-gray-800 mb-3"><i class="fas fa-user-circle text-pink-400 mr-2"></i>ThÃƒÂ´ng tin tÃƒÂ i khoÃ¡ÂºÂ£n</h3>'
     + '<div class="flex items-center gap-4"><img src="' + (currentUser.avatar||'') + '" class="w-16 h-16 rounded-full object-cover border-2 border-pink-200"><div>'
     + '<p class="font-bold text-gray-900">' + (currentUser.name||'') + '</p>'
     + '<p class="text-sm text-gray-500">' + (currentUser.email||'') + '</p></div></div></div>'
@@ -2871,11 +2871,24 @@ function showUserAccount() {
 async function showUserOrders() {
   const content = document.getElementById('userMenuContent')
   if (!currentUser) {
-    content.innerHTML = '<div class="text-center py-8 text-gray-400"><i class="fas fa-lock text-3xl mb-3"></i><p>Vui lòng đăng nhập để xem lịch sử</p></div>'
+    content.innerHTML = '<div class="text-center py-8 text-gray-400"><i class="fas fa-lock text-3xl mb-3"></i><p>Vui lÃƒÂ²ng Ã„â€˜Ã„Æ’ng nhÃ¡ÂºÂ­p Ã„â€˜Ã¡Â»Æ’ xem lÃ¡Â»â€¹ch sÃ¡Â»Â­</p></div>'
     return
   }
   content.innerHTML = '<div class="text-center py-8"><i class="fas fa-spinner fa-spin text-2xl text-pink-400"></i></div>'
   try {
+    const escapeHtml = function (value) {
+      return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+    }
+    const getOrderHistoryImage = function (o) {
+      const selectedImage = String(o.selected_color_image || '').trim()
+      const fallbackImage = String(o.product_thumbnail || '').trim()
+      return selectedImage || fallbackImage || ''
+    }
     const res = await axios.get('/api/user/orders')
     let orders = res.data.data || []
     const unpaidGatewayOrders = orders.filter(function (o) {
@@ -2895,38 +2908,51 @@ async function showUserOrders() {
       orders = refreshed.data.data || orders
     }
     if (!orders.length) {
-      content.innerHTML = '<div class="text-center py-8 text-gray-400"><i class="fas fa-shopping-bag text-4xl mb-3"></i><p>Chưa có đơn hàng nào</p></div>'
+      content.innerHTML = '<div class="text-center py-8 text-gray-400"><i class="fas fa-shopping-bag text-4xl mb-3"></i><p>ChÃ†Â°a cÃƒÂ³ Ã„â€˜Ã†Â¡n hÃƒÂ ng nÃƒÂ o</p></div>'
       return
     }
-    content.innerHTML = '<h3 class="font-semibold text-gray-800 mb-3"><i class="fas fa-clipboard-list text-pink-400 mr-2"></i>Lịch sử mua hàng</h3>'
+    content.innerHTML = '<h3 class="font-semibold text-gray-800 mb-3"><i class="fas fa-clipboard-list text-pink-400 mr-2"></i>LÃ¡Â»â€¹ch sÃ¡Â»Â­ mua hÃƒÂ ng</h3>'
       + '<div class="space-y-2">' + orders.map(function(o) {
         const paymentPaid = String(o.payment_status || '').toLowerCase() === 'paid'
         const paymentBadgeClass = paymentPaid ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
-        const paymentBadgeText = paymentPaid ? 'Đã thanh toán' : 'Chưa thanh toán'
+        const paymentBadgeText = paymentPaid ? 'Ã„ÂÃƒÂ£ thanh toÃƒÂ¡n' : 'ChÃ†Â°a thanh toÃƒÂ¡n'
         const paymentMethod = String(o.payment_method || '').toUpperCase()
         const orderStatus = String(o.status || '').toLowerCase()
         const canResume = !paymentPaid
           && paymentMethod === 'BANK_TRANSFER'
           && orderStatus !== 'cancelled'
           && orderStatus !== 'done'
+        const imageSrc = getOrderHistoryImage(o)
+        const colorText = String(o.color || '').trim() || 'ChÆ°a chá»n'
+        const sizeText = String(o.size || '').trim() || '--'
+        const productTitle = escapeHtml(o.product_name || '')
         const safeOrderCode = String(o.order_code || '').replace(/'/g, "\\'")
         const methodArg = paymentMethod.replace(/'/g, "\\'")
         const codeHtml = canResume
-          ? '<button class="font-mono text-xs text-blue-600 font-semibold hover:underline" onclick="resumeOrderPayment(' + o.id + ',\\'' + safeOrderCode + '\\',\\'' + methodArg + '\\')">' + o.order_code + '</button>'
-          : '<span class="font-mono text-xs text-blue-600 font-semibold">' + o.order_code + '</span>'
+          ? '<button class="font-mono text-xs text-blue-600 font-semibold hover:underline" onclick="resumeOrderPayment(' + o.id + ',\\'' + safeOrderCode + '\\',\\'' + methodArg + '\\')">' + escapeHtml(o.order_code || '') + '</button>'
+          : '<span class="font-mono text-xs text-blue-600 font-semibold">' + escapeHtml(o.order_code || '') + '</span>'
         const resumeActionHtml = canResume
-          ? '<button class="mt-2 w-full rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-2 transition" onclick="resumeOrderPayment(' + o.id + ',\\'' + safeOrderCode + '\\',\\'' + methodArg + '\\')"><i class="fas fa-qrcode mr-1"></i>Thanh toán</button>'
+          ? '<button class="mt-2 w-full rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-2 transition" onclick="resumeOrderPayment(' + o.id + ',\\'' + safeOrderCode + '\\',\\'' + methodArg + '\\')"><i class="fas fa-qrcode mr-1"></i>Thanh toÃƒÂ¡n</button>'
           : ''
+        const imageHtml = imageSrc
+          ? '<div class="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 border border-gray-100"><img src="' + escapeHtml(imageSrc) + '" alt="' + productTitle + '" class="w-full h-full object-cover"></div>'
+          : '<div class="w-16 h-16 rounded-lg bg-gray-100 flex-shrink-0 border border-gray-100 flex items-center justify-center text-gray-300"><i class="fas fa-image"></i></div>'
         return '<div class="order-history-item border rounded-xl p-3">'
-          + '<div class="flex justify-between items-start mb-1">' + codeHtml
-          + '<span class="text-xs px-2 py-0.5 rounded-full font-medium ' + paymentBadgeClass + '">' + paymentBadgeText + '</span></div>'
-          + '<p class="text-sm font-medium text-gray-800">' + o.product_name + '</p>'
-          + '<div class="flex justify-between items-center mt-1"><span class="text-xs text-gray-400">' + new Date(o.created_at).toLocaleDateString('vi-VN') + '</span>'
-          + '<span class="font-bold text-pink-600 text-sm">' + fmtPrice(getOrderAmountDue(o)) + '</span></div>'
+          + '<div class="flex gap-3">'
+          + imageHtml
+          + '<div class="min-w-0 flex-1">'
+          + '<div class="flex justify-between items-start gap-2 mb-1">' + codeHtml
+          + '<span class="text-xs px-2 py-0.5 rounded-full font-medium ' + paymentBadgeClass + ' whitespace-nowrap">' + paymentBadgeText + '</span></div>'
+          + '<p class="text-sm font-semibold text-gray-800 leading-snug">' + productTitle + '</p>'
+          + '<p class="text-xs text-gray-500 mt-1">MÃ u: ' + escapeHtml(colorText) + ' | Size: ' + escapeHtml(sizeText) + '</p>'
+          + '<div class="flex justify-between items-center mt-2 gap-2"><span class="text-xs text-gray-400">' + new Date(o.created_at).toLocaleDateString('vi-VN') + '</span>'
+          + '<span class="font-bold text-pink-600 text-sm whitespace-nowrap">' + fmtPrice(getOrderAmountDue(o)) + '</span></div>'
           + resumeActionHtml
           + '</div>'
+          + '</div>'
+          + '</div>'
       }).join('') + '</div>'
-  } catch { content.innerHTML = '<div class="text-center py-8 text-red-400">Lỗi tải dữ liệu</div>' }
+  } catch { content.innerHTML = '<div class="text-center py-8 text-red-400">LÃ¡Â»â€”i tÃ¡ÂºÂ£i dÃ¡Â»Â¯ liÃ¡Â»â€¡u</div>' }
 }
 
 async function resumeOrderPayment(orderId, orderCode, paymentMethod) {
@@ -2959,7 +2985,7 @@ async function resumeOrderPayment(orderId, orderCode, paymentMethod) {
       try { if (payTab && !payTab.closed) payTab.close() } catch (_) { }
       await axios.post(syncEndpoint).catch(function () { return null })
       showUserOrders()
-      showToast('Đơn này đã thanh toán thành công', 'success', 3500)
+      showToast('Ã„ÂÃ†Â¡n nÃƒÂ y Ã„â€˜ÃƒÂ£ thanh toÃƒÂ¡n thÃƒÂ nh cÃƒÂ´ng', 'success', 3500)
       return
     }
     const checkoutUrl = isZaloPay
@@ -2967,15 +2993,15 @@ async function resumeOrderPayment(orderId, orderCode, paymentMethod) {
       : String(paymentData.checkoutUrl || '').trim()
     if (!checkoutUrl) {
       try { if (payTab && !payTab.closed) payTab.close() } catch (_) { }
-      showToast('Không tạo được link thanh toán ' + providerLabel, 'error', 3500)
+      showToast('KhÃƒÂ´ng tÃ¡ÂºÂ¡o Ã„â€˜Ã†Â°Ã¡Â»Â£c link thanh toÃƒÂ¡n ' + providerLabel, 'error', 3500)
       return
     }
     if (!openCheckoutUrl(checkoutUrl)) {
-      showToast('Trình duyệt đang chặn popup, vui lòng cho phép mở tab mới', 'warning', 3800)
+      showToast('TrÃƒÂ¬nh duyÃ¡Â»â€¡t Ã„â€˜ang chÃ¡ÂºÂ·n popup, vui lÃƒÂ²ng cho phÃƒÂ©p mÃ¡Â»Å¸ tab mÃ¡Â»â€ºi', 'warning', 3800)
       return
     }
     startOrderPaymentPolling(orderCode)
-    showToast('Đang mở lại trang ' + providerLabel + ' để bạn thanh toán tiếp', 'success', 3500)
+    showToast('Ã„Âang mÃ¡Â»Å¸ lÃ¡ÂºÂ¡i trang ' + providerLabel + ' Ã„â€˜Ã¡Â»Æ’ bÃ¡ÂºÂ¡n thanh toÃƒÂ¡n tiÃ¡ÂºÂ¿p', 'success', 3500)
   } catch (err) {
     const errCode = err.response?.data?.error
     const fallbackUrl = isZaloPay
@@ -2983,7 +3009,7 @@ async function resumeOrderPayment(orderId, orderCode, paymentMethod) {
       : String(err.response?.data?.detail?.checkoutUrl || err.response?.data?.detail?.data?.checkoutUrl || '').trim()
     if (fallbackUrl && openCheckoutUrl(fallbackUrl)) {
       startOrderPaymentPolling(orderCode)
-      showToast('Đang mở lại trang ' + providerLabel + ' để bạn thanh toán tiếp', 'success', 3500)
+      showToast('Ã„Âang mÃ¡Â»Å¸ lÃ¡ÂºÂ¡i trang ' + providerLabel + ' Ã„â€˜Ã¡Â»Æ’ bÃ¡ÂºÂ¡n thanh toÃƒÂ¡n tiÃ¡ÂºÂ¿p', 'success', 3500)
       return
     }
     if (errCode === 'ZALOPAY_CONFIG_MISSING') {
@@ -2993,28 +3019,28 @@ async function resumeOrderPayment(orderId, orderCode, paymentMethod) {
       return
     }
     if (errCode === 'PAYOS_CONFIG_MISSING') {
-      showToast('PayOS chưa cấu hình đầy đủ, vui lòng liên hệ shop', 'error', 5500)
+      showToast('PayOS chÃ†Â°a cÃ¡ÂºÂ¥u hÃƒÂ¬nh Ã„â€˜Ã¡ÂºÂ§y Ã„â€˜Ã¡Â»Â§, vui lÃƒÂ²ng liÃƒÂªn hÃ¡Â»â€¡ shop', 'error', 5500)
       return
     }
     if (errCode === 'PAYMENT_METHOD_NOT_BANK_TRANSFER') {
-      showToast('Đơn này không dùng phương thức chuyển khoản', 'error', 3800)
+      showToast('Ã„ÂÃ†Â¡n nÃƒÂ y khÃƒÂ´ng dÃƒÂ¹ng phÃ†Â°Ã†Â¡ng thÃ¡Â»Â©c chuyÃ¡Â»Æ’n khoÃ¡ÂºÂ£n', 'error', 3800)
       return
     }
     if (errCode === 'ORDER_NOT_FOUND') {
-      showToast('Không tìm thấy đơn hàng để thanh toán lại', 'error', 3800)
+      showToast('KhÃƒÂ´ng tÃƒÂ¬m thÃ¡ÂºÂ¥y Ã„â€˜Ã†Â¡n hÃƒÂ ng Ã„â€˜Ã¡Â»Æ’ thanh toÃƒÂ¡n lÃ¡ÂºÂ¡i', 'error', 3800)
       return
     }
     if (errCode === 'INVALID_ORDER_AMOUNT') {
-      showToast('Đơn hàng có số tiền không hợp lệ để thanh toán', 'error', 3800)
+      showToast('Ã„ÂÃ†Â¡n hÃƒÂ ng cÃƒÂ³ sÃ¡Â»â€˜ tiÃ¡Â»Ân khÃƒÂ´ng hÃ¡Â»Â£p lÃ¡Â»â€¡ Ã„â€˜Ã¡Â»Æ’ thanh toÃƒÂ¡n', 'error', 3800)
       return
     }
     try { if (payTab && !payTab.closed) payTab.close() } catch (_) { }
-    const msg = err.response?.data?.error || err.message || 'Không thể mở lại thanh toán cho đơn này'
-    showToast('Không thể mở lại thanh toán: ' + msg, 'error', 4000)
+    const msg = err.response?.data?.error || err.message || 'KhÃƒÂ´ng thÃ¡Â»Æ’ mÃ¡Â»Å¸ lÃ¡ÂºÂ¡i thanh toÃƒÂ¡n cho Ã„â€˜Ã†Â¡n nÃƒÂ y'
+    showToast('KhÃƒÂ´ng thÃ¡Â»Æ’ mÃ¡Â»Å¸ lÃ¡ÂºÂ¡i thanh toÃƒÂ¡n: ' + msg, 'error', 4000)
   }
 }
 
-// ── WALLET CONFIG (thay thông tin ngân hàng ở đây) ──
+// Ã¢â€â‚¬Ã¢â€â‚¬ WALLET CONFIG (thay thÃƒÂ´ng tin ngÃƒÂ¢n hÃƒÂ ng Ã¡Â»Å¸ Ã„â€˜ÃƒÂ¢y) Ã¢â€â‚¬Ã¢â€â‚¬
 const BANK_CONFIG = {
   bankId: 'MB',
   accountNo: '0200100441441',
@@ -3061,9 +3087,9 @@ function closeOrderBankTransferModal() {
 async function copyBankValue(value) {
   try {
     await navigator.clipboard.writeText(String(value || '').trim())
-    showToast('Đã sao chép', 'success', 1500)
+    showToast('Ã„ÂÃƒÂ£ sao chÃƒÂ©p', 'success', 1500)
   } catch (_) {
-    showToast('Không thể sao chép', 'error', 1500)
+    showToast('KhÃƒÂ´ng thÃ¡Â»Æ’ sao chÃƒÂ©p', 'error', 1500)
   }
 }
 
@@ -3091,9 +3117,9 @@ function onOrderMarkedPaid(orderCode) {
   stopOrderPaymentPolling()
   closeOrderBankTransferModal()
   showOrderPaidNotice(orderCode)
-  showToast('Đã thanh toán thành công và ghi nhận đơn hàng', 'success', 4500)
+  showToast('Ã„ÂÃƒÂ£ thanh toÃƒÂ¡n thÃƒÂ nh cÃƒÂ´ng vÃƒÂ  ghi nhÃ¡ÂºÂ­n Ã„â€˜Ã†Â¡n hÃƒÂ ng', 'success', 4500)
   const userMenuContent = document.getElementById('userMenuContent')
-  if (userMenuContent && userMenuContent.textContent && userMenuContent.textContent.includes('Lịch sử mua hàng')) {
+  if (userMenuContent && userMenuContent.textContent && userMenuContent.textContent.includes('LÃ¡Â»â€¹ch sÃ¡Â»Â­ mua hÃƒÂ ng')) {
     showUserOrders()
   }
   if (typeof loadAdminOrders === 'function') loadAdminOrders()
@@ -3144,12 +3170,12 @@ function handlePaymentReturnFlow() {
       setTimeout(() => { window.close() }, 80)
       return
     }
-    showToast('Thanh toán ' + providerLabel + ' thành công', 'success', 3000)
+    showToast('Thanh toÃƒÂ¡n ' + providerLabel + ' thÃƒÂ nh cÃƒÂ´ng', 'success', 3000)
     return
   }
 
   if (payState === 'cancel') {
-    showToast('Bạn đã hủy thanh toán ' + providerLabel, 'error', 3000)
+    showToast('BÃ¡ÂºÂ¡n Ã„â€˜ÃƒÂ£ hÃ¡Â»Â§y thanh toÃƒÂ¡n ' + providerLabel, 'error', 3000)
   }
   cleanPaymentQueryParams()
 }
@@ -3157,39 +3183,39 @@ function handlePaymentReturnFlow() {
 function showWalletInMenu() {
     var content = document.getElementById('userMenuContent')
     if (!currentUser) {
-        content.innerHTML = '<div class="text-center py-8 text-gray-400"><i class="fas fa-lock text-3xl mb-3"></i><p>Vui lòng đăng nhập để nạp tiền</p></div>'
+        content.innerHTML = '<div class="text-center py-8 text-gray-400"><i class="fas fa-lock text-3xl mb-3"></i><p>Vui lÃƒÂ²ng Ã„â€˜Ã„Æ’ng nhÃ¡ÂºÂ­p Ã„â€˜Ã¡Â»Æ’ nÃ¡ÂºÂ¡p tiÃ¡Â»Ân</p></div>'
         return
     }
     var tc = 'QHVN90' + currentUser.userId
     var html = '<div class="bg-gradient-to-r from-pink-50 to-purple-50 rounded-2xl p-4 mb-4 flex items-center justify-between">'
-    html += '<div><p class="text-xs text-gray-500">Số dư ví</p><p class="text-xl font-bold text-pink-600">' + fmtBalance(currentUser.balance) + '</p></div>'
+    html += '<div><p class="text-xs text-gray-500">SÃ¡Â»â€˜ dÃ†Â° vÃƒÂ­</p><p class="text-xl font-bold text-pink-600">' + fmtBalance(currentUser.balance) + '</p></div>'
     html += '<i class="fas fa-wallet text-3xl text-pink-300"></i></div>'
-    html += '<h4 class="font-semibold text-gray-700 text-sm mb-2"><i class="fas fa-coins text-pink-400 mr-1"></i>Chọn số tiền</h4>'
+    html += '<h4 class="font-semibold text-gray-700 text-sm mb-2"><i class="fas fa-coins text-pink-400 mr-1"></i>ChÃ¡Â»Ân sÃ¡Â»â€˜ tiÃ¡Â»Ân</h4>'
     html += '<div class="grid grid-cols-3 gap-2 mb-3" id="topupAmountGrid">'
     var amounts = [50000, 100000, 200000, 500000, 1000000, 2000000]
     for (var i = 0; i < amounts.length; i++) {
         var v = amounts[i]
         var isActive = v === selectedTopupAmount
         var cls = isActive ? 'border-pink-500 bg-pink-50 text-pink-600' : 'border-gray-200 text-gray-600 hover:border-pink-300'
-        html += '<button onclick="selectTopupAmount(' + v + ')" class="topup-amt-btn border-2 rounded-xl py-2 text-xs font-semibold transition ' + cls + '" data-amt="' + v + '">' + new Intl.NumberFormat('vi-VN').format(v) + 'đ</button>'
+        html += '<button onclick="selectTopupAmount(' + v + ')" class="topup-amt-btn border-2 rounded-xl py-2 text-xs font-semibold transition ' + cls + '" data-amt="' + v + '">' + new Intl.NumberFormat('vi-VN').format(v) + 'Ã„â€˜</button>'
     }
     html += '</div>'
-    html += '<div class="flex items-center gap-2 mb-4"><input id="customTopupAmt" type="number" placeholder="Số tiền khác..." class="flex-1 border-2 border-gray-200 rounded-xl px-3 py-2 text-sm focus:border-pink-400 outline-none" oninput="onCustomAmountInput(this.value)"><span class="text-gray-400 text-sm font-semibold">đ</span></div>'
+    html += '<div class="flex items-center gap-2 mb-4"><input id="customTopupAmt" type="number" placeholder="SÃ¡Â»â€˜ tiÃ¡Â»Ân khÃƒÂ¡c..." class="flex-1 border-2 border-gray-200 rounded-xl px-3 py-2 text-sm focus:border-pink-400 outline-none" oninput="onCustomAmountInput(this.value)"><span class="text-gray-400 text-sm font-semibold">Ã„â€˜</span></div>'
     html += '<div class="bg-white border-2 border-gray-100 rounded-2xl p-4 text-center">'
-    html += '<p class="text-sm font-semibold text-gray-700 mb-3"><i class="fas fa-qrcode text-pink-400 mr-1"></i>Quét mã QR để thanh toán</p>'
+    html += '<p class="text-sm font-semibold text-gray-700 mb-3"><i class="fas fa-qrcode text-pink-400 mr-1"></i>QuÃƒÂ©t mÃƒÂ£ QR Ã„â€˜Ã¡Â»Æ’ thanh toÃƒÂ¡n</p>'
     html += '<div class="flex justify-center mb-3"><img id="vietqrImg" src="' + getVietQRUrl(selectedTopupAmount) + '" class="w-48 h-48 object-contain rounded-xl border"></div>'
     html += '<div class="text-left space-y-2 text-xs">'
-    html += '<div class="flex justify-between items-center bg-gray-50 rounded-lg px-3 py-2"><span class="text-gray-500">Ngân hàng</span><span class="font-bold text-gray-800">MB Bank</span></div>'
-    html += '<div class="flex justify-between items-center bg-gray-50 rounded-lg px-3 py-2"><span class="text-gray-500">Số TK</span><span class="font-bold text-gray-800">' + BANK_CONFIG.accountNo + ' <i class="fas fa-copy text-gray-400 cursor-pointer ml-1 copy-btn" data-copy="' + BANK_CONFIG.accountNo + '"></i></span></div>'
-    html += '<div class="flex justify-between items-center bg-gray-50 rounded-lg px-3 py-2"><span class="text-gray-500">Chủ TK</span><span class="font-bold text-gray-800">' + BANK_CONFIG.accountName + '</span></div>'
-    html += '<div class="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2"><p class="text-amber-600 font-semibold mb-0.5">Nội dung CK (BẮT BUỘC)</p><div class="flex justify-between items-center"><span class="font-mono font-bold text-amber-800 text-sm">' + tc + '</span><i class="fas fa-copy text-amber-400 cursor-pointer copy-btn" data-copy="' + tc + '"></i></div></div>'
-    html += '<div class="flex justify-between items-center bg-gray-50 rounded-lg px-3 py-2"><span class="text-gray-500">Số tiền</span><span class="font-bold text-pink-600" id="qrAmountDisplay">' + fmtBalance(selectedTopupAmount) + '</span></div>'
+    html += '<div class="flex justify-between items-center bg-gray-50 rounded-lg px-3 py-2"><span class="text-gray-500">NgÃƒÂ¢n hÃƒÂ ng</span><span class="font-bold text-gray-800">MB Bank</span></div>'
+    html += '<div class="flex justify-between items-center bg-gray-50 rounded-lg px-3 py-2"><span class="text-gray-500">SÃ¡Â»â€˜ TK</span><span class="font-bold text-gray-800">' + BANK_CONFIG.accountNo + ' <i class="fas fa-copy text-gray-400 cursor-pointer ml-1 copy-btn" data-copy="' + BANK_CONFIG.accountNo + '"></i></span></div>'
+    html += '<div class="flex justify-between items-center bg-gray-50 rounded-lg px-3 py-2"><span class="text-gray-500">ChÃ¡Â»Â§ TK</span><span class="font-bold text-gray-800">' + BANK_CONFIG.accountName + '</span></div>'
+    html += '<div class="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2"><p class="text-amber-600 font-semibold mb-0.5">NÃ¡Â»â„¢i dung CK (BÃ¡ÂºÂ®T BUÃ¡Â»ËœC)</p><div class="flex justify-between items-center"><span class="font-mono font-bold text-amber-800 text-sm">' + tc + '</span><i class="fas fa-copy text-amber-400 cursor-pointer copy-btn" data-copy="' + tc + '"></i></div></div>'
+    html += '<div class="flex justify-between items-center bg-gray-50 rounded-lg px-3 py-2"><span class="text-gray-500">SÃ¡Â»â€˜ tiÃ¡Â»Ân</span><span class="font-bold text-pink-600" id="qrAmountDisplay">' + fmtBalance(selectedTopupAmount) + '</span></div>'
     html += '</div></div>'
     html += '<div class="mt-3 bg-blue-50 border border-blue-200 rounded-xl px-3 py-2 text-xs text-blue-700 space-y-1">'
-    html += '<p class="font-semibold"><i class="fas fa-info-circle mr-1"></i>Lưu ý:</p>'
-    html += '<p>• Nội dung CK phải <strong>CHÍNH XÁC</strong></p>'
-    html += '<p>• Tiền sẽ được cộng <strong>tự động</strong> trong 1-5 phút</p>'
-    html += '<p>• Liên hệ admin nếu không nhận được tiền sau 10 phút</p>'
+    html += '<p class="font-semibold"><i class="fas fa-info-circle mr-1"></i>LÃ†Â°u ÃƒÂ½:</p>'
+    html += '<p>Ã¢â‚¬Â¢ NÃ¡Â»â„¢i dung CK phÃ¡ÂºÂ£i <strong>CHÃƒÂNH XÃƒÂC</strong></p>'
+    html += '<p>Ã¢â‚¬Â¢ TiÃ¡Â»Ân sÃ¡ÂºÂ½ Ã„â€˜Ã†Â°Ã¡Â»Â£c cÃ¡Â»â„¢ng <strong>tÃ¡Â»Â± Ã„â€˜Ã¡Â»â„¢ng</strong> trong 1-5 phÃƒÂºt</p>'
+    html += '<p>Ã¢â‚¬Â¢ LiÃƒÂªn hÃ¡Â»â€¡ admin nÃ¡ÂºÂ¿u khÃƒÂ´ng nhÃ¡ÂºÂ­n Ã„â€˜Ã†Â°Ã¡Â»Â£c tiÃ¡Â»Ân sau 10 phÃƒÂºt</p>'
     html += '</div>'
     content.innerHTML = html
 }
@@ -3228,7 +3254,7 @@ function updateQRCode(amount) {
 }
 
 function copyText(text) {
-    navigator.clipboard.writeText(text).then(function () { showToast('Đã sao chép: ' + text, 'success') })
+    navigator.clipboard.writeText(text).then(function () { showToast('Ã„ÂÃƒÂ£ sao chÃƒÂ©p: ' + text, 'success') })
 }
 
 // Event delegation for copy buttons
@@ -3244,7 +3270,7 @@ function openTopupModal() {
     showWalletInMenu()
 }
 
-// ── BALANCE POLLING & SUCCESS NOTIFICATION ──
+// Ã¢â€â‚¬Ã¢â€â‚¬ BALANCE POLLING & SUCCESS NOTIFICATION Ã¢â€â‚¬Ã¢â€â‚¬
 var balancePollingTimer = null
 var lastKnownBalance = null
 
@@ -3285,9 +3311,9 @@ function showTopupSuccessModal(amount) {
   overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);backdrop-filter:blur(4px);z-index:9999;display:flex;align-items:center;justify-content:center;animation:fadeIn 0.3s ease'
   overlay.innerHTML = '<div style="background:white;border-radius:1.5rem;padding:2.5rem 2rem;text-align:center;max-width:340px;width:90%;box-shadow:0 25px 50px rgba(0,0,0,0.25);animation:scaleIn 0.4s cubic-bezier(0.34,1.56,0.64,1)">'
     + '<div style="width:70px;height:70px;border-radius:50%;background:linear-gradient(135deg,#10b981,#059669);margin:0 auto 1rem;display:flex;align-items:center;justify-content:center"><i class="fas fa-check" style="color:white;font-size:2rem"></i></div>'
-    + '<h3 style="color:#059669;font-size:1.25rem;font-weight:700;margin-bottom:0.5rem">Đã nạp tiền thành công!</h3>'
+    + '<h3 style="color:#059669;font-size:1.25rem;font-weight:700;margin-bottom:0.5rem">Ã„ÂÃƒÂ£ nÃ¡ÂºÂ¡p tiÃ¡Â»Ân thÃƒÂ nh cÃƒÂ´ng!</h3>'
     + '<p style="color:#047857;font-size:1.75rem;font-weight:800">+' + fmtBalance(amount) + '</p>'
-    + '<p style="color:#6b7280;font-size:0.8rem;margin-top:0.5rem">Số dư mới: ' + fmtBalance(currentUser.balance) + '</p>'
+    + '<p style="color:#6b7280;font-size:0.8rem;margin-top:0.5rem">SÃ¡Â»â€˜ dÃ†Â° mÃ¡Â»â€ºi: ' + fmtBalance(currentUser.balance) + '</p>'
     + '<button onclick="closeTopupSuccessModal()" style="margin-top:1.25rem;background:linear-gradient(135deg,#10b981,#059669);color:white;border:none;padding:0.75rem 2rem;border-radius:0.75rem;font-weight:600;font-size:0.9rem;cursor:pointer">OK</button>'
     + '</div>'
   document.body.appendChild(overlay)
