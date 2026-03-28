@@ -3,9 +3,7 @@ import { cors } from 'hono/cors'
 import { serveStatic } from 'hono/cloudflare-workers'
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie'
 import { PDFDocument } from 'pdf-lib'
-import { storefrontHTML } from './pages/storefrontPage'
-import { adminHTML } from './pages/adminPage'
-import { adminLoginHTML } from './pages/adminLoginPage'
+import { registerPageRoutes } from './routes/pageRoutes'
 
 type Bindings = {
   DB: D1Database
@@ -2534,27 +2532,7 @@ app.get('/api/admin/stats', async (c) => {
   }
 })
 
-// --- FRONTEND ROUTES -------------------------------------------
-
-// Admin
-app.get('/admin', (c) => c.redirect('/admin/dashboard'))
-app.get('/admin/login', (c) => c.html(adminLoginHTML()))
-app.get('/admin/*', (c) => {
-  const adminToken = getCookie(c, 'admin_token')
-  if (adminToken !== 'super_secret_admin_token') {
-    return c.redirect('/admin/login')
-  }
-  return c.html(adminHTML())
-})
-
-// Storefront (home)
-app.get('/', (c) => {
-  return c.html(storefrontHTML())
-})
-
-app.get('*', (c) => {
-  return c.html(storefrontHTML())
-})
+registerPageRoutes(app)
 
 export default app
 

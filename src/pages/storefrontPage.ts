@@ -3339,5 +3339,3 @@ closeUserMenu = function() { stopBalancePolling(); origCloseMenu() }
 </body>
 </html>`
 }
-
-// ─── ADMIN HTML ────────────────────────────────────

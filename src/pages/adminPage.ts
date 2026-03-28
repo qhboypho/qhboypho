@@ -2907,5 +2907,3 @@ initAdminAuth()
 </body>
 </html>`
 }
-
-export default app
