@@ -317,7 +317,9 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
         files.push(await deps.ghtkFetchLabelPdf(c.env, String(row.shipping_tracking_code), c.req.query('original'), c.req.query('page_size')))
       }
       const merged = files.length === 1 ? files[0] : await deps.mergePdfBytes(files)
-      return new Response(merged, {
+      const pdfBytes = new Uint8Array(merged)
+      const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' })
+      return new Response(pdfBlob, {
         status: 200,
         headers: {
           'Content-Type': 'application/pdf',

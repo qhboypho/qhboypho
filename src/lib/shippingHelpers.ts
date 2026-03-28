@@ -1,4 +1,5 @@
 import { PDFDocument } from 'pdf-lib'
+import type { AppBindings } from '../types/app'
 
 export type GhtkPickupConfig = {
   pickAddressId: string
@@ -9,6 +10,21 @@ export type GhtkPickupConfig = {
   pickWard: string
   pickTel: string
 }
+
+export type GhtkPickupAddress = {
+  pick_address_id: string
+  pick_name: string
+  pick_tel: string
+  full_address: string
+  pick_address: string
+  pick_ward: string
+  pick_district: string
+  pick_province: string
+}
+
+export type GhtkPickupAddressFetchResult =
+  | { ok: true, data: GhtkPickupAddress[] }
+  | { ok: false, message: string, data: GhtkPickupAddress[], detail?: unknown }
 
 const GHTK_PICKUP_SETTING_KEYS = [
   'ghtk_pick_address_id',
@@ -125,7 +141,7 @@ export function buildInternalTestOrderWhereSql(alias = '') {
   )`
 }
 
-export async function getGhtkPickupConfig(db: D1Database, env: any): Promise<GhtkPickupConfig> {
+export async function getGhtkPickupConfig(db: D1Database, env: AppBindings): Promise<GhtkPickupConfig> {
   const query = `SELECT key, value FROM app_settings WHERE key IN (${GHTK_PICKUP_SETTING_KEYS.map(() => '?').join(',')})`
   const result = await db.prepare(query).bind(...GHTK_PICKUP_SETTING_KEYS).all()
   const map = new Map<string, string>()
@@ -144,10 +160,10 @@ export async function getGhtkPickupConfig(db: D1Database, env: any): Promise<Ght
   }
 }
 
-export async function ghtkFetchPickupAddresses(env: any) {
+export async function ghtkFetchPickupAddresses(env: AppBindings): Promise<GhtkPickupAddressFetchResult> {
   const token = String(env.GHTK_TOKEN || '').trim()
   const clientSource = String(env.GHTK_CLIENT_SOURCE || '').trim()
-  if (!token || !clientSource) return { ok: false, message: 'MISSING_GHTK_KEYS', data: [] as any[] }
+  if (!token || !clientSource) return { ok: false, message: 'MISSING_GHTK_KEYS', data: [] }
 
   const resp = await fetch('https://services.giaohangtietkiem.vn/services/shipment/list_pick_add', {
     method: 'GET',
@@ -161,7 +177,7 @@ export async function ghtkFetchPickupAddresses(env: any) {
     return { ok: false, message: String(body?.message || 'GHTK_FETCH_PICKUP_ADDRESSES_FAILED'), data: [] as any[], detail: body }
   }
   const raw = Array.isArray(body?.data) ? body.data : []
-  const data = raw.map((row: any) => {
+  const data: GhtkPickupAddress[] = raw.map((row: any) => {
     const id = String(row?.pick_address_id || row?.address_id || row?.id || '').trim()
     const name = String(row?.pick_name || row?.name || row?.contact_name || '').trim()
     const tel = String(row?.pick_tel || row?.phone || row?.tel || '').trim()
@@ -177,7 +193,7 @@ export async function ghtkFetchPickupAddresses(env: any) {
       pick_district: parsed?.district || '',
       pick_province: parsed?.province || ''
     }
-  }).filter((v: any) => v.pick_address_id || v.full_address)
+  }).filter((v: GhtkPickupAddress) => v.pick_address_id || v.full_address)
 
   return { ok: true, data }
 }

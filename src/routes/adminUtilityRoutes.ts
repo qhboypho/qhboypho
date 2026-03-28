@@ -1,12 +1,34 @@
 import { getCookie } from 'hono/cookie'
 import type { Hono } from 'hono'
 import type { AppBindings } from '../types/app'
+import type { AppSettingEntry } from '../types/admin'
+import type { GhtkPickupConfig, GhtkPickupAddressFetchResult } from '../lib/shippingHelpers'
+
+type HeroBannerInput = {
+  image_url?: unknown
+  subtitle?: unknown
+  title?: unknown
+  price?: unknown
+  product_id?: unknown
+  display_order?: unknown
+  is_active?: unknown
+}
+
+type PickupConfigInput = {
+  pick_address_id?: unknown
+  pick_name?: unknown
+  pick_address?: unknown
+  pick_province?: unknown
+  pick_district?: unknown
+  pick_ward?: unknown
+  pick_tel?: unknown
+}
 
 type AdminUtilityRouteDeps = {
   initDB: (db: D1Database) => Promise<void>
-  getGhtkPickupConfig: (db: D1Database, env: any) => Promise<any>
-  upsertAppSettings: (db: D1Database, entries: Array<{ key: string, value: string }>) => Promise<void>
-  ghtkFetchPickupAddresses: (env: any) => Promise<any>
+  getGhtkPickupConfig: (db: D1Database, env: AppBindings) => Promise<GhtkPickupConfig>
+  upsertAppSettings: (db: D1Database, entries: AppSettingEntry[]) => Promise<void>
+  ghtkFetchPickupAddresses: (env: AppBindings) => Promise<GhtkPickupAddressFetchResult>
 }
 
 export function registerAdminUtilityRoutes(app: Hono<{ Bindings: AppBindings }>, deps: AdminUtilityRouteDeps) {
@@ -28,10 +50,10 @@ export function registerAdminUtilityRoutes(app: Hono<{ Bindings: AppBindings }>,
     await deps.initDB(c.env.DB)
     const adminToken = getCookie(c, 'admin_token')
     if (adminToken !== 'super_secret_admin_token') return c.json({ success: false, error: 'Unauthorized' }, 401)
-    const body = await c.req.json()
+    const body = await c.req.json<HeroBannerInput>()
     const { image_url, subtitle, title, price, product_id, display_order, is_active } = body
     const res = await c.env.DB.prepare("INSERT INTO hero_banners (image_url, subtitle, title, price, product_id, display_order, is_active) VALUES (?, ?, ?, ?, ?, ?, ?)").bind(
-      image_url, subtitle || '', title || '', price || '', product_id ? parseInt(product_id) : null, display_order || 0, is_active !== undefined ? is_active : 1
+      String(image_url || '').trim(), String(subtitle || ''), String(title || ''), String(price || ''), product_id ? parseInt(String(product_id), 10) : null, Number(display_order || 0) || 0, is_active !== undefined ? Number(Boolean(is_active)) : 1
     ).run()
     return c.json({ success: true, id: res.meta.last_row_id })
   })
@@ -41,10 +63,10 @@ export function registerAdminUtilityRoutes(app: Hono<{ Bindings: AppBindings }>,
     const adminToken = getCookie(c, 'admin_token')
     if (adminToken !== 'super_secret_admin_token') return c.json({ success: false, error: 'Unauthorized' }, 401)
     const id = c.req.param('id')
-    const body = await c.req.json()
+    const body = await c.req.json<HeroBannerInput>()
     const { image_url, subtitle, title, price, product_id, display_order, is_active } = body
     await c.env.DB.prepare("UPDATE hero_banners SET image_url=?, subtitle=?, title=?, price=?, product_id=?, display_order=?, is_active=? WHERE id=?").bind(
-      image_url, subtitle || '', title || '', price || '', product_id ? parseInt(product_id) : null, display_order || 0, is_active !== undefined ? is_active : 1, id
+      String(image_url || '').trim(), String(subtitle || ''), String(title || ''), String(price || ''), product_id ? parseInt(String(product_id), 10) : null, Number(display_order || 0) || 0, is_active !== undefined ? Number(Boolean(is_active)) : 1, id
     ).run()
     return c.json({ success: true })
   })
@@ -75,8 +97,8 @@ export function registerAdminUtilityRoutes(app: Hono<{ Bindings: AppBindings }>,
   app.put('/api/admin/ghtk/pickup-config', async (c) => {
     try {
       await deps.initDB(c.env.DB)
-      const body: any = await c.req.json().catch(() => ({}))
-      const sanitize = (value: any, max = 200) => String(value || '').trim().slice(0, max)
+      const body: PickupConfigInput = await c.req.json<PickupConfigInput>().catch(() => ({} as PickupConfigInput))
+      const sanitize = (value: unknown, max = 200) => String(value || '').trim().slice(0, max)
       const payload = {
         pickAddressId: sanitize(body.pick_address_id, 80),
         pickName: sanitize(body.pick_name, 120),

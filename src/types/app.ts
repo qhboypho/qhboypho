@@ -1,5 +1,4 @@
-export type AppBindings = {
-  DB: D1Database
+export type AppBindings = CloudflareBindings & {
   GOOGLE_CLIENT_ID?: string
   GOOGLE_CLIENT_SECRET?: string
   CASSO_SECURE_TOKEN?: string

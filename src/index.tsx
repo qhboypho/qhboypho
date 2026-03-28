@@ -46,7 +46,7 @@ import { resolveSelectedColorImage } from './lib/orderColorHelpers'
 const app = new Hono<{ Bindings: AppBindings }>()
 
 app.use('/api/*', cors())
-app.use('/static/*', serveStatic({ root: './' }))
+app.use('/static/*', serveStatic({ root: './', manifest: {} }))
 
 // Enforce admin auth for all admin APIs except login
 app.use('/api/admin/*', async (c, next) => {

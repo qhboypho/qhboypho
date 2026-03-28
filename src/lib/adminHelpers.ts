@@ -1,6 +1,20 @@
 import { getCookie } from 'hono/cookie'
+import type { AdminProfile, AppContext, AppSettingEntry } from '../types/admin'
 
-export async function upsertAppSettings(db: D1Database, entries: Array<{ key: string, value: string }>) {
+type AppSettingRow = {
+  value?: string | null
+}
+
+type AdminUserRow = {
+  id?: number | string | null
+  email?: string | null
+  name?: string | null
+  avatar?: string | null
+  balance?: number | string | null
+  is_admin?: number | string | null
+}
+
+export async function upsertAppSettings(db: D1Database, entries: AppSettingEntry[]) {
   for (const entry of entries) {
     await db.prepare(`
       INSERT INTO app_settings (key, value, updated_at)
@@ -11,22 +25,22 @@ export async function upsertAppSettings(db: D1Database, entries: Array<{ key: st
 }
 
 export async function getAppSettingValue(db: D1Database, key: string) {
-  const row = await db.prepare("SELECT value FROM app_settings WHERE key=? LIMIT 1").bind(key).first() as any
+  const row = await db.prepare("SELECT value FROM app_settings WHERE key=? LIMIT 1").bind(key).first<AppSettingRow>()
   return String(row?.value || '')
 }
 
-export function normalizeAdminUserKey(raw: any) {
+export function normalizeAdminUserKey(raw: unknown) {
   const key = String(raw || 'admin').trim().toLowerCase().replace(/[^a-z0-9._-]+/g, '')
   return key || 'admin'
 }
 
-export async function resolveAdminProfile(db: D1Database, c: any) {
+export async function resolveAdminProfile(db: D1Database, c: AppContext): Promise<AdminProfile> {
   const adminUserKey = normalizeAdminUserKey(getCookie(c, 'admin_user_key') || 'admin')
   const userToken = String(getCookie(c, 'user_id') || '').trim()
   if (userToken) {
     const uid = Number.parseInt(userToken, 10)
     if (Number.isFinite(uid) && uid > 0) {
-      const user = await db.prepare("SELECT id, email, name, avatar, balance, is_admin FROM users WHERE id=? LIMIT 1").bind(uid).first() as any
+      const user = await db.prepare("SELECT id, email, name, avatar, balance, is_admin FROM users WHERE id=? LIMIT 1").bind(uid).first<AdminUserRow>()
       if (user && Number(user.is_admin || 0) === 1) {
         return {
           scope: 'db-user',
