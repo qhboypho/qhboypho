@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { serveStatic } from 'hono/cloudflare-workers'
-import { getCookie, setCookie, deleteCookie } from 'hono/cookie'
+import { getCookie } from 'hono/cookie'
 import { registerPageRoutes } from './routes/pageRoutes'
 import { registerAuthRoutes } from './routes/authRoutes'
 import { registerProductRoutes } from './routes/productRoutes'
@@ -144,5 +144,3 @@ registerVoucherStatsRoutes(app, {
 registerPageRoutes(app)
 
 export default app
-
-
