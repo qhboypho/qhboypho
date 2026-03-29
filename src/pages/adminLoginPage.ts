@@ -94,7 +94,7 @@ export function adminLoginHTML(): string {
     btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Đang xử lý...'
     try {
       await axios.post('/api/admin/login', { username, password })
-      window.location.href = '/admin/dashboard'
+      window.location.replace('/admin/dashboard')
     } catch (e) {
       errText.textContent = 'Sai tên đăng nhập hoặc mật khẩu'
       errEl.classList.remove('hidden')

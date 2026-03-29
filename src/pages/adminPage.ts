@@ -729,6 +729,7 @@ let settingsSubmenuOpen = false
 let settingsActiveSubPage = ''
 let selectedColorImage = ''
 const MAX_PRODUCT_PAYLOAD_SIZE = 1200000
+const ADMIN_OVERLAY_IDS = ['productModal', 'orderDetailModal', 'arrangeSuccessModal']
 
 // ── NAVIGATION ────────────────────────────────────
 function getInitialFromName(name) {
@@ -835,15 +836,28 @@ function toggleAdminAvatarMenu() {
 }
 
 function sanitizeAdminOverlayState() {
-  const modalIds = ['productModal', 'orderDetailModal', 'arrangeSuccessModal']
-  modalIds.forEach((id) => {
+  ADMIN_OVERLAY_IDS.forEach((id) => {
     const el = document.getElementById(id)
     if (el) el.classList.add('hidden')
   })
   closeChangeAdminPasswordModal()
   closeAdminAvatarMenu()
+  const sidebarOverlay = document.getElementById('sidebarOverlay')
+  if (sidebarOverlay) {
+    sidebarOverlay.style.display = 'none'
+    sidebarOverlay.style.pointerEvents = 'none'
+    sidebarOverlay.classList.add('hidden')
+  }
   syncSidebarOverlay()
   document.body.style.overflow = ''
+}
+
+function scheduleAdminOverlaySanitize() {
+  sanitizeAdminOverlayState()
+  requestAnimationFrame(() => {
+    sanitizeAdminOverlayState()
+    setTimeout(sanitizeAdminOverlayState, 0)
+  })
 }
 
 function openChangeAdminPasswordModal() {
@@ -897,7 +911,8 @@ async function submitAdminPasswordChange(e) {
 
 async function logoutAdminUser() {
   try { await axios.post('/api/auth/logout') } catch (_) {}
-  window.location.href = '/admin/login'
+  sanitizeAdminOverlayState()
+  window.location.replace('/admin/login')
 }
 
 function readImageAsDataURL(file) {
@@ -2871,8 +2886,13 @@ document.addEventListener('keydown', function(e) {
 
 // ── Safety: ensure all modals start hidden on page load ──
 document.addEventListener('DOMContentLoaded', function() {
-  sanitizeAdminOverlayState()
+  scheduleAdminOverlaySanitize()
   window.addEventListener('resize', syncSidebarOverlay)
+  window.addEventListener('pageshow', scheduleAdminOverlaySanitize)
+  window.addEventListener('focus', scheduleAdminOverlaySanitize)
+  document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'visible') scheduleAdminOverlaySanitize()
+  })
 
   document.addEventListener('click', function(e) {
     const target = e.target
@@ -2885,22 +2905,23 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Init
 async function initAdminAuth() {
-  sanitizeAdminOverlayState()
+  scheduleAdminOverlaySanitize()
   try {
     const res = await axios.get('/api/auth/me')
     if (!res.data.isAdmin) {
-      window.location.href = '/admin/login'
+      window.location.replace('/admin/login')
       return
     }
     adminProfile = res.data?.data || null
     applyAdminAvatarUI()
   } catch (e) {
     // 401 or error → redirect to login
-    window.location.href = '/admin/login'
+    window.location.replace('/admin/login')
     return
   }
   await loadAdminProfile()
   loadDashboard()
+  scheduleAdminOverlaySanitize()
 }
 initAdminAuth()
 <\/script>
