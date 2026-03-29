@@ -121,6 +121,53 @@
     word-break: break-word;
     overflow-wrap: anywhere;
   }
+  .order-status-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    border-radius: 9999px;
+    padding: 0.32rem 0.65rem;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
+    border: 1px solid transparent;
+  }
+  .order-status-chip.clickable { cursor: pointer; }
+  .order-status-chip--waiting-shop { background: #fff7ed; color: #c2410c; border-color: #fdba74; }
+  .order-status-chip--waiting-pickup { background: #eff6ff; color: #2563eb; border-color: #bfdbfe; }
+  .order-status-chip--shipping { background: #fef3c7; color: #b45309; border-color: #fcd34d; }
+  .order-status-chip--done { background: #dcfce7; color: #15803d; border-color: #86efac; }
+  .order-status-chip--cancelled { background: #fee2e2; color: #b91c1c; border-color: #fca5a5; }
+  .order-status-chip--waiting-payment { background: #f3f4f6; color: #6b7280; border-color: #d1d5db; }
+  .shipping-journey-step {
+    position: relative;
+    padding-left: 1.85rem;
+  }
+  .shipping-journey-step::before {
+    content: '';
+    position: absolute;
+    left: 0.35rem;
+    top: 0.45rem;
+    width: 0.65rem;
+    height: 0.65rem;
+    border-radius: 9999px;
+    background: #d1d5db;
+    box-shadow: 0 0 0 4px #f9fafb;
+  }
+  .shipping-journey-step::after {
+    content: '';
+    position: absolute;
+    left: 0.66rem;
+    top: 1.05rem;
+    bottom: -0.75rem;
+    width: 2px;
+    background: #e5e7eb;
+  }
+  .shipping-journey-step:last-child::after { display: none; }
+  .shipping-journey-step.is-active::before { background: #e11d48; box-shadow: 0 0 0 4px rgba(225,29,72,0.12); }
+  .shipping-journey-step.is-complete::before { background: #16a34a; box-shadow: 0 0 0 4px rgba(22,163,74,0.12); }
+  .shipping-journey-step.is-complete::after { background: #86efac; }
   @keyframes spinSlow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
   @keyframes glowSpin { 0% { filter: hue-rotate(0deg) drop-shadow(0 0 6px rgba(99,102,241,0.7)); } 50% { filter: hue-rotate(60deg) drop-shadow(0 0 10px rgba(139,92,246,0.9)); } 100% { filter: hue-rotate(0deg) drop-shadow(0 0 6px rgba(99,102,241,0.7)); } }
   .logo-spinner { position:relative; display:inline-flex; align-items:center; justify-content:center; }
@@ -740,6 +787,20 @@
   </div>
 </div>
 
+<div id="shippingJourneyOverlay" class="fixed inset-0 hidden items-center justify-center bg-black/30 p-4" style="z-index:85;" onclick="handleShippingJourneyOverlayClick(event)">
+  <div class="popup-card bg-white rounded-3xl shadow-2xl w-full max-w-md max-h-[88vh] overflow-y-auto">
+    <div class="sticky top-0 bg-white rounded-t-3xl border-b px-6 py-4 flex items-center justify-between">
+      <h3 class="font-display text-xl font-bold text-gray-900">
+        <i class="fas fa-route text-pink-500 mr-2"></i>Hành trình vận chuyển
+      </h3>
+      <button onclick="closeShippingJourneyModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition">
+        <i class="fas fa-times text-gray-600"></i>
+      </button>
+    </div>
+    <div id="shippingJourneyContent" class="px-6 py-5"></div>
+  </div>
+</div>
+
 <!-- PRODUCT DETAIL POPUP -->
 <div id="detailOverlay" class="fixed inset-0 overlay hidden flex items-center justify-center p-4" style="z-index:1001;">
   <div class="popup-card bg-white rounded-3xl shadow-2xl w-full max-w-md md:max-w-[56rem] max-h-[90vh] overflow-y-auto">
@@ -1019,6 +1080,7 @@ let detailSelectedColorImage = ''
 let detailSelectedColorIndex = -1
 let detailSelectedSize = ''
 let detailSelectedProductId = null
+let userOrderHistoryCache = []
 
 // ── CART STATE ─────────────────────────────────────
 // cart = [{ cartId, productId, name, sku, thumbnail, price, color, size, qty, checked }]
@@ -2867,7 +2929,7 @@ function closeUserMenu() {
   const overlay = document.getElementById('userMenuOverlay')
   const panel = document.getElementById('userMenuPanel')
   panel.classList.add('closing')
-  setTimeout(() => { overlay.classList.add('hidden'); panel.classList.remove('closing'); document.body.style.overflow = '' }, 300)
+  setTimeout(() => { overlay.classList.add('hidden'); panel.classList.remove('closing'); closeShippingJourneyModal() }, 300)
 }
 function handleUserMenuOverlayClick(e) { if (e.target.id === 'userMenuOverlay') closeUserMenu() }
 
@@ -2894,6 +2956,136 @@ function showUserAccount() {
     + '<div class="flex items-center gap-4"><img src="' + (currentUser.avatar||'') + '" class="w-16 h-16 rounded-full object-cover border-2 border-pink-200"><div>'
     + '<p class="font-bold text-gray-900">' + (currentUser.name||'') + '</p>'
     + '<p class="text-sm text-gray-500">' + (currentUser.email||'') + '</p></div></div></div>'
+}
+
+function escapeHtml(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+function getOrderHistoryImage(order) {
+  const selectedImage = String(order?.selected_color_image || '').trim()
+  const fallbackImage = String(order?.product_thumbnail || '').trim()
+  return selectedImage || fallbackImage || ''
+}
+
+function getOrderHistoryLifecycle(order) {
+  const paymentStatus = String(order?.payment_status || '').toLowerCase()
+  const paymentMethod = String(order?.payment_method || '').toUpperCase()
+  const orderStatus = String(order?.status || '').toLowerCase()
+  const shippingArranged = Number(order?.shipping_arranged || 0) === 1
+  const trackingCode = String(order?.shipping_tracking_code || '').trim()
+  const hasTracking = !!trackingCode
+
+  if (orderStatus === 'cancelled') {
+    return { key: 'cancelled', label: 'Đã huỷ', icon: 'fa-ban', toneClass: 'order-status-chip--cancelled', clickable: false, hasJourney: false }
+  }
+  if (orderStatus === 'done') {
+    return { key: 'done', label: 'Đã nhận', icon: 'fa-circle-check', toneClass: 'order-status-chip--done', clickable: true, hasJourney: true }
+  }
+  if (orderStatus === 'shipping') {
+    return { key: 'shipping', label: 'Đang giao', icon: 'fa-truck-fast', toneClass: 'order-status-chip--shipping', clickable: true, hasJourney: true }
+  }
+  if (shippingArranged || hasTracking) {
+    return { key: 'waiting_pickup', label: 'Đang chờ lấy hàng', icon: 'fa-truck-ramp-box', toneClass: 'order-status-chip--waiting-pickup', clickable: true, hasJourney: true }
+  }
+  if (paymentStatus !== 'paid' && paymentMethod !== 'COD') {
+    return { key: 'waiting_payment', label: 'Đang chờ thanh toán', icon: 'fa-clock', toneClass: 'order-status-chip--waiting-payment', clickable: false, hasJourney: false }
+  }
+  return { key: 'waiting_shop', label: 'Đang chờ shop duyệt', icon: 'fa-bolt', toneClass: 'order-status-chip--waiting-shop', clickable: false, hasJourney: false }
+}
+
+function renderShippingJourneyModal(order) {
+  const content = document.getElementById('shippingJourneyContent')
+  if (!content) return
+  const lifecycle = getOrderHistoryLifecycle(order)
+  const trackingCode = String(order?.shipping_tracking_code || '').trim()
+  const stepKeyOrder = ['waiting_shop', 'waiting_pickup', 'shipping', 'done']
+  const activeIndexMap = { waiting_shop: 0, waiting_pickup: 1, shipping: 2, done: 3, cancelled: -2, waiting_payment: -1 }
+  const activeIndex = activeIndexMap[lifecycle.key] ?? 0
+  const stepLabels = {
+    waiting_shop: 'Shop duyệt đơn',
+    waiting_pickup: 'Đang chờ lấy hàng',
+    shipping: 'Đang giao',
+    done: 'Đã nhận'
+  }
+  const journeyNote = lifecycle.key === 'waiting_shop'
+    ? 'Đơn đang chờ shop duyệt.'
+    : lifecycle.key === 'waiting_payment'
+      ? 'Đơn chưa hoàn tất thanh toán.'
+      : lifecycle.key === 'cancelled'
+        ? 'Đơn đã bị hủy.'
+        : lifecycle.key === 'done'
+          ? 'Đơn đã được giao thành công.'
+          : 'Đơn đã được đẩy sang đơn vị vận chuyển.'
+
+  const stepsHtml = stepKeyOrder.map(function (key, idx) {
+    const isComplete = activeIndex >= idx
+    const isActive = activeIndex === idx
+    const stateClass = isActive ? 'is-active' : isComplete ? 'is-complete' : ''
+    return '<div class="shipping-journey-step ' + stateClass + ' pb-4">'
+      + '<div class="flex items-start gap-3">'
+      + '<div class="pt-0.5"><div class="w-5 h-5 rounded-full border-2 ' + (isComplete ? 'border-green-500 bg-green-500' : 'border-gray-300 bg-white') + '"></div></div>'
+      + '<div class="min-w-0 flex-1">'
+      + '<p class="font-semibold text-gray-800">' + escapeHtml(stepLabels[key]) + '</p>'
+      + '<p class="text-xs text-gray-500 mt-0.5">' + (isActive ? 'Trạng thái hiện tại' : isComplete ? 'Đã hoàn thành' : 'Đang chờ') + '</p>'
+      + '</div>'
+      + '</div>'
+      + '</div>'
+  }).join('')
+
+  const trackingHtml = trackingCode
+    ? '<div class="mt-4 rounded-2xl border bg-gray-50 p-4">'
+      + '<p class="text-xs font-semibold text-gray-500 mb-1">Mã vận đơn</p>'
+      + '<div class="flex items-center justify-between gap-2">'
+      + '<span class="font-mono font-bold text-blue-600 text-sm break-all">' + escapeHtml(trackingCode) + '</span>'
+      + '<button type="button" class="text-xs font-semibold text-gray-600 hover:text-gray-800" onclick="copyBankValue(\'' + trackingCode.replace(/'/g, "\\'") + '\')">Copy</button>'
+      + '</div>'
+      + '</div>'
+    : ''
+
+  content.innerHTML = ''
+    + '<div class="rounded-2xl border p-4">'
+    + '<div class="flex items-center justify-between gap-3 mb-3">'
+    + '<div>'
+    + '<p class="text-xs text-gray-500">Đơn hàng</p>'
+    + '<p class="font-mono text-sm font-bold text-blue-600">' + escapeHtml(String(order?.order_code || '')) + '</p>'
+    + '</div>'
+    + '<span class="order-status-chip ' + lifecycle.toneClass + '"><i class="fas ' + lifecycle.icon + '"></i>' + escapeHtml(lifecycle.label) + '</span>'
+    + '</div>'
+    + '<p class="text-sm text-gray-600">' + escapeHtml(journeyNote) + '</p>'
+    + trackingHtml
+    + '</div>'
+    + '<div class="mt-4">' + stepsHtml + '</div>'
+}
+
+function openShippingJourneyModal(orderId) {
+  const order = Array.isArray(userOrderHistoryCache)
+    ? userOrderHistoryCache.find(function (item) { return Number(item.id) === Number(orderId) })
+    : null
+  if (!order) return
+  const lifecycle = getOrderHistoryLifecycle(order)
+  if (!lifecycle.hasJourney) return
+  const overlay = document.getElementById('shippingJourneyOverlay')
+  if (!overlay) return
+  renderShippingJourneyModal(order)
+  overlay.classList.remove('hidden')
+  overlay.classList.add('flex')
+}
+
+function closeShippingJourneyModal() {
+  const overlay = document.getElementById('shippingJourneyOverlay')
+  if (!overlay) return
+  overlay.classList.add('hidden')
+  overlay.classList.remove('flex')
+}
+
+function handleShippingJourneyOverlayClick(e) {
+  if (e.target && e.target.id === 'shippingJourneyOverlay') closeShippingJourneyModal()
 }
 
 async function showUserOrders() {
@@ -2935,6 +3127,7 @@ async function showUserOrders() {
       const refreshed = await axios.get('/api/user/orders')
       orders = refreshed.data.data || orders
     }
+    userOrderHistoryCache = Array.isArray(orders) ? orders : []
     if (!orders.length) {
       content.innerHTML = '<div class="text-center py-8 text-gray-400"><i class="fas fa-shopping-bag text-4xl mb-3"></i><p>Chưa có đơn hàng nào</p></div>'
       return
@@ -2953,7 +3146,9 @@ async function showUserOrders() {
         const imageSrc = getOrderHistoryImage(o)
         const colorText = String(o.color || '').trim() || 'Chưa chọn'
         const sizeText = String(o.size || '').trim() || '--'
+        const quantityText = Number(o.quantity || 1) > 1 ? ' x' + Number(o.quantity || 1) : ''
         const productTitle = escapeHtml(o.product_name || '')
+        const lifecycle = getOrderHistoryLifecycle(o)
         const safeOrderCode = String(o.order_code || '').replace(/'/g, "\\'")
         const methodArg = paymentMethod.replace(/'/g, "\\'")
         const codeHtml = canResume
@@ -2965,6 +3160,9 @@ async function showUserOrders() {
         const imageHtml = imageSrc
           ? '<div class="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 border border-gray-100"><img src="' + escapeHtml(imageSrc) + '" alt="' + productTitle + '" class="w-full h-full object-cover"></div>'
           : '<div class="w-16 h-16 rounded-lg bg-gray-100 flex-shrink-0 border border-gray-100 flex items-center justify-center text-gray-300"><i class="fas fa-image"></i></div>'
+        const statusHtml = lifecycle.clickable
+          ? '<button type="button" class="order-status-chip clickable ' + lifecycle.toneClass + '" onclick="openShippingJourneyModal(' + o.id + ')"><i class="fas ' + lifecycle.icon + '"></i>' + escapeHtml(lifecycle.label) + '</button>'
+          : '<span class="order-status-chip ' + lifecycle.toneClass + '"><i class="fas ' + lifecycle.icon + '"></i>' + escapeHtml(lifecycle.label) + '</span>'
         return '<div class="order-history-item border rounded-xl p-3">'
           + '<div class="flex gap-3">'
           + imageHtml
@@ -2972,9 +3170,10 @@ async function showUserOrders() {
           + '<div class="flex justify-between items-start gap-2 mb-1">' + codeHtml
           + '<span class="text-xs px-2 py-0.5 rounded-full font-medium ' + paymentBadgeClass + ' whitespace-nowrap">' + paymentBadgeText + '</span></div>'
           + '<p class="text-sm font-semibold text-gray-800 leading-snug order-history-title">' + productTitle + '</p>'
-          + '<p class="text-xs text-gray-500 mt-1">Màu: ' + escapeHtml(colorText) + ' | Size: ' + escapeHtml(sizeText) + '</p>'
+          + '<p class="text-xs text-gray-500 mt-1">Màu: ' + escapeHtml(colorText) + ' | Size: ' + escapeHtml(sizeText) + quantityText + '</p>'
           + '<div class="flex justify-between items-center mt-2 gap-2"><span class="text-xs text-gray-400">' + new Date(o.created_at).toLocaleDateString('vi-VN') + '</span>'
           + '<span class="font-bold text-pink-600 text-sm whitespace-nowrap">' + fmtPrice(getOrderAmountDue(o)) + '</span></div>'
+          + '<div class="mt-2">' + statusHtml + '</div>'
           + resumeActionHtml
           + '</div>'
           + '</div>'
