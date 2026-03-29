@@ -3043,7 +3043,7 @@ function renderShippingJourneyModal(order) {
       + '<p class="text-xs font-semibold text-gray-500 mb-1">Mã vận đơn</p>'
       + '<div class="flex items-center justify-between gap-2">'
       + '<span class="font-mono font-bold text-blue-600 text-sm break-all">' + escapeHtml(trackingCode) + '</span>'
-      + '<button type="button" class="text-xs font-semibold text-gray-600 hover:text-gray-800" onclick="copyBankValue(\'' + trackingCode.replace(/'/g, "\\'") + '\')">Copy</button>'
+      + '<button type="button" class="text-xs font-semibold text-gray-600 hover:text-gray-800" data-code="' + escapeHtml(trackingCode) + '" onclick="copyBankValue(this.dataset.code)">Copy</button>'
       + '</div>'
       + '</div>'
     : ''
