@@ -1,4 +1,4 @@
-type InitDbDeps = {
+﻿type InitDbDeps = {
   resolveSelectedColorImage: (productColors: any, selectedColor: any, fallbackImage?: string) => string
 }
 
@@ -151,9 +151,9 @@ export function createInitDB(deps: InitDbDeps) {
       }
       if (count === 0) {
         const initialBanners = [
-          ['https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=500', 'M?i nh?t', 'B? suu t?p Spring 2026', 'T? 299.000d', null, 1],
-          ['https://images.unsplash.com/photo-1550614000-4b95d4edc457?w=500', 'BÃ¡n cháº¡y', 'Phong CÃ¡ch ÄÆ°á»ng Phá»‘', 'Giáº£m 20%', null, 2],
-          ['https://images.unsplash.com/photo-1492707892479-7bc8d5a4ee93?w=500', 'Nam giá»›i', 'Lá»‹ch lÃ£m & Tinh táº¿', 'Tá»« 450.000Ä‘', null, 3]
+          ['https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=500', 'Mới nhất', 'Bộ sưu tập Spring 2026', 'Từ 299.000đ', null, 1],
+          ['https://images.unsplash.com/photo-1550614000-4b95d4edc457?w=500', 'Bán chạy', 'Phong Cách Đường Phố', 'Giảm 20%', null, 2],
+          ['https://images.unsplash.com/photo-1492707892479-7bc8d5a4ee93?w=500', 'Nam giới', 'Lịch lãm & Tinh tế', 'Từ 450.000đ', null, 3]
         ]
         for (const [img, sub, title, price, pid, order] of initialBanners) {
           await db.prepare("INSERT INTO hero_banners (image_url, subtitle, title, price, product_id, display_order) VALUES (?, ?, ?, ?, ?, ?)").bind(img, sub, title, price, pid, order).run()
@@ -164,3 +164,4 @@ export function createInitDB(deps: InitDbDeps) {
     }
   }
 }
+

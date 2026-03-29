@@ -13,7 +13,8 @@
     "db:seed": "wrangler d1 execute fashion-store-production --local --file=./migrations/0002_seed.sql",
     "db:reset": "rm -rf .wrangler/state/v3/d1 && npm run db:migrate:local && npm run db:seed",
     "test:payos-local": "node scripts/test-payos-local.mjs",
-    "test:zalopay-local": "node scripts/test-zalopay-local.mjs"
+    "test:zalopay-local": "node scripts/test-zalopay-local.mjs",
+    "check:ui-safety": "node scripts/check-ui-safety.mjs"
   },
   "dependencies": {
     "hono": "^4.12.1",

@@ -1,4 +1,4 @@
-import { PDFDocument } from 'pdf-lib'
+﻿import { PDFDocument } from 'pdf-lib'
 import type { AppBindings } from '../types/app'
 
 export type GhtkPickupConfig = {
@@ -306,7 +306,7 @@ export async function ghtkCancelShipment(env: any, trackingOrder: string) {
   })
   const body: any = await resp.json().catch(() => ({}))
   const message = String(body?.message || '').trim()
-  const alreadyCancelled = /há»§y|huy/i.test(message) && /Ä‘Ã£|da/i.test(message)
+  const alreadyCancelled = /hủy|huy/i.test(message) && /đã|da/i.test(message)
   if (resp.ok && body?.success) return { ok: true, alreadyCancelled: false, detail: body }
   if (alreadyCancelled) return { ok: true, alreadyCancelled: true, detail: body }
   return { ok: false, message: message || 'GHTK_CANCEL_FAILED', detail: body }
@@ -321,3 +321,4 @@ export async function mergePdfBytes(files: Uint8Array[]) {
   }
   return await merged.save()
 }
+
