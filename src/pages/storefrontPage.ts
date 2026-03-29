@@ -2873,6 +2873,7 @@ function updateUserUI() {
   const logoutArea = document.getElementById('userMenuLogoutArea')
   const walletNav = document.getElementById('walletNavBtn')
   const adminLink = document.getElementById('adminNavLink')
+  const userOrdersBtn = document.getElementById('userOrdersBtn')
   // Admin icon
   if (isAdminUser) { adminLink.classList.remove('hidden') } else { adminLink.classList.add('hidden') }
   if (currentUser && isAdminUser) {
@@ -2886,6 +2887,7 @@ function updateUserUI() {
     document.getElementById('userMenuEmail').textContent = 'Quyen quan tri'
     walletNav.classList.add('hidden')
     walletNav.classList.remove('flex')
+    if (userOrdersBtn) userOrdersBtn.classList.add('hidden')
   } else if (currentUser) {
     defaultAvatar.classList.add('hidden')
     imgAvatar.src = currentUser.avatar || ''
@@ -2902,6 +2904,7 @@ function updateUserUI() {
     const bal = fmtBalance(currentUser.balance)
     document.getElementById('walletBalanceNav').textContent = bal
     document.getElementById('walletBalanceMenu').textContent = bal
+    if (userOrdersBtn) userOrdersBtn.classList.remove('hidden')
   } else {
     defaultAvatar.classList.remove('hidden')
     imgAvatar.classList.add('hidden')
@@ -2910,6 +2913,7 @@ function updateUserUI() {
     logoutArea.classList.add('hidden')
     walletNav.classList.add('hidden')
     walletNav.classList.remove('flex')
+    if (userOrdersBtn) userOrdersBtn.classList.remove('hidden')
   }
 }
 
@@ -3092,6 +3096,10 @@ async function showUserOrders() {
   const content = document.getElementById('userMenuContent')
   if (!currentUser) {
     content.innerHTML = '<div class="text-center py-8 text-gray-400"><i class="fas fa-lock text-3xl mb-3"></i><p>Vui lòng đăng nhập để xem lịch sử</p></div>'
+    return
+  }
+  if (isAdminUser) {
+    content.innerHTML = '<div class="text-center py-8 text-gray-400"><i class="fas fa-user-shield text-3xl mb-3"></i><p>Tài khoản quản trị không có lịch sử mua hàng</p></div>'
     return
   }
   content.innerHTML = '<div class="text-center py-8"><i class="fas fa-spinner fa-spin text-2xl text-pink-400"></i></div>'
