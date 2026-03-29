@@ -63,6 +63,14 @@
   .field-error select { border-color: #e84393 !important; box-shadow: 0 0 0 3px rgba(232,67,147,0.15) !important; }
   .field-error .payment-method-btn { border-color: #e84393 !important; box-shadow: 0 0 0 3px rgba(232,67,147,0.12) !important; }
   .field-error .color-btn, .field-error .size-btn { border-color: #e84393 !important; box-shadow: 0 0 0 3px rgba(232,67,147,0.12) !important; }
+  .payment-method-unavailable {
+    opacity: 0.45;
+    filter: grayscale(0.15);
+  }
+  .payment-method-unavailable .payment-method-badge {
+    font-size: 11px;
+    line-height: 1.2;
+  }
   .address-option-item { width: 100%; text-align: left; padding: 9px 12px; font-size: 14px; line-height: 1.4; }
   .address-option-item:hover { background: #fdf2f8; color: #be185d; }
   .address-option-item.active { background: #ec4899; color: #fff; font-weight: 600; }
@@ -592,33 +600,41 @@
               </span>
             </button>
 
-            <div class="w-full flex items-center gap-2 border rounded-xl px-3 py-2.5 hover:border-pink-400 transition">
-              <button type="button" class="payment-method-btn flex-1 flex items-center gap-3 text-left border rounded-lg px-2 py-1.5"
-                onclick="selectPaymentMethod('ZALOPAY', this)">
-                <span class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">ZP</span>
-                <span class="block text-sm font-semibold text-gray-800">Zalopay</span>
-              </button>
-              <button type="button" class="text-sm font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1"
-                onclick="openZaloPayLink(event)">
-                Liên kết <i class="fas fa-chevron-right text-xs"></i>
-              </button>
-            </div>
-
-            <button type="button" class="payment-method-btn w-full flex items-center gap-3 border rounded-xl px-3 py-2.5 text-left hover:border-pink-400 transition"
-              onclick="selectPaymentMethod('MOMO', this)">
-              <span class="w-8 h-8 rounded-full bg-pink-100 text-pink-600 flex items-center justify-center">
-                <i class="fas fa-wallet"></i>
-              </span>
-              <span class="block text-sm font-semibold text-gray-800">Ví điện tử MoMo</span>
-            </button>
-
             <button type="button" class="payment-method-btn w-full flex items-center gap-3 border rounded-xl px-3 py-2.5 text-left hover:border-pink-400 transition"
               onclick="selectPaymentMethod('BANK_TRANSFER', this)">
               <span class="w-8 h-8 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
                 <i class="fas fa-university"></i>
               </span>
-              <span class="block text-sm font-semibold text-gray-800">Chuyển khoản ngân hàng</span>
+              <span>
+                <span class="block text-sm font-semibold text-gray-800">Chuyển khoản ngân hàng</span>
+                <span class="block text-xs text-gray-500">Chuyển khoản trực tiếp</span>
+              </span>
             </button>
+
+            <div class="payment-method-unavailable w-full flex items-center gap-2 border rounded-xl px-3 py-2.5 transition" aria-disabled="true">
+              <button type="button" class="payment-method-btn flex-1 flex items-center gap-3 text-left border rounded-lg px-2 py-1.5" tabindex="-1" disabled>
+                <span class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">ZP</span>
+                <span>
+                  <span class="block text-sm font-semibold text-gray-800">Zalopay</span>
+                  <span class="payment-method-badge block text-xs text-gray-500 mt-0.5">Không khả dụng</span>
+                </span>
+              </button>
+              <button type="button" class="text-sm font-semibold text-blue-600 flex items-center gap-1" tabindex="-1" disabled>
+                Liên kết <i class="fas fa-chevron-right text-xs"></i>
+              </button>
+            </div>
+
+            <div class="payment-method-unavailable w-full flex items-center gap-3 border rounded-xl px-3 py-2.5 transition" aria-disabled="true">
+              <button type="button" class="payment-method-btn flex-1 flex items-center gap-3 text-left border rounded-lg px-2 py-1.5" tabindex="-1" disabled>
+                <span class="w-8 h-8 rounded-full bg-pink-100 text-pink-600 flex items-center justify-center">
+                  <i class="fas fa-wallet"></i>
+                </span>
+                <span>
+                  <span class="block text-sm font-semibold text-gray-800">Ví điện tử MoMo</span>
+                  <span class="payment-method-badge block text-xs text-gray-500 mt-0.5">Không khả dụng</span>
+                </span>
+              </button>
+            </div>
           </div>
         </div>
         
@@ -1736,6 +1752,7 @@ function selectOrderSize(s, btn) {
   document.getElementById('sizeSection')?.classList.remove('field-error','shake')
 }
 function selectPaymentMethod(method, btn) {
+  if (!btn || btn.disabled || btn.closest('.payment-method-unavailable')) return
   document.querySelectorAll('.payment-method-btn').forEach(b => b.classList.remove('active','border-pink-500','bg-pink-50'))
   btn.classList.add('active','border-pink-500','bg-pink-50')
   selectedPaymentMethod = method
