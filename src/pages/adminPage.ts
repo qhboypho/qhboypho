@@ -732,6 +732,33 @@ const MAX_PRODUCT_PAYLOAD_SIZE = 1200000
 const ADMIN_OVERLAY_IDS = ['productModal', 'orderDetailModal', 'arrangeSuccessModal']
 
 // ── NAVIGATION ────────────────────────────────────
+function isAdminOverlayDebugEnabled() {
+  const host = String(window.location.hostname || '')
+  return host === '127.0.0.1' || host === 'localhost' || window.location.search.includes('debugOverlay=1')
+}
+
+function debugAdminOverlayState(reason = '') {
+  if (!isAdminOverlayDebugEnabled()) return
+  const inspectIds = [...ADMIN_OVERLAY_IDS, 'adminChangePasswordModal', 'sidebarOverlay']
+  const rows = inspectIds.map((id) => {
+    const el = document.getElementById(id)
+    if (!el) return { id, missing: true }
+    const style = window.getComputedStyle(el)
+    return {
+      id,
+      hiddenClass: el.classList.contains('hidden'),
+      inlineDisplay: el.style.display || '',
+      display: style.display,
+      pointerEvents: style.pointerEvents,
+      opacity: style.opacity,
+      zIndex: style.zIndex,
+    }
+  })
+  console.groupCollapsed('[admin-overlay] ' + (reason || 'state'))
+  console.table(rows)
+  console.groupEnd()
+}
+
 function getInitialFromName(name) {
   const text = String(name || '').trim()
   if (!text) return 'A'
@@ -850,6 +877,7 @@ function sanitizeAdminOverlayState() {
   }
   syncSidebarOverlay()
   document.body.style.overflow = ''
+  debugAdminOverlayState('sanitize')
 }
 
 function scheduleAdminOverlaySanitize() {
