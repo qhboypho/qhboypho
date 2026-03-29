@@ -2163,6 +2163,39 @@ function getOrderItemImage(order) {
   return first ? String(first).trim() : fallback
 }
 
+function getRowPrimaryActionMeta() {
+  if (ordersViewMode === 'waiting_ship') {
+    return {
+      label: 'In giấy tờ',
+      className: 'bg-blue-600 hover:bg-blue-700 text-white border border-blue-600',
+      icon: 'fa-print'
+    }
+  }
+  return {
+    label: 'Sắp xếp vận chuyển và in',
+    className: 'bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-600',
+    icon: 'fa-truck-fast'
+  }
+}
+
+function renderOrderRowActionControls(order) {
+  const meta = getRowPrimaryActionMeta()
+  const orderId = Number(order.id)
+  return ''
+    + '<div class="flex flex-col gap-2 items-stretch min-w-[160px]">'
+    +   '<button type="button"'
+    +     ' onclick="handleOrderPrimaryAction(' + orderId + ')"'
+    +     ' class="w-full inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold transition ' + meta.className + '">'
+    +     '<i class="fas ' + meta.icon + ' text-[11px]"></i>'
+    +     '<span>' + meta.label + '</span>'
+    +   '</button>'
+    +   '<select onchange="handleOrderSecondaryAction(' + orderId + ', this)" class="w-full text-xs border rounded-lg px-2 py-2 focus:outline-none bg-white text-gray-700 border-gray-300">'
+    +     '<option value="">Thao tác khác</option>'
+    +     '<option value="cancelled">Hủy</option>'
+    +   '</select>'
+    + '</div>'
+}
+
 function renderOrdersTable(orders) {
   const empty = document.getElementById('ordersEmpty')
   if (!orders.length) {
@@ -2232,14 +2265,8 @@ function renderOrdersTable(orders) {
     <td class="px-4 py-3 text-center hidden lg:table-cell">
       \${o.voucher_code ? \`<span class="font-mono text-xs bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 rounded-lg font-semibold">\${o.voucher_code}</span>\` : '<span class="text-gray-300 text-xs">—</span>'}
     </td>
-    <td class="px-4 py-3 text-center">
-      <select onchange="updateOrderStatus(\${o.id}, this.value)" class="text-xs border rounded-lg px-2 py-1 focus:outline-none badge badge-\${o.status}" style="max-width:120px">
-        <option value="pending" \${o.status==='pending'?'selected':''}>Chờ xử lý</option>
-        <option value="confirmed" \${o.status==='confirmed'?'selected':''}>Xác nhận</option>
-        <option value="shipping" \${o.status==='shipping'?'selected':''}>Đang giao</option>
-        <option value="done" \${o.status==='done'?'selected':''}>Hoàn thành</option>
-        <option value="cancelled" \${o.status==='cancelled'?'selected':''}>Huỷ</option>
-      </select>
+    <td class="px-4 py-3 text-center align-top">
+      \${renderOrderRowActionControls(o)}
     </td>
   </tr>\`).join('')
   renderOrdersMobileList(orders)
@@ -2293,15 +2320,8 @@ function renderOrdersMobileList(orders) {
                 : ''}
             </div>
           </div>
-          <div class="mt-2 flex items-center justify-between gap-2">
-            <select onchange="updateOrderStatus(\${o.id}, this.value)" class="text-xs border rounded-lg px-2 py-1 focus:outline-none badge badge-\${o.status}" style="max-width:124px">
-              <option value="pending" \${o.status==='pending'?'selected':''}>Chờ xử lý</option>
-              <option value="confirmed" \${o.status==='confirmed'?'selected':''}>Xác nhận</option>
-              <option value="shipping" \${o.status==='shipping'?'selected':''}>Đang giao</option>
-              <option value="done" \${o.status==='done'?'selected':''}>Hoàn thành</option>
-              <option value="cancelled" \${o.status==='cancelled'?'selected':''}>Huỷ</option>
-            </select>
-            <div class="flex items-center gap-1"></div>
+          <div class="mt-2">
+            \${renderOrderRowActionControls(o)}
           </div>
         </div>
       </div>
@@ -2543,6 +2563,48 @@ function printArrangedOrdersFromModal() {
   }
   openGHTKLabelsPdf(ghtkOrders.map((o) => Number(o.id)))
   closeArrangeSuccessModal()
+}
+
+async function handleOrderPrimaryAction(id) {
+  const orderId = Number(id)
+  if (!Number.isFinite(orderId) || orderId <= 0) return
+  if (ordersViewMode === 'waiting_ship') {
+    const order = adminOrders.find((x) => Number(x.id) === orderId)
+    if (!order) return
+    const printable = extractGHTKPrintableOrders([order])
+    if (!printable.length) {
+      showAdminToast('Chưa có mã vận đơn GHTK để in nhãn', 'warning')
+      return
+    }
+    openGHTKLabelsPdf([orderId])
+    return
+  }
+  try {
+    const res = await axios.post('/api/admin/orders/arrange-shipping', { ids: [orderId] })
+    const updated = Array.isArray(res.data?.updated) ? res.data.updated : []
+    const failed = Array.isArray(res.data?.failed) ? res.data.failed : []
+    arrangedOrdersForPrint = updated.map((o) => ({
+      id: Number(o.id),
+      order_code: String(o.order_code || ''),
+      shipping_carrier: String(o.shipping_carrier || o.carrier || 'GHTK'),
+      shipping_tracking_code: String(o.shipping_tracking_code || o.tracking_code || '').trim()
+    }))
+    arrangedFailedOrders = failed
+    selectedOrderIds.delete(orderId)
+    openArrangeSuccessModal(arrangedOrdersForPrint.length, failed)
+    await loadAdminOrders()
+  } catch (_) {
+    showAdminToast('Lỗi sắp xếp vận chuyển', 'error')
+  }
+}
+
+async function handleOrderSecondaryAction(id, selectEl) {
+  const nextAction = String(selectEl?.value || '').trim().toLowerCase()
+  if (!nextAction) return
+  if (nextAction === 'cancelled') {
+    await updateOrderStatus(id, 'cancelled')
+  }
+  if (selectEl) selectEl.value = ''
 }
 
 async function updateOrderStatus(id, status) {
