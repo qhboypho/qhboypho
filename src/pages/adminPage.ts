@@ -47,49 +47,6 @@ export function adminHTML(): string {
   .mobile-overlay { background:rgba(0,0,0,0.5); }
   [x-cloak] { display:none; }
   .col-tag { width: 32px; height: 32px; border-radius: 50%; display:inline-flex; align-items:center; justify-content:center; font-size:11px; font-weight:600; }
-  select {
-    appearance: none;
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    background-color: #fff;
-    background-image:
-      linear-gradient(45deg, transparent 50%, #94a3b8 50%),
-      linear-gradient(135deg, #94a3b8 50%, transparent 50%),
-      linear-gradient(to right, transparent, transparent);
-    background-position:
-      calc(100% - 18px) calc(50% - 2px),
-      calc(100% - 13px) calc(50% - 2px),
-      calc(100% - 3rem) 50%;
-    background-size: 5px 5px, 5px 5px, 1px 1.8em;
-    background-repeat: no-repeat;
-    border: 1px solid #dbe3ee;
-    border-radius: 14px;
-    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-    color: #334155;
-    min-height: 42px;
-    padding: 0.6rem 2.4rem 0.6rem 0.95rem;
-    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease, background-color 0.2s ease;
-  }
-  select:hover {
-    border-color: #f9a8d4;
-    box-shadow: 0 6px 18px rgba(232, 67, 147, 0.08);
-    transform: translateY(-1px);
-  }
-  select:focus,
-  select:focus-visible {
-    outline: none;
-    border-color: #e84393;
-    box-shadow: 0 0 0 4px rgba(232, 67, 147, 0.12);
-  }
-  select:disabled {
-    cursor: not-allowed;
-    background-color: #f8fafc;
-    color: #94a3b8;
-    opacity: 0.9;
-  }
-  select option {
-    color: #0f172a;
-  }
   /* Force hide sidebar overlay on desktop - overrides any JS toggle */
   @media (min-width: 768px) {
     #sidebarOverlay { display: none !important; }
