@@ -54,20 +54,18 @@ export function adminHTML(): string {
     background-color: #fff;
     background-image:
       linear-gradient(45deg, transparent 50%, #94a3b8 50%),
-      linear-gradient(135deg, #94a3b8 50%, transparent 50%),
-      linear-gradient(to right, transparent, transparent);
+      linear-gradient(135deg, #94a3b8 50%, transparent 50%);
     background-position:
-      calc(100% - 18px) calc(50% - 2px),
-      calc(100% - 13px) calc(50% - 2px),
-      calc(100% - 3rem) 50%;
-    background-size: 5px 5px, 5px 5px, 1px 1.8em;
+      calc(100% - 16px) 50%,
+      calc(100% - 11px) 50%;
+    background-size: 5px 5px, 5px 5px;
     background-repeat: no-repeat;
     border: 1px solid #dbe3ee;
     border-radius: 14px;
     box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
     color: #334155;
     min-height: 42px;
-    padding: 0.6rem 2.4rem 0.6rem 0.95rem;
+    padding: 0.6rem 3rem 0.6rem 0.95rem;
     transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease, background-color 0.2s ease;
   }
   select:hover {
