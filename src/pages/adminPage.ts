@@ -631,8 +631,8 @@ export function adminHTML(): string {
 </div>
 
 <!-- ORDER DETAIL MODAL -->
-<div id="orderDetailModal" class="fixed inset-0 modal-overlay z-50 hidden flex items-center justify-center p-4">
-  <div class="modal-card bg-white rounded-3xl shadow-2xl w-full max-w-lg">
+<div id="orderDetailModal" class="fixed inset-0 modal-overlay z-50 hidden flex items-center justify-center p-4" onclick="if(event.target === this) this.classList.add('hidden')">
+  <div class="modal-card bg-white rounded-3xl shadow-2xl w-full max-w-lg" onclick="event.stopPropagation()">
     <div class="border-b px-6 py-4 flex items-center justify-between">
       <h2 class="font-bold text-xl text-gray-900">Chi tiết đơn hàng</h2>
       <button onclick="document.getElementById('orderDetailModal').classList.add('hidden')" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center">
