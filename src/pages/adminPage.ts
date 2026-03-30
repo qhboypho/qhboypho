@@ -221,7 +221,7 @@ export function adminHTML(): string {
   <div id="page-orders" class="p-6 hidden">
     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
       <div class="flex gap-2 flex-wrap items-center">
-        <select id="orderStatusFilter" onchange="filterOrders()" class="border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-pink-400">
+        <select id="orderStatusFilter" onchange="setOrdersPage(1); filterOrders()" class="border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-pink-400">
           <option value="all">Tất cả trạng thái</option>
           <option value="pending">Chờ xử lý</option>
           <option value="confirmed">Đã xác nhận</option>
@@ -229,18 +229,12 @@ export function adminHTML(): string {
           <option value="done">Hoàn thành</option>
           <option value="cancelled">Đã hủy</option>
         </select>
-        <input type="text" id="orderSearch" placeholder="Tìm tên/SĐT/mã..." oninput="filterOrders()" 
+        <input type="text" id="orderSearch" placeholder="Tìm tên/SĐT/mã..." oninput="setOrdersPage(1); filterOrders()" 
           class="border rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-pink-400 w-48">
-        <button id="ordersModeArrangeBtn" onclick="setOrdersViewMode('to_arrange')" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-semibold inline-flex items-center gap-2 transition">
-          <i class="fas fa-truck-loading"></i>
-          <span>Sắp xếp vận chuyển</span>
-          <span id="ordersToArrangeCount" class="bg-white/20 px-2 py-0.5 rounded-full text-xs">0</span>
-        </button>
-        <button id="ordersModeWaitingBtn" onclick="setOrdersViewMode('waiting_ship')" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-semibold inline-flex items-center gap-2 transition border border-gray-200">
-          <i class="fas fa-box-open"></i>
-          <span>Đang chờ vận chuyển</span>
-          <span id="ordersWaitingShipCount" class="bg-gray-200 text-gray-700 px-2 py-0.5 rounded-full text-xs">0</span>
-        </button>
+        <select id="ordersViewModeSelect" onchange="setOrdersViewMode(this.value)" class="border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-pink-400 min-w-[220px] bg-white text-gray-700 font-semibold">
+          <option id="ordersViewModeToArrangeOption" value="to_arrange">Sắp xếp vận chuyển (0)</option>
+          <option id="ordersViewModeWaitingOption" value="waiting_ship">Đang chờ vận chuyển (0)</option>
+        </select>
       </div>
       <div class="flex items-center gap-2">
         <button onclick="exportExcel()" class="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2 transition">
@@ -272,7 +266,8 @@ export function adminHTML(): string {
         <i class="fas fa-inbox text-4xl mb-3"></i><p>Không có đơn hàng nào</p>
       </div>
     </div>
-    <div id="orderStats" class="mt-4 text-sm text-gray-500 text-right"></div>
+    <div id="ordersPagination" class="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-gray-500"></div>
+    <div id="orderStats" class="mt-2 text-sm text-gray-500 text-right"></div>
   </div>
 
   <div id="ordersBulkActionBar" class="hidden fixed left-1/2 -translate-x-1/2 z-[70]" style="bottom: 200px;">
@@ -714,7 +709,10 @@ let adminProducts = []
 let adminOrders = []
 let selectedOrderIds = new Set()
 let filteredAdminOrders = []
+let paginatedAdminOrders = []
 let ordersViewMode = 'to_arrange'
+let currentOrdersPage = 1
+const ORDERS_PAGE_SIZE = 50
 let arrangedOrdersForPrint = []
 let arrangedFailedOrders = []
 let colors = []
@@ -2067,31 +2065,26 @@ async function loadAdminOrders() {
 
 function setOrdersViewMode(mode) {
   ordersViewMode = mode === 'waiting_ship' ? 'waiting_ship' : 'to_arrange'
+  const modeSelect = document.getElementById('ordersViewModeSelect')
+  if (modeSelect) modeSelect.value = ordersViewMode
+  currentOrdersPage = 1
   selectedOrderIds.clear()
   filterOrders()
 }
 
+function setOrdersPage(page) {
+  const numericPage = Number(page) || 1
+  currentOrdersPage = Math.max(1, numericPage)
+}
+
 function updateOrdersModeButtons(counters) {
-  const arrangeBtn = document.getElementById('ordersModeArrangeBtn')
-  const waitingBtn = document.getElementById('ordersModeWaitingBtn')
-  const arrangeCount = document.getElementById('ordersToArrangeCount')
-  const waitingCount = document.getElementById('ordersWaitingShipCount')
+  const modeSelect = document.getElementById('ordersViewModeSelect')
+  const arrangeOption = document.getElementById('ordersViewModeToArrangeOption')
+  const waitingOption = document.getElementById('ordersViewModeWaitingOption')
 
-  if (arrangeCount) arrangeCount.textContent = String(counters.toArrange || 0)
-  if (waitingCount) waitingCount.textContent = String(counters.waitingShip || 0)
-
-  if (arrangeBtn) {
-    const active = ordersViewMode === 'to_arrange'
-    arrangeBtn.className = active
-      ? 'bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-semibold inline-flex items-center gap-2 transition'
-      : 'bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-semibold inline-flex items-center gap-2 transition border border-gray-200'
-  }
-  if (waitingBtn) {
-    const active = ordersViewMode === 'waiting_ship'
-    waitingBtn.className = active
-      ? 'bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl text-sm font-semibold inline-flex items-center gap-2 transition'
-      : 'bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-xl text-sm font-semibold inline-flex items-center gap-2 transition border border-gray-200'
-  }
+  if (arrangeOption) arrangeOption.textContent = 'Sắp xếp vận chuyển (' + String(counters.toArrange || 0) + ')'
+  if (waitingOption) waitingOption.textContent = 'Đang chờ vận chuyển (' + String(counters.waitingShip || 0) + ')'
+  if (modeSelect) modeSelect.value = ordersViewMode
 }
 
 function filterOrders() {
@@ -2124,7 +2117,12 @@ function filterOrders() {
   ) : byStatus
   
   filteredAdminOrders = filtered
-  renderOrdersTable(filtered)
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ORDERS_PAGE_SIZE))
+  if (currentOrdersPage > totalPages) currentOrdersPage = totalPages
+  const pageStart = (currentOrdersPage - 1) * ORDERS_PAGE_SIZE
+  paginatedAdminOrders = filtered.slice(pageStart, pageStart + ORDERS_PAGE_SIZE)
+  renderOrdersTable(paginatedAdminOrders)
+  renderOrdersPagination(filtered.length, totalPages)
   const total = filtered.reduce((s,o) => s + getOrderAmountDue(o), 0)
   const modeLabel = ordersViewMode === 'waiting_ship' ? 'Đang chờ vận chuyển' : 'Sắp xếp vận chuyển'
   document.getElementById('orderStats').textContent = \`\${modeLabel}: \${filtered.length} đơn – Tổng: \${fmtPrice(total)}\`
@@ -2182,7 +2180,7 @@ function renderOrderRowActionControls(order) {
   const meta = getRowPrimaryActionMeta()
   const orderId = Number(order.id)
   return ''
-    + '<div class="flex flex-col gap-2 items-stretch min-w-[160px]">'
+    + '<div class="flex flex-col gap-2 items-stretch w-full max-w-[200px] mx-auto">'
     +   '<button type="button"'
     +     ' onclick="handleOrderPrimaryAction(' + orderId + ')"'
     +     ' class="w-full inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold transition ' + meta.className + '">'
@@ -2337,12 +2335,30 @@ function toggleOrderSelection(id, checked) {
 }
 
 function toggleSelectAllOrders(checked) {
-  filteredAdminOrders.forEach(o => {
+  paginatedAdminOrders.forEach(o => {
     const id = Number(o.id)
     if (checked) selectedOrderIds.add(id)
     else selectedOrderIds.delete(id)
   })
-  renderOrdersTable(filteredAdminOrders)
+  renderOrdersTable(paginatedAdminOrders)
+}
+
+function renderOrdersPagination(totalCount, totalPages) {
+  const wrap = document.getElementById('ordersPagination')
+  if (!wrap) return
+  if (totalCount <= ORDERS_PAGE_SIZE) {
+    wrap.innerHTML = ''
+    return
+  }
+  const start = totalCount ? ((currentOrdersPage - 1) * ORDERS_PAGE_SIZE) + 1 : 0
+  const end = Math.min(totalCount, currentOrdersPage * ORDERS_PAGE_SIZE)
+  wrap.innerHTML = ''
+    + '<div>Hiển thị ' + start + '–' + end + ' / ' + totalCount + ' đơn</div>'
+    + '<div class="flex items-center gap-2">'
+    +   '<button type="button" onclick="setOrdersPage(' + (currentOrdersPage - 1) + '); selectedOrderIds.clear(); filterOrders()" class="px-3 py-1.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition ' + (currentOrdersPage <= 1 ? 'opacity-50 pointer-events-none' : '') + '">Trước</button>'
+    +   '<span class="text-gray-600">Trang ' + currentOrdersPage + '/' + totalPages + '</span>'
+    +   '<button type="button" onclick="setOrdersPage(' + (currentOrdersPage + 1) + '); selectedOrderIds.clear(); filterOrders()" class="px-3 py-1.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition ' + (currentOrdersPage >= totalPages ? 'opacity-50 pointer-events-none' : '') + '">Sau</button>'
+    + '</div>'
 }
 
 function updateOrderSelectionUI() {
@@ -2354,7 +2370,7 @@ function updateOrderSelectionUI() {
   const selectAll = document.getElementById('ordersSelectAll')
   const shipBar = document.getElementById('shippingBulkActionBar')
   const shipBarText = document.getElementById('shippingBulkSelectedText')
-  const visibleIds = filteredAdminOrders.map(o => Number(o.id))
+  const visibleIds = paginatedAdminOrders.map(o => Number(o.id))
   const checkedVisible = visibleIds.filter(id => selectedOrderIds.has(id)).length
   const anySelectedVisible = checkedVisible > 0
 
@@ -2409,7 +2425,7 @@ async function deleteSelectedOrders() {
 }
 
 async function arrangeSelectedForShipping() {
-  const ids = filteredAdminOrders.map(o => Number(o.id)).filter(id => selectedOrderIds.has(id))
+  const ids = paginatedAdminOrders.map(o => Number(o.id)).filter(id => selectedOrderIds.has(id))
   if (!ids.length) return
   try {
     const res = await axios.post('/api/admin/orders/arrange-shipping', { ids })
@@ -2431,7 +2447,7 @@ async function arrangeSelectedForShipping() {
 }
 
 function printSelectedOrders() {
-  const selected = filteredAdminOrders.filter(o => selectedOrderIds.has(Number(o.id)))
+  const selected = paginatedAdminOrders.filter(o => selectedOrderIds.has(Number(o.id)))
   if (!selected.length) return
   const ghtkOrders = extractGHTKPrintableOrders(selected)
   if (!ghtkOrders.length) {
