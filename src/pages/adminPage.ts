@@ -56,8 +56,8 @@ export function adminHTML(): string {
       linear-gradient(45deg, transparent 50%, #94a3b8 50%),
       linear-gradient(135deg, #94a3b8 50%, transparent 50%);
     background-position:
-      calc(100% - 15px) 50%,
-      calc(100% - 10px) 50%;
+      calc(100% - 16px) 50%,
+      calc(100% - 11px) 50%;
     background-size: 5px 5px, 5px 5px;
     background-repeat: no-repeat;
     border: 1px solid #dbe3ee;
@@ -65,10 +65,7 @@ export function adminHTML(): string {
     box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
     color: #334155;
     min-height: 42px;
-    padding: 0.6rem 3.5rem 0.6rem 0.95rem;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    padding: 0.6rem 3rem 0.6rem 0.95rem;
     transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease, background-color 0.2s ease;
   }
   select:hover {
