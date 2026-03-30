@@ -3,7 +3,19 @@ import path from 'node:path'
 import vm from 'node:vm'
 
 const DEFAULT_BASE_URL = process.env.CHECK_BASE_URL || 'http://127.0.0.1:5173'
-const DEFAULT_PATHS = ['/', '/admin', '/admin/login']
+const DEFAULT_ADMIN_TOKEN = process.env.CHECK_ADMIN_TOKEN || 'super_secret_admin_token'
+const DEFAULT_ADMIN_USER_KEY = process.env.CHECK_ADMIN_USER_KEY || 'admin'
+const DEFAULT_TARGETS = [
+  { pathname: '/' },
+  { pathname: '/admin' },
+  { pathname: '/admin/login' },
+  {
+    pathname: '/admin/dashboard',
+    headers: {
+      cookie: `admin_token=${DEFAULT_ADMIN_TOKEN}; admin_user_key=${DEFAULT_ADMIN_USER_KEY}`,
+    },
+  },
+]
 const SOURCE_DIRS = ['src/pages', 'src/routes', 'src/lib']
 const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs'])
 const SUSPICIOUS_MOJIBAKE = [
@@ -18,22 +30,29 @@ const SUSPICIOUS_MOJIBAKE = [
   /�/,
 ]
 
-function resolveTargetUrls() {
-  const [, , ...args] = process.argv
-  if (!args.length) return DEFAULT_PATHS.map((pathname) => new URL(pathname, DEFAULT_BASE_URL).toString())
-  const [first, ...rest] = args
-  if (/^https?:\/\//i.test(first)) {
-    const base = first.replace(/\/+$/, '')
-    const paths = rest.length ? rest : DEFAULT_PATHS
-    return paths.map((pathname) => new URL(pathname, `${base}/`).toString())
+function cloneTarget(target, baseUrl) {
+  return {
+    url: new URL(target.pathname, baseUrl).toString(),
+    headers: target.headers || {},
   }
-  return args.map((pathname) => new URL(pathname, DEFAULT_BASE_URL).toString())
 }
 
-async function fetchHtml(url) {
-  const res = await fetch(url)
+function resolveTargetConfigs() {
+  const [, , ...args] = process.argv
+  if (!args.length) return DEFAULT_TARGETS.map((target) => cloneTarget(target, DEFAULT_BASE_URL))
+  const [first, ...rest] = args
+  if (/^https?:\/\//i.test(first)) {
+    const base = first.replace(/\/+$/, '') + '/'
+    const pathArgs = rest.length ? rest : DEFAULT_TARGETS.map((target) => target.pathname)
+    return pathArgs.map((pathname) => cloneTarget({ pathname }, base))
+  }
+  return args.map((pathname) => cloneTarget({ pathname }, DEFAULT_BASE_URL))
+}
+
+async function fetchHtml(target) {
+  const res = await fetch(target.url, { headers: target.headers || {} })
   if (!res.ok) {
-    throw new Error(`HTTP ${res.status} at ${url}`)
+    throw new Error(`HTTP ${res.status} at ${target.url}`)
   }
   return res.text()
 }
@@ -100,19 +119,19 @@ async function scanSourceMojibake(cwd) {
 
 async function main() {
   const cwd = process.cwd()
-  const urls = resolveTargetUrls()
+  const targets = resolveTargetConfigs()
   const failures = []
 
-  for (const url of urls) {
-    const html = await fetchHtml(url)
+  for (const target of targets) {
+    const html = await fetchHtml(target)
     const visibleText = stripTagsAndBlocks(html)
     const mojibakeHit = findMojibake(visibleText)
     if (mojibakeHit) {
-      failures.push(`${url}: visible text contains suspicious mojibake ${JSON.stringify(mojibakeHit)}`)
+      failures.push(`${target.url}: visible text contains suspicious mojibake ${JSON.stringify(mojibakeHit)}`)
     }
     const scripts = extractInlineScripts(html)
     scripts.forEach((script, index) => {
-      const syntaxError = checkScriptSyntax(script, `${url} <script #${index}>`)
+      const syntaxError = checkScriptSyntax(script, `${target.url} <script #${index}>`)
       if (syntaxError) failures.push(syntaxError)
     })
   }
@@ -125,7 +144,7 @@ async function main() {
     process.exit(1)
   }
 
-  console.log(`UI safety check passed for ${urls.length} page(s).`)
+  console.log(`UI safety check passed for ${targets.length} page(s).`)
 }
 
 main().catch((error) => {
