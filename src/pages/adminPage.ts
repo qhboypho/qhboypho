@@ -2343,6 +2343,15 @@ function toggleSelectAllOrders(checked) {
   renderOrdersTable(paginatedAdminOrders)
 }
 
+function jumpToOrdersPage(totalPages) {
+  const input = document.getElementById('ordersPageInput')
+  if (!input) return
+  const numericPage = Number(input.value) || 1
+  setOrdersPage(Math.min(totalPages, Math.max(1, numericPage)))
+  selectedOrderIds.clear()
+  filterOrders()
+}
+
 function renderOrdersPagination(totalCount, totalPages) {
   const wrap = document.getElementById('ordersPagination')
   if (!wrap) return
@@ -2352,11 +2361,21 @@ function renderOrdersPagination(totalCount, totalPages) {
   }
   const start = totalCount ? ((currentOrdersPage - 1) * ORDERS_PAGE_SIZE) + 1 : 0
   const end = Math.min(totalCount, currentOrdersPage * ORDERS_PAGE_SIZE)
+  const showJump = totalPages >= 4
   wrap.innerHTML = ''
-    + '<div>Hiển thị ' + start + '–' + end + ' / ' + totalCount + ' đơn</div>'
-    + '<div class="flex items-center gap-2">'
+    + '<div class="flex flex-col gap-1">'
+    +   '<div>Hiển thị ' + start + '–' + end + ' / ' + totalCount + ' đơn</div>'
+    +   '<div class="text-xs text-gray-400 md:hidden">Trang ' + currentOrdersPage + '/' + totalPages + '</div>'
+    + '</div>'
+    + '<div class="flex flex-wrap items-center gap-2 justify-end">'
     +   '<button type="button" onclick="setOrdersPage(' + (currentOrdersPage - 1) + '); selectedOrderIds.clear(); filterOrders()" class="px-3 py-1.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition ' + (currentOrdersPage <= 1 ? 'opacity-50 pointer-events-none' : '') + '">Trước</button>'
-    +   '<span class="text-gray-600">Trang ' + currentOrdersPage + '/' + totalPages + '</span>'
+    +   '<span class="hidden md:inline text-gray-600">Trang ' + currentOrdersPage + '/' + totalPages + '</span>'
+    +   (showJump
+    +     ? '<div class="flex items-center gap-2">'
+    +         + '<input id="ordersPageInput" type="number" min="1" max="' + totalPages + '" value="' + currentOrdersPage + '" onkeydown="if(event.key===\'Enter\'){jumpToOrdersPage(' + totalPages + ')}" class="w-16 px-2 py-1.5 rounded-lg border border-gray-300 text-center text-sm focus:outline-none focus:border-pink-400">'
+    +         + '<button type="button" onclick="jumpToOrdersPage(' + totalPages + ')" class="px-3 py-1.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition">Đi</button>'
+    +       '</div>'
+    +     : '')
     +   '<button type="button" onclick="setOrdersPage(' + (currentOrdersPage + 1) + '); selectedOrderIds.clear(); filterOrders()" class="px-3 py-1.5 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition ' + (currentOrdersPage >= totalPages ? 'opacity-50 pointer-events-none' : '') + '">Sau</button>'
     + '</div>'
 }
