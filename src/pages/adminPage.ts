@@ -255,7 +255,7 @@ export function adminHTML(): string {
               <th class="px-2 py-3 text-center font-semibold text-gray-600 w-12">SL</th>
               <th class="px-4 py-3 text-right font-semibold text-gray-600">Tổng tiền</th>
               <th class="px-4 py-3 text-center font-semibold text-gray-600 hidden lg:table-cell">Voucher</th>
-              <th class="px-4 py-3 text-center font-semibold text-gray-600">Trạng thái</th>
+              <th class="px-4 py-3 text-center font-semibold text-gray-600 w-[220px] min-w-[220px]">Trạng thái</th>
             </tr>
           </thead>
           <tbody id="ordersTable"></tbody>
@@ -2263,7 +2263,7 @@ function renderOrdersTable(orders) {
     <td class="px-4 py-3 text-center hidden lg:table-cell">
       \${o.voucher_code ? \`<span class="font-mono text-xs bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 rounded-lg font-semibold">\${o.voucher_code}</span>\` : '<span class="text-gray-300 text-xs">—</span>'}
     </td>
-    <td class="px-4 py-3 text-center align-top">
+    <td class="px-4 py-3 text-center align-top w-[220px] min-w-[220px]">
       \${renderOrderRowActionControls(o)}
     </td>
   </tr>\`).join('')
