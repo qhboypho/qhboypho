@@ -251,11 +251,11 @@ export function adminHTML(): string {
               <th class="px-4 py-3 text-center font-semibold text-gray-600">
                 <input id="ordersSelectAll" type="checkbox" onchange="toggleSelectAllOrders(this.checked)" class="w-4 h-4 rounded border-gray-300 text-pink-500 focus:ring-pink-400">
               </th>
-              <th class="px-4 py-3 text-left font-semibold text-gray-600 w-[360px]">Thông tin ĐH</th>
-              <th class="px-2 py-3 text-center font-semibold text-gray-600 w-12">SL</th>
-              <th class="px-4 py-3 text-right font-semibold text-gray-600">Tổng tiền</th>
-              <th class="px-4 py-3 text-center font-semibold text-gray-600 hidden lg:table-cell">Voucher</th>
-              <th class="px-4 py-3 text-center font-semibold text-gray-600 w-[220px] min-w-[220px]">Trạng thái</th>
+              <th class="px-4 py-3 text-left font-semibold text-gray-600 w-[360px] min-w-[360px]">Thông tin ĐH</th>
+              <th class="px-2 py-3 text-center font-semibold text-gray-600 w-12 min-w-12">SL</th>
+              <th class="px-4 py-3 text-right font-semibold text-gray-600 w-[150px] min-w-[150px]">Tổng tiền</th>
+              <th class="px-4 py-3 text-center font-semibold text-gray-600 hidden lg:table-cell w-[120px] min-w-[120px]">Voucher</th>
+              <th class="px-4 py-3 text-center font-semibold text-gray-600 w-[240px] min-w-[240px]">Trạng thái</th>
             </tr>
           </thead>
           <tbody id="ordersTable"></tbody>
@@ -2180,10 +2180,10 @@ function renderOrderRowActionControls(order) {
   const meta = getRowPrimaryActionMeta()
   const orderId = Number(order.id)
   return ''
-    + '<div class="flex flex-col gap-2 items-stretch w-full max-w-[200px] mx-auto">'
+    + '<div class="flex flex-col gap-2 items-stretch w-full max-w-[240px] mx-auto">'
     +   '<button type="button"'
     +     ' onclick="handleOrderPrimaryAction(' + orderId + ')"'
-    +     ' class="w-full inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold transition ' + meta.className + '">'
+    +     ' class="w-full inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-[11px] font-semibold whitespace-nowrap transition ' + meta.className + '">'
     +     '<i class="fas ' + meta.icon + ' text-[11px]"></i>'
     +     '<span>' + meta.label + '</span>'
     +   '</button>'
@@ -2210,7 +2210,7 @@ function renderOrdersTable(orders) {
     <td class="px-4 py-3 text-center">
       <input type="checkbox" class="w-4 h-4 rounded border-gray-300 text-pink-500 focus:ring-pink-400" \${selectedOrderIds.has(Number(o.id)) ? 'checked' : ''} onchange="toggleOrderSelection(\${o.id}, this.checked)">
     </td>
-    <td class="px-4 py-3 w-[360px] align-top">
+    <td class="px-4 py-3 w-[360px] min-w-[360px] align-top">
       <div class="flex items-start gap-3 max-w-[360px]">
         <img src="\${getOrderItemImage(o)}" alt="\${o.product_name || 'product'}" class="w-12 h-12 rounded-lg object-cover border border-gray-200 bg-gray-100 flex-none" onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=80'">
         <div class="min-w-0 max-w-[300px] space-y-0.5">
@@ -2254,16 +2254,16 @@ function renderOrdersTable(orders) {
     <td class="px-2 py-3 text-center w-12 align-top">
       <span class="inline-flex min-w-6 justify-center text-[11px] \${Number(o.quantity || 1) > 1 ? 'font-bold text-gray-900 bg-amber-100 border border-amber-300 shadow-sm' : 'font-semibold text-gray-700 bg-gray-100 border border-gray-200'} rounded-md px-1.5 py-0.5">\${o.quantity || 1}</span>
     </td>
-    <td class="px-4 py-3 text-right">
+    <td class="px-4 py-3 text-right w-[150px] min-w-[150px]">
       <p class="font-bold text-gray-800">\${fmtPrice(getOrderAmountDue(o))}</p>
       \${o.discount_amount > 0 ? \`<p class="text-xs text-green-600">-\${fmtPrice(o.discount_amount)}</p>\` : ''}
       <p class="mt-1"><span class="text-[11px] px-2 py-0.5 rounded-full \${paymentStatusClass(o.payment_status)}">\${paymentStatusLabel(o.payment_status)}</span></p>
       <div class="mt-1 flex justify-end">\${paymentMethodTagHTML(o.payment_method, o.payment_status)}</div>
     </td>
-    <td class="px-4 py-3 text-center hidden lg:table-cell">
+    <td class="px-4 py-3 text-center hidden lg:table-cell w-[120px] min-w-[120px]">
       \${o.voucher_code ? \`<span class="font-mono text-xs bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 rounded-lg font-semibold">\${o.voucher_code}</span>\` : '<span class="text-gray-300 text-xs">—</span>'}
     </td>
-    <td class="px-4 py-3 text-center align-top w-[220px] min-w-[220px]">
+    <td class="px-4 py-3 text-center align-top w-[240px] min-w-[240px]">
       \${renderOrderRowActionControls(o)}
     </td>
   </tr>\`).join('')
