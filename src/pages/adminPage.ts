@@ -248,7 +248,7 @@ export function adminHTML(): string {
         <table class="w-full text-sm">
           <thead>
             <tr class="bg-gray-50 border-b">
-              <th class="px-4 py-3 text-center font-semibold text-gray-600">
+              <th class="px-3 py-3 text-center font-semibold text-gray-600 w-10 min-w-10">
                 <input id="ordersSelectAll" type="checkbox" onchange="toggleSelectAllOrders(this.checked)" class="w-4 h-4 rounded border-gray-300 text-pink-500 focus:ring-pink-400">
               </th>
               <th class="px-4 py-3 text-left font-semibold text-gray-600 w-[360px] min-w-[360px]">Thông tin ĐH</th>
@@ -2207,7 +2207,7 @@ function renderOrdersTable(orders) {
   
   document.getElementById('ordersTable').innerHTML = orders.map(o => \`
   <tr class="table-row border-b cursor-pointer">
-    <td class="px-4 py-3 text-center">
+    <td class="px-3 py-3 text-center w-10 min-w-10">
       <input type="checkbox" class="w-4 h-4 rounded border-gray-300 text-pink-500 focus:ring-pink-400" \${selectedOrderIds.has(Number(o.id)) ? 'checked' : ''} onchange="toggleOrderSelection(\${o.id}, this.checked)">
     </td>
     <td class="px-4 py-3 w-[360px] min-w-[360px] align-top">
