@@ -300,10 +300,12 @@
     -webkit-overflow-scrolling: touch;
     padding: 0.25rem 0 0.35rem;
     scrollbar-width: none;
+    width: 100%;
+    max-width: 100%;
   }
   .hero-mobile-slider::-webkit-scrollbar { display: none; }
   .hero-mobile-card {
-    flex: 0 0 calc((100vw - 2.75rem) / 3.15);
+    flex: 0 0 calc((100% - 1.5rem) / 3.15);
     min-width: 96px;
     max-width: 128px;
     scroll-snap-align: start;
@@ -368,12 +370,16 @@
     #hero .hero-copy-block-mobile-comment { display: block; }
     #heroBannersWrapper {
       width: 100%;
+      max-width: 100%;
       justify-content: flex-start;
+      overflow: hidden;
     }
     #heroBannersCollapsed {
       width: 100%;
+      max-width: 100%;
       height: auto;
       padding-bottom: 0 !important;
+      overflow: hidden;
     }
     #heroBannersExpanded {
       display: none !important;
@@ -383,7 +389,7 @@
   }
 </style>
 </head>
-<body class="bg-gray-50">
+<body class="bg-gray-50 overflow-x-hidden">
 
 <!-- NAVBAR -->
 <nav class="navbar-blur fixed top-0 left-0 right-0 z-50 border-b border-white/10">
