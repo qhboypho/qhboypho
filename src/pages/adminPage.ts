@@ -2370,10 +2370,10 @@ function renderOrderRowActionControls(order, compact = false) {
   const meta = getRowPrimaryActionMeta()
   const orderId = Number(order.id)
   const wrapClass = compact
-    ? 'flex flex-col gap-2 items-stretch w-full'
+    ? 'flex flex-col gap-2 items-stretch w-full min-w-0'
     : 'flex flex-col gap-2 items-stretch w-full max-w-[240px] mx-auto'
   const buttonClass = compact
-    ? 'w-full inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-[11px] font-semibold whitespace-nowrap transition ' + meta.className
+    ? 'w-full inline-flex items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-[10px] leading-tight font-semibold whitespace-normal text-center transition ' + meta.className
     : 'w-full inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-[11px] font-semibold whitespace-nowrap transition ' + meta.className
   return ''
     + '<div class="' + wrapClass + '">'
@@ -2383,7 +2383,7 @@ function renderOrderRowActionControls(order, compact = false) {
     +     '<i class="fas ' + meta.icon + ' text-[11px]"></i>'
     +     '<span>' + meta.label + '</span>'
     +   '</button>'
-    +   '<select onchange="handleOrderSecondaryAction(' + orderId + ', this)" class="w-full text-xs border rounded-lg px-2 py-2 focus:outline-none bg-white text-gray-700 border-gray-300">'
+    +   '<select onchange="handleOrderSecondaryAction(' + orderId + ', this)" class="w-full min-w-0 text-xs border rounded-lg px-2 py-2 focus:outline-none bg-white text-gray-700 border-gray-300">'
     +     '<option value="">Thao tác khác</option>'
     +     '<option value="cancelled">Hủy</option>'
     +   '</select>'
