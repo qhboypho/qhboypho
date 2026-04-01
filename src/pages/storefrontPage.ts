@@ -322,7 +322,7 @@
   }
   .hero-mobile-card-thumb {
     width: 100%;
-    aspect-ratio: 0.78;
+    aspect-ratio: 1 / 1;
     border-radius: 1rem;
     overflow: hidden;
     box-shadow: 0 10px 26px rgba(15,23,42,0.22);
@@ -366,8 +366,13 @@
   /* Mobile: slider layout */
   @media (max-width: 768px) {
     #hero { min-height: auto; }
-    #hero .hero-copy-block { display: none; }
-    #hero .hero-copy-block-mobile-comment { display: block; }
+    #hero .hero-layout { padding-top: 1rem !important; padding-bottom: 1rem !important; gap: 1.5rem !important; }
+    #hero .hero-copy-block .hero-mobile-sub { display: block !important; }
+    #hero .hero-copy-block .hero-badge,
+    #hero .hero-copy-block .hero-desktop-desc,
+    #hero .hero-copy-block .hero-desktop-actions,
+    #hero .hero-copy-block .hero-desktop-stats { display: none !important; }
+    #hero .hero-copy-block { display: block; }
     #heroBannersWrapper {
       width: 100%;
       max-width: 100%;
@@ -437,15 +442,15 @@
 
 <!-- HERO -->
 <section class="gradient-hero min-h-screen flex items-center pt-16" id="hero">
-  <div class="max-w-7xl mx-auto px-4 py-20 grid md:grid-cols-2 gap-12 items-center">
-    <!-- Mobile hero heading retained in source but hidden on small screens by request -->
+  <div class="max-w-7xl mx-auto px-4 py-20 grid md:grid-cols-2 gap-12 items-center hero-layout">
     <div class="hero-copy-block">
-      <p class="text-pink-400 font-medium tracking-widest uppercase text-sm mb-4">Bộ sưu tập mới 2026</p>
+      <p class="hero-badge text-pink-400 font-medium tracking-widest uppercase text-sm mb-4">Bộ sưu tập mới 2026</p>
       <h1 class="font-display text-5xl md:text-6xl text-white font-bold leading-tight mb-6">
         Phong Cách<br><span style="background:linear-gradient(135deg,#e84393,#f39c12);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent">Không Giới Hạn</span>
       </h1>
-      <p class="text-gray-300 text-lg mb-8 leading-relaxed">Khám phá bộ sưu tập thời trang cao cấp dành cho cả nam lẫn nữ. Chất lượng vải premium, thiết kế tinh tế – thể hiện cá tính của bạn.</p>
-      <div class="flex gap-4 flex-wrap">
+      <p class="hero-mobile-sub hidden text-gray-300 text-sm leading-relaxed mb-5">Đây là những sản phẩm hot nhất và đang được đặt mua nhiều nhất ở thời điểm hiện tại.</p>
+      <p class="hero-desktop-desc text-gray-300 text-lg mb-8 leading-relaxed">Khám phá bộ sưu tập thời trang cao cấp dành cho cả nam lẫn nữ. Chất lượng vải premium, thiết kế tinh tế – thể hiện cá tính của bạn.</p>
+      <div class="hero-desktop-actions flex gap-4 flex-wrap">
         <a href="#products" class="btn-primary text-white px-8 py-3 rounded-full font-semibold">
           <i class="fas fa-shopping-bag mr-2"></i>Mua sắm ngay
         </a>
@@ -453,14 +458,12 @@
           Khám phá thêm
         </a>
       </div>
-      <div class="mt-12 grid grid-cols-3 gap-6">
+      <div class="hero-desktop-stats mt-12 grid grid-cols-3 gap-6">
         <div class="text-center"><p class="text-3xl font-bold text-white">500+</p><p class="text-gray-400 text-sm">Sản phẩm</p></div>
         <div class="text-center"><p class="text-3xl font-bold text-white">10K+</p><p class="text-gray-400 text-sm">Khách hàng</p></div>
         <div class="text-center"><p class="text-3xl font-bold text-white">4.9★</p><p class="text-gray-400 text-sm">Đánh giá</p></div>
       </div>
     </div>
-    <!-- Commented-out on mobile by CSS intentionally; keep source for future reuse -->
-    <div class="hero-copy-block-mobile-comment hidden"></div>
     <div class="flex justify-center" id="heroBannersWrapper">
       <!-- Collapsed / stacked state -->
       <div id="heroBannersCollapsed" title="Click để xem thêm">
