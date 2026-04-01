@@ -46,6 +46,7 @@ export function adminHTML(): string {
   .scrollbar-thin::-webkit-scrollbar { width:4px; }
   .scrollbar-thin::-webkit-scrollbar-thumb { background:#e84393; border-radius:2px; }
   .mobile-overlay { background:rgba(0,0,0,0.5); }
+  .mobile-overlay.hidden { display: none !important; pointer-events: none !important; }
   [x-cloak] { display:none; }
   .col-tag { width: 32px; height: 32px; border-radius: 50%; display:inline-flex; align-items:center; justify-content:center; font-size:11px; font-weight:600; }
   .orders-header-search {
@@ -123,10 +124,21 @@ export function adminHTML(): string {
   .orders-mobile-card .mobile-order-media,
   .orders-mobile-card .mobile-order-meta,
   .orders-mobile-card .mobile-order-footer,
-  .orders-mobile-card .mobile-order-actions {
-    width: 100%;
+  .orders-mobile-card .mobile-order-actions,
+  .orders-mobile-card button,
+  .orders-mobile-card select,
+  .orders-mobile-card img,
+  .orders-mobile-card p,
+  .orders-mobile-card div {
     max-width: 100%;
     min-width: 0;
+  }
+  .orders-mobile-card .mobile-order-main,
+  .orders-mobile-card .mobile-order-media,
+  .orders-mobile-card .mobile-order-meta,
+  .orders-mobile-card .mobile-order-footer,
+  .orders-mobile-card .mobile-order-actions {
+    width: 100%;
   }
   @media (max-width: 767px) {
     .orders-header-search {
@@ -230,7 +242,7 @@ export function adminHTML(): string {
 </aside>
 
 <!-- MAIN CONTENT -->
-<main class="flex-1 md:ml-64 min-h-screen">
+<main class="flex-1 min-w-0 overflow-x-hidden md:ml-64 min-h-screen">
   <!-- Top bar -->
   <header class="bg-white border-b px-6 py-4 flex items-center justify-between sticky top-0 z-20 shadow-sm">
     <div class="ml-10 md:ml-0 flex items-center gap-3 min-w-0 flex-1">
@@ -342,7 +354,7 @@ export function adminHTML(): string {
   </div>
 
   <!-- ORDERS PAGE -->
-  <div id="page-orders" class="p-3 md:p-6 hidden">
+  <div id="page-orders" class="p-3 md:p-6 hidden overflow-x-hidden">
     <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
       <div class="flex gap-2 flex-wrap items-center">
         <select id="orderStatusFilter" onchange="setOrdersPage(1); filterOrders()" class="border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-pink-400">
@@ -2411,13 +2423,13 @@ function renderOrderRowActionControls(order, compact = false) {
   const meta = getRowPrimaryActionMeta()
   const orderId = Number(order.id)
   const compactLabel = compact
-    ? (ordersViewMode === 'waiting_ship' ? 'In giấy tờ' : 'Sắp xếp & in')
+    ? (ordersViewMode === 'waiting_ship' ? 'In giấy tờ' : 'Sắp xếp')
     : meta.label
   const wrapClass = compact
     ? 'flex flex-col gap-2 items-stretch w-full min-w-0'
     : 'flex flex-col gap-2 items-stretch w-full max-w-[240px] mx-auto'
   const buttonClass = compact
-    ? 'w-full inline-flex items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-[10px] leading-tight font-semibold whitespace-normal text-center transition ' + meta.className
+    ? 'w-full inline-flex items-center justify-center gap-1 rounded-lg px-2 py-2 text-[10px] leading-tight font-semibold whitespace-normal break-words text-center flex-wrap transition ' + meta.className
     : 'w-full inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-[11px] font-semibold whitespace-nowrap transition ' + meta.className
   return ''
     + '<div class="' + wrapClass + '">'
