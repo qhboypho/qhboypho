@@ -391,6 +391,7 @@ export function storefrontHTML(): string {
       opacity: 0 !important;
       pointer-events: none !important;
     }
+    #searchInput { font-size: 16px !important; }
   }
 </style>
 </head>
