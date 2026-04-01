@@ -12,6 +12,7 @@ export function adminHTML(): string {
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
   * { font-family: 'Inter', sans-serif; }
+  *, *::before, *::after { box-sizing: border-box; }
   .sidebar { background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%); }
   .nav-item { transition: all 0.2s; }
   .nav-item.active, .nav-item:hover { background: rgba(232,67,147,0.15); color: #e84393; }
@@ -118,6 +119,15 @@ export function adminHTML(): string {
     box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
     padding: 0.625rem;
   }
+  .orders-mobile-card .mobile-order-main,
+  .orders-mobile-card .mobile-order-media,
+  .orders-mobile-card .mobile-order-meta,
+  .orders-mobile-card .mobile-order-footer,
+  .orders-mobile-card .mobile-order-actions {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
   @media (max-width: 767px) {
     .orders-header-search {
       margin-left: auto;
@@ -169,7 +179,7 @@ export function adminHTML(): string {
 </button>
 
 <!-- SIDEBAR OVERLAY (mobile) -->
-<div id="sidebarOverlay" class="fixed inset-0 mobile-overlay z-30 md:hidden" style="display:none" onclick="toggleSidebar()"></div>
+<div id="sidebarOverlay" class="fixed inset-0 mobile-overlay z-30 md:hidden" style="display:none" onclick="closeMobileSidebar()"></div>
 
 <!-- SIDEBAR -->
 <aside id="sidebar" class="sidebar w-64 min-h-screen fixed left-0 top-0 z-40 transform -translate-x-full md:translate-x-0 transition-transform duration-300 flex flex-col">
@@ -2513,10 +2523,10 @@ function renderOrdersMobileList(orders) {
       : '<span class="text-gray-300 text-xs">—</span>'
     return \`
       <div class="orders-mobile-card">
-        <div class="flex items-start gap-2.5">
-          <input type="checkbox" class="mt-1 w-4 h-4 rounded border-gray-300 text-pink-500 focus:ring-pink-400" \${selectedOrderIds.has(Number(o.id)) ? 'checked' : ''} onchange="toggleOrderSelection(\${o.id}, this.checked)">
+        <div class="mobile-order-main flex items-start gap-2.5">
+          <input type="checkbox" class="mt-1 w-4 h-4 rounded border-gray-300 text-pink-500 focus:ring-pink-400 shrink-0" \${selectedOrderIds.has(Number(o.id)) ? 'checked' : ''} onchange="toggleOrderSelection(\${o.id}, this.checked)">
           <div class="min-w-0 flex-1 space-y-2.5">
-            <div class="flex items-start gap-3">
+            <div class="mobile-order-media flex items-start gap-3 min-w-0">
               <img src="\${getOrderItemImage(o)}" alt="\${o.product_name || 'product'}" class="w-14 h-14 rounded-xl object-cover border border-gray-200 bg-gray-100 flex-none" onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=80'">
               <div class="min-w-0 flex-1">
                 <div class="flex items-start justify-between gap-2">
@@ -2549,7 +2559,7 @@ function renderOrdersMobileList(orders) {
                   : ''}
               </div>
             </div>
-            <div class="grid grid-cols-2 gap-2 text-xs">
+            <div class="mobile-order-meta grid grid-cols-2 gap-2 text-xs min-w-0">
               <div class="rounded-xl border border-gray-200 bg-white px-3 py-2">
                 <p class="text-gray-400 uppercase tracking-wide text-[10px]">Tổng tiền</p>
                 <p class="mt-1 text-sm font-bold text-gray-900">\${fmtPrice(getOrderAmountDue(o))}</p>
@@ -2561,7 +2571,7 @@ function renderOrdersMobileList(orders) {
                 <div class="mt-2">\${paymentMethodTagHTML(o.payment_method, o.payment_status)}</div>
               </div>
             </div>
-            <div>
+            <div class="mobile-order-actions min-w-0">
               \${renderOrderRowActionControls(o, true)}
             </div>
           </div>
