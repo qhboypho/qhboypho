@@ -95,14 +95,23 @@ export function adminHTML(): string {
     opacity: 1;
     transition: width 0.25s ease, opacity 0.2s ease, padding 0.25s ease;
   }
+  #ordersMobileList,
+  .orders-mobile-stack {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
   .orders-mobile-stack {
     display: flex;
     flex-direction: column;
     gap: 0.625rem;
-    padding: 0.375rem;
+    padding: 0.25rem;
     background: #f8fafc;
   }
   .orders-mobile-card {
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
     border: 1px solid #e5e7eb;
     border-radius: 1rem;
     background: #fff;
@@ -1256,13 +1265,35 @@ function showPage(name) {
   }
 
   // Close mobile sidebar
-  document.getElementById('sidebar').classList.add('-translate-x-full')
-  document.getElementById('sidebarOverlay').classList.add('hidden')
+  closeMobileSidebar()
+}
+
+function closeMobileSidebar() {
+  const sidebar = document.getElementById('sidebar')
+  const overlay = document.getElementById('sidebarOverlay')
+  if (!sidebar || !overlay) return
+  sidebar.classList.add('-translate-x-full')
+  overlay.style.display = 'none'
+  overlay.classList.add('hidden')
+  overlay.style.pointerEvents = 'none'
+}
+
+function openMobileSidebar() {
+  const sidebar = document.getElementById('sidebar')
+  const overlay = document.getElementById('sidebarOverlay')
+  if (!sidebar || !overlay) return
+  sidebar.classList.remove('-translate-x-full')
+  overlay.style.display = 'block'
+  overlay.classList.remove('hidden')
+  overlay.style.pointerEvents = ''
 }
 
 function toggleSidebar() {
-  document.getElementById('sidebar').classList.toggle('-translate-x-full')
-  syncSidebarOverlay()
+  const sidebar = document.getElementById('sidebar')
+  if (!sidebar) return
+  const isOpen = !sidebar.classList.contains('-translate-x-full')
+  if (isOpen) closeMobileSidebar()
+  else openMobileSidebar()
 }
 
 function syncSidebarOverlay() {
@@ -2369,6 +2400,9 @@ function getRowPrimaryActionMeta() {
 function renderOrderRowActionControls(order, compact = false) {
   const meta = getRowPrimaryActionMeta()
   const orderId = Number(order.id)
+  const compactLabel = compact
+    ? (ordersViewMode === 'waiting_ship' ? 'In giấy tờ' : 'Sắp xếp & in')
+    : meta.label
   const wrapClass = compact
     ? 'flex flex-col gap-2 items-stretch w-full min-w-0'
     : 'flex flex-col gap-2 items-stretch w-full max-w-[240px] mx-auto'
@@ -2381,7 +2415,7 @@ function renderOrderRowActionControls(order, compact = false) {
     +     ' onclick="handleOrderPrimaryAction(' + orderId + ')"'
     +     ' class="' + buttonClass + '">'
     +     '<i class="fas ' + meta.icon + ' text-[11px]"></i>'
-    +     '<span>' + meta.label + '</span>'
+    +     '<span>' + compactLabel + '</span>'
     +   '</button>'
     +   '<select onchange="handleOrderSecondaryAction(' + orderId + ', this)" class="w-full min-w-0 text-xs border rounded-lg px-2 py-2 focus:outline-none bg-white text-gray-700 border-gray-300">'
     +     '<option value="">Thao tác khác</option>'
@@ -3214,8 +3248,7 @@ document.addEventListener('keydown', function(e) {
     closeAdminAvatarMenu()
     document.body.style.overflow = ''
     // Also close sidebar overlay if open
-    document.getElementById('sidebarOverlay').classList.add('hidden')
-    document.getElementById('sidebar').classList.add('-translate-x-full')
+    closeMobileSidebar()
   }
 })
 
