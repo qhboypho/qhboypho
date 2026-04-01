@@ -47,6 +47,99 @@ export function adminHTML(): string {
   .mobile-overlay { background:rgba(0,0,0,0.5); }
   [x-cloak] { display:none; }
   .col-tag { width: 32px; height: 32px; border-radius: 50%; display:inline-flex; align-items:center; justify-content:center; font-size:11px; font-weight:600; }
+  .orders-header-search {
+    display: none;
+    align-items: center;
+    margin-left: 0.25rem;
+  }
+  .orders-header-search.is-visible {
+    display: flex;
+  }
+  .orders-header-search-shell {
+    display: flex;
+    align-items: center;
+    width: 44px;
+    height: 44px;
+    border: 1px solid #e5e7eb;
+    border-radius: 9999px;
+    background: #fff;
+    box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+    overflow: hidden;
+    transition: width 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  }
+  .orders-header-search.expanded .orders-header-search-shell {
+    width: min(340px, calc(100vw - 120px));
+    border-color: #f9a8d4;
+    box-shadow: 0 14px 34px rgba(232, 67, 147, 0.14);
+  }
+  .orders-header-search-btn {
+    width: 44px;
+    height: 44px;
+    border: 0;
+    background: transparent;
+    color: #64748b;
+    flex: 0 0 44px;
+  }
+  .orders-header-search-btn:hover {
+    color: #e84393;
+  }
+  .orders-header-search-input {
+    width: 0;
+    min-width: 0;
+    border: 0;
+    outline: none;
+    background: transparent;
+    color: #334155;
+    padding: 0;
+    opacity: 0;
+    transition: width 0.25s ease, opacity 0.2s ease, padding 0.25s ease;
+  }
+  .orders-header-search.expanded .orders-header-search-input {
+    width: 100%;
+    padding: 0 14px 0 0;
+    opacity: 1;
+  }
+  .orders-mobile-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+    padding: 0.9rem;
+    background: #f8fafc;
+  }
+  .orders-mobile-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 1rem;
+    background: #fff;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+    padding: 0.9rem;
+  }
+  @media (max-width: 767px) {
+    .orders-header-search {
+      margin-left: auto;
+      position: relative;
+      z-index: 110;
+    }
+    .orders-header-search .orders-header-search-shell {
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+    }
+    .orders-header-search.expanded {
+      position: fixed;
+      top: 12px;
+      left: 12px;
+      right: 12px;
+      z-index: 999;
+    }
+    .orders-header-search.expanded .orders-header-search-shell {
+      width: 100%;
+      border-radius: 18px;
+      border-color: #f9a8d4;
+      box-shadow: 0 20px 45px rgba(15, 23, 42, 0.18);
+    }
+    .orders-header-search.expanded .orders-header-search-input {
+      width: 100%;
+      padding: 0 16px 0 0;
+    }
+  }
   /* Force hide sidebar overlay on desktop - overrides any JS toggle */
   @media (min-width: 768px) {
     #sidebarOverlay { display: none !important; }
@@ -117,8 +210,16 @@ export function adminHTML(): string {
 <main class="flex-1 md:ml-64 min-h-screen">
   <!-- Top bar -->
   <header class="bg-white border-b px-6 py-4 flex items-center justify-between sticky top-0 z-20 shadow-sm">
-    <div class="ml-10 md:ml-0">
-      <h1 id="pageTitle" class="text-lg font-bold text-gray-800">Dashboard</h1>
+    <div class="ml-10 md:ml-0 flex items-center gap-3 min-w-0 flex-1">
+      <h1 id="pageTitle" class="text-lg font-bold text-gray-800 shrink-0">Dashboard</h1>
+      <div id="ordersHeaderSearch" class="orders-header-search hidden">
+        <div class="orders-header-search-shell">
+          <button id="ordersHeaderSearchButton" type="button" onclick="handleOrdersSearchButton()" class="orders-header-search-btn" aria-label="Mở tìm kiếm đơn hàng">
+            <i id="ordersHeaderSearchIcon" class="fas fa-search text-sm"></i>
+          </button>
+          <input type="text" id="orderSearch" placeholder="Tìm tên/SĐT/mã..." oninput="onOrderSearchInput()" class="orders-header-search-input text-sm" />
+        </div>
+      </div>
     </div>
     <div class="flex items-center gap-3">
       <div id="adminAvatarMenuRoot" class="relative">
@@ -229,8 +330,6 @@ export function adminHTML(): string {
           <option value="done">Hoàn thành</option>
           <option value="cancelled">Đã hủy</option>
         </select>
-        <input type="text" id="orderSearch" placeholder="Tìm tên/SĐT/mã..." oninput="setOrdersPage(1); filterOrders()" 
-          class="border rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-pink-400 w-48">
         <select id="ordersViewModeSelect" onchange="setOrdersViewMode(this.value)" class="border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-pink-400 min-w-[220px] bg-white text-gray-700 font-semibold">
           <option id="ordersViewModeToArrangeOption" value="to_arrange">Sắp xếp vận chuyển (0)</option>
           <option id="ordersViewModeWaitingOption" value="waiting_ship">Đang chờ vận chuyển (0)</option>
@@ -261,7 +360,7 @@ export function adminHTML(): string {
           <tbody id="ordersTable"></tbody>
         </table>
       </div>
-      <div id="ordersMobileList" class="md:hidden divide-y"></div>
+      <div id="ordersMobileList" class="md:hidden"></div>
       <div id="ordersEmpty" class="hidden text-center py-16 text-gray-400">
         <i class="fas fa-inbox text-4xl mb-3"></i><p>Không có đơn hàng nào</p>
       </div>
@@ -712,6 +811,7 @@ let filteredAdminOrders = []
 let paginatedAdminOrders = []
 let ordersViewMode = 'to_arrange'
 let currentOrdersPage = 1
+let ordersSearchExpanded = false
 const ORDERS_PAGE_SIZE = 50
 let arrangedOrdersForPrint = []
 let arrangedFailedOrders = []
@@ -1028,6 +1128,77 @@ async function handleAdminAvatarFile(file) {
   }
 }
 
+function isOrdersPageActive() {
+  return document.body.dataset.adminPage === 'orders'
+}
+
+function syncOrdersHeaderSearchUI() {
+  const wrap = document.getElementById('ordersHeaderSearch')
+  const input = document.getElementById('orderSearch')
+  const icon = document.getElementById('ordersHeaderSearchIcon')
+  const isOrders = isOrdersPageActive()
+  const hasValue = !!(input && String(input.value || '').trim())
+
+  if (!wrap || !input || !icon) return
+
+  wrap.classList.toggle('hidden', !isOrders)
+  wrap.classList.toggle('is-visible', isOrders)
+
+  if (!isOrders) {
+    ordersSearchExpanded = false
+    wrap.classList.remove('expanded')
+    icon.className = 'fas fa-search text-sm'
+    return
+  }
+
+  const shouldExpand = ordersSearchExpanded || hasValue
+  wrap.classList.toggle('expanded', shouldExpand)
+  icon.className = (hasValue ? 'fas fa-times' : 'fas fa-search') + ' text-sm'
+}
+
+function focusOrdersSearchInput() {
+  const input = document.getElementById('orderSearch')
+  if (!input) return
+  setTimeout(() => input.focus(), 20)
+}
+
+function handleOrdersSearchButton() {
+  const input = document.getElementById('orderSearch')
+  if (!input || !isOrdersPageActive()) return
+
+  if (String(input.value || '').trim()) {
+    input.value = ''
+    ordersSearchExpanded = false
+    setOrdersPage(1)
+    filterOrders()
+    syncOrdersHeaderSearchUI()
+    return
+  }
+
+  ordersSearchExpanded = !ordersSearchExpanded
+  syncOrdersHeaderSearchUI()
+  if (ordersSearchExpanded) focusOrdersSearchInput()
+}
+
+function onOrderSearchInput() {
+  const input = document.getElementById('orderSearch')
+  if (!input) return
+  ordersSearchExpanded = !!String(input.value || '').trim() || ordersSearchExpanded
+  setOrdersPage(1)
+  filterOrders()
+  syncOrdersHeaderSearchUI()
+}
+
+function closeOrdersHeaderSearch() {
+  const input = document.getElementById('orderSearch')
+  if (!input) return
+  if (String(input.value || '').trim()) {
+    syncOrdersHeaderSearchUI()
+    return
+  }
+  ordersSearchExpanded = false
+  syncOrdersHeaderSearchUI()
+}
 function showPage(name) {
   ['dashboard','products','orders','vouchers','featured','settings'].forEach(p => {
     const section = document.getElementById('page-'+p)
@@ -1049,6 +1220,7 @@ function showPage(name) {
     document.querySelectorAll('.nav-sub-item').forEach(b => b.classList.remove('active'))
   }
   const titles = {dashboard:'Dashboard', products:'Quản lý Sản phẩm', orders:'Quản lý Đơn hàng', vouchers:'Quản lý Voucher', featured:'Sản phẩm Nổi Bật', settings:'Cài đặt'}
+  document.body.dataset.adminPage = name
   document.getElementById('pageTitle').textContent = titles[name] || name
 
   if (name === 'dashboard') loadDashboard()
@@ -1057,6 +1229,8 @@ function showPage(name) {
   else if (name === 'vouchers') loadVouchers()
   else if (name === 'featured') loadFeaturedAdmin()
   else if (name === 'settings') loadSettingsAdmin()
+
+  syncOrdersHeaderSearchUI()
 
   if (name !== 'orders') {
     const bulkBar = document.getElementById('ordersBulkActionBar')
@@ -2089,7 +2263,7 @@ function updateOrdersModeButtons(counters) {
 
 function filterOrders() {
   const status = document.getElementById('orderStatusFilter').value
-  const q = document.getElementById('orderSearch').value.toLowerCase()
+  const q = String((document.getElementById('orderSearch') || {}).value || '').toLowerCase()
   const sourceOrders = adminOrders.filter(o => !isInternalTestOrder(o))
 
   const activeOrders = sourceOrders.filter(o => {
@@ -2273,58 +2447,73 @@ function renderOrdersTable(orders) {
 
 function renderOrdersMobileList(orders) {
   const wrap = document.getElementById('ordersMobileList')
-  wrap.innerHTML = orders.map(o => {
+  wrap.innerHTML = '<div class="orders-mobile-stack">' + orders.map(o => {
     const tracking = String(o.shipping_tracking_code || '').trim()
+    const qtyClass = Number(o.quantity || 1) > 1
+      ? 'font-bold text-gray-900 bg-amber-100 border border-amber-300 shadow-sm'
+      : 'font-semibold text-gray-700 bg-gray-100 border border-gray-200'
+    const voucherHtml = o.voucher_code
+      ? '<span class="font-mono text-[11px] bg-green-50 text-green-700 border border-green-200 px-2 py-1 rounded-lg font-semibold">' + o.voucher_code + '</span>'
+      : '<span class="text-gray-300 text-xs">—</span>'
     return \`
-    <div class="p-3 bg-white">
-      <div class="flex items-start gap-2">
-        <input type="checkbox" class="mt-1 w-4 h-4 rounded border-gray-300 text-pink-500 focus:ring-pink-400" \${selectedOrderIds.has(Number(o.id)) ? 'checked' : ''} onchange="toggleOrderSelection(\${o.id}, this.checked)">
-        <div class="min-w-0 flex-1">
-          <div class="flex items-start justify-between gap-2">
-            <div class="min-w-0">
-              <button type="button"
-                onclick="copyOrderCode(decodeURIComponent('\${encodeURIComponent(String(o.order_code || '').trim())}')); return false;"
-                class="font-mono text-[11px] text-blue-600 font-semibold truncate max-w-[200px]">Mã ĐH: \${o.order_code}</button>
-              <p class="text-sm font-semibold text-gray-800 truncate">\${o.product_name}</p>
-              <p class="text-xs text-gray-500">SKU: \${buildOrderSkuText(o)} • SL: \${o.quantity || 1}</p>
-            </div>
-            <div class="text-right flex-none">
-              <p class="text-sm font-bold text-gray-800">\${fmtPrice(getOrderAmountDue(o))}</p>
-              <p class="mt-1"><span class="text-[11px] px-2 py-0.5 rounded-full \${paymentStatusClass(o.payment_status)}">\${paymentStatusLabel(o.payment_status)}</span></p>
-            </div>
-          </div>
-          <div class="mt-2 flex items-start gap-2">
-            <img src="\${getOrderItemImage(o)}" alt="\${o.product_name || 'product'}" class="w-11 h-11 rounded-lg object-cover border border-gray-200 bg-gray-100 flex-none" onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=80'">
-            <div class="min-w-0 flex-1">
-              <div class="text-xs text-gray-500 flex items-center gap-1.5 flex-wrap">
-                <span>\${displayCustomerName(o.customer_name)}</span>
-                <span> • </span>
+      <div class="orders-mobile-card">
+        <div class="flex items-start gap-3">
+          <input type="checkbox" class="mt-1 w-4 h-4 rounded border-gray-300 text-pink-500 focus:ring-pink-400" \${selectedOrderIds.has(Number(o.id)) ? 'checked' : ''} onchange="toggleOrderSelection(\${o.id}, this.checked)">
+          <div class="min-w-0 flex-1 space-y-3">
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
                 <button type="button"
-                  onclick="copyPhoneNumber(decodeURIComponent('\${encodeURIComponent(String(o.customer_phone || '').trim())}')); return false;"
-                  class="hover:text-blue-600 no-underline transition">\${o.customer_phone}</button>
-                <button type="button"
-                  onclick="showOrderDetail(\${o.id})"
-                  class="ml-1 inline-flex items-center justify-center w-6 h-6 rounded-md bg-blue-50 text-blue-600 hover:bg-blue-100 transition"
-                  title="Chi tiết">
-                  <i class="fas fa-eye text-[10px]"></i>
-                </button>
+                  onclick="copyOrderCode(decodeURIComponent('\${encodeURIComponent(String(o.order_code || '').trim())}')); return false;"
+                  class="font-mono text-[11px] text-blue-600 font-semibold truncate max-w-[160px]">Mã ĐH: \${o.order_code}</button>
+                <p class="mt-1 text-sm font-semibold text-gray-900 leading-5">\${o.product_name}</p>
+                <p class="mt-1 text-xs text-gray-500">SKU: \${buildOrderSkuText(o)}</p>
               </div>
-              \${tracking
-                ? \`<div class="mt-1">
-                    <button type="button"
-                      onclick="copyTrackingCode(decodeURIComponent('\${encodeURIComponent(tracking)}')); return false;"
-                      class="font-mono text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-lg font-semibold hover:bg-emerald-100 transition">Mã vận đơn: \${getTrackingDisplayCode(tracking)}</button>
-                  </div>\`
-                : ''}
+              <span class="inline-flex min-w-7 justify-center text-[11px] \${qtyClass} rounded-md px-2 py-0.5">x\${o.quantity || 1}</span>
             </div>
-          </div>
-          <div class="mt-2">
-            \${renderOrderRowActionControls(o)}
+            <div class="flex items-start gap-3 rounded-xl bg-gray-50 p-2.5">
+              <img src="\${getOrderItemImage(o)}" alt="\${o.product_name || 'product'}" class="w-14 h-14 rounded-xl object-cover border border-gray-200 bg-gray-100 flex-none" onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=80'">
+              <div class="min-w-0 flex-1">
+                <div class="text-xs text-gray-500 flex items-center gap-1.5 flex-wrap">
+                  <span>\${displayCustomerName(o.customer_name)}</span>
+                  <span>•</span>
+                  <button type="button"
+                    onclick="copyPhoneNumber(decodeURIComponent('\${encodeURIComponent(String(o.customer_phone || '').trim())}')); return false;"
+                    class="hover:text-blue-600 no-underline transition">\${o.customer_phone}</button>
+                  <button type="button"
+                    onclick="showOrderDetail(\${o.id})"
+                    class="ml-1 inline-flex items-center justify-center w-6 h-6 rounded-md bg-blue-50 text-blue-600 hover:bg-blue-100 transition"
+                    title="Chi tiết">
+                    <i class="fas fa-eye text-[10px]"></i>
+                  </button>
+                </div>
+                \${tracking
+                  ? \`<div class="mt-2">
+                      <button type="button"
+                        onclick="copyTrackingCode(decodeURIComponent('\${encodeURIComponent(tracking)}')); return false;"
+                        class="font-mono text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-lg font-semibold hover:bg-emerald-100 transition">Mã vận đơn: \${getTrackingDisplayCode(tracking)}</button>
+                    </div>\`
+                  : ''}
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-2 text-xs">
+              <div class="rounded-xl border border-gray-200 bg-white px-3 py-2">
+                <p class="text-gray-400 uppercase tracking-wide text-[10px]">Tổng tiền</p>
+                <p class="mt-1 text-sm font-bold text-gray-900">\${fmtPrice(getOrderAmountDue(o))}</p>
+                <p class="mt-1"><span class="text-[11px] px-2 py-0.5 rounded-full \${paymentStatusClass(o.payment_status)}">\${paymentStatusLabel(o.payment_status)}</span></p>
+              </div>
+              <div class="rounded-xl border border-gray-200 bg-white px-3 py-2">
+                <p class="text-gray-400 uppercase tracking-wide text-[10px]">Voucher</p>
+                <div class="mt-1">\${voucherHtml}</div>
+                <div class="mt-2">\${paymentMethodTagHTML(o.payment_method, o.payment_status)}</div>
+              </div>
+            </div>
+            <div>
+              \${renderOrderRowActionControls(o)}
+            </div>
           </div>
         </div>
-      </div>
-    </div>\`
-  }).join('')
+      </div>\`
+  }).join('') + '</div>'
 }
 
 function toggleOrderSelection(id, checked) {
@@ -3013,16 +3202,23 @@ document.addEventListener('keydown', function(e) {
 // ── Safety: ensure all modals start hidden on page load ──
 document.addEventListener('DOMContentLoaded', function() {
   scheduleAdminOverlaySanitize()
+  syncOrdersHeaderSearchUI()
   window.addEventListener('resize', syncSidebarOverlay)
+  window.addEventListener('resize', syncOrdersHeaderSearchUI)
   window.addEventListener('pageshow', scheduleAdminOverlaySanitize)
   window.addEventListener('focus', scheduleAdminOverlaySanitize)
   document.addEventListener('visibilitychange', function() {
     if (document.visibilityState === 'visible') scheduleAdminOverlaySanitize()
   })
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeOrdersHeaderSearch()
+  })
 
   document.addEventListener('click', function(e) {
     const target = e.target
     if (!target) return
+    const searchRoot = document.getElementById('ordersHeaderSearch')
+    if (searchRoot && isOrdersPageActive() && ordersSearchExpanded && !searchRoot.contains(target)) closeOrdersHeaderSearch()
     const root = document.getElementById('adminAvatarMenuRoot')
     if (!root) return
     if (!root.contains(target)) closeAdminAvatarMenu()
