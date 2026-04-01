@@ -291,22 +291,95 @@
     text-align: center;
     letter-spacing: 0.5px;
   }
-  /* Mobile: vertical layout */
+  .hero-mobile-slider {
+    display: flex;
+    gap: 0.75rem;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+    padding: 0.25rem 0 0.35rem;
+    scrollbar-width: none;
+  }
+  .hero-mobile-slider::-webkit-scrollbar { display: none; }
+  .hero-mobile-card {
+    flex: 0 0 calc((100vw - 2.75rem) / 3.15);
+    min-width: 96px;
+    max-width: 128px;
+    scroll-snap-align: start;
+    text-decoration: none;
+  }
+  .hero-mobile-card-button {
+    display: block;
+    width: 100%;
+    border: 0;
+    background: transparent;
+    padding: 0;
+    text-align: left;
+    cursor: pointer;
+  }
+  .hero-mobile-card-thumb {
+    width: 100%;
+    aspect-ratio: 0.78;
+    border-radius: 1rem;
+    overflow: hidden;
+    box-shadow: 0 10px 26px rgba(15,23,42,0.22);
+    background: rgba(255,255,255,0.08);
+  }
+  .hero-mobile-card-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .hero-mobile-card-name {
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.3;
+    margin-top: 0.5rem;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+    min-height: calc(1.3em * 2);
+  }
+  .hero-mobile-swipe-hint {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    margin: 0.65rem auto 0;
+    color: rgba(255,255,255,0.78);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    animation: swipeHintPulse 1.8s ease-in-out infinite;
+  }
+  @keyframes swipeHintPulse {
+    0%, 100% { opacity: 0.55; transform: translateX(0); }
+    35% { opacity: 1; transform: translateX(4px); }
+    70% { opacity: 0.8; transform: translateX(-3px); }
+  }
+  /* Mobile: slider layout */
   @media (max-width: 768px) {
-    #heroBannersCollapsed { width: 240px; height: 280px; }
-    #heroBannersExpanded { padding: 70px 16px 24px; }
-    #heroBannersExpandedInner {
-      flex-direction: column;
-      overflow-x: hidden;
-      overflow-y: auto;
-      max-height: calc(100vh - 140px);
-    }
-    .hero-banner-card {
-      flex: 0 0 auto;
-      min-width: unset;
+    #hero { min-height: auto; }
+    #hero .hero-copy-block { display: none; }
+    #hero .hero-copy-block-mobile-comment { display: block; }
+    #heroBannersWrapper {
       width: 100%;
+      justify-content: flex-start;
     }
-    .hero-banner-card img { height: 220px; }
+    #heroBannersCollapsed {
+      width: 100%;
+      height: auto;
+      padding-bottom: 0 !important;
+    }
+    #heroBannersExpanded {
+      display: none !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+    }
   }
 </style>
 </head>
@@ -359,7 +432,8 @@
 <!-- HERO -->
 <section class="gradient-hero min-h-screen flex items-center pt-16" id="hero">
   <div class="max-w-7xl mx-auto px-4 py-20 grid md:grid-cols-2 gap-12 items-center">
-    <div>
+    <!-- Mobile hero heading retained in source but hidden on small screens by request -->
+    <div class="hero-copy-block">
       <p class="text-pink-400 font-medium tracking-widest uppercase text-sm mb-4">Bộ sưu tập mới 2026</p>
       <h1 class="font-display text-5xl md:text-6xl text-white font-bold leading-tight mb-6">
         Phong Cách<br><span style="background:linear-gradient(135deg,#e84393,#f39c12);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent">Không Giới Hạn</span>
@@ -379,6 +453,8 @@
         <div class="text-center"><p class="text-3xl font-bold text-white">4.9★</p><p class="text-gray-400 text-sm">Đánh giá</p></div>
       </div>
     </div>
+    <!-- Commented-out on mobile by CSS intentionally; keep source for future reuse -->
+    <div class="hero-copy-block-mobile-comment hidden"></div>
     <div class="flex justify-center" id="heroBannersWrapper">
       <!-- Collapsed / stacked state -->
       <div id="heroBannersCollapsed" title="Click để xem thêm">
@@ -2649,6 +2725,7 @@ document.addEventListener('keydown', (e) => {
 // ── DYNAMIC HERO BANNERS ──────────────────────────
 let heroBannersData = []
 let heroBannersIsExpanded = false
+let lastHeroMobileMode = null
 
 async function loadSettings() {
   try {
@@ -2695,13 +2772,17 @@ function sortHeroCards(cards) {
     return Number(a.product_id || 0) - Number(b.product_id || 0)
   })
 }
+function isMobileHeroLayout() {
+  return window.matchMedia('(max-width: 768px)').matches
+}
+
 function bindHeroBannersWheelScroll() {
   const overlay = document.getElementById('heroBannersExpanded')
   const inner = document.getElementById('heroBannersExpandedInner')
   if (!overlay || !inner || inner.dataset.wheelBound === '1') return
   inner.dataset.wheelBound = '1'
   const onWheel = (e) => {
-    if (!heroBannersIsExpanded) return
+    if (!heroBannersIsExpanded || isMobileHeroLayout()) return
     const delta = Math.abs(e.deltaY) > Math.abs(e.deltaX) ? e.deltaY : e.deltaX
     if (!delta) return
     inner.scrollLeft += delta * 1.2
@@ -2714,6 +2795,8 @@ function bindHeroBannersWheelScroll() {
 function renderCollapsedBanners(banners) {
   const container = document.getElementById('heroBannersCollapsed')
   if (!container) return
+  const mobileMode = isMobileHeroLayout()
+  lastHeroMobileMode = mobileMode
   if (!banners.length) {
     container.innerHTML = \`<div class="relative w-full h-full rounded-3xl border border-white/20 bg-white/5 flex items-center justify-center text-center px-6">
       <div>
@@ -2721,6 +2804,30 @@ function renderCollapsedBanners(banners) {
         <p class="text-white/80 text-sm font-medium">Chưa có sản phẩm thịnh hành</p>
       </div>
     </div>\`
+    return
+  }
+  if (mobileMode) {
+    const shown = banners.slice(0, Math.max(3, Math.min(banners.length, 8)))
+    container.innerHTML = \`<div class="hero-mobile-slider">\${shown.map((b) => {
+      const safeTitle = b.title || 'Sản phẩm'
+      if (b.product_id) {
+        return \`<button type="button" class="hero-mobile-card hero-mobile-card-button" onclick="showDetail(\${b.product_id})">
+          <div class="hero-mobile-card-thumb">
+            <img src="\${b.image_url}" alt="\${safeTitle}" onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'">
+          </div>
+          <p class="hero-mobile-card-name">\${safeTitle}</p>
+        </button>\`
+      }
+      return \`<div class="hero-mobile-card">
+        <div class="hero-mobile-card-thumb">
+          <img src="\${b.image_url}" alt="\${safeTitle}" onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'">
+        </div>
+        <p class="hero-mobile-card-name">\${safeTitle}</p>
+      </div>\`
+    }).join('')}</div>
+    <div class="hero-mobile-swipe-hint"><i class="fas fa-arrows-left-right"></i><span>Vuốt ngang để xem thêm</span></div>\`
+    container.style.paddingBottom = '0'
+    container.onclick = null
     return
   }
   const len = banners.length
@@ -2749,7 +2856,6 @@ function renderCollapsedBanners(banners) {
     <i class="fas fa-expand-alt mr-1 text-pink-300"></i>Các mẫu thịnh hành
   </div>\`
   container.style.paddingBottom = '36px'
-  // Hover expand
   container.onclick = () => { if (!heroBannersIsExpanded) expandBanners() }
 }
 
@@ -2789,7 +2895,7 @@ function renderExpandedBanners(banners) {
 }
 
 function expandBanners() {
-  if (heroBannersIsExpanded) return
+  if (heroBannersIsExpanded || isMobileHeroLayout()) return
   heroBannersIsExpanded = true
   const overlay = document.getElementById('heroBannersExpanded')
   overlay.style.display = 'flex'
@@ -2814,6 +2920,19 @@ function handleBannerOverlayClick(e) {
 
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape' && heroBannersIsExpanded) collapseBanners()
+})
+
+window.addEventListener('resize', () => {
+  const mobileMode = isMobileHeroLayout()
+  if (lastHeroMobileMode === null) {
+    lastHeroMobileMode = mobileMode
+    return
+  }
+  if (mobileMode !== lastHeroMobileMode) {
+    if (mobileMode && heroBannersIsExpanded) collapseBanners()
+    renderCollapsedBanners(heroBannersData)
+    lastHeroMobileMode = mobileMode
+  }
 })
 
 // Init
