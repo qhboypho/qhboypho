@@ -58,7 +58,7 @@ export function adminHTML(): string {
   .orders-header-search-shell {
     display: flex;
     align-items: center;
-    width: 44px;
+    width: 188px;
     height: 44px;
     border: 1px solid #e5e7eb;
     border-radius: 9999px;
@@ -67,8 +67,9 @@ export function adminHTML(): string {
     overflow: hidden;
     transition: width 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
   }
-  .orders-header-search.expanded .orders-header-search-shell {
-    width: min(340px, calc(100vw - 120px));
+  .orders-header-search.expanded .orders-header-search-shell,
+  .orders-header-search-shell:focus-within {
+    width: 198px;
     border-color: #f9a8d4;
     box-shadow: 0 14px 34px rgba(232, 67, 147, 0.14);
   }
@@ -84,20 +85,15 @@ export function adminHTML(): string {
     color: #e84393;
   }
   .orders-header-search-input {
-    width: 0;
+    width: 100%;
     min-width: 0;
     border: 0;
     outline: none;
     background: transparent;
     color: #334155;
-    padding: 0;
-    opacity: 0;
-    transition: width 0.25s ease, opacity 0.2s ease, padding 0.25s ease;
-  }
-  .orders-header-search.expanded .orders-header-search-input {
-    width: 100%;
     padding: 0 14px 0 0;
     opacity: 1;
+    transition: width 0.25s ease, opacity 0.2s ease, padding 0.25s ease;
   }
   .orders-mobile-stack {
     display: flex;
@@ -119,13 +115,19 @@ export function adminHTML(): string {
       position: relative;
       z-index: 110;
     }
+    .orders-header-search .orders-header-search-input {
+      width: 0;
+      padding: 0;
+      opacity: 0;
+    }
     .orders-header-search .orders-header-search-shell {
+      width: 44px;
       box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
     }
     .orders-header-search.expanded {
       position: fixed;
       top: 12px;
-      left: 12px;
+      left: 78px;
       right: 12px;
       z-index: 999;
     }
@@ -138,6 +140,7 @@ export function adminHTML(): string {
     .orders-header-search.expanded .orders-header-search-input {
       width: 100%;
       padding: 0 16px 0 0;
+      opacity: 1;
     }
   }
   /* Force hide sidebar overlay on desktop - overrides any JS toggle */
@@ -1175,6 +1178,13 @@ function handleOrdersSearchButton() {
     return
   }
 
+  if (window.innerWidth >= 768) {
+    ordersSearchExpanded = true
+    syncOrdersHeaderSearchUI()
+    focusOrdersSearchInput()
+    return
+  }
+
   ordersSearchExpanded = !ordersSearchExpanded
   syncOrdersHeaderSearchUI()
   if (ordersSearchExpanded) focusOrdersSearchInput()
@@ -1192,6 +1202,11 @@ function onOrderSearchInput() {
 function closeOrdersHeaderSearch() {
   const input = document.getElementById('orderSearch')
   if (!input) return
+  if (window.innerWidth >= 768) {
+    if (!String(input.value || '').trim()) ordersSearchExpanded = false
+    syncOrdersHeaderSearchUI()
+    return
+  }
   if (String(input.value || '').trim()) {
     syncOrdersHeaderSearchUI()
     return
