@@ -58,7 +58,7 @@ export function adminHTML(): string {
   .orders-header-search-shell {
     display: flex;
     align-items: center;
-    width: 188px;
+    width: 176px;
     height: 44px;
     border: 1px solid #e5e7eb;
     border-radius: 9999px;
@@ -69,7 +69,7 @@ export function adminHTML(): string {
   }
   .orders-header-search.expanded .orders-header-search-shell,
   .orders-header-search-shell:focus-within {
-    width: 198px;
+    width: 226px;
     border-color: #f9a8d4;
     box-shadow: 0 14px 34px rgba(232, 67, 147, 0.14);
   }
@@ -98,8 +98,8 @@ export function adminHTML(): string {
   .orders-mobile-stack {
     display: flex;
     flex-direction: column;
-    gap: 0.9rem;
-    padding: 0.9rem;
+    gap: 0.75rem;
+    padding: 0.75rem;
     background: #f8fafc;
   }
   .orders-mobile-card {
@@ -107,7 +107,7 @@ export function adminHTML(): string {
     border-radius: 1rem;
     background: #fff;
     box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
-    padding: 0.9rem;
+    padding: 0.75rem;
   }
   @media (max-width: 767px) {
     .orders-header-search {
@@ -127,7 +127,7 @@ export function adminHTML(): string {
     .orders-header-search.expanded {
       position: fixed;
       top: 12px;
-      left: 78px;
+      left: 12px;
       right: 12px;
       z-index: 999;
     }
@@ -2472,23 +2472,21 @@ function renderOrdersMobileList(orders) {
       : '<span class="text-gray-300 text-xs">—</span>'
     return \`
       <div class="orders-mobile-card">
-        <div class="flex items-start gap-3">
+        <div class="flex items-start gap-2.5">
           <input type="checkbox" class="mt-1 w-4 h-4 rounded border-gray-300 text-pink-500 focus:ring-pink-400" \${selectedOrderIds.has(Number(o.id)) ? 'checked' : ''} onchange="toggleOrderSelection(\${o.id}, this.checked)">
-          <div class="min-w-0 flex-1 space-y-3">
-            <div class="flex items-start justify-between gap-3">
-              <div class="min-w-0">
-                <button type="button"
-                  onclick="copyOrderCode(decodeURIComponent('\${encodeURIComponent(String(o.order_code || '').trim())}')); return false;"
-                  class="font-mono text-[11px] text-blue-600 font-semibold truncate max-w-[160px]">Mã ĐH: \${o.order_code}</button>
-                <p class="mt-1 text-sm font-semibold text-gray-900 leading-5">\${o.product_name}</p>
-                <p class="mt-1 text-xs text-gray-500">SKU: \${buildOrderSkuText(o)}</p>
-              </div>
-              <span class="inline-flex min-w-7 justify-center text-[11px] \${qtyClass} rounded-md px-2 py-0.5">x\${o.quantity || 1}</span>
-            </div>
-            <div class="flex items-start gap-3 rounded-xl bg-gray-50 p-2.5">
+          <div class="min-w-0 flex-1 space-y-2.5">
+            <div class="flex items-start gap-3">
               <img src="\${getOrderItemImage(o)}" alt="\${o.product_name || 'product'}" class="w-14 h-14 rounded-xl object-cover border border-gray-200 bg-gray-100 flex-none" onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=80'">
               <div class="min-w-0 flex-1">
-                <div class="text-xs text-gray-500 flex items-center gap-1.5 flex-wrap">
+                <div class="flex items-start justify-between gap-2">
+                  <button type="button"
+                    onclick="copyOrderCode(decodeURIComponent('\${encodeURIComponent(String(o.order_code || '').trim())}')); return false;"
+                    class="font-mono text-[11px] text-blue-600 font-semibold truncate max-w-[150px] text-left">Mã ĐH: \${o.order_code}</button>
+                  <span class="inline-flex min-w-7 justify-center text-[11px] \${qtyClass} rounded-md px-2 py-0.5 shrink-0">x\${o.quantity || 1}</span>
+                </div>
+                <p class="mt-1 text-sm font-semibold text-gray-900 leading-5 truncate">\${o.product_name}</p>
+                <p class="mt-1 text-xs text-gray-500 truncate">SKU: \${buildOrderSkuText(o)}</p>
+                <div class="mt-1.5 text-xs text-gray-500 flex items-center gap-1.5 flex-wrap">
                   <span>\${displayCustomerName(o.customer_name)}</span>
                   <span>•</span>
                   <button type="button"
@@ -2496,16 +2494,16 @@ function renderOrdersMobileList(orders) {
                     class="hover:text-blue-600 no-underline transition">\${o.customer_phone}</button>
                   <button type="button"
                     onclick="showOrderDetail(\${o.id})"
-                    class="ml-1 inline-flex items-center justify-center w-6 h-6 rounded-md bg-blue-50 text-blue-600 hover:bg-blue-100 transition"
+                    class="ml-1 inline-flex items-center justify-center w-6 h-6 rounded-md bg-blue-50 text-blue-600 hover:bg-blue-100 transition shrink-0"
                     title="Chi tiết">
                     <i class="fas fa-eye text-[10px]"></i>
                   </button>
                 </div>
                 \${tracking
-                  ? \`<div class="mt-2">
+                  ? \`<div class="mt-1.5">
                       <button type="button"
                         onclick="copyTrackingCode(decodeURIComponent('\${encodeURIComponent(tracking)}')); return false;"
-                        class="font-mono text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-lg font-semibold hover:bg-emerald-100 transition">Mã vận đơn: \${getTrackingDisplayCode(tracking)}</button>
+                        class="font-mono text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded-lg font-semibold hover:bg-emerald-100 transition truncate max-w-full">Mã vận đơn: \${getTrackingDisplayCode(tracking)}</button>
                     </div>\`
                   : ''}
               </div>
