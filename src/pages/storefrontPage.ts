@@ -1,4 +1,4 @@
-﻿export function storefrontHTML(): string {
+export function storefrontHTML(): string {
   return `<!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -1771,6 +1771,7 @@ async function showDetail(id) {
       </div>
     </div>\`
     document.getElementById('detailOverlay').classList.remove('hidden')
+    document.body.style.overflow = 'hidden'
     if (detailColorOptions.length) {
       const initialButton = document.querySelector('#detailColorGrid .detail-color-card')
       if (initialButton) selectDetailColorByIndex(0, initialButton)
@@ -1802,7 +1803,10 @@ function selectDetailSize(s, btn) {
   }
   if (btn) btn.classList.add('active','bg-gray-900','text-white')
 }
-function closeDetail() { document.getElementById('detailOverlay').classList.add('hidden') }
+function closeDetail() {
+  document.getElementById('detailOverlay').classList.add('hidden')
+  document.body.style.overflow = ''
+}
 
 // ── ORDER POPUP ────────────────────────────────────
 async function openOrder(id) {
