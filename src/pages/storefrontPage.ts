@@ -400,8 +400,8 @@ export function storefrontHTML(): string {
 <!-- NAVBAR -->
 <nav class="navbar-blur fixed top-0 left-0 right-0 z-50 border-b border-white/10">
   <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-    <a href="/" class="flex items-center gap-2">
-      <span class="inline-flex items-center justify-center"><img src="/qh-logo.png" alt="QH" class="rounded-full w-9 h-9 object-cover bg-white"></span><span class="text-2xl font-display text-white font-bold tracking-wide ml-1.5"><span class="text-pink-400">Clothes</span></span>
+    <a href="/" class="flex items-center gap-1.5 md:gap-1">
+      <span class="inline-flex items-center justify-center"><img src="/qh-logo.png" alt="QH" class="rounded-full w-9 h-9 object-cover bg-white"></span><span class="hidden md:inline text-xl font-display text-white font-bold tracking-normal md:ml-0.5"><span class="text-pink-400">Clothes</span></span>
     </a>
     <div class="hidden md:flex items-center gap-6 text-sm text-gray-300">
       <a href="#products" class="hover:text-pink-400 transition">Sản phẩm</a>
