@@ -102,6 +102,8 @@ export function storefrontHTML(): string {
   }
   .cart-fly-chip img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .line-clamp-1 { overflow:hidden; display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; }
+  .add-to-cart-btn { background: #16a34a !important; }
+  .add-to-cart-btn:hover { background: #15803d !important; }
   /* Checkout step in cart */
   .checkout-slide { animation: slideUp 0.3s ease; }
   .user-menu-overlay { background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); }
@@ -789,8 +791,8 @@ export function storefrontHTML(): string {
         
         <div class="flex gap-2">
           <button onclick="addCurrentToCart()" id="addToCartBtn"
-            class="flex-shrink-0 flex items-center justify-center gap-2 bg-gray-800 hover:bg-gray-700 text-white px-4 py-3.5 rounded-xl font-semibold text-sm transition">
-            <i class="fas fa-shopping-bag"></i><span class="hidden sm:inline">Giỏ hàng</span>
+            class="add-to-cart-btn flex-shrink-0 flex items-center justify-center gap-2 text-white px-4 py-3.5 rounded-xl font-semibold text-sm transition">
+            <i class="fas fa-shopping-bag"></i><span class="hidden sm:inline">Thêm vào giỏ hàng</span>
           </button>
           <button onclick="submitOrder()" id="submitOrderBtn"
             class="btn-primary flex-1 text-white py-3.5 rounded-xl font-bold text-base">
@@ -1673,7 +1675,7 @@ function renderProducts(products) {
             <i class="fas fa-bolt mr-1"></i>Mua ngay
           </button>
           <button onclick="event.stopPropagation();addToCartFromCard(event, \${p.id})" title="Thêm vào giỏ hàng"
-            class="w-10 h-9 flex items-center justify-center bg-gray-800 hover:bg-gray-700 text-white rounded-xl transition group relative">
+            class="add-to-cart-btn w-10 h-9 flex items-center justify-center text-white rounded-xl transition group relative">
             <i class="fas fa-shopping-bag text-sm"></i>
           </button>
         </div>
