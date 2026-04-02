@@ -25,6 +25,8 @@ export function storefrontHTML(): string {
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap');
   * { font-family: 'Inter', sans-serif; }
+  html, body { touch-action: manipulation; -ms-touch-action: manipulation; }
+  button, a, input, select, textarea { touch-action: manipulation; }
   h1,h2,h3,.font-display { font-family: 'Playfair Display', serif; }
   .gradient-hero { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%); }
   .card-hover { transition: all 0.3s ease; }
