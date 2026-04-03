@@ -1,4 +1,4 @@
-﻿type InitDbDeps = {
+type InitDbDeps = {
   resolveSelectedColorImage: (productColors: any, selectedColor: any, fallbackImage?: string) => string
 }
 
@@ -74,9 +74,32 @@ export function createInitDB(deps: InitDbDeps) {
         is_active INTEGER DEFAULT 1,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )`,
+      `CREATE TABLE IF NOT EXISTS flash_sales (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        start_at DATETIME NOT NULL,
+        end_at DATETIME NOT NULL,
+        is_active INTEGER DEFAULT 1,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )`,
+      `CREATE TABLE IF NOT EXISTS flash_sale_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        flash_sale_id INTEGER NOT NULL,
+        product_id INTEGER NOT NULL,
+        sale_price REAL,
+        discount_percent REAL,
+        purchase_limit INTEGER DEFAULT 0,
+        is_enabled INTEGER DEFAULT 1,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )`,
       `CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status)`,
       `CREATE INDEX IF NOT EXISTS idx_products_active ON products(is_active)`,
       `CREATE INDEX IF NOT EXISTS idx_vouchers_code ON vouchers(code)`,
+      `CREATE INDEX IF NOT EXISTS idx_flash_sales_status_time ON flash_sales(is_active, start_at, end_at)`,
+      `CREATE INDEX IF NOT EXISTS idx_flash_sale_items_flash_sale_id ON flash_sale_items(flash_sale_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_flash_sale_items_product_id ON flash_sale_items(product_id)`,
       `CREATE TABLE IF NOT EXISTS transactions (id INTEGER PRIMARY KEY AUTOINCREMENT, tid TEXT UNIQUE, amount REAL, description TEXT, user_id INTEGER, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`,
       `CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, email TEXT UNIQUE NOT NULL, name TEXT, avatar TEXT, balance REAL DEFAULT 0, is_admin INTEGER DEFAULT 0, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)`,
       `CREATE TABLE IF NOT EXISTS hero_banners (
@@ -164,4 +187,3 @@ export function createInitDB(deps: InitDbDeps) {
     }
   }
 }
-
