@@ -9,6 +9,7 @@ import { registerOrderRoutes } from './routes/orderRoutes'
 import { registerPaymentRoutes } from './routes/paymentRoutes'
 import { registerVoucherStatsRoutes } from './routes/voucherStatsRoutes'
 import { registerAdminUtilityRoutes } from './routes/adminUtilityRoutes'
+import { registerFlashSaleRoutes } from './routes/flashSaleRoutes'
 import { createInitDB } from './lib/db'
 import type { AppBindings } from './types/app'
 import {
@@ -111,6 +112,9 @@ registerVoucherStatsRoutes(app, {
   buildInternalTestOrderWhereSql
 })
 
+registerFlashSaleRoutes(app, {
+  initDB
+})
 
 registerPageRoutes(app)
 
