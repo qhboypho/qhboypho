@@ -232,6 +232,16 @@ export function adminHTML(): string {
         <i class="fas fa-warehouse w-4"></i>Cài đặt kho hàng
       </button>
     </div>
+    <button id="marketingMenuBtn" class="nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium" onclick="toggleMarketingMenu()">
+      <i class="fas fa-bullhorn w-5"></i>
+      <span>Marketing</span>
+      <i id="marketingMenuChevron" class="fas fa-chevron-down ml-auto text-xs transition-transform"></i>
+    </button>
+    <div id="marketingSubmenu" class="hidden ml-5 mt-1 space-y-1">
+      <button class="nav-sub-item w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg text-gray-400 text-sm font-medium" data-sub-page="flashsale" onclick="openFlashSaleAdmin()">
+        <i class="fas fa-bolt w-4"></i>Flashsale
+      </button>
+    </div>
   </nav>
   
   <div class="p-4 border-t border-white/10">
@@ -541,6 +551,61 @@ export function adminHTML(): string {
       </div>
       <div id="featuredProductsList" class="divide-y max-h-[70vh] overflow-y-auto">
         <div class="py-12 text-center text-gray-400"><i class="fas fa-spinner fa-spin text-3xl"></i></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FLASH SALE PAGE -->
+  <div id="page-flashsale" class="p-6 hidden">
+    <div class="bg-white rounded-2xl shadow-sm border p-6">
+      <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4 mb-5">
+        <div>
+          <div class="flex items-center gap-2 text-sm font-semibold text-pink-600 mb-2">
+            <i class="fas fa-bolt"></i><span>Marketing</span>
+          </div>
+          <h2 class="text-2xl font-extrabold text-gray-900 tracking-tight">Quản lý Flashsale</h2>
+          <p class="text-sm text-gray-500 mt-1">Tạo và theo dõi chương trình flash sale cho sản phẩm. Giai đoạn đầu sẽ khóa ở cấp sản phẩm để giữ dữ liệu ổn định.</p>
+        </div>
+        <button id="createFlashSaleBtn" type="button" class="btn-pink text-white px-5 py-3 rounded-xl font-semibold text-sm flex items-center gap-2 shadow-sm">
+          <i class="fas fa-plus"></i>Tạo flashsale
+        </button>
+      </div>
+
+      <div class="flex flex-wrap gap-2 mb-6">
+        <button class="flashsale-filter-btn active px-4 py-2 rounded-xl text-sm font-semibold border border-pink-200 bg-pink-50 text-pink-600" data-status="all">Tất cả trạng thái</button>
+        <button class="flashsale-filter-btn px-4 py-2 rounded-xl text-sm font-semibold border border-gray-200 bg-white text-gray-600 hover:border-pink-200 hover:text-pink-600" data-status="active">Đang diễn ra</button>
+        <button class="flashsale-filter-btn px-4 py-2 rounded-xl text-sm font-semibold border border-gray-200 bg-white text-gray-600 hover:border-pink-200 hover:text-pink-600" data-status="upcoming">Sắp tới</button>
+      </div>
+
+      <div id="flashsaleAdminShell" class="min-h-[260px] rounded-2xl border border-dashed border-pink-200 bg-pink-50/40 p-6 flex items-center justify-center text-center text-gray-500">
+        <div>
+          <div class="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-sm text-pink-500">
+            <i class="fas fa-bolt text-xl"></i>
+          </div>
+          <p class="font-semibold text-gray-800">Chưa có dữ liệu flashsale ở phase 1</p>
+          <p class="text-sm text-gray-500 mt-1">Phần danh sách sẽ được ghép vào bước tiếp theo, sau khi UI tạo mới được kết nối.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SETTINGS WAREHOUSE PAGE -->
+  <div id="page-settings-warehouse" class="p-6 hidden">
+    <div class="bg-white rounded-2xl shadow-sm border p-6">
+      <div class="flex items-center justify-between gap-4 mb-4">
+        <div>
+          <h2 class="text-xl font-extrabold text-gray-900 tracking-tight">Cài đặt kho hàng</h2>
+          <p class="text-sm text-gray-500 mt-1">Cấu hình địa chỉ lấy hàng và tài khoản GHTK cho hệ thống.</p>
+        </div>
+      </div>
+      <div id="settingsWarehouseContent" class="rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-6 text-gray-500">
+        <div class="flex items-center gap-3">
+          <i class="fas fa-warehouse text-2xl text-emerald-500"></i>
+          <div>
+            <p class="font-semibold text-gray-800">Khu cài đặt kho hàng</p>
+            <p class="text-sm text-gray-500">Phần này đã tồn tại trong hệ thống, chỉ đang được hiển thị tách ra để dễ mở rộng.</p>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -860,6 +925,8 @@ let adminProfile = null
 let adminAvatarMenuOpen = false
 let settingsSubmenuOpen = false
 let settingsActiveSubPage = ''
+let marketingSubmenuOpen = false
+let marketingActiveSubPage = ''
 let selectedColorImage = ''
 const MAX_PRODUCT_PAYLOAD_SIZE = 1200000
 const ADMIN_OVERLAY_IDS = ['productModal', 'orderDetailModal', 'arrangeSuccessModal']
@@ -1247,7 +1314,7 @@ function closeOrdersHeaderSearch() {
   syncOrdersHeaderSearchUI()
 }
 function showPage(name) {
-  ['dashboard','products','orders','vouchers','featured','settings'].forEach(p => {
+  ['dashboard','products','orders','vouchers','featured','settings','settings-warehouse','flashsale'].forEach(p => {
     const section = document.getElementById('page-'+p)
     if (section) section.classList.toggle('hidden', p !== name)
   })
@@ -1255,18 +1322,34 @@ function showPage(name) {
   const mainBtn = document.querySelector('.nav-item[data-page="' + name + '"]')
   if (mainBtn) mainBtn.classList.add('active')
   document.querySelectorAll('.nav-sub-item').forEach(b => {
-    b.classList.toggle('active', b.dataset.subPage === settingsActiveSubPage)
+    b.classList.toggle('active', b.dataset.subPage === settingsActiveSubPage || b.dataset.subPage === marketingActiveSubPage)
   })
-  if (name === 'settings') {
+  if (name === 'settings' || name === 'settings-warehouse') {
     const settingsBtn = document.getElementById('settingsMenuBtn')
     if (settingsBtn) settingsBtn.classList.add('active')
     setSettingsSubmenuOpen(true)
+    if (name === 'settings-warehouse') settingsActiveSubPage = 'settings-warehouse'
   } else {
     setSettingsSubmenuOpen(false)
-    settingsActiveSubPage = ''
-    document.querySelectorAll('.nav-sub-item').forEach(b => b.classList.remove('active'))
+    if (name !== 'settings-warehouse') settingsActiveSubPage = ''
   }
-  const titles = {dashboard:'Dashboard', products:'Quản lý Sản phẩm', orders:'Quản lý Đơn hàng', vouchers:'Quản lý Voucher', featured:'Sản phẩm Nổi Bật', settings:'Cài đặt'}
+  if (name === 'flashsale') {
+    const marketingBtn = document.getElementById('marketingMenuBtn')
+    if (marketingBtn) marketingBtn.classList.add('active')
+    setMarketingSubmenuOpen(true)
+    marketingActiveSubPage = 'flashsale'
+  } else {
+    setMarketingSubmenuOpen(false)
+    if (name !== 'flashsale') marketingActiveSubPage = ''
+  }
+  document.querySelectorAll('.nav-sub-item').forEach(b => b.classList.remove('active'))
+  if (settingsActiveSubPage) {
+    document.querySelectorAll('.nav-sub-item[data-sub-page="' + settingsActiveSubPage + '"]').forEach(b => b.classList.add('active'))
+  }
+  if (marketingActiveSubPage) {
+    document.querySelectorAll('.nav-sub-item[data-sub-page="' + marketingActiveSubPage + '"]').forEach(b => b.classList.add('active'))
+  }
+  const titles = {dashboard:'Dashboard', products:'Quản lý Sản phẩm', orders:'Quản lý Đơn hàng', vouchers:'Quản lý Voucher', featured:'Sản phẩm Nổi Bật', settings:'Cài đặt', 'settings-warehouse':'Cài đặt kho hàng', flashsale:'Quản lý Flashsale'}
   document.body.dataset.adminPage = name
   document.getElementById('pageTitle').textContent = titles[name] || name
 
@@ -1276,6 +1359,8 @@ function showPage(name) {
   else if (name === 'vouchers') loadVouchers()
   else if (name === 'featured') loadFeaturedAdmin()
   else if (name === 'settings') loadSettingsAdmin()
+  else if (name === 'settings-warehouse') loadSettingsWarehousePage()
+  else if (name === 'flashsale') loadFlashSaleAdmin()
 
   syncOrdersHeaderSearchUI()
 
@@ -1355,8 +1440,40 @@ function toggleSettingsMenu() {
 
 function openSettingsWarehouse() {
   settingsActiveSubPage = 'settings-warehouse'
+  marketingActiveSubPage = ''
   setSettingsSubmenuOpen(true)
-  showPage('settings')
+  setMarketingSubmenuOpen(false)
+  showPage('settings-warehouse')
+}
+
+function setMarketingSubmenuOpen(open) {
+  marketingSubmenuOpen = !!open
+  const submenu = document.getElementById('marketingSubmenu')
+  const chevron = document.getElementById('marketingMenuChevron')
+  if (submenu) submenu.classList.toggle('hidden', !marketingSubmenuOpen)
+  if (chevron) chevron.classList.toggle('rotate-180', marketingSubmenuOpen)
+}
+
+function toggleMarketingMenu() {
+  setMarketingSubmenuOpen(!marketingSubmenuOpen)
+}
+
+function openFlashSaleAdmin() {
+  marketingActiveSubPage = 'flashsale'
+  settingsActiveSubPage = ''
+  setMarketingSubmenuOpen(true)
+  setSettingsSubmenuOpen(false)
+  showPage('flashsale')
+}
+
+function loadSettingsWarehousePage() {
+  const el = document.getElementById('settingsWarehouseContent')
+  if (!el) return
+}
+
+function loadFlashSaleAdmin() {
+  const el = document.getElementById('flashsaleAdminShell')
+  if (!el) return
 }
 
 // ── FEATURED PRODUCTS ────────────────────────────
