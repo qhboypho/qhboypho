@@ -1471,9 +1471,146 @@ function loadSettingsWarehousePage() {
   if (!el) return
 }
 
-function loadFlashSaleAdmin() {
+let flashSaleAdminItems = []
+let flashSaleAdminMeta = { status: 'all', total: 0 }
+let flashSaleAdminFilter = 'all'
+
+function flashSaleStatusChipClass(statusKey) {
+  if (statusKey === 'active') return 'bg-emerald-100 text-emerald-700 border-emerald-200'
+  if (statusKey === 'upcoming') return 'bg-sky-100 text-sky-700 border-sky-200'
+  if (statusKey === 'ended') return 'bg-gray-100 text-gray-600 border-gray-200'
+  return 'bg-rose-100 text-rose-700 border-rose-200'
+}
+
+function flashSaleStatusLabel(statusKey) {
+  if (statusKey === 'active') return 'Đang diễn ra'
+  if (statusKey === 'upcoming') return 'Sắp tới'
+  if (statusKey === 'ended') return 'Đã kết thúc'
+  return 'Đã vô hiệu hoá'
+}
+
+function escapeFlashSaleHtml(text) {
+  return String(text || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+function renderFlashSaleAdminShell(list, meta) {
   const el = document.getElementById('flashsaleAdminShell')
   if (!el) return
+  const rows = Array.isArray(list) ? list : []
+  const statusLabel = meta && meta.status === 'active' ? 'Đang diễn ra' : meta && meta.status === 'upcoming' ? 'Sắp tới' : 'Tất cả trạng thái'
+  if (!rows.length) {
+    el.innerHTML =
+      '<div class="w-full text-center py-12 text-gray-500">' +
+        '<div class="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-white shadow-sm text-pink-500">' +
+          '<i class="fas fa-bolt text-xl"></i>' +
+        '</div>' +
+        '<p class="font-semibold text-gray-800">Chưa có flashsale nào ở trạng thái ' + escapeFlashSaleHtml(String(statusLabel).toLowerCase()) + '</p>' +
+        '<p class="text-sm text-gray-500 mt-1">Bấm "Tạo flashsale" để thêm campaign mới.</p>' +
+      '</div>'
+    return
+  }
+
+  const tableRows = rows.map(function(item) {
+    const statusKey = String((item && item.status_key) || (item && item.status && item.status.key) || 'disabled')
+    const itemName = escapeFlashSaleHtml(String((item && item.name) || 'Flashsale'))
+    const itemId = escapeFlashSaleHtml(String((item && item.id) || ''))
+    const startAt = formatDateTimeVi(item && item.start_at)
+    const endAt = formatDateTimeVi(item && item.end_at)
+    const productCount = Number((item && item.product_count) || 0)
+    const itemCount = Number((item && item.item_count) || 0)
+    return '<tr class="border-t border-gray-100 hover:bg-pink-50/40 transition">' +
+      '<td class="px-4 py-4 align-top">' +
+        '<div class="font-semibold text-gray-900">' + itemName + '</div>' +
+        '<div class="text-xs text-gray-500 mt-1">ID #' + itemId + '</div>' +
+      '</td>' +
+      '<td class="px-4 py-4 align-top text-center">' +
+        '<span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold border ' + flashSaleStatusChipClass(statusKey) + '">' +
+          '<i class="fas fa-bolt"></i>' + flashSaleStatusLabel(statusKey) +
+        '</span>' +
+      '</td>' +
+      '<td class="px-4 py-4 align-top text-gray-600">' + startAt + '</td>' +
+      '<td class="px-4 py-4 align-top text-gray-600">' + endAt + '</td>' +
+      '<td class="px-4 py-4 align-top text-center">' +
+        '<div class="flex flex-col items-center gap-1">' +
+          '<span class="font-bold text-gray-900">' + productCount + '</span>' +
+          '<span class="text-xs text-gray-500">' + itemCount + ' cấu hình</span>' +
+        '</div>' +
+      '</td>' +
+      '<td class="px-4 py-4 align-top text-center">' +
+        '<button type="button" class="flashsale-shell-action-btn inline-flex items-center gap-2 rounded-xl border border-pink-200 bg-pink-50 px-3 py-2 text-xs font-semibold text-pink-600 hover:bg-pink-100 transition" data-flashsale-id="' + itemId + '">' +
+          '<i class="fas fa-pen-to-square"></i>Xem/Sửa' +
+        '</button>' +
+      '</td>' +
+    '</tr>'
+  }).join('')
+
+  el.innerHTML =
+    '<div class="w-full overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">' +
+      '<div class="overflow-x-auto">' +
+        '<table class="min-w-full text-sm">' +
+          '<thead class="bg-gray-50 text-gray-500">' +
+            '<tr>' +
+              '<th class="px-4 py-3 text-left font-semibold">Tên khuyến mãi</th>' +
+              '<th class="px-4 py-3 text-center font-semibold">Trạng thái</th>' +
+              '<th class="px-4 py-3 text-left font-semibold">Thời gian bắt đầu</th>' +
+              '<th class="px-4 py-3 text-left font-semibold">Thời gian kết thúc</th>' +
+              '<th class="px-4 py-3 text-center font-semibold">Sản phẩm</th>' +
+              '<th class="px-4 py-3 text-center font-semibold">Hành động</th>' +
+            '</tr>' +
+          '</thead>' +
+          '<tbody>' + tableRows + '</tbody>' +
+        '</table>' +
+      '</div>' +
+    '</div>'
+
+  document.querySelectorAll('.flashsale-shell-action-btn').forEach((btn) => {
+    btn.addEventListener('click', () => showAdminToast('Chức năng xem/sửa flashsale sẽ làm ở Task 7', 'warning'))
+  })
+}
+
+async function loadFlashSaleAdmin() {
+  const el = document.getElementById('flashsaleAdminShell')
+  if (!el) return
+  el.innerHTML = '<div class="py-12 text-center text-gray-400"><i class="fas fa-spinner fa-spin text-3xl"></i></div>'
+  const createBtn = document.getElementById('createFlashSaleBtn')
+  if (createBtn && !createBtn.dataset.bound) {
+    createBtn.dataset.bound = '1'
+    createBtn.addEventListener('click', () => showAdminToast('Modal tạo flashsale sẽ được thêm ở Task 7', 'warning'))
+  }
+  document.querySelectorAll('.flashsale-filter-btn').forEach((btn) => {
+    if (btn.dataset.bound === '1') return
+    btn.dataset.bound = '1'
+    btn.addEventListener('click', () => {
+      const nextStatus = String(btn.dataset.status || 'all')
+      flashSaleAdminFilter = nextStatus
+      document.querySelectorAll('.flashsale-filter-btn').forEach((elBtn) => {
+        const active = String(elBtn.dataset.status || 'all') === nextStatus
+        elBtn.classList.toggle('active', active)
+        elBtn.classList.toggle('bg-pink-50', active)
+        elBtn.classList.toggle('text-pink-600', active)
+        elBtn.classList.toggle('border-pink-200', active)
+        elBtn.classList.toggle('bg-white', !active)
+        elBtn.classList.toggle('text-gray-600', !active)
+        elBtn.classList.toggle('border-gray-200', !active)
+      })
+      loadFlashSaleAdmin()
+    })
+  })
+  try {
+    const res = await axios.get('/api/admin/flash-sales', {
+      params: { status: flashSaleAdminFilter }
+    })
+    flashSaleAdminItems = Array.isArray(res.data?.data) ? res.data.data : []
+    flashSaleAdminMeta = res.data?.meta || { status: flashSaleAdminFilter, total: flashSaleAdminItems.length }
+    renderFlashSaleAdminShell(flashSaleAdminItems, flashSaleAdminMeta)
+  } catch (e) {
+    el.innerHTML = '<div class="py-12 text-center text-red-400"><i class="fas fa-triangle-exclamation text-3xl mb-2"></i><p>Lỗi tải dữ liệu Flashsale</p></div>'
+  }
 }
 
 // ── FEATURED PRODUCTS ────────────────────────────
