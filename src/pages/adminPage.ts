@@ -589,6 +589,147 @@ export function adminHTML(): string {
     </div>
   </div>
 
+  <div id="createFlashSaleModal" class="modal-overlay hidden fixed inset-0 z-[90] items-center justify-center px-4 py-6" onclick="closeFlashSaleCreateModal(event)">
+    <div class="modal-card w-full max-w-6xl max-h-[92vh] overflow-hidden rounded-3xl bg-white shadow-2xl border border-pink-100 flex flex-col" onclick="event.stopPropagation()">
+      <div class="flex items-start justify-between gap-4 border-b border-gray-100 px-6 py-5 bg-gradient-to-r from-pink-50 via-white to-orange-50">
+        <div>
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-pink-100 text-pink-600 text-xs font-semibold mb-3">
+            <i class="fas fa-bolt"></i><span>Tạo chiến dịch</span>
+          </div>
+          <h3 class="text-2xl font-extrabold text-gray-900 tracking-tight">Tạo Flashsale của shop</h3>
+          <p class="text-sm text-gray-500 mt-1">Thiết lập thời gian, chọn sản phẩm và cấu hình giá ưu đãi cho từng item.</p>
+        </div>
+        <button type="button" onclick="closeFlashSaleCreateModal()" class="w-10 h-10 rounded-full bg-white border border-gray-200 text-gray-500 hover:text-gray-900 hover:border-pink-200 transition shadow-sm">
+          <i class="fas fa-xmark"></i>
+        </button>
+      </div>
+      <div class="flex-1 overflow-y-auto scrollbar-thin bg-gray-50/60">
+        <div class="grid gap-4 xl:grid-cols-[1.12fr_0.88fr] p-6">
+          <div class="space-y-4">
+            <section class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+              <div class="flex items-center gap-2 mb-4 text-pink-600 font-semibold">
+                <i class="fas fa-circle-info"></i><span>Thông tin cơ bản</span>
+              </div>
+              <div class="grid gap-4 md:grid-cols-2">
+                <label class="md:col-span-2 space-y-2">
+                  <span class="text-sm font-semibold text-gray-700">Tên flashsale</span>
+                  <input id="flashSaleNameInput" type="text" placeholder="Flash sale tháng 4 / Săn deal cuối tuần..." class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-pink-300 focus:ring-4 focus:ring-pink-100">
+                </label>
+                <label class="space-y-2">
+                  <span class="text-sm font-semibold text-gray-700">Thời gian bắt đầu</span>
+                  <input id="flashSaleStartInput" type="datetime-local" class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-pink-300 focus:ring-4 focus:ring-pink-100">
+                </label>
+                <label class="space-y-2">
+                  <span class="text-sm font-semibold text-gray-700">Thời gian kết thúc</span>
+                  <input id="flashSaleEndInput" type="datetime-local" class="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none transition focus:border-pink-300 focus:ring-4 focus:ring-pink-100">
+                </label>
+              </div>
+            </section>
+
+            <section class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+              <div class="flex items-center justify-between gap-3 mb-4">
+                <div>
+                  <div class="flex items-center gap-2 text-pink-600 font-semibold mb-1">
+                    <i class="fas fa-box-open"></i><span>Sản phẩm</span>
+                  </div>
+                  <p class="text-sm text-gray-500">Chọn sản phẩm áp dụng flashsale. Phase 1 khóa ở cấp sản phẩm để giữ dữ liệu ổn định.</p>
+                </div>
+                <button type="button" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border border-pink-200 bg-pink-50 text-pink-600 hover:bg-pink-100 transition">
+                  <i class="fas fa-magnifying-glass"></i>Chọn sản phẩm
+                </button>
+              </div>
+              <div class="rounded-2xl border border-dashed border-pink-200 bg-pink-50/40 p-4">
+                <div class="flex items-center justify-between gap-3 mb-3">
+                  <div>
+                    <p class="text-sm font-semibold text-gray-800">Danh sách sản phẩm đã chọn</p>
+                    <p class="text-xs text-gray-500 mt-0.5">Chưa có sản phẩm nào được gắn vào flashsale.</p>
+                  </div>
+                  <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white text-pink-600 border border-pink-200 text-xs font-semibold"><i class="fas fa-layer-group"></i>0 sản phẩm</span>
+                </div>
+                <div class="overflow-hidden rounded-2xl border border-gray-100 bg-white">
+                  <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                      <thead class="bg-gray-50 text-gray-500">
+                        <tr>
+                          <th class="px-4 py-3 text-left font-semibold">Sản phẩm</th>
+                          <th class="px-4 py-3 text-center font-semibold w-24">Giá gốc</th>
+                          <th class="px-4 py-3 text-center font-semibold w-32">Giá flashsale</th>
+                          <th class="px-4 py-3 text-center font-semibold w-28">% giảm</th>
+                          <th class="px-4 py-3 text-center font-semibold w-28">Giới hạn mua</th>
+                          <th class="px-4 py-3 text-center font-semibold w-28">Trạng thái</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr>
+                          <td colspan="6" class="px-4 py-10 text-center text-gray-500">
+                            <div class="flex flex-col items-center gap-2">
+                              <div class="flex h-12 w-12 items-center justify-center rounded-full bg-pink-50 text-pink-500">
+                                <i class="fas fa-basket-shopping"></i>
+                              </div>
+                              <p class="font-medium">Chưa có sản phẩm nào được chọn</p>
+                              <p class="text-xs text-gray-400">Task 8 sẽ nối phần chọn sản phẩm và cấu hình giá vào đây.</p>
+                            </div>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </section>
+          </div>
+
+          <aside class="space-y-4">
+            <section class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sticky top-4">
+              <div class="flex items-center gap-2 mb-4 text-pink-600 font-semibold">
+                <i class="fas fa-bolt"></i><span>Xem trước</span>
+              </div>
+              <div class="rounded-3xl overflow-hidden border border-gray-100 bg-gradient-to-br from-gray-50 to-pink-50 shadow-sm">
+                <div class="h-48 bg-gradient-to-br from-pink-100 via-white to-orange-100 flex items-center justify-center text-gray-400">
+                  <div class="text-center px-6">
+                    <div class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-sm text-pink-500">
+                      <i class="fas fa-bolt"></i>
+                    </div>
+                    <p class="font-semibold text-gray-800">Flash sale sẽ nổi bật ở storefront</p>
+                    <p class="text-xs text-gray-500 mt-1">Giá flashsale sẽ đè lên giá sản phẩm hiện tại.</p>
+                  </div>
+                </div>
+                <div class="p-4 space-y-3">
+                  <div class="flex flex-wrap gap-2">
+                    <span class="inline-flex items-center gap-1 rounded-full bg-pink-600 px-3 py-1 text-xs font-semibold text-white"><i class="fas fa-bolt"></i>Flash Sale</span>
+                    <span class="inline-flex items-center gap-1 rounded-full bg-orange-100 px-3 py-1 text-xs font-semibold text-orange-700">00:00:00</span>
+                    <span class="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700"><i class="fas fa-truck-fast"></i>Nhanh 24h free</span>
+                  </div>
+                  <div>
+                    <p class="text-lg font-bold text-gray-900">Tên flashsale sẽ hiển thị tại đây</p>
+                    <p class="text-sm text-gray-500 mt-1">Bạn có thể xem nhanh layout này trước khi sang bước chọn sản phẩm.</p>
+                  </div>
+                  <div class="flex items-end gap-3">
+                    <span class="text-3xl font-extrabold text-rose-500">119.000đ</span>
+                    <span class="text-lg text-gray-400 line-through">199.000đ</span>
+                  </div>
+                </div>
+              </div>
+              <div class="mt-4 rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-4 text-sm text-gray-500">
+                <p class="font-semibold text-gray-800 mb-1">Ghi chú nhanh</p>
+                <p>Phase 7 chỉ dựng giao diện modal. Task 8 sẽ nối submit và chọn sản phẩm thật.</p>
+              </div>
+            </section>
+          </aside>
+        </div>
+      </div>
+      <div class="border-t border-gray-100 bg-white px-6 py-4 flex items-center justify-between gap-3">
+        <p class="text-xs text-gray-500">Tạo flashsale mới cho sản phẩm theo cấp độ sản phẩm.</p>
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="closeFlashSaleCreateModal()" class="px-4 py-2 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition">Đóng</button>
+          <button type="button" onclick="showAdminToast('Task 7 chưa nối submit', 'warning')" class="btn-pink text-white px-5 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2 shadow-sm">
+            <i class="fas fa-bolt"></i>Lưu nháp
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- SETTINGS WAREHOUSE PAGE -->
   <div id="page-settings-warehouse" class="p-6 hidden">
     <div class="bg-white rounded-2xl shadow-sm border p-6">
@@ -1466,6 +1607,25 @@ function openFlashSaleAdmin() {
   showPage('flashsale')
 }
 
+function openFlashSaleCreateModal() {
+  const modal = document.getElementById('createFlashSaleModal')
+  if (!modal) return
+  modal.classList.remove('hidden')
+  modal.classList.add('flex')
+  document.body.style.overflow = 'hidden'
+}
+
+function closeFlashSaleCreateModal(event) {
+  if (event && event.target && event.currentTarget && event.target !== event.currentTarget) return
+  const modal = document.getElementById('createFlashSaleModal')
+  if (modal) {
+    modal.classList.add('hidden')
+    modal.classList.remove('flex')
+  }
+  const openModal = document.querySelector('.modal-overlay:not(.hidden)')
+  if (!openModal) document.body.style.overflow = ''
+}
+
 function loadSettingsWarehousePage() {
   const el = document.getElementById('settingsWarehouseContent')
   if (!el) return
@@ -1580,7 +1740,7 @@ async function loadFlashSaleAdmin() {
   const createBtn = document.getElementById('createFlashSaleBtn')
   if (createBtn && !createBtn.dataset.bound) {
     createBtn.dataset.bound = '1'
-    createBtn.addEventListener('click', () => showAdminToast('Modal tạo flashsale sẽ được thêm ở Task 7', 'warning'))
+    createBtn.addEventListener('click', () => openFlashSaleCreateModal())
   }
   document.querySelectorAll('.flashsale-filter-btn').forEach((btn) => {
     if (btn.dataset.bound === '1') return
@@ -3513,7 +3673,7 @@ function showAdminToast(msg, type='success') {
 // ── ESC key handler - close any open modal ──────────
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') {
-    const modals = ['productModal', 'orderDetailModal', 'arrangeSuccessModal']
+    const modals = ['productModal', 'orderDetailModal', 'arrangeSuccessModal', 'createFlashSaleModal']
     modals.forEach(id => {
       const el = document.getElementById(id)
       if (el && !el.classList.contains('hidden')) {
