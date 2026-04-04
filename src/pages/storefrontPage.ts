@@ -49,6 +49,47 @@ export function storefrontHTML(): string {
   @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
   .navbar-blur { backdrop-filter: blur(12px); background: rgba(26,26,46,0.95); }
   .filter-btn.active { background: #c0392b; color: white; border-color: #c0392b; }
+  .flash-sale-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: linear-gradient(135deg, #ff5f6d 0%, #ffc371 100%);
+    color: white;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    padding: 0.35rem 0.6rem;
+    border-radius: 9999px;
+    box-shadow: 0 10px 24px rgba(255, 95, 109, 0.22);
+  }
+  .flash-sale-countdown {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 92px;
+    padding: 0.35rem 0.65rem;
+    border-radius: 9999px;
+    background: rgba(15, 23, 42, 0.82);
+    color: #fef2f2;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    backdrop-filter: blur(6px);
+  }
+  .flash-sale-shop-card {
+    min-width: 0;
+    border-radius: 1.5rem;
+    overflow: hidden;
+    background: white;
+    border: 1px solid rgba(255,255,255,0.18);
+    box-shadow: 0 18px 40px rgba(15,23,42,0.14);
+  }
+  .flash-sale-shop-track {
+    scrollbar-width: none;
+  }
+  .flash-sale-shop-track::-webkit-scrollbar {
+    display: none;
+  }
   /* Shake animation for validation */
   @keyframes shake {
     0%,100%{transform:translateX(0)}
@@ -507,6 +548,51 @@ export function storefrontHTML(): string {
         class="pl-8 pr-4 py-1.5 border rounded-full text-sm focus:outline-none focus:border-pink-400 w-48"
         oninput="searchProducts(this.value)">
       <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs"></i>
+    </div>
+  </div>
+</section>
+
+<!-- FLASH SALE SHOP -->
+<section id="flashSaleShopSection" class="hidden max-w-7xl mx-auto px-4 pt-4 pb-10">
+  <div class="rounded-[2rem] bg-gradient-to-r from-[#fff1f2] via-[#fff7ed] to-[#fef3c7] border border-rose-100 shadow-[0_24px_60px_rgba(244,63,94,0.14)] overflow-hidden">
+    <div class="flex flex-col gap-5 px-5 py-5 md:px-8 md:py-7">
+      <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div>
+          <div class="inline-flex items-center gap-2 rounded-full bg-rose-500 px-3 py-1 text-xs font-bold uppercase tracking-[0.24em] text-white">
+            <i class="fas fa-bolt"></i>
+            Flash Sale của shop
+          </div>
+          <h2 class="mt-3 font-display text-3xl font-bold text-slate-900 md:text-4xl">Săn deal chớp nhoáng</h2>
+          <p class="mt-2 max-w-2xl text-sm text-slate-600 md:text-base">Những sản phẩm đang được giảm mạnh trong thời gian giới hạn. Giá flash sale luôn được ưu tiên hiển thị cao nhất.</p>
+        </div>
+        <div id="flashSaleShopCountdown" class="flash-sale-countdown self-start md:self-auto">00:00:00</div>
+      </div>
+      <div id="flashSaleShopGrid" class="flash-sale-shop-track flex gap-4 overflow-x-auto pb-1 md:grid md:grid-cols-3 xl:grid-cols-4 md:overflow-visible">
+        <div class="flash-sale-shop-card shrink-0 basis-[78%] md:basis-auto">
+          <div class="skeleton aspect-square w-full"></div>
+          <div class="space-y-3 p-4">
+            <div class="skeleton h-4 rounded-full"></div>
+            <div class="skeleton h-4 w-2/3 rounded-full"></div>
+            <div class="skeleton h-10 rounded-2xl"></div>
+          </div>
+        </div>
+        <div class="flash-sale-shop-card hidden shrink-0 basis-[78%] md:block md:basis-auto">
+          <div class="skeleton aspect-square w-full"></div>
+          <div class="space-y-3 p-4">
+            <div class="skeleton h-4 rounded-full"></div>
+            <div class="skeleton h-4 w-2/3 rounded-full"></div>
+            <div class="skeleton h-10 rounded-2xl"></div>
+          </div>
+        </div>
+        <div class="flash-sale-shop-card hidden shrink-0 basis-[78%] md:block md:basis-auto">
+          <div class="skeleton aspect-square w-full"></div>
+          <div class="space-y-3 p-4">
+            <div class="skeleton h-4 rounded-full"></div>
+            <div class="skeleton h-4 w-2/3 rounded-full"></div>
+            <div class="skeleton h-10 rounded-2xl"></div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </section>
@@ -1630,8 +1716,85 @@ async function loadProducts() {
     allProducts = res.data.data || []
     filteredProducts = [...allProducts]
     renderProducts(filteredProducts)
+    loadFlashSaleShop()
   } catch(e) {
     document.getElementById('productsGrid').innerHTML = '<div class="col-span-4 text-center text-gray-400 py-12"><i class="fas fa-exclamation-circle text-4xl mb-3"></i><p>Không thể tải sản phẩm</p></div>'
+  }
+}
+
+function getFlashSaleMeta(product) {
+  const flashSale = product?.flash_sale
+  const hasFlashSale = !!product?.has_flash_sale && flashSale && flashSale.item
+  if (!hasFlashSale) return null
+  const salePrice = Number(product.display_sale_price ?? product.display_price ?? product.price ?? 0)
+  const basePrice = Number(product.display_original_price ?? product.original_price ?? product.price ?? 0)
+  const discountPercent = Number(product.display_discount_percent ?? flashSale.item.discount_percent ?? 0)
+  return {
+    salePrice,
+    basePrice,
+    discountPercent,
+    endsAt: flashSale.campaign?.end_at || flashSale.end_at || '',
+    campaignName: flashSale.campaign?.name || flashSale.name || 'Flash Sale'
+  }
+}
+
+function formatFlashSaleCountdown(endAt) {
+  if (!endAt) return '00:00:00'
+  const target = new Date(endAt).getTime()
+  if (!target || Number.isNaN(target)) return '00:00:00'
+  const diff = Math.max(0, target - Date.now())
+  const totalSeconds = Math.floor(diff / 1000)
+  const hours = Math.floor(totalSeconds / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
+  const seconds = totalSeconds % 60
+  return [hours, minutes, seconds].map((value) => String(value).padStart(2, '0')).join(':')
+}
+
+async function loadFlashSaleShop() {
+  const section = document.getElementById('flashSaleShopSection')
+  const grid = document.getElementById('flashSaleShopGrid')
+  const countdown = document.getElementById('flashSaleShopCountdown')
+  if (!section || !grid || !countdown) return
+  try {
+    const res = await axios.get('/api/flash-sales/active-products')
+    const products = Array.isArray(res.data?.data) ? res.data.data : []
+    if (!products.length) {
+      section.classList.add('hidden')
+      return
+    }
+    section.classList.remove('hidden')
+    const firstActive = products.find((product) => product?.flash_sale?.campaign?.end_at || product?.flash_sale?.end_at)
+    countdown.textContent = formatFlashSaleCountdown(firstActive?.flash_sale?.campaign?.end_at || firstActive?.flash_sale?.end_at || '')
+    grid.innerHTML = products.slice(0, 8).map((product) => {
+      const meta = getFlashSaleMeta(product)
+      const price = meta?.salePrice || Number(product.display_price ?? product.price ?? 0)
+      const original = meta?.basePrice || Number(product.display_original_price ?? product.original_price ?? price)
+      const discount = Number(meta?.discountPercent || 0)
+      return \`
+        <div class="flash-sale-shop-card shrink-0 basis-[78%] cursor-pointer md:basis-auto" onclick="showDetail(\${product.id})">
+          <div class="relative aspect-square overflow-hidden bg-slate-100">
+            <img src="\${product.thumbnail || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'}" alt="\${product.name}" class="h-full w-full object-cover" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'">
+            <div class="absolute left-3 top-3 flex flex-col gap-2">
+              <span class="flash-sale-badge"><i class="fas fa-bolt"></i> Flash Sale</span>
+              <span class="flash-sale-countdown">\${formatFlashSaleCountdown(meta?.endsAt || '')}</span>
+            </div>
+            \${discount > 0 ? \`<span class="absolute bottom-3 left-3 rounded-full bg-black/75 px-3 py-1 text-xs font-bold text-white">-\${discount}%</span>\` : ''}
+          </div>
+          <div class="space-y-3 p-4">
+            <h3 class="line-clamp-2 text-sm font-semibold leading-6 text-slate-900">\${product.name}</h3>
+            <div class="flex items-end gap-2">
+              <span class="text-2xl font-bold text-rose-600">\${fmtPrice(price)}</span>
+              \${original > price ? \`<span class="pb-0.5 text-sm text-slate-400 line-through">\${fmtPrice(original)}</span>\` : ''}
+            </div>
+            <button onclick="event.stopPropagation();openOrder(\${product.id})" class="btn-primary w-full rounded-2xl py-3 text-sm font-semibold text-white">
+              <i class="fas fa-bolt mr-1"></i>Mua ngay
+            </button>
+          </div>
+        </div>
+      \`
+    }).join('')
+  } catch (e) {
+    section.classList.add('hidden')
   }
 }
 
@@ -1646,14 +1809,17 @@ function renderProducts(products) {
   empty.classList.add('hidden')
   grid.innerHTML = products.map(p => {
     const colors = getProductColorOptions(p).map((c) => c.name)
-    const discount = p.original_price ? Math.round((1 - p.price/p.original_price)*100) : 0
+    const flashMeta = getFlashSaleMeta(p)
+    const displayPrice = Number(flashMeta?.salePrice || p.display_price || p.price || 0)
+    const displayOriginalPrice = Number(flashMeta?.basePrice || p.display_original_price || p.original_price || displayPrice)
+    const discount = flashMeta ? Number(flashMeta.discountPercent || 0) : (p.original_price ? Math.round((1 - p.price/p.original_price)*100) : 0)
     return \`
     <div class="bg-white rounded-2xl overflow-hidden card-hover shadow-sm border border-gray-100 cursor-pointer" onclick="showDetail(\${p.id})">
       <div class="relative overflow-hidden bg-gray-100">
         <img src="\${p.thumbnail || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'}"
           alt="\${p.name}" class="w-full product-img-main" loading="lazy"
           onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'">
-        \${discount > 0 ? \`<span class="absolute top-3 left-3 badge-sale text-white text-xs font-bold px-2 py-1 rounded-full">-\${discount}%</span>\` : ''}
+        \${p.has_flash_sale ? \`<div class="absolute left-3 top-3 flex flex-col gap-2"><span class="flash-sale-badge"><i class="fas fa-bolt"></i> Flash Sale</span><span class="flash-sale-countdown">\${formatFlashSaleCountdown(flashMeta?.endsAt || '')}</span></div>\` : (discount > 0 ? \`<span class="absolute top-3 left-3 badge-sale text-white text-xs font-bold px-2 py-1 rounded-full">-\${discount}%</span>\` : '')}
         \${p.is_featured ? \`<span class="absolute top-3 right-3 bg-amber-400 text-white text-xs font-bold px-2 py-1 rounded-full">⭐ Hot</span>\` : ''}
         <div class="absolute inset-0 bg-black/0 hover:bg-black/10 transition flex items-center justify-center opacity-0 hover:opacity-100">
           <span class="bg-white/90 text-gray-800 px-3 py-1 rounded-full text-xs font-semibold">Xem chi tiết</span>
@@ -1663,8 +1829,8 @@ function renderProducts(products) {
         \${p.brand ? \`<p class="text-xs text-pink-500 font-medium mb-1">\${p.brand}</p>\` : ''}
         <h3 class="font-semibold text-gray-900 text-sm leading-tight mb-2 line-clamp-2">\${p.name}</h3>
         <div class="flex items-center gap-2 mb-3">
-          <span class="text-pink-600 font-bold">\${fmtPrice(p.price)}</span>
-          \${p.original_price ? \`<span class="text-gray-400 text-xs line-through">\${fmtPrice(p.original_price)}</span>\` : ''}
+          <span class="text-pink-600 font-bold">\${fmtPrice(displayPrice)}</span>
+          \${displayOriginalPrice > displayPrice ? \`<span class="text-gray-400 text-xs line-through">\${fmtPrice(displayOriginalPrice)}</span>\` : ''}
         </div>
         \${colors.length > 0 ? \`
         <div class="flex gap-1 mb-3 flex-wrap">
