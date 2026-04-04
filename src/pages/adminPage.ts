@@ -634,7 +634,7 @@ export function adminHTML(): string {
                   </div>
                   <p class="text-sm text-gray-500">Chọn sản phẩm áp dụng flashsale. Phase 1 khóa ở cấp sản phẩm để giữ dữ liệu ổn định.</p>
                 </div>
-                <button type="button" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border border-pink-200 bg-pink-50 text-pink-600 hover:bg-pink-100 transition">
+                <button type="button" onclick="openFlashSaleProductPickerModal()" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border border-pink-200 bg-pink-50 text-pink-600 hover:bg-pink-100 transition">
                   <i class="fas fa-magnifying-glass"></i>Chọn sản phẩm
                 </button>
               </div>
@@ -642,9 +642,9 @@ export function adminHTML(): string {
                 <div class="flex items-center justify-between gap-3 mb-3">
                   <div>
                     <p class="text-sm font-semibold text-gray-800">Danh sách sản phẩm đã chọn</p>
-                    <p class="text-xs text-gray-500 mt-0.5">Chưa có sản phẩm nào được gắn vào flashsale.</p>
+                    <p id="flashSaleSelectedItemsHint" class="text-xs text-gray-500 mt-0.5">Chưa có sản phẩm nào được gắn vào flashsale.</p>
                   </div>
-                  <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white text-pink-600 border border-pink-200 text-xs font-semibold"><i class="fas fa-layer-group"></i>0 sản phẩm</span>
+                  <span id="flashSaleSelectedItemsCount" class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white text-pink-600 border border-pink-200 text-xs font-semibold"><i class="fas fa-layer-group"></i>0 sản phẩm</span>
                 </div>
                 <div class="overflow-hidden rounded-2xl border border-gray-100 bg-white">
                   <div class="overflow-x-auto">
@@ -657,11 +657,12 @@ export function adminHTML(): string {
                           <th class="px-4 py-3 text-center font-semibold w-28">% giảm</th>
                           <th class="px-4 py-3 text-center font-semibold w-28">Giới hạn mua</th>
                           <th class="px-4 py-3 text-center font-semibold w-28">Trạng thái</th>
+                          <th class="px-4 py-3 text-center font-semibold w-28">Hành động</th>
                         </tr>
                       </thead>
-                      <tbody>
+                      <tbody id="flashSaleSelectedItemsBody">
                         <tr>
-                          <td colspan="6" class="px-4 py-10 text-center text-gray-500">
+                          <td colspan="7" class="px-4 py-10 text-center text-gray-500">
                             <div class="flex flex-col items-center gap-2">
                               <div class="flex h-12 w-12 items-center justify-center rounded-full bg-pink-50 text-pink-500">
                                 <i class="fas fa-basket-shopping"></i>
@@ -722,10 +723,45 @@ export function adminHTML(): string {
         <p class="text-xs text-gray-500">Tạo flashsale mới cho sản phẩm theo cấp độ sản phẩm.</p>
         <div class="flex items-center gap-2">
           <button type="button" onclick="closeFlashSaleCreateModal()" class="px-4 py-2 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition">Đóng</button>
-          <button type="button" onclick="showAdminToast('Task 7 chưa nối submit', 'warning')" class="btn-pink text-white px-5 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2 shadow-sm">
-            <i class="fas fa-bolt"></i>Lưu nháp
+          <button type="button" id="flashSaleSubmitBtn" onclick="submitFlashSaleCreateForm()" class="btn-pink text-white px-5 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2 shadow-sm">
+            <i class="fas fa-bolt"></i><span id="flashSaleSubmitText">Tạo flashsale</span>
           </button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="flashSaleProductPickerModal" class="modal-overlay hidden fixed inset-0 z-[95] items-center justify-center px-4 py-6" onclick="closeFlashSaleProductPickerModal(event)">
+    <div class="modal-card w-full max-w-4xl max-h-[88vh] overflow-hidden rounded-3xl bg-white shadow-2xl border border-pink-100 flex flex-col" onclick="event.stopPropagation()">
+      <div class="flex items-start justify-between gap-4 border-b border-gray-100 px-6 py-5 bg-gradient-to-r from-pink-50 via-white to-orange-50">
+        <div>
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-pink-100 text-pink-600 text-xs font-semibold mb-3">
+            <i class="fas fa-bag-shopping"></i><span>Chọn sản phẩm</span>
+          </div>
+          <h3 class="text-2xl font-extrabold text-gray-900 tracking-tight">Chọn sản phẩm vào Flashsale</h3>
+          <p class="text-sm text-gray-500 mt-1">Tìm nhanh sản phẩm đang có trong kho để gắn vào chiến dịch flashsale.</p>
+        </div>
+        <button type="button" onclick="closeFlashSaleProductPickerModal()" class="w-10 h-10 rounded-full bg-white border border-gray-200 text-gray-500 hover:text-gray-900 hover:border-pink-200 transition shadow-sm">
+          <i class="fas fa-xmark"></i>
+        </button>
+      </div>
+      <div class="flex-1 overflow-y-auto scrollbar-thin bg-gray-50/60 px-6 py-5 space-y-4">
+        <div class="flex flex-col md:flex-row md:items-center gap-3 justify-between">
+          <div class="flex-1 relative">
+            <i class="fas fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+            <input id="flashSaleProductPickerSearch" type="text" placeholder="Tìm sản phẩm..." class="w-full rounded-2xl border border-gray-200 bg-white pl-11 pr-4 py-3 text-sm outline-none transition focus:border-pink-300 focus:ring-4 focus:ring-pink-100" oninput="renderFlashSaleProductPicker()">
+          </div>
+          <div id="flashSaleProductPickerCount" class="inline-flex items-center gap-2 rounded-2xl border border-pink-200 bg-white px-4 py-3 text-sm font-semibold text-pink-600 shadow-sm">
+            <i class="fas fa-layer-group"></i><span>0 sản phẩm</span>
+          </div>
+        </div>
+        <div class="rounded-2xl border border-gray-100 bg-white overflow-hidden">
+          <div id="flashSaleProductPickerList" class="divide-y divide-gray-100"></div>
+        </div>
+      </div>
+      <div class="border-t border-gray-100 bg-white px-6 py-4 flex items-center justify-between gap-3">
+        <p class="text-xs text-gray-500">Chọn sản phẩm trước, sau đó quay lại cấu hình giá bên dưới.</p>
+        <button type="button" onclick="closeFlashSaleProductPickerModal()" class="px-4 py-2 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition">Xong</button>
       </div>
     </div>
   </div>
@@ -1607,12 +1643,320 @@ function openFlashSaleAdmin() {
   showPage('flashsale')
 }
 
-function openFlashSaleCreateModal() {
-  const modal = document.getElementById('createFlashSaleModal')
+let flashSaleCreateSelectedItems = []
+let flashSaleProductPickerItems = []
+let flashSaleProductPickerQuery = ''
+let flashSaleCreateSubmitting = false
+
+function flashSaleEscapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+function flashSaleNormalizeNumber(value) {
+  const num = typeof value === 'number' ? value : Number(String(value ?? '').replace(/,/g, '').trim())
+  return Number.isFinite(num) ? num : 0
+}
+
+function flashSaleNormalizeDateTime(value) {
+  const raw = String(value ?? '').trim()
+  if (!raw) return ''
+  const normalized = raw.includes('T') ? raw : raw.replace(' ', 'T')
+  return Number.isFinite(Date.parse(normalized)) ? normalized : ''
+}
+
+function flashSaleGetSelectedItemIndex(productId) {
+  return flashSaleCreateSelectedItems.findIndex((item) => String(item.product_id) === String(productId))
+}
+
+function flashSaleGetSelectedItem(productId) {
+  const index = flashSaleGetSelectedItemIndex(productId)
+  return index >= 0 ? flashSaleCreateSelectedItems[index] : null
+}
+
+function flashSaleMakeSelectedItem(product) {
+  const basePrice = flashSaleNormalizeNumber(product && (product.price ?? product.original_price ?? product.product_price ?? 0))
+  return {
+    product_id: flashSaleNormalizeNumber(product && product.id),
+    product_name: String(product && (product.name ?? product.product_name ?? '')),
+    product_thumbnail: String(product && (product.thumbnail ?? product.product_thumbnail ?? product.image ?? '')),
+    product_price: basePrice,
+    sale_price: null,
+    discount_percent: null,
+    purchase_limit: null,
+    is_enabled: 1
+  }
+}
+
+function flashSaleSetCreateSubmitState(isSubmitting) {
+  flashSaleCreateSubmitting = !!isSubmitting
+  const btn = document.getElementById('flashSaleSubmitBtn')
+  const text = document.getElementById('flashSaleSubmitText')
+  if (btn) btn.disabled = flashSaleCreateSubmitting
+  if (text) text.textContent = flashSaleCreateSubmitting ? 'Đang tạo...' : 'Tạo flashsale'
+}
+
+function flashSaleUpdateSelectionSummary() {
+  const hint = document.getElementById('flashSaleSelectedItemsHint')
+  const count = document.getElementById('flashSaleSelectedItemsCount')
+  const total = flashSaleCreateSelectedItems.length
+  if (hint) hint.textContent = total ? 'Đã chọn ' + total + ' sản phẩm để cấu hình flashsale.' : 'Chưa có sản phẩm nào được gắn vào flashsale.'
+  if (count) count.innerHTML = '<i class="fas fa-layer-group"></i>' + total + ' sản phẩm'
+}
+
+function renderFlashSaleSelectedItems() {
+  const tbody = document.getElementById('flashSaleSelectedItemsBody')
+  if (!tbody) return
+  flashSaleUpdateSelectionSummary()
+  if (!flashSaleCreateSelectedItems.length) {
+    tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-10 text-center text-gray-500"><div class="flex flex-col items-center gap-2"><div class="flex h-12 w-12 items-center justify-center rounded-full bg-pink-50 text-pink-500"><i class="fas fa-basket-shopping"></i></div><p class="font-medium">Chưa có sản phẩm nào được chọn</p><p class="text-xs text-gray-400">Task 8 sẽ nối phần chọn sản phẩm và cấu hình giá vào đây.</p></div></td></tr>'
+    return
+  }
+
+  tbody.innerHTML = flashSaleCreateSelectedItems.map((item) => {
+    const itemId = item.product_id
+    const imageHtml = item.product_thumbnail
+      ? '<img src="' + flashSaleEscapeHtml(item.product_thumbnail) + '" alt="' + flashSaleEscapeHtml(item.product_name) + '" class="h-14 w-14 rounded-xl object-cover border border-gray-100 bg-gray-50 shrink-0" />'
+      : '<div class="h-14 w-14 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-400 shrink-0"><i class="fas fa-image"></i></div>'
+    const salePriceValue = item.sale_price === null || item.sale_price === undefined ? '' : flashSaleNormalizeNumber(item.sale_price)
+    const discountValue = item.discount_percent === null || item.discount_percent === undefined ? '' : flashSaleNormalizeNumber(item.discount_percent)
+    const purchaseLimitValue = item.purchase_limit === null || item.purchase_limit === undefined ? '' : flashSaleNormalizeNumber(item.purchase_limit)
+    const enabled = Number(item.is_enabled) === 1
+    return '' +
+      '<tr class="border-b last:border-b-0 align-top">' +
+        '<td class="px-4 py-4">' +
+          '<div class="flex items-start gap-3">' +
+            imageHtml +
+            '<div class="min-w-0">' +
+              '<p class="font-semibold text-gray-900 line-clamp-2">' + flashSaleEscapeHtml(item.product_name) + '</p>' +
+              '<p class="text-xs text-gray-400 mt-1">ID: ' + itemId + '</p>' +
+            '</div>' +
+          '</div>' +
+        '</td>' +
+        '<td class="px-4 py-4 text-center text-gray-700 font-medium">' + (item.product_price > 0 ? flashSaleNormalizeNumber(item.product_price).toLocaleString('vi-VN') + 'đ' : '—') + '</td>' +
+        '<td class="px-4 py-4 text-center"><input type="number" min="0" step="1000" value="' + salePriceValue + '" oninput="updateFlashSaleSelectedItemField(' + itemId + ', &quot;sale_price&quot;, this.value)" class="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-center outline-none focus:border-pink-300 focus:ring-4 focus:ring-pink-100" placeholder="Nhập giá"></td>' +
+        '<td class="px-4 py-4 text-center"><input type="number" min="1" max="99" step="1" value="' + discountValue + '" oninput="updateFlashSaleSelectedItemField(' + itemId + ', &quot;discount_percent&quot;, this.value)" class="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-center outline-none focus:border-pink-300 focus:ring-4 focus:ring-pink-100" placeholder="%"></td>' +
+        '<td class="px-4 py-4 text-center"><input type="number" min="0" step="1" value="' + purchaseLimitValue + '" oninput="updateFlashSaleSelectedItemField(' + itemId + ', &quot;purchase_limit&quot;, this.value)" class="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-center outline-none focus:border-pink-300 focus:ring-4 focus:ring-pink-100" placeholder="0 = không giới hạn"></td>' +
+        '<td class="px-4 py-4 text-center"><label class="inline-flex items-center justify-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold border ' + (enabled ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-gray-50 text-gray-500 border-gray-200') + '"><input type="checkbox" ' + (enabled ? 'checked' : '') + ' onchange="toggleFlashSaleSelectedItemEnabled(' + itemId + ', this.checked)" class="h-4 w-4 rounded border-gray-300 text-pink-600 focus:ring-pink-500"><span>' + (enabled ? 'Đang bật' : 'Đang tắt') + '</span></label></td>' +
+        '<td class="px-4 py-4 text-center"><button type="button" onclick="removeFlashSaleSelectedItem(' + itemId + ')" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 text-xs font-semibold transition"><i class="fas fa-trash"></i>Xoá</button></td>' +
+      '</tr>'
+  }).join('')
+
+  renderFlashSaleProductPicker()
+}
+
+async function loadFlashSaleProductPickerProducts() {
+  const list = document.getElementById('flashSaleProductPickerList')
+  if (list) list.innerHTML = '<div class="py-10 text-center text-gray-400"><i class="fas fa-spinner fa-spin text-3xl"></i></div>'
+  try {
+    const res = await axios.get('/api/admin/products')
+    const products = Array.isArray(res.data && res.data.data) ? res.data.data : []
+    flashSaleProductPickerItems = products.map((product) => ({
+      id: flashSaleNormalizeNumber(product && product.id),
+      name: String(product && (product.name ?? product.product_name ?? '')),
+      thumbnail: String(product && (product.thumbnail ?? product.product_thumbnail ?? product.image ?? '')),
+      price: flashSaleNormalizeNumber(product && (product.price ?? product.original_price ?? product.product_price ?? 0)),
+      category: String(product && (product.category ?? product.category_name ?? '')),
+      is_active: Number(product && (product.is_active ?? 1)) === 1
+    }))
+    renderFlashSaleProductPicker()
+  } catch (e) {
+    if (list) list.innerHTML = '<div class="py-10 text-center text-red-400"><i class="fas fa-triangle-exclamation text-2xl mb-2"></i><p>Không tải được danh sách sản phẩm</p></div>'
+  }
+}
+
+function renderFlashSaleProductPicker() {
+  const list = document.getElementById('flashSaleProductPickerList')
+  const count = document.getElementById('flashSaleProductPickerCount')
+  if (!list) return
+  const queryEl = document.getElementById('flashSaleProductPickerSearch')
+  flashSaleProductPickerQuery = queryEl ? String(queryEl.value || '').trim() : flashSaleProductPickerQuery
+  const query = flashSaleProductPickerQuery.toLowerCase()
+  const products = flashSaleProductPickerItems.filter((product) => {
+    if (!query) return true
+    return String(product.name || '').toLowerCase().includes(query) || String(product.id || '').includes(query)
+  })
+  if (count) count.innerHTML = '<i class="fas fa-layer-group"></i><span>' + products.length + ' sản phẩm</span>'
+  if (!flashSaleProductPickerItems.length) {
+    list.innerHTML = '<div class="py-10 text-center text-gray-400"><i class="fas fa-spinner fa-spin text-3xl mb-2"></i><p>Đang tải sản phẩm...</p></div>'
+    return
+  }
+  if (!products.length) {
+    list.innerHTML = '<div class="py-10 text-center text-gray-400"><i class="fas fa-box-open text-3xl mb-2"></i><p>Không tìm thấy sản phẩm phù hợp</p></div>'
+    return
+  }
+
+  list.innerHTML = products.map((product) => {
+    const selected = flashSaleGetSelectedItem(product.id)
+    const thumbHtml = product.thumbnail
+      ? '<img src="' + flashSaleEscapeHtml(product.thumbnail) + '" alt="' + flashSaleEscapeHtml(product.name) + '" class="h-16 w-16 rounded-2xl object-cover border border-gray-100 bg-gray-50 shrink-0" />'
+      : '<div class="h-16 w-16 rounded-2xl bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-400 shrink-0"><i class="fas fa-image"></i></div>'
+    const buttonClass = selected ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-pink-600 text-white border-pink-600 hover:bg-pink-700'
+    const buttonText = selected ? 'Đã chọn' : 'Chọn'
+    const buttonIcon = selected ? 'fa-check' : 'fa-plus'
+    return '' +
+      '<div class="p-4 flex items-center gap-4 hover:bg-pink-50/40 transition">' +
+        thumbHtml +
+        '<div class="min-w-0 flex-1">' +
+          '<div class="flex flex-wrap items-center gap-2">' +
+            '<p class="font-semibold text-gray-900 truncate">' + flashSaleEscapeHtml(product.name) + '</p>' +
+            '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 text-[11px] font-semibold">#' + product.id + '</span>' +
+            (product.category ? '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-pink-50 text-pink-600 text-[11px] font-semibold">' + flashSaleEscapeHtml(product.category) + '</span>' : '') +
+          '</div>' +
+          '<p class="text-sm text-gray-500 mt-1">Giá gốc: ' + (product.price > 0 ? flashSaleNormalizeNumber(product.price).toLocaleString('vi-VN') + 'đ' : '—') + '</p>' +
+        '</div>' +
+        '<button type="button" onclick="toggleFlashSaleProductSelection(' + product.id + ')" class="inline-flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-semibold transition ' + buttonClass + '"><i class="fas ' + buttonIcon + '"></i>' + buttonText + '</button>' +
+      '</div>'
+  }).join('')
+}
+
+function openFlashSaleProductPickerModal() {
+  const modal = document.getElementById('flashSaleProductPickerModal')
   if (!modal) return
   modal.classList.remove('hidden')
   modal.classList.add('flex')
   document.body.style.overflow = 'hidden'
+  if (!flashSaleProductPickerItems.length) {
+    loadFlashSaleProductPickerProducts()
+  } else {
+    renderFlashSaleProductPicker()
+  }
+  setTimeout(() => {
+    const input = document.getElementById('flashSaleProductPickerSearch')
+    if (input) input.focus()
+  }, 0)
+}
+
+function closeFlashSaleProductPickerModal(event) {
+  if (event && event.target && event.currentTarget && event.target !== event.currentTarget) return
+  const modal = document.getElementById('flashSaleProductPickerModal')
+  if (modal) {
+    modal.classList.add('hidden')
+    modal.classList.remove('flex')
+  }
+  if (!document.querySelector('.modal-overlay:not(.hidden)')) document.body.style.overflow = ''
+}
+
+function toggleFlashSaleProductSelection(productId) {
+  const id = flashSaleNormalizeNumber(productId)
+  const existingIndex = flashSaleGetSelectedItemIndex(id)
+  if (existingIndex >= 0) {
+    flashSaleCreateSelectedItems.splice(existingIndex, 1)
+  } else {
+    const product = flashSaleProductPickerItems.find((item) => Number(item.id) === id)
+    if (!product) return
+    flashSaleCreateSelectedItems.push(flashSaleMakeSelectedItem(product))
+  }
+  renderFlashSaleSelectedItems()
+}
+
+function updateFlashSaleSelectedItemField(productId, field, value) {
+  const item = flashSaleGetSelectedItem(productId)
+  if (!item) return
+  if (field === 'sale_price') {
+    item.sale_price = String(value ?? '').trim() ? flashSaleNormalizeNumber(value) : null
+    if (item.sale_price !== null) item.discount_percent = null
+  } else if (field === 'discount_percent') {
+    item.discount_percent = String(value ?? '').trim() ? flashSaleNormalizeNumber(value) : null
+    if (item.discount_percent !== null) item.sale_price = null
+  } else if (field === 'purchase_limit') {
+    item.purchase_limit = String(value ?? '').trim() ? Math.max(0, Math.floor(flashSaleNormalizeNumber(value))) : null
+  }
+  renderFlashSaleSelectedItems()
+}
+
+function toggleFlashSaleSelectedItemEnabled(productId, checked) {
+  const item = flashSaleGetSelectedItem(productId)
+  if (!item) return
+  item.is_enabled = checked ? 1 : 0
+  renderFlashSaleSelectedItems()
+}
+
+function removeFlashSaleSelectedItem(productId) {
+  flashSaleCreateSelectedItems = flashSaleCreateSelectedItems.filter((item) => String(item.product_id) !== String(productId))
+  renderFlashSaleSelectedItems()
+}
+
+function resetFlashSaleCreateForm() {
+  flashSaleCreateSelectedItems = []
+  flashSaleProductPickerQuery = ''
+  const nameInput = document.getElementById('flashSaleNameInput')
+  const startInput = document.getElementById('flashSaleStartInput')
+  const endInput = document.getElementById('flashSaleEndInput')
+  const pickerSearch = document.getElementById('flashSaleProductPickerSearch')
+  if (nameInput) nameInput.value = ''
+  if (startInput) startInput.value = ''
+  if (endInput) endInput.value = ''
+  if (pickerSearch) pickerSearch.value = ''
+  flashSaleSetCreateSubmitState(false)
+  renderFlashSaleSelectedItems()
+}
+
+function flashSaleCollectPayloadItems() {
+  return flashSaleCreateSelectedItems.map((item) => ({
+    product_id: item.product_id,
+    sale_price: item.sale_price === null ? null : flashSaleNormalizeNumber(item.sale_price),
+    discount_percent: item.discount_percent === null ? null : flashSaleNormalizeNumber(item.discount_percent),
+    purchase_limit: item.purchase_limit === null ? null : Math.max(0, Math.floor(flashSaleNormalizeNumber(item.purchase_limit))),
+    is_enabled: Number(item.is_enabled) === 1 ? 1 : 0
+  }))
+}
+
+async function submitFlashSaleCreateForm() {
+  if (flashSaleCreateSubmitting) return
+  const nameInput = document.getElementById('flashSaleNameInput')
+  const startInput = document.getElementById('flashSaleStartInput')
+  const endInput = document.getElementById('flashSaleEndInput')
+  const name = nameInput ? String(nameInput.value || '').trim() : ''
+  const startAt = flashSaleNormalizeDateTime(startInput ? startInput.value : '')
+  const endAt = flashSaleNormalizeDateTime(endInput ? endInput.value : '')
+  const items = flashSaleCollectPayloadItems()
+
+  if (!name) return showAdminToast('Tên flashsale là bắt buộc', 'warning')
+  if (!startAt || !endAt) return showAdminToast('Vui lòng chọn thời gian bắt đầu và kết thúc', 'warning')
+  if (Date.parse(endAt) <= Date.parse(startAt)) return showAdminToast('Thời gian kết thúc phải sau thời gian bắt đầu', 'warning')
+  if (!items.length) return showAdminToast('Vui lòng chọn ít nhất 1 sản phẩm', 'warning')
+
+  for (const item of items) {
+    if (item.sale_price === null && item.discount_percent === null) {
+      return showAdminToast('Mỗi sản phẩm phải có giá flashsale hoặc % giảm', 'warning')
+    }
+    if (item.sale_price !== null && item.sale_price <= 0) {
+      return showAdminToast('Giá flashsale phải lớn hơn 0', 'warning')
+    }
+    if (item.discount_percent !== null && (item.discount_percent <= 0 || item.discount_percent >= 100)) {
+      return showAdminToast('Phần trăm giảm phải nằm trong khoảng 1-99', 'warning')
+    }
+  }
+
+  flashSaleSetCreateSubmitState(true)
+  try {
+    const res = await axios.post('/api/admin/flash-sales', { name, start_at: startAt, end_at: endAt, items })
+    if (!res.data || res.data.success === false) throw new Error(String(res.data && res.data.error ? res.data.error : 'Không thể tạo flashsale'))
+    showAdminToast('Tạo flashsale thành công', 'success')
+    closeFlashSaleCreateModal()
+    await loadFlashSaleAdmin()
+  } catch (e) {
+    const message = e && e.response && e.response.data && e.response.data.error ? e.response.data.error : (e && e.message ? e.message : 'Không thể tạo flashsale')
+    showAdminToast(String(message), 'error')
+  } finally {
+    flashSaleSetCreateSubmitState(false)
+  }
+}
+
+function openFlashSaleCreateModal() {
+  const modal = document.getElementById('createFlashSaleModal')
+  if (!modal) return
+  resetFlashSaleCreateForm()
+  modal.classList.remove('hidden')
+  modal.classList.add('flex')
+  document.body.style.overflow = 'hidden'
+  renderFlashSaleSelectedItems()
+  loadFlashSaleProductPickerProducts()
 }
 
 function closeFlashSaleCreateModal(event) {
@@ -1622,8 +1966,8 @@ function closeFlashSaleCreateModal(event) {
     modal.classList.add('hidden')
     modal.classList.remove('flex')
   }
-  const openModal = document.querySelector('.modal-overlay:not(.hidden)')
-  if (!openModal) document.body.style.overflow = ''
+  closeFlashSaleProductPickerModal()
+  if (!document.querySelector('.modal-overlay:not(.hidden)')) document.body.style.overflow = ''
 }
 
 function loadSettingsWarehousePage() {
