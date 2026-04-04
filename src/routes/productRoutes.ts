@@ -1,5 +1,6 @@
 import type { Hono } from 'hono'
 import type { AppBindings } from '../types/app'
+import { loadActiveFlashSaleProductMap, shapeFlashSaleProduct } from '../lib/flashSaleHelpers.ts'
 
 type ProductRouteDeps = {
   initDB: (db: D1Database) => Promise<void>
@@ -54,6 +55,38 @@ function compactColorNamesJson(raw: any): string {
   return JSON.stringify(names)
 }
 
+function buildFlashSaleContext(row: any) {
+  if (!row) return null
+  return {
+    id: row.flash_sale_id,
+    name: row.flash_sale_name,
+    start_at: row.flash_sale_start_at,
+    end_at: row.flash_sale_end_at,
+    is_active: row.flash_sale_is_active
+  }
+}
+
+function buildFlashSaleItem(row: any) {
+  if (!row) return null
+  return {
+    sale_price: row.flash_sale_sale_price,
+    discount_percent: row.flash_sale_discount_percent,
+    purchase_limit: row.flash_sale_purchase_limit,
+    is_enabled: row.flash_sale_is_enabled
+  }
+}
+
+function shapeProductWithFlashSale(product: any, flashSaleRow: any) {
+  if (!flashSaleRow) {
+    return shapeFlashSaleProduct({ product })
+  }
+  return shapeFlashSaleProduct({
+    product,
+    campaign: buildFlashSaleContext(flashSaleRow),
+    item: buildFlashSaleItem(flashSaleRow)
+  })
+}
+
 export function registerProductRoutes(app: Hono<{ Bindings: AppBindings }>, deps: ProductRouteDeps) {
   app.get('/api/products', async (c) => {
     try {
@@ -61,7 +94,12 @@ export function registerProductRoutes(app: Hono<{ Bindings: AppBindings }>, deps
       const result = await c.env.DB.prepare(
         `SELECT * FROM products WHERE is_active = 1 ORDER BY created_at DESC`
       ).all()
-      return c.json({ success: true, data: result.results || [] })
+      const rows = result.results || []
+      const activeFlashSaleRows = await loadActiveFlashSaleProductMap(c.env.DB, rows.map((row: any) => row.id))
+      return c.json({
+        success: true,
+        data: rows.map((row: any) => shapeProductWithFlashSale(row, activeFlashSaleRows.get(Number(row.id))))
+      })
     } catch (e: any) {
       return c.json({ success: false, error: e.message }, 500)
     }
@@ -69,13 +107,16 @@ export function registerProductRoutes(app: Hono<{ Bindings: AppBindings }>, deps
 
   app.get('/api/products/:id', async (c) => {
     try {
+      await deps.initDB(c.env.DB)
       const id = c.req.param('id')
       const row = await c.env.DB.prepare(`SELECT * FROM products WHERE id = ?`).bind(id).first()
       if (!row) return c.json({ success: false, error: 'Not found' }, 404)
+      const flashSaleRows = await loadActiveFlashSaleProductMap(c.env.DB, [id])
+      const activeFlashSaleRow = flashSaleRows.get(Number(id))
       return c.json({
         success: true,
         data: {
-          ...row,
+          ...shapeProductWithFlashSale(row, activeFlashSaleRow),
           color_options: parseColorOptions((row as any).colors),
           color_names: compactColorNamesJson((row as any).colors)
         }

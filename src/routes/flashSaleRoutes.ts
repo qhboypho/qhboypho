@@ -1,6 +1,6 @@
 import type { Hono } from 'hono'
 import type { AppBindings } from '../types/app'
-import { getFlashSaleStatus } from '../lib/flashSaleHelpers.ts'
+import { getFlashSaleStatus, loadActiveFlashSaleProductMap, shapeFlashSaleProduct } from '../lib/flashSaleHelpers.ts'
 
 type FlashSaleRouteDeps = {
   initDB: (db: D1Database) => Promise<void>
@@ -321,7 +321,35 @@ export function registerFlashSaleRoutes(app: Hono<{ Bindings: AppBindings }>, de
   app.get('/api/flash-sales', async (c) => {
     try {
       await deps.initDB(c.env.DB)
-      return c.json({ success: true, data: [] })
+      const result = await c.env.DB.prepare(`
+        SELECT
+          fs.id,
+          fs.name,
+          fs.start_at,
+          fs.end_at,
+          fs.is_active,
+          fs.created_at,
+          fs.updated_at,
+          COUNT(DISTINCT fsi.product_id) AS product_count,
+          COUNT(fsi.id) AS item_count,
+          COALESCE(SUM(CASE WHEN COALESCE(fsi.is_enabled, 1) = 1 THEN 1 ELSE 0 END), 0) AS enabled_item_count
+        FROM flash_sales fs
+        LEFT JOIN flash_sale_items fsi ON fsi.flash_sale_id = fs.id
+        GROUP BY fs.id
+        ORDER BY datetime(fs.created_at) DESC, fs.id DESC
+      `).all() as { results?: FlashSaleListRow[] }
+
+      const rows = (result.results || [])
+        .map(mapCampaignRow)
+        .filter((row) => row.status.isActive)
+
+      return c.json({
+        success: true,
+        data: rows,
+        meta: {
+          total: rows.length
+        }
+      })
     } catch (e: any) {
       return c.json({ success: false, error: e.message }, 500)
     }
@@ -330,7 +358,33 @@ export function registerFlashSaleRoutes(app: Hono<{ Bindings: AppBindings }>, de
   app.get('/api/flash-sales/active-products', async (c) => {
     try {
       await deps.initDB(c.env.DB)
-      return c.json({ success: true, data: [] })
+      const productRes = await c.env.DB.prepare(`
+        SELECT * FROM products WHERE is_active = 1 ORDER BY created_at DESC
+      `).all()
+      const products = productRes.results || []
+      const activeFlashSaleMap = await loadActiveFlashSaleProductMap(c.env.DB, products.map((row: any) => row.id))
+      const data = products
+        .map((product: any) => {
+          const flashSaleRow = activeFlashSaleMap.get(Number(product.id))
+          return shapeFlashSaleProduct({
+            product,
+            campaign: flashSaleRow ? {
+              id: flashSaleRow.flash_sale_id,
+              name: flashSaleRow.flash_sale_name,
+              start_at: flashSaleRow.flash_sale_start_at,
+              end_at: flashSaleRow.flash_sale_end_at,
+              is_active: flashSaleRow.flash_sale_is_active
+            } : null,
+            item: flashSaleRow ? {
+              sale_price: flashSaleRow.flash_sale_sale_price,
+              discount_percent: flashSaleRow.flash_sale_discount_percent,
+              purchase_limit: flashSaleRow.flash_sale_purchase_limit,
+              is_enabled: flashSaleRow.flash_sale_is_enabled
+            } : null
+          })
+        })
+        .filter((product: any) => product.has_flash_sale)
+      return c.json({ success: true, data })
     } catch (e: any) {
       return c.json({ success: false, error: e.message }, 500)
     }
