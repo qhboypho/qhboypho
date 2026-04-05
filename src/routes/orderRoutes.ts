@@ -1,6 +1,7 @@
 import { getCookie } from 'hono/cookie'
 import type { Hono } from 'hono'
 import type { AppBindings } from '../types/app'
+import { validateAdminSessionToken } from '../lib/adminHelpers'
 
 type OrderRouteDeps = {
   initDB: (db: D1Database) => Promise<void>
@@ -31,7 +32,9 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
     const userId = getCookie(c, 'user_id')
     const adminToken = getCookie(c, 'admin_token')
     if (!userId) {
-      if (adminToken === 'super_secret_admin_token') {
+      const adminUserKey = getCookie(c, 'admin_user_key') || 'admin'
+      const isAdmin = await validateAdminSessionToken(c.env.DB, adminUserKey, adminToken || '')
+      if (isAdmin) {
         return c.json({ success: true, data: [] })
       }
       return c.json({ success: false, error: 'Unauthorized' }, 401)

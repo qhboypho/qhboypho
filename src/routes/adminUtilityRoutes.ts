@@ -1,4 +1,3 @@
-import { getCookie } from 'hono/cookie'
 import type { Hono } from 'hono'
 import type { AppBindings } from '../types/app'
 import type { AppSettingEntry } from '../types/admin'
@@ -40,16 +39,12 @@ export function registerAdminUtilityRoutes(app: Hono<{ Bindings: AppBindings }>,
 
   app.get('/api/admin/hero_banners', async (c) => {
     await deps.initDB(c.env.DB)
-    const adminToken = getCookie(c, 'admin_token')
-    if (adminToken !== 'super_secret_admin_token') return c.json({ success: false, error: 'Unauthorized' }, 401)
     const result = await c.env.DB.prepare("SELECT * FROM hero_banners ORDER BY display_order ASC, created_at DESC").all()
     return c.json({ success: true, data: result.results || [] })
   })
 
   app.post('/api/admin/hero_banners', async (c) => {
     await deps.initDB(c.env.DB)
-    const adminToken = getCookie(c, 'admin_token')
-    if (adminToken !== 'super_secret_admin_token') return c.json({ success: false, error: 'Unauthorized' }, 401)
     const body = await c.req.json<HeroBannerInput>()
     const { image_url, subtitle, title, price, product_id, display_order, is_active } = body
     const res = await c.env.DB.prepare("INSERT INTO hero_banners (image_url, subtitle, title, price, product_id, display_order, is_active) VALUES (?, ?, ?, ?, ?, ?, ?)").bind(
@@ -60,8 +55,6 @@ export function registerAdminUtilityRoutes(app: Hono<{ Bindings: AppBindings }>,
 
   app.put('/api/admin/hero_banners/:id', async (c) => {
     await deps.initDB(c.env.DB)
-    const adminToken = getCookie(c, 'admin_token')
-    if (adminToken !== 'super_secret_admin_token') return c.json({ success: false, error: 'Unauthorized' }, 401)
     const id = c.req.param('id')
     const body = await c.req.json<HeroBannerInput>()
     const { image_url, subtitle, title, price, product_id, display_order, is_active } = body
@@ -73,8 +66,6 @@ export function registerAdminUtilityRoutes(app: Hono<{ Bindings: AppBindings }>,
 
   app.delete('/api/admin/hero_banners/:id', async (c) => {
     await deps.initDB(c.env.DB)
-    const adminToken = getCookie(c, 'admin_token')
-    if (adminToken !== 'super_secret_admin_token') return c.json({ success: false, error: 'Unauthorized' }, 401)
     const id = c.req.param('id')
     await c.env.DB.prepare("DELETE FROM hero_banners WHERE id=?").bind(id).run()
     return c.json({ success: true })

@@ -40,7 +40,8 @@ import {
   getAppSettingValue,
   normalizeAdminUserKey,
   resolveAdminProfile,
-  upsertAppSettings
+  upsertAppSettings,
+  validateAdminSessionToken
 } from './lib/adminHelpers'
 import { resolveSelectedColorImage } from './lib/orderColorHelpers'
 
@@ -55,7 +56,9 @@ app.use('/api/admin/*', async (c, next) => {
     return next()
   }
   const adminToken = getCookie(c, 'admin_token')
-  if (adminToken !== 'super_secret_admin_token') {
+  const adminUserKey = getCookie(c, 'admin_user_key') || 'admin'
+  const isValid = await validateAdminSessionToken(c.env.DB, adminUserKey, adminToken || '')
+  if (!isValid) {
     return c.json({ success: false, error: 'Unauthorized' }, 401)
   }
   return next()

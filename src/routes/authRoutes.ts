@@ -1,6 +1,7 @@
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie'
 import type { Hono } from 'hono'
 import type { AppBindings } from '../types/app'
+import { generateSecureToken, storeAdminSessionToken, validateAdminSessionToken } from '../lib/adminHelpers'
 
 type AuthRouteDeps = {
   initDB: (db: D1Database) => Promise<void>
@@ -79,9 +80,12 @@ export function registerAuthRoutes(app: Hono<{ Bindings: AppBindings }>, deps: A
     const storedPassword = await deps.getAppSettingValue(c.env.DB, `admin_password_${adminKey}`)
     const expectedPassword = storedPassword || (adminKey === 'admin' ? 'admin' : '')
     if (expectedPassword && password === expectedPassword) {
+      const token = generateSecureToken()
+      await storeAdminSessionToken(c.env.DB, adminKey, token)
+      const isSecure = c.req.url.startsWith('https://')
       deleteCookie(c, 'user_id', { path: '/' })
-      setCookie(c, 'admin_token', 'super_secret_admin_token', { path: '/', maxAge: 86400 * 30, httpOnly: true })
-      setCookie(c, 'admin_user_key', adminKey, { path: '/', maxAge: 86400 * 30, httpOnly: true })
+      setCookie(c, 'admin_token', token, { path: '/', maxAge: 86400 * 30, httpOnly: true, secure: isSecure, sameSite: 'Lax' })
+      setCookie(c, 'admin_user_key', adminKey, { path: '/', maxAge: 86400 * 30, httpOnly: true, secure: isSecure, sameSite: 'Lax' })
       return c.json({ success: true })
     }
     return c.json({ success: false, error: 'Invalid credentials' }, 401)
@@ -90,8 +94,9 @@ export function registerAuthRoutes(app: Hono<{ Bindings: AppBindings }>, deps: A
   app.get('/api/auth/me', async (c) => {
     const adminToken = getCookie(c, 'admin_token')
     const userToken = getCookie(c, 'user_id')
+    const adminUserKeyCookie = getCookie(c, 'admin_user_key') || 'admin'
 
-    let isAdmin = adminToken === 'super_secret_admin_token'
+    let isAdmin = await validateAdminSessionToken(c.env.DB, adminUserKeyCookie, adminToken || '')
     let currentUser = null
 
     let dbError = null

@@ -70,3 +70,27 @@ export async function resolveAdminProfile(db: D1Database, c: AppContext): Promis
     is_admin: 1
   }
 }
+
+export function generateSecureToken(length = 48): string {
+  const bytes = new Uint8Array(length)
+  crypto.getRandomValues(bytes)
+  return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('')
+}
+
+export async function storeAdminSessionToken(db: D1Database, adminUserKey: string, token: string): Promise<void> {
+  const key = `admin_session_${normalizeAdminUserKey(adminUserKey)}`
+  await upsertAppSettings(db, [{ key, value: token }])
+}
+
+export async function validateAdminSessionToken(db: D1Database, adminUserKey: string, token: string): Promise<boolean> {
+  if (!token || token.length < 32) return false
+  try {
+    const key = `admin_session_${normalizeAdminUserKey(adminUserKey)}`
+    const row = await db.prepare(
+      "SELECT value FROM app_settings WHERE key = ? LIMIT 1"
+    ).bind(key).first() as { value?: string } | null
+    return !!row && row.value === token
+  } catch {
+    return false
+  }
+}
