@@ -1891,7 +1891,10 @@ async function showDetail(id) {
     const sizes = safeJson(p.sizes)
     const images = safeJson(p.images)
     const defaultMainImage = String(p.thumbnail || detailColorOptions[0]?.image || images[0] || '').trim()
-    const discount = p.original_price ? Math.round((1 - p.price/p.original_price)*100) : 0
+    const flashMeta = getFlashSaleMeta(p)
+    const detailDisplayPrice = Number(flashMeta?.salePrice || p.display_price || p.price || 0)
+    const detailDisplayOriginalPrice = Number(flashMeta?.basePrice || p.display_original_price || p.original_price || detailDisplayPrice)
+    const discount = flashMeta ? Number(flashMeta.discountPercent || 0) : (p.original_price ? Math.round((1 - p.price/p.original_price)*100) : 0)
     document.getElementById('detailContent').innerHTML = \`
     <div class="grid md:grid-cols-2 gap-6">
       <div>
@@ -1905,9 +1908,10 @@ async function showDetail(id) {
       <div>
         \${p.brand ? \`<p class="text-sm text-pink-500 font-medium mb-1">\${p.brand}</p>\` : ''}
         <h2 class="font-display text-2xl font-bold text-gray-900 mb-3">\${p.name}</h2>
+        \${p.has_flash_sale ? \`<div class="flex flex-wrap items-center gap-2 mb-3"><span class="flash-sale-badge"><i class="fas fa-bolt"></i> Flash Sale</span><span class="flash-sale-countdown">\${formatFlashSaleCountdown(flashMeta?.endsAt || '')}</span></div>\` : ''}
         <div class="flex items-baseline gap-3 mb-4">
-          <span class="text-3xl font-bold text-pink-600">\${fmtPrice(p.price)}</span>
-          \${p.original_price ? \`<span class="text-gray-400 line-through">\${fmtPrice(p.original_price)}</span><span class="badge-sale text-white text-xs px-2 py-1 rounded-full">-\${discount}%</span>\` : ''}
+          <span class="text-3xl font-bold text-pink-600">\${fmtPrice(detailDisplayPrice)}</span>
+          \${detailDisplayOriginalPrice > detailDisplayPrice ? \`<span class="text-gray-400 line-through">\${fmtPrice(detailDisplayOriginalPrice)}</span><span class="badge-sale text-white text-xs px-2 py-1 rounded-full">-\${discount}%</span>\` : ''}
         </div>
         \${p.description ? \`<p class="text-gray-600 text-sm leading-relaxed mb-4">\${p.description}</p>\` : ''}
         \${p.material ? \`<p class="text-sm text-gray-500 mb-4"><strong>Chất liệu:</strong> \${p.material}</p>\` : ''}
