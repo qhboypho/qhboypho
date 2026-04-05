@@ -1,5 +1,6 @@
 import { getCookie } from 'hono/cookie'
 import type { AdminProfile, AppContext, AppSettingEntry } from '../types/admin'
+import { getUserSessionUserId } from './userSessionHelpers'
 
 type AppSettingRow = {
   value?: string | null
@@ -36,7 +37,7 @@ export function normalizeAdminUserKey(raw: unknown) {
 
 export async function resolveAdminProfile(db: D1Database, c: AppContext): Promise<AdminProfile> {
   const adminUserKey = normalizeAdminUserKey(getCookie(c, 'admin_user_key') || 'admin')
-  const userToken = String(getCookie(c, 'user_id') || '').trim()
+  const userToken = await getUserSessionUserId(c)
   if (userToken) {
     const uid = Number.parseInt(userToken, 10)
     if (Number.isFinite(uid) && uid > 0) {

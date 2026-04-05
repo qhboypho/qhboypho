@@ -2,6 +2,7 @@ import { getCookie } from 'hono/cookie'
 import type { Hono } from 'hono'
 import type { AppBindings } from '../types/app'
 import { validateAdminSessionToken } from '../lib/adminHelpers'
+import { getUserSessionUserId } from '../lib/userSessionHelpers'
 
 type OrderRouteDeps = {
   initDB: (db: D1Database) => Promise<void>
@@ -29,7 +30,8 @@ async function generateUniqueOrderCode(db: D1Database) {
 
 export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: OrderRouteDeps) {
   app.get('/api/user/orders', async (c) => {
-    const userId = getCookie(c, 'user_id')
+    await deps.initDB(c.env.DB)
+    const userId = await getUserSessionUserId(c)
     const adminToken = getCookie(c, 'admin_token')
     if (!userId) {
       const adminUserKey = getCookie(c, 'admin_user_key') || 'admin'
@@ -101,7 +103,7 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
           (user_id, order_code, customer_name, customer_phone, customer_address, product_id, product_name, product_price, color, selected_color_image, size, quantity, total_price, voucher_code, discount_amount, note, payment_method)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).bind(
-        getCookie(c, 'user_id') || null,
+        await getUserSessionUserId(c),
         orderCode,
         customer_name,
         customer_phone,

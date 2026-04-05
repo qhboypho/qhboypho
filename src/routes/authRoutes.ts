@@ -2,6 +2,7 @@ import { deleteCookie, getCookie, setCookie } from 'hono/cookie'
 import type { Hono } from 'hono'
 import type { AppBindings } from '../types/app'
 import { generateSecureToken, storeAdminSessionToken, validateAdminSessionToken, hashPassword, verifyPassword } from '../lib/adminHelpers'
+import { clearUserSessionCookie, getUserSessionUserId, setUserSessionCookie } from '../lib/userSessionHelpers'
 
 type AuthRouteDeps = {
   initDB: (db: D1Database) => Promise<void>
@@ -99,15 +100,16 @@ export function registerAuthRoutes(app: Hono<{ Bindings: AppBindings }>, deps: A
     const token = generateSecureToken()
     await storeAdminSessionToken(c.env.DB, adminKey, token)
     const isSecure = c.req.url.startsWith('https://')
-    deleteCookie(c, 'user_id', { path: '/' })
+    clearUserSessionCookie(c)
     setCookie(c, 'admin_token', token, { path: '/', maxAge: 86400 * 30, httpOnly: true, secure: isSecure, sameSite: 'Lax' })
     setCookie(c, 'admin_user_key', adminKey, { path: '/', maxAge: 86400 * 30, httpOnly: true, secure: isSecure, sameSite: 'Lax' })
     return c.json({ success: true })
   })
 
   app.get('/api/auth/me', async (c) => {
+    await deps.initDB(c.env.DB)
     const adminToken = getCookie(c, 'admin_token')
-    const userToken = getCookie(c, 'user_id')
+    const userToken = await getUserSessionUserId(c)
     const adminUserKeyCookie = getCookie(c, 'admin_user_key') || 'admin'
 
     let isAdmin = await validateAdminSessionToken(c.env.DB, adminUserKeyCookie, adminToken || '')
@@ -152,7 +154,7 @@ export function registerAuthRoutes(app: Hono<{ Bindings: AppBindings }>, deps: A
   app.post('/api/auth/logout', async (c) => {
     deleteCookie(c, 'admin_token', { path: '/' })
     deleteCookie(c, 'admin_user_key', { path: '/' })
-    deleteCookie(c, 'user_id', { path: '/' })
+    clearUserSessionCookie(c)
     return c.json({ success: true })
   })
 
@@ -187,7 +189,7 @@ export function registerAuthRoutes(app: Hono<{ Bindings: AppBindings }>, deps: A
           const res = await c.env.DB.prepare("INSERT INTO users (email, name, avatar, balance) VALUES (?, ?, ?, 0)").bind(mockEmail, mockName, mockAvatar).run()
           user = { id: res.meta.last_row_id }
         }
-        setCookie(c, 'user_id', user.id.toString(), { path: '/', maxAge: 86400 * 30, httpOnly: true })
+        await setUserSessionCookie(c, user.id)
         return c.redirect('/')
       } catch (err: any) {
         return c.json({ error: "Fallback Mock Auth error", msg: err.message, stack: err.stack }, 500)
@@ -233,8 +235,7 @@ export function registerAuthRoutes(app: Hono<{ Bindings: AppBindings }>, deps: A
         return c.redirect('/?login=error&step=user_id_missing')
       }
 
-      const isSecure = c.req.url.startsWith('https://')
-      setCookie(c, 'user_id', user.id.toString(), { path: '/', maxAge: 86400 * 30, httpOnly: true, secure: isSecure, sameSite: 'Lax' })
+      await setUserSessionCookie(c, user.id)
       return c.redirect('/?login=success')
     } catch (e: any) {
       return c.redirect('/?login=error&step=exchange&msg=' + encodeURIComponent(e.message))

@@ -2,6 +2,7 @@ import type { Hono } from 'hono'
 import type { AppBindings } from '../types/app'
 import { getCookie } from 'hono/cookie'
 import { validateAdminSessionToken } from '../lib/adminHelpers'
+import { getUserSessionUserId } from '../lib/userSessionHelpers'
 
 type PaymentRouteDeps = {
   initDB: (db: D1Database) => Promise<void>
@@ -21,7 +22,7 @@ type PaymentRouteDeps = {
 }
 
 async function verifyOrderAccess(c: any, order: any): Promise<boolean> {
-  const userId = getCookie(c, 'user_id')
+  const userId = await getUserSessionUserId(c)
   if (userId && order.user_id != null && String(order.user_id) === String(userId)) return true
   const adminToken = getCookie(c, 'admin_token')
   const adminUserKey = getCookie(c, 'admin_user_key') || 'admin'
