@@ -1750,6 +1750,23 @@ function formatFlashSaleCountdown(endAt) {
   return [hours, minutes, seconds].map((value) => String(value).padStart(2, '0')).join(':')
 }
 
+let flashSaleCountdownTicker = null
+
+function updateFlashSaleCountdownNode(node) {
+  if (!node) return
+  const endAt = String(node.getAttribute('data-flash-sale-ends-at') || '').trim()
+  node.textContent = formatFlashSaleCountdown(endAt)
+}
+
+async function startFlashSaleCountdownTicker() {
+  const updateAll = () => {
+    document.querySelectorAll('.flash-sale-countdown[data-flash-sale-ends-at]').forEach((node) => updateFlashSaleCountdownNode(node))
+  }
+  updateAll()
+  if (flashSaleCountdownTicker) clearInterval(flashSaleCountdownTicker)
+  flashSaleCountdownTicker = setInterval(updateAll, 1000)
+}
+
 async function loadFlashSaleShop() {
   const section = document.getElementById('flashSaleShopSection')
   const grid = document.getElementById('flashSaleShopGrid')
@@ -1764,6 +1781,7 @@ async function loadFlashSaleShop() {
     }
     section.classList.remove('hidden')
     const firstActive = products.find((product) => product?.flash_sale?.campaign?.end_at || product?.flash_sale?.end_at)
+    countdown.setAttribute('data-flash-sale-ends-at', firstActive?.flash_sale?.campaign?.end_at || firstActive?.flash_sale?.end_at || '')
     countdown.textContent = formatFlashSaleCountdown(firstActive?.flash_sale?.campaign?.end_at || firstActive?.flash_sale?.end_at || '')
     grid.innerHTML = products.slice(0, 8).map((product) => {
       const meta = getFlashSaleMeta(product)
@@ -1776,7 +1794,7 @@ async function loadFlashSaleShop() {
             <img src="\${product.thumbnail || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'}" alt="\${product.name}" class="h-full w-full object-cover" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'">
             <div class="absolute left-3 top-3 flex flex-col gap-2">
               <span class="flash-sale-badge"><i class="fas fa-bolt"></i> Flash Sale</span>
-              <span class="flash-sale-countdown">\${formatFlashSaleCountdown(meta?.endsAt || '')}</span>
+              <span class="flash-sale-countdown" data-flash-sale-ends-at="\${meta?.endsAt || ''}">\${formatFlashSaleCountdown(meta?.endsAt || '')}</span>
             </div>
             \${discount > 0 ? \`<span class="absolute bottom-3 left-3 rounded-full bg-black/75 px-3 py-1 text-xs font-bold text-white">-\${discount}%</span>\` : ''}
           </div>
@@ -1793,6 +1811,7 @@ async function loadFlashSaleShop() {
         </div>
       \`
     }).join('')
+    startFlashSaleCountdownTicker()
   } catch (e) {
     section.classList.add('hidden')
   }
@@ -1819,7 +1838,7 @@ function renderProducts(products) {
         <img src="\${p.thumbnail || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'}"
           alt="\${p.name}" class="w-full product-img-main" loading="lazy"
           onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'">
-        \${p.has_flash_sale ? \`<div class="absolute left-3 top-3 flex flex-col gap-2"><span class="flash-sale-badge"><i class="fas fa-bolt"></i> Flash Sale</span><span class="flash-sale-countdown">\${formatFlashSaleCountdown(flashMeta?.endsAt || '')}</span></div>\` : (discount > 0 ? \`<span class="absolute top-3 left-3 badge-sale text-white text-xs font-bold px-2 py-1 rounded-full">-\${discount}%</span>\` : '')}
+        \${p.has_flash_sale ? \`<div class="absolute left-3 top-3 flex flex-col gap-2"><span class="flash-sale-badge"><i class="fas fa-bolt"></i> Flash Sale</span><span class="flash-sale-countdown" data-flash-sale-ends-at="\${flashMeta?.endsAt || ''}">\${formatFlashSaleCountdown(flashMeta?.endsAt || '')}</span></div>\` : (discount > 0 ? \`<span class="absolute top-3 left-3 badge-sale text-white text-xs font-bold px-2 py-1 rounded-full">-\${discount}%</span>\` : '')}
         \${p.is_featured ? \`<span class="absolute top-3 right-3 bg-amber-400 text-white text-xs font-bold px-2 py-1 rounded-full">⭐ Hot</span>\` : ''}
         <div class="absolute inset-0 bg-black/0 hover:bg-black/10 transition flex items-center justify-center opacity-0 hover:opacity-100">
           <span class="bg-white/90 text-gray-800 px-3 py-1 rounded-full text-xs font-semibold">Xem chi tiết</span>
@@ -1850,6 +1869,7 @@ function renderProducts(products) {
       </div>
     </div>\`
   }).join('')
+  startFlashSaleCountdownTicker()
 }
 
 // ── FILTER & SEARCH ────────────────────────────────
@@ -1908,7 +1928,7 @@ async function showDetail(id) {
       <div>
         \${p.brand ? \`<p class="text-sm text-pink-500 font-medium mb-1">\${p.brand}</p>\` : ''}
         <h2 class="font-display text-2xl font-bold text-gray-900 mb-3">\${p.name}</h2>
-        \${p.has_flash_sale ? \`<div class="flex flex-wrap items-center gap-2 mb-3"><span class="flash-sale-badge"><i class="fas fa-bolt"></i> Flash Sale</span><span class="flash-sale-countdown">\${formatFlashSaleCountdown(flashMeta?.endsAt || '')}</span></div>\` : ''}
+        \${p.has_flash_sale ? \`<div class="flex flex-wrap items-center gap-2 mb-3"><span class="flash-sale-badge"><i class="fas fa-bolt"></i> Flash Sale</span><span class="flash-sale-countdown" data-flash-sale-ends-at="\${flashMeta?.endsAt || ''}">\${formatFlashSaleCountdown(flashMeta?.endsAt || '')}</span></div>\` : ''}
         <div class="flex items-baseline gap-3 mb-4">
           <span class="text-3xl font-bold text-pink-600">\${fmtPrice(detailDisplayPrice)}</span>
           \${detailDisplayOriginalPrice > detailDisplayPrice ? \`<span class="text-gray-400 line-through">\${fmtPrice(detailDisplayOriginalPrice)}</span><span class="badge-sale text-white text-xs px-2 py-1 rounded-full">-\${discount}%</span>\` : ''}
@@ -1947,6 +1967,7 @@ async function showDetail(id) {
     </div>\`
     document.getElementById('detailOverlay').classList.remove('hidden')
     document.body.style.overflow = 'hidden'
+    startFlashSaleCountdownTicker()
     if (detailColorOptions.length) {
       const initialButton = document.querySelector('#detailColorGrid .detail-color-card')
       if (initialButton) selectDetailColorByIndex(0, initialButton)

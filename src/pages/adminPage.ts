@@ -596,8 +596,8 @@ export function adminHTML(): string {
           <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-pink-100 text-pink-600 text-xs font-semibold mb-3">
             <i class="fas fa-bolt"></i><span>Tạo chiến dịch</span>
           </div>
-          <h3 class="text-2xl font-extrabold text-gray-900 tracking-tight">Tạo Flashsale của shop</h3>
-          <p class="text-sm text-gray-500 mt-1">Thiết lập thời gian, chọn sản phẩm và cấu hình giá ưu đãi cho từng item.</p>
+          <h3 id="flashSaleModalTitle" class="text-2xl font-extrabold text-gray-900 tracking-tight">Tạo Flashsale của shop</h3>
+          <p id="flashSaleModalSubtitle" class="text-sm text-gray-500 mt-1">Thiết lập thời gian, chọn sản phẩm và cấu hình giá ưu đãi cho từng item.</p>
         </div>
         <button type="button" onclick="closeFlashSaleCreateModal()" class="w-10 h-10 rounded-full bg-white border border-gray-200 text-gray-500 hover:text-gray-900 hover:border-pink-200 transition shadow-sm">
           <i class="fas fa-xmark"></i>
@@ -1647,6 +1647,7 @@ let flashSaleCreateSelectedItems = []
 let flashSaleProductPickerItems = []
 let flashSaleProductPickerQuery = ''
 let flashSaleCreateSubmitting = false
+let flashSaleEditingId = null
 
 function flashSaleEscapeHtml(value) {
   return String(value ?? '')
@@ -1692,12 +1693,25 @@ function flashSaleMakeSelectedItem(product) {
   }
 }
 
+function flashSaleSyncModalMode() {
+  const title = document.getElementById('flashSaleModalTitle')
+  const subtitle = document.getElementById('flashSaleModalSubtitle')
+  const submitText = document.getElementById('flashSaleSubmitText')
+  const isEditing = flashSaleEditingId !== null
+  if (title) title.textContent = isEditing ? 'Sửa Flashsale của shop' : 'Tạo Flashsale của shop'
+  if (subtitle) subtitle.textContent = isEditing
+    ? 'Chỉnh sửa chiến dịch flashsale hiện có. Giá flash sale vẫn ưu tiên cao nhất ngoài storefront.'
+    : 'Thiết lập thời gian, chọn sản phẩm và cấu hình giá ưu đãi cho từng item.'
+  if (submitText) submitText.textContent = flashSaleCreateSubmitting
+    ? (isEditing ? 'Đang cập nhật...' : 'Đang tạo...')
+    : (isEditing ? 'Cập nhật flashsale' : 'Tạo flashsale')
+}
+
 function flashSaleSetCreateSubmitState(isSubmitting) {
   flashSaleCreateSubmitting = !!isSubmitting
   const btn = document.getElementById('flashSaleSubmitBtn')
-  const text = document.getElementById('flashSaleSubmitText')
   if (btn) btn.disabled = flashSaleCreateSubmitting
-  if (text) text.textContent = flashSaleCreateSubmitting ? 'Đang tạo...' : 'Tạo flashsale'
+  flashSaleSyncModalMode()
 }
 
 function flashSaleUpdateSelectionSummary() {
@@ -1881,7 +1895,21 @@ function removeFlashSaleSelectedItem(productId) {
   renderFlashSaleSelectedItems()
 }
 
+function flashSaleMapDetailItem(item) {
+  return {
+    product_id: flashSaleNormalizeNumber(item && item.product_id),
+    product_name: String(item && (item.product_name ?? '')),
+    product_thumbnail: String(item && (item.product_thumbnail ?? '')),
+    product_price: flashSaleNormalizeNumber(item && (item.product_price ?? item.product_original_price ?? 0)),
+    sale_price: item && item.sale_price !== null && item.sale_price !== undefined ? flashSaleNormalizeNumber(item.sale_price) : null,
+    discount_percent: item && item.discount_percent !== null && item.discount_percent !== undefined ? flashSaleNormalizeNumber(item.discount_percent) : null,
+    purchase_limit: item && item.purchase_limit !== null && item.purchase_limit !== undefined ? Math.max(0, Math.floor(flashSaleNormalizeNumber(item.purchase_limit))) : null,
+    is_enabled: item && Number(item.is_enabled) === 0 ? 0 : 1
+  }
+}
+
 function resetFlashSaleCreateForm() {
+  flashSaleEditingId = null
   flashSaleCreateSelectedItems = []
   flashSaleProductPickerQuery = ''
   const nameInput = document.getElementById('flashSaleNameInput')
@@ -1915,6 +1943,7 @@ async function submitFlashSaleCreateForm() {
   const startAt = flashSaleNormalizeDateTime(startInput ? startInput.value : '')
   const endAt = flashSaleNormalizeDateTime(endInput ? endInput.value : '')
   const items = flashSaleCollectPayloadItems()
+  const isEditing = flashSaleEditingId !== null
 
   if (!name) return showAdminToast('Tên flashsale là bắt buộc', 'warning')
   if (!startAt || !endAt) return showAdminToast('Vui lòng chọn thời gian bắt đầu và kết thúc', 'warning')
@@ -1935,13 +1964,17 @@ async function submitFlashSaleCreateForm() {
 
   flashSaleSetCreateSubmitState(true)
   try {
-    const res = await axios.post('/api/admin/flash-sales', { name, start_at: startAt, end_at: endAt, items })
-    if (!res.data || res.data.success === false) throw new Error(String(res.data && res.data.error ? res.data.error : 'Không thể tạo flashsale'))
-    showAdminToast('Tạo flashsale thành công', 'success')
+    const res = await axios({
+      method: flashSaleEditingId ? 'PUT' : 'POST',
+      url: flashSaleEditingId ? ('/api/admin/flash-sales/' + flashSaleEditingId) : '/api/admin/flash-sales',
+      data: { name, start_at: startAt, end_at: endAt, items }
+    })
+    if (!res.data || res.data.success === false) throw new Error(String(res.data && res.data.error ? res.data.error : (isEditing ? 'Không thể cập nhật flashsale' : 'Không thể tạo flashsale')))
+    showAdminToast(isEditing ? 'Cập nhật flashsale thành công' : 'Tạo flashsale thành công', 'success')
     closeFlashSaleCreateModal()
     await loadFlashSaleAdmin()
   } catch (e) {
-    const message = e && e.response && e.response.data && e.response.data.error ? e.response.data.error : (e && e.message ? e.message : 'Không thể tạo flashsale')
+    const message = e && e.response && e.response.data && e.response.data.error ? e.response.data.error : (e && e.message ? e.message : (isEditing ? 'Không thể cập nhật flashsale' : 'Không thể tạo flashsale'))
     showAdminToast(String(message), 'error')
   } finally {
     flashSaleSetCreateSubmitState(false)
@@ -1952,11 +1985,44 @@ function openFlashSaleCreateModal() {
   const modal = document.getElementById('createFlashSaleModal')
   if (!modal) return
   resetFlashSaleCreateForm()
+  flashSaleSyncModalMode()
   modal.classList.remove('hidden')
   modal.classList.add('flex')
   document.body.style.overflow = 'hidden'
   renderFlashSaleSelectedItems()
   loadFlashSaleProductPickerProducts()
+}
+
+async function openFlashSaleEditModal(id) {
+  const modal = document.getElementById('createFlashSaleModal')
+  if (!modal) return
+  resetFlashSaleCreateForm()
+  modal.classList.remove('hidden')
+  modal.classList.add('flex')
+  document.body.style.overflow = 'hidden'
+  flashSaleSetCreateSubmitState(true)
+  try {
+    const res = await axios.get('/api/admin/flash-sales/' + id)
+    const campaign = res?.data?.data
+    if (!campaign || !campaign.id) throw new Error('Không tải được dữ liệu flashsale')
+    flashSaleEditingId = Number(campaign.id)
+    const nameInput = document.getElementById('flashSaleNameInput')
+    const startInput = document.getElementById('flashSaleStartInput')
+    const endInput = document.getElementById('flashSaleEndInput')
+    if (nameInput) nameInput.value = String(campaign.name || '')
+    if (startInput) startInput.value = flashSaleNormalizeDateTime(campaign.start_at)
+    if (endInput) endInput.value = flashSaleNormalizeDateTime(campaign.end_at)
+    flashSaleCreateSelectedItems = Array.isArray(campaign.items) ? campaign.items.map((item) => flashSaleMapDetailItem(item)) : []
+    flashSaleSyncModalMode()
+    renderFlashSaleSelectedItems()
+    loadFlashSaleProductPickerProducts()
+  } catch (e) {
+    closeFlashSaleCreateModal()
+    const message = e && e.response && e.response.data && e.response.data.error ? e.response.data.error : (e && e.message ? e.message : 'Không thể tải chi tiết flashsale')
+    showAdminToast(String(message), 'error')
+  } finally {
+    flashSaleSetCreateSubmitState(false)
+  }
 }
 
 function closeFlashSaleCreateModal(event) {
@@ -2073,7 +2139,11 @@ function renderFlashSaleAdminShell(list, meta) {
     '</div>'
 
   document.querySelectorAll('.flashsale-shell-action-btn').forEach((btn) => {
-    btn.addEventListener('click', () => showAdminToast('Chức năng xem/sửa flashsale sẽ làm ở Task 7', 'warning'))
+    btn.addEventListener('click', () => {
+      const id = Number(btn.getAttribute('data-flashsale-id') || 0)
+      if (!Number.isFinite(id) || id <= 0) return
+      openFlashSaleEditModal(id)
+    })
   })
 }
 

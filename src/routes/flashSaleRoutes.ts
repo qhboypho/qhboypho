@@ -21,6 +21,13 @@ type FlashSaleCreateBody = {
   items?: FlashSaleCreateItemInput[]
 }
 
+type FlashSalePayload = {
+  name: string
+  startAt: string
+  endAt: string
+  items: ReturnType<typeof normalizeCreateItems>
+}
+
 type FlashSaleListRow = {
   id: number
   name: string
@@ -81,6 +88,32 @@ function normalizeCreateItems(items: FlashSaleCreateItemInput[] | undefined) {
       is_enabled: normalizeBooleanFlag(item.is_enabled)
     }))
     .filter((item) => item.product_id !== null)
+}
+
+function validateFlashSalePayload(body: FlashSaleCreateBody): { ok: true; data: FlashSalePayload } | { ok: false; error: string } {
+  const name = String(body?.name ?? '').trim()
+  const startAt = normalizeDateTime(body?.start_at)
+  const endAt = normalizeDateTime(body?.end_at)
+  const items = normalizeCreateItems(body?.items)
+
+  if (!name) return { ok: false, error: 'Tên flashsale là bắt buộc' }
+  if (!startAt || !endAt) return { ok: false, error: 'Thời gian bắt đầu/kết thúc không hợp lệ' }
+  if (Date.parse(endAt) <= Date.parse(startAt)) return { ok: false, error: 'Thời gian kết thúc phải sau thời gian bắt đầu' }
+  if (items.length === 0) return { ok: false, error: 'Vui lòng chọn ít nhất 1 sản phẩm' }
+
+  for (const item of items) {
+    if (item.sale_price === null && item.discount_percent === null) {
+      return { ok: false, error: 'Mỗi sản phẩm phải có giá flashsale hoặc % giảm' }
+    }
+    if (item.sale_price !== null && item.sale_price <= 0) {
+      return { ok: false, error: 'Giá flashsale phải lớn hơn 0' }
+    }
+    if (item.discount_percent !== null && (item.discount_percent <= 0 || item.discount_percent >= 100)) {
+      return { ok: false, error: 'Phần trăm giảm phải nằm trong khoảng 1-99' }
+    }
+  }
+
+  return { ok: true, data: { name, startAt, endAt, items } }
 }
 
 function buildCampaignSummary(campaign: FlashSaleListRow & { id: number }, itemRows: Array<{ product_id: number }>, status = getFlashSaleStatus(campaign)) {
@@ -221,35 +254,11 @@ export function registerFlashSaleRoutes(app: Hono<{ Bindings: AppBindings }>, de
     try {
       await deps.initDB(c.env.DB)
       const body = await c.req.json().catch(() => ({})) as FlashSaleCreateBody
-      const name = String(body?.name ?? '').trim()
-      const startAt = normalizeDateTime(body?.start_at)
-      const endAt = normalizeDateTime(body?.end_at)
-      const items = normalizeCreateItems(body?.items)
-
-      if (!name) {
-        return c.json({ success: false, error: 'Tên flashsale là bắt buộc' }, 400)
+      const validation = validateFlashSalePayload(body)
+      if (!validation.ok) {
+        return c.json({ success: false, error: validation.error }, 400)
       }
-      if (!startAt || !endAt) {
-        return c.json({ success: false, error: 'Thời gian bắt đầu/kết thúc không hợp lệ' }, 400)
-      }
-      if (Date.parse(endAt) <= Date.parse(startAt)) {
-        return c.json({ success: false, error: 'Thời gian kết thúc phải sau thời gian bắt đầu' }, 400)
-      }
-      if (items.length === 0) {
-        return c.json({ success: false, error: 'Vui lòng chọn ít nhất 1 sản phẩm' }, 400)
-      }
-
-      for (const item of items) {
-        if (item.sale_price === null && item.discount_percent === null) {
-          return c.json({ success: false, error: 'Mỗi sản phẩm phải có giá flashsale hoặc % giảm' }, 400)
-        }
-        if (item.sale_price !== null && item.sale_price <= 0) {
-          return c.json({ success: false, error: 'Giá flashsale phải lớn hơn 0' }, 400)
-        }
-        if (item.discount_percent !== null && (item.discount_percent <= 0 || item.discount_percent >= 100)) {
-          return c.json({ success: false, error: 'Phần trăm giảm phải nằm trong khoảng 1-99' }, 400)
-        }
-      }
+      const { name, startAt, endAt, items } = validation.data
 
       const uniqueProductIds = [...new Set(items.map((item) => item.product_id).filter((value): value is number => typeof value === 'number'))]
       if (uniqueProductIds.length !== items.length) {
@@ -313,6 +322,100 @@ export function registerFlashSaleRoutes(app: Hono<{ Bindings: AppBindings }>, de
           items: createdItems.results || []
         }
       }, 201)
+    } catch (e: any) {
+      return c.json({ success: false, error: e.message }, 500)
+    }
+  })
+
+  app.put('/api/admin/flash-sales/:id', async (c) => {
+    try {
+      await deps.initDB(c.env.DB)
+      const id = Number(c.req.param('id'))
+      if (!Number.isFinite(id) || id <= 0) {
+        return c.json({ success: false, error: 'ID flashsale không hợp lệ' }, 400)
+      }
+
+      const existing = await c.env.DB.prepare(`SELECT * FROM flash_sales WHERE id = ?`).bind(id).first() as any
+      if (!existing) {
+        return c.json({ success: false, error: 'Không tìm thấy flashsale' }, 404)
+      }
+
+      const body = await c.req.json().catch(() => ({})) as FlashSaleCreateBody
+      const validation = validateFlashSalePayload(body)
+      if (!validation.ok) {
+        return c.json({ success: false, error: validation.error }, 400)
+      }
+      const { name, startAt, endAt, items } = validation.data
+
+      const uniqueProductIds = [...new Set(items.map((item) => item.product_id).filter((value): value is number => typeof value === 'number'))]
+      if (uniqueProductIds.length !== items.length) {
+        return c.json({ success: false, error: 'Sản phẩm trong flashsale không được trùng nhau' }, 400)
+      }
+
+      const placeholders = uniqueProductIds.map(() => '?').join(', ')
+      const productRows = await c.env.DB.prepare(
+        `SELECT id FROM products WHERE id IN (${placeholders}) AND is_active = 1`
+      ).bind(...uniqueProductIds).all() as { results?: Array<{ id: number }> }
+
+      const existingIds = new Set((productRows.results || []).map((row) => row.id))
+      const missingIds = uniqueProductIds.filter((productId) => !existingIds.has(productId))
+      if (missingIds.length > 0) {
+        return c.json({ success: false, error: `Sản phẩm không hợp lệ: ${missingIds.join(', ')}` }, 400)
+      }
+
+      await c.env.DB.prepare(`
+        UPDATE flash_sales
+        SET name = ?, start_at = ?, end_at = ?, is_active = 1, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).bind(name, startAt, endAt, id).run()
+
+      await c.env.DB.prepare(`DELETE FROM flash_sale_items WHERE flash_sale_id = ?`).bind(id).run()
+
+      for (const item of items) {
+        await c.env.DB.prepare(`
+          INSERT INTO flash_sale_items (flash_sale_id, product_id, sale_price, discount_percent, purchase_limit, is_enabled)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `).bind(
+          id,
+          item.product_id,
+          item.sale_price,
+          item.discount_percent,
+          item.purchase_limit,
+          item.is_enabled
+        ).run()
+      }
+
+      const updatedCampaign = await c.env.DB.prepare(`SELECT * FROM flash_sales WHERE id = ?`).bind(id).first() as any
+      const updatedItems = await c.env.DB.prepare(`
+        SELECT
+          fsi.id,
+          fsi.flash_sale_id,
+          fsi.product_id,
+          fsi.sale_price,
+          fsi.discount_percent,
+          fsi.purchase_limit,
+          fsi.is_enabled,
+          fsi.created_at,
+          fsi.updated_at,
+          p.name AS product_name,
+          p.thumbnail AS product_thumbnail,
+          p.price AS product_price,
+          p.original_price AS product_original_price
+        FROM flash_sale_items fsi
+        LEFT JOIN products p ON p.id = fsi.product_id
+        WHERE fsi.flash_sale_id = ?
+        ORDER BY fsi.id ASC
+      `).bind(id).all() as { results?: Array<any> }
+
+      const summary = buildCampaignSummary(updatedCampaign, updatedItems.results || [])
+
+      return c.json({
+        success: true,
+        data: {
+          ...summary,
+          items: updatedItems.results || []
+        }
+      })
     } catch (e: any) {
       return c.json({ success: false, error: e.message }, 500)
     }
