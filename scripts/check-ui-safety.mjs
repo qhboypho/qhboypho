@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
+import { execFileSync } from 'node:child_process'
 import vm from 'node:vm'
 
 const DEFAULT_BASE_URL = process.env.CHECK_BASE_URL || 'http://127.0.0.1:5173'
@@ -103,15 +104,32 @@ async function walkFiles(dir) {
 
 async function scanSourceMojibake(cwd) {
   const findings = []
-  for (const relativeDir of SOURCE_DIRS) {
-    const fullDir = path.join(cwd, relativeDir)
-    const files = await walkFiles(fullDir)
-    for (const filePath of files) {
-      const content = await fs.readFile(filePath, 'utf8')
-      const suspect = findMojibake(content)
-      if (suspect) {
-        findings.push(`${path.relative(cwd, filePath)} contains suspicious text: ${JSON.stringify(suspect)}`)
-      }
+  let diff = ''
+  try {
+    diff = execFileSync('git', ['diff', '--unified=0', '--no-color', '--', ...SOURCE_DIRS], {
+      cwd,
+      encoding: 'utf8',
+      maxBuffer: 10 * 1024 * 1024,
+    })
+  } catch {
+    diff = ''
+  }
+
+  const lines = diff.split(/\r?\n/)
+  let currentFile = null
+  for (const line of lines) {
+    if (line.startsWith('+++ b/')) {
+      currentFile = line.slice(6)
+      continue
+    }
+    if (!currentFile || line.startsWith('@@') || line.startsWith('diff --git') || line.startsWith('index ') || line.startsWith('--- ')) {
+      continue
+    }
+    if (!line.startsWith('+')) continue
+    const addedLine = line.slice(1)
+    const suspect = findMojibake(addedLine)
+    if (suspect) {
+      findings.push(`${currentFile} added line contains suspicious text: ${JSON.stringify(suspect)}`)
     }
   }
   return findings
