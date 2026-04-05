@@ -57,10 +57,10 @@ function toTimestamp(value: FlashSaleCampaignLike['start_at'] | FlashSaleCampaig
     return Number.isFinite(numeric) ? numeric : null
   }
   const normalized = raw.includes('T') ? raw : raw.replace(' ', 'T')
-  const iso = /Z|[+-]\d{2}:?\d{2}$/.test(normalized) ? normalized : `${normalized}Z`
-  const parsed = Date.parse(iso)
+  const parsed = Date.parse(normalized)
   if (Number.isFinite(parsed)) return parsed
-  const fallback = Date.parse(raw)
+  const iso = /Z|[+-]\d{2}:?\d{2}$/.test(normalized) ? normalized : `${normalized}Z`
+  const fallback = Date.parse(iso)
   return Number.isFinite(fallback) ? fallback : null
 }
 function toInclusiveEndTimestamp(value: FlashSaleCampaignLike['end_at'] | number | string | Date | null | undefined) {

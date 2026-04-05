@@ -3897,6 +3897,18 @@ function copyCode() {
 
 // ── UTILS ─────────────────────────────────────────
 function fmtPrice(p) { return new Intl.NumberFormat('vi-VN',{style:'currency',currency:'VND'}).format(p||0) }
+function formatDateTimeVi(value) {
+  if (!value) return '—'
+  const parsed = new Date(String(value).trim().replace(' ', 'T'))
+  if (!Number.isFinite(parsed.getTime())) return String(value)
+  return parsed.toLocaleString('vi-VN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
 function getOrderAmountDue(order) {
   if (order && order.amount_due !== undefined && order.amount_due !== null) {
     return Number(order.amount_due || 0)
