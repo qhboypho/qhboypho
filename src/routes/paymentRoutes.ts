@@ -1,5 +1,7 @@
 import type { Hono } from 'hono'
 import type { AppBindings } from '../types/app'
+import { getCookie } from 'hono/cookie'
+import { validateAdminSessionToken } from '../lib/adminHelpers'
 
 type PaymentRouteDeps = {
   initDB: (db: D1Database) => Promise<void>
@@ -16,6 +18,15 @@ type PaymentRouteDeps = {
   payOSBuildDataString: (input: Record<string, any>) => string
   parseJsonObject: (value: any) => Record<string, any>
   payOSGetPaymentInfo: (env: any, paymentLinkIdOrOrderCode: string | number) => Promise<any>
+}
+
+async function verifyOrderAccess(c: any, order: any): Promise<boolean> {
+  const userId = getCookie(c, 'user_id')
+  if (userId && order.user_id != null && String(order.user_id) === String(userId)) return true
+  const adminToken = getCookie(c, 'admin_token')
+  const adminUserKey = getCookie(c, 'admin_user_key') || 'admin'
+  if (adminToken) return validateAdminSessionToken(c.env.DB, adminUserKey, adminToken)
+  return false
 }
 
 export function registerPaymentRoutes(app: Hono<{ Bindings: AppBindings }>, deps: PaymentRouteDeps) {
@@ -63,11 +74,12 @@ export function registerPaymentRoutes(app: Hono<{ Bindings: AppBindings }>, deps
       const orderCode = String(c.req.param('orderCode') || '').trim().toUpperCase()
       if (!orderCode) return c.json({ success: false, error: 'MISSING_ORDER_CODE' }, 400)
       const order = await c.env.DB.prepare(`
-        SELECT id, order_code, payment_status, payment_paid_at, status, payment_method, payment_link_id, payment_order_code, total_price
+        SELECT id, user_id, order_code, payment_status, payment_paid_at, status, payment_method, payment_link_id, payment_order_code, total_price
         FROM orders
         WHERE order_code=?
       `).bind(orderCode).first() as any
       if (!order) return c.json({ success: false, error: 'ORDER_NOT_FOUND' }, 404)
+      if (!await verifyOrderAccess(c, order)) return c.json({ success: false, error: 'FORBIDDEN' }, 403)
       await deps.syncOrderPayment(c.env.DB, c.env, order)
       const latest = await c.env.DB.prepare(`SELECT order_code, payment_status, payment_paid_at, status FROM orders WHERE id=?`).bind(order.id).first() as any
       return c.json({ success: true, data: latest || order })
@@ -82,11 +94,12 @@ export function registerPaymentRoutes(app: Hono<{ Bindings: AppBindings }>, deps
       const id = Number(c.req.param('id') || 0)
       if (!id) return c.json({ success: false, error: 'INVALID_ORDER_ID' }, 400)
       const order = await c.env.DB.prepare(`
-        SELECT id, order_code, payment_status, payment_paid_at, status, payment_method, payment_link_id, payment_order_code, total_price
+        SELECT id, user_id, order_code, payment_status, payment_paid_at, status, payment_method, payment_link_id, payment_order_code, total_price
         FROM orders
         WHERE id=?
       `).bind(id).first() as any
       if (!order) return c.json({ success: false, error: 'ORDER_NOT_FOUND' }, 404)
+      if (!await verifyOrderAccess(c, order)) return c.json({ success: false, error: 'FORBIDDEN' }, 403)
       const sync = await deps.syncOrderPaymentWithPayOS(c.env.DB, c.env, order)
       const latest = await c.env.DB.prepare(`SELECT order_code, payment_status, payment_paid_at, status FROM orders WHERE id=?`).bind(id).first() as any
       return c.json({ success: true, data: latest || order, synced: !!sync.synced })
@@ -101,11 +114,12 @@ export function registerPaymentRoutes(app: Hono<{ Bindings: AppBindings }>, deps
       const id = Number(c.req.param('id') || 0)
       if (!id) return c.json({ success: false, error: 'INVALID_ORDER_ID' }, 400)
       const order = await c.env.DB.prepare(`
-        SELECT id, order_code, payment_status, payment_paid_at, status, payment_method, payment_link_id, payment_order_code, total_price
+        SELECT id, user_id, order_code, payment_status, payment_paid_at, status, payment_method, payment_link_id, payment_order_code, total_price
         FROM orders
         WHERE id=?
       `).bind(id).first() as any
       if (!order) return c.json({ success: false, error: 'ORDER_NOT_FOUND' }, 404)
+      if (!await verifyOrderAccess(c, order)) return c.json({ success: false, error: 'FORBIDDEN' }, 403)
       const sync = await deps.syncOrderPaymentWithZaloPay(c.env.DB, c.env, order)
       const latest = await c.env.DB.prepare(`SELECT order_code, payment_status, payment_paid_at, status FROM orders WHERE id=?`).bind(id).first() as any
       return c.json({ success: true, data: latest || order, synced: !!sync.synced })
@@ -200,10 +214,11 @@ export function registerPaymentRoutes(app: Hono<{ Bindings: AppBindings }>, deps
       if (!origin) return c.json({ success: false, error: 'MISSING_ORIGIN' }, 400)
 
       const order = await c.env.DB.prepare(`
-        SELECT id, order_code, total_price, customer_name, customer_phone, product_name, quantity, payment_method, payment_status, payment_link_id, payment_checkout_url, payment_order_code
+        SELECT id, user_id, order_code, total_price, customer_name, customer_phone, product_name, quantity, payment_method, payment_status, payment_link_id, payment_checkout_url, payment_order_code
         FROM orders WHERE id=?
       `).bind(id).first() as any
       if (!order) return c.json({ success: false, error: 'ORDER_NOT_FOUND' }, 404)
+      if (!await verifyOrderAccess(c, order)) return c.json({ success: false, error: 'FORBIDDEN' }, 403)
       if (String(order.payment_method || '').toUpperCase() !== 'ZALOPAY') {
         return c.json({ success: false, error: 'PAYMENT_METHOD_NOT_ZALOPAY' }, 400)
       }
@@ -308,11 +323,12 @@ export function registerPaymentRoutes(app: Hono<{ Bindings: AppBindings }>, deps
       if (!origin) return c.json({ success: false, error: 'MISSING_ORIGIN' }, 400)
 
       const order = await c.env.DB.prepare(`
-        SELECT id, order_code, total_price, customer_name, customer_phone, product_name, quantity,
+        SELECT id, user_id, order_code, total_price, customer_name, customer_phone, product_name, quantity,
                payment_method, payment_status, payment_link_id, payment_checkout_url, payment_order_code
         FROM orders WHERE id=?
       `).bind(id).first() as any
       if (!order) return c.json({ success: false, error: 'ORDER_NOT_FOUND' }, 404)
+      if (!await verifyOrderAccess(c, order)) return c.json({ success: false, error: 'FORBIDDEN' }, 403)
       if (String(order.payment_method || '').toUpperCase() !== 'BANK_TRANSFER') {
         return c.json({ success: false, error: 'PAYMENT_METHOD_NOT_BANK_TRANSFER' }, 400)
       }
