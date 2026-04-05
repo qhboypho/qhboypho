@@ -192,7 +192,8 @@ export function registerAuthRoutes(app: Hono<{ Bindings: AppBindings }>, deps: A
         await setUserSessionCookie(c, user.id)
         return c.redirect('/')
       } catch (err: any) {
-        return c.json({ error: "Fallback Mock Auth error", msg: err.message, stack: err.stack }, 500)
+        console.error('[auth] mock callback failed', err)
+        return c.json({ success: false, error: 'AUTH_CALLBACK_FAILED' }, 500)
       }
     }
 
