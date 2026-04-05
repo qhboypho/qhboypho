@@ -1,7 +1,7 @@
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie'
 import type { Hono } from 'hono'
 import type { AppBindings } from '../types/app'
-import { generateSecureToken, storeAdminSessionToken, validateAdminSessionToken } from '../lib/adminHelpers'
+import { generateSecureToken, storeAdminSessionToken, validateAdminSessionToken, hashPassword, verifyPassword } from '../lib/adminHelpers'
 
 type AuthRouteDeps = {
   initDB: (db: D1Database) => Promise<void>
@@ -61,11 +61,16 @@ export function registerAuthRoutes(app: Hono<{ Bindings: AppBindings }>, deps: A
       const settingKey = `admin_password_${adminUserKey}`
       const storedPassword = await deps.getAppSettingValue(c.env.DB, settingKey)
       const currentPassword = storedPassword || (adminUserKey === 'admin' ? 'admin' : '')
-      if (!currentPassword || oldPassword !== currentPassword) {
+      if (!currentPassword) {
+        return c.json({ success: false, error: 'OLD_PASSWORD_INCORRECT' }, 400)
+      }
+      const isMatch = await verifyPassword(oldPassword, currentPassword)
+      if (!isMatch) {
         return c.json({ success: false, error: 'OLD_PASSWORD_INCORRECT' }, 400)
       }
 
-      await deps.upsertAppSettings(c.env.DB, [{ key: settingKey, value: newPassword }])
+      const hashedPassword = await hashPassword(newPassword)
+      await deps.upsertAppSettings(c.env.DB, [{ key: settingKey, value: hashedPassword }])
       return c.json({ success: true })
     } catch (e: any) {
       return c.json({ success: false, error: e.message }, 500)
@@ -79,16 +84,25 @@ export function registerAuthRoutes(app: Hono<{ Bindings: AppBindings }>, deps: A
     const adminKey = deps.normalizeAdminUserKey(username)
     const storedPassword = await deps.getAppSettingValue(c.env.DB, `admin_password_${adminKey}`)
     const expectedPassword = storedPassword || (adminKey === 'admin' ? 'admin' : '')
-    if (expectedPassword && password === expectedPassword) {
-      const token = generateSecureToken()
-      await storeAdminSessionToken(c.env.DB, adminKey, token)
-      const isSecure = c.req.url.startsWith('https://')
-      deleteCookie(c, 'user_id', { path: '/' })
-      setCookie(c, 'admin_token', token, { path: '/', maxAge: 86400 * 30, httpOnly: true, secure: isSecure, sameSite: 'Lax' })
-      setCookie(c, 'admin_user_key', adminKey, { path: '/', maxAge: 86400 * 30, httpOnly: true, secure: isSecure, sameSite: 'Lax' })
-      return c.json({ success: true })
+    if (!expectedPassword) {
+      return c.json({ success: false, error: 'Invalid credentials' }, 401)
     }
-    return c.json({ success: false, error: 'Invalid credentials' }, 401)
+    const isMatch = await verifyPassword(password, expectedPassword)
+    if (!isMatch) {
+      return c.json({ success: false, error: 'Invalid credentials' }, 401)
+    }
+    // Auto-migrate legacy plaintext password to hashed on successful login
+    if (!expectedPassword.startsWith('pbkdf2:')) {
+      const hashed = await hashPassword(password)
+      await deps.upsertAppSettings(c.env.DB, [{ key: `admin_password_${adminKey}`, value: hashed }])
+    }
+    const token = generateSecureToken()
+    await storeAdminSessionToken(c.env.DB, adminKey, token)
+    const isSecure = c.req.url.startsWith('https://')
+    deleteCookie(c, 'user_id', { path: '/' })
+    setCookie(c, 'admin_token', token, { path: '/', maxAge: 86400 * 30, httpOnly: true, secure: isSecure, sameSite: 'Lax' })
+    setCookie(c, 'admin_user_key', adminKey, { path: '/', maxAge: 86400 * 30, httpOnly: true, secure: isSecure, sameSite: 'Lax' })
+    return c.json({ success: true })
   })
 
   app.get('/api/auth/me', async (c) => {

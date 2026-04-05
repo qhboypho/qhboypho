@@ -94,3 +94,52 @@ export async function validateAdminSessionToken(db: D1Database, adminUserKey: st
     return false
   }
 }
+
+const PBKDF2_ITERATIONS = 50000
+const PBKDF2_HASH = 'SHA-256'
+const PBKDF2_KEY_LENGTH = 256
+
+function toHex(bytes: Uint8Array): string {
+  return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('')
+}
+
+function fromHex(hex: string): Uint8Array {
+  const matches = hex.match(/.{2}/g)
+  if (!matches) return new Uint8Array(0)
+  return new Uint8Array(matches.map(byte => parseInt(byte, 16)))
+}
+
+async function deriveKey(password: string, salt: Uint8Array): Promise<string> {
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw',
+    new TextEncoder().encode(password),
+    'PBKDF2',
+    false,
+    ['deriveBits']
+  )
+  const derivedBits = await crypto.subtle.deriveBits(
+    { name: 'PBKDF2', salt: salt as BufferSource, iterations: PBKDF2_ITERATIONS, hash: PBKDF2_HASH },
+    keyMaterial,
+    PBKDF2_KEY_LENGTH
+  )
+  return toHex(new Uint8Array(derivedBits))
+}
+
+export async function hashPassword(password: string): Promise<string> {
+  const salt = crypto.getRandomValues(new Uint8Array(16))
+  const hash = await deriveKey(password, salt)
+  return `pbkdf2:${toHex(salt)}:${hash}`
+}
+
+export async function verifyPassword(password: string, stored: string): Promise<boolean> {
+  if (!stored) return false
+  if (!stored.startsWith('pbkdf2:')) {
+    return password === stored
+  }
+  const parts = stored.split(':')
+  if (parts.length !== 3) return false
+  const salt = fromHex(parts[1])
+  const expectedHash = parts[2]
+  const hash = await deriveKey(password, salt)
+  return hash === expectedHash
+}
