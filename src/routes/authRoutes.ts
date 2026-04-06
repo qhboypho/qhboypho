@@ -115,14 +115,12 @@ export function registerAuthRoutes(app: Hono<{ Bindings: AppBindings }>, deps: A
     let isAdmin = await validateAdminSessionToken(c.env.DB, adminUserKeyCookie, adminToken || '')
     let currentUser = null
 
-    let dbError = null
-
     if (isAdmin) {
       try {
         await deps.initDB(c.env.DB)
         currentUser = await deps.resolveAdminProfile(c.env.DB, c)
       } catch (e: any) {
-        dbError = e.message
+        console.error('[auth] resolve admin profile failed', e)
         currentUser = {
           userId: 0,
           email: 'admin@qhclothes.local',
@@ -138,11 +136,11 @@ export function registerAuthRoutes(app: Hono<{ Bindings: AppBindings }>, deps: A
         const user = await c.env.DB.prepare("SELECT id as userId, email, name, avatar, balance, is_admin FROM users WHERE id=?").bind(parsedId).first()
         if (user) currentUser = user
       } catch (e: any) {
-        dbError = e.message
+        console.error('[auth] resolve current user failed', e)
       }
     }
 
-    if (!currentUser && !isAdmin) return c.json({ success: false, debug: { userToken, dbError } }, 401)
+    if (!currentUser && !isAdmin) return c.json({ success: false, error: 'UNAUTHORIZED' }, 401)
 
     return c.json({
       success: true,
@@ -212,7 +210,10 @@ export function registerAuthRoutes(app: Hono<{ Bindings: AppBindings }>, deps: A
         })
       })
       const tokenData = await tokenRes.json() as any
-      if (!tokenData.access_token) return c.json({ error: 'Failed to get token', details: tokenData })
+      if (!tokenData.access_token) {
+        console.error('[auth] google token exchange failed', tokenData)
+        return c.json({ success: false, error: 'AUTH_PROVIDER_TOKEN_EXCHANGE_FAILED' }, 502)
+      }
 
       const userRes = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
         headers: { Authorization: `Bearer ${tokenData.access_token}` }
