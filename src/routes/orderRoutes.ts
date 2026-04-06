@@ -15,7 +15,10 @@ type OrderRouteDeps = {
 }
 
 function generateNumericOrderSuffix6() {
-  return Math.floor(Math.random() * 1000000).toString().padStart(6, '0')
+  const array = new Uint32Array(1)
+  crypto.getRandomValues(array)
+  const num = array[0] % 1000000
+  return num.toString().padStart(6, '0')
 }
 
 async function generateUniqueOrderCode(db: D1Database) {
