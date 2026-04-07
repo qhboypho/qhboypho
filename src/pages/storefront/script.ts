@@ -2696,4 +2696,6 @@ showWalletInMenu = function() { origShowWallet(); startBalancePolling() }
 var origCloseMenu = closeUserMenu
 closeUserMenu = function() { stopBalancePolling(); origCloseMenu() }
 `
+    .replace(/\\`/g, '`')
+    .replace(/\\\$\{/g, '${')
 }
