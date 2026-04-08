@@ -14,6 +14,7 @@
     "db:reset": "rm -rf .wrangler/state/v3/d1 && npm run db:migrate:local && npm run db:seed",
     "test:payos-local": "node scripts/test-payos-local.mjs",
     "test:zalopay-local": "node scripts/test-zalopay-local.mjs",
+    "test:initdb-noop": "node --experimental-strip-types scripts/test-initdb-noop-contract.mjs",
     "check:ui-safety": "node scripts/check-ui-safety.mjs"
   },
   "dependencies": {
