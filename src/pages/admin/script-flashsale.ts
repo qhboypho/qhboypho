@@ -4,6 +4,7 @@ let flashSaleProductPickerItems = []
 let flashSaleProductPickerQuery = ''
 let flashSaleCreateSubmitting = false
 let flashSaleEditingId = null
+let flashSaleDuplicatingFromId = null
 
 function flashSaleEscapeHtml(value) {
   return String(value ?? '')
@@ -54,13 +55,16 @@ function flashSaleSyncModalMode() {
   const subtitle = document.getElementById('flashSaleModalSubtitle')
   const submitText = document.getElementById('flashSaleSubmitText')
   const isEditing = flashSaleEditingId !== null
-  if (title) title.textContent = isEditing ? 'Sửa Flashsale của shop' : 'Tạo Flashsale của shop'
+  const isDuplicating = flashSaleDuplicatingFromId !== null && !isEditing
+  if (title) title.textContent = isEditing ? 'Sửa Flashsale của shop' : (isDuplicating ? 'Sao chép Flashsale của shop' : 'Tạo Flashsale của shop')
   if (subtitle) subtitle.textContent = isEditing
     ? 'Chỉnh sửa chiến dịch flashsale hiện có. Giá flash sale vẫn ưu tiên cao nhất ngoài storefront.'
-    : 'Thiết lập thời gian, chọn sản phẩm và cấu hình giá ưu đãi cho từng item.'
+    : (isDuplicating
+      ? 'Đang tạo chiến dịch mới từ một flashsale đã kết thúc. Bạn có thể chỉnh lại thời gian, giá và sản phẩm trước khi lưu.'
+      : 'Thiết lập thời gian, chọn sản phẩm và cấu hình giá ưu đãi cho từng item.')
   if (submitText) submitText.textContent = flashSaleCreateSubmitting
-    ? (isEditing ? 'Đang cập nhật...' : 'Đang tạo...')
-    : (isEditing ? 'Cập nhật flashsale' : 'Tạo flashsale')
+    ? (isEditing ? 'Đang cập nhật...' : (isDuplicating ? 'Đang sao chép...' : 'Đang tạo...'))
+    : (isEditing ? 'Cập nhật flashsale' : (isDuplicating ? 'Sao chép thành flashsale mới' : 'Tạo flashsale'))
 }
 
 function flashSaleSetCreateSubmitState(isSubmitting) {
@@ -264,8 +268,32 @@ function flashSaleMapDetailItem(item) {
   }
 }
 
+function flashSaleBuildCopyName(name) {
+  const raw = String(name || '').trim()
+  if (!raw) return 'Bản sao flashsale'
+  return raw.includes('Bản sao') ? raw : ('Bản sao - ' + raw)
+}
+
+function flashSaleApplyCampaignToForm(campaign, options) {
+  const opts = options || {}
+  const asCopy = !!opts.asCopy
+  const nameInput = document.getElementById('flashSaleNameInput')
+  const startInput = document.getElementById('flashSaleStartInput')
+  const endInput = document.getElementById('flashSaleEndInput')
+  flashSaleEditingId = asCopy ? null : Number(campaign.id)
+  flashSaleDuplicatingFromId = asCopy ? Number(campaign.id) : null
+  if (nameInput) nameInput.value = asCopy ? flashSaleBuildCopyName(campaign.name) : String(campaign.name || '')
+  if (startInput) startInput.value = flashSaleNormalizeDateTime(campaign.start_at)
+  if (endInput) endInput.value = flashSaleNormalizeDateTime(campaign.end_at)
+  flashSaleCreateSelectedItems = Array.isArray(campaign.items) ? campaign.items.map((item) => flashSaleMapDetailItem(item)) : []
+  flashSaleSyncModalMode()
+  renderFlashSaleSelectedItems()
+  loadFlashSaleProductPickerProducts()
+}
+
 function resetFlashSaleCreateForm() {
   flashSaleEditingId = null
+  flashSaleDuplicatingFromId = null
   flashSaleCreateSelectedItems = []
   flashSaleProductPickerQuery = ''
   const nameInput = document.getElementById('flashSaleNameInput')
@@ -361,20 +389,32 @@ async function openFlashSaleEditModal(id) {
     const res = await axios.get('/api/admin/flash-sales/' + id)
     const campaign = res?.data?.data
     if (!campaign || !campaign.id) throw new Error('Không tải được dữ liệu flashsale')
-    flashSaleEditingId = Number(campaign.id)
-    const nameInput = document.getElementById('flashSaleNameInput')
-    const startInput = document.getElementById('flashSaleStartInput')
-    const endInput = document.getElementById('flashSaleEndInput')
-    if (nameInput) nameInput.value = String(campaign.name || '')
-    if (startInput) startInput.value = flashSaleNormalizeDateTime(campaign.start_at)
-    if (endInput) endInput.value = flashSaleNormalizeDateTime(campaign.end_at)
-    flashSaleCreateSelectedItems = Array.isArray(campaign.items) ? campaign.items.map((item) => flashSaleMapDetailItem(item)) : []
-    flashSaleSyncModalMode()
-    renderFlashSaleSelectedItems()
-    loadFlashSaleProductPickerProducts()
+    flashSaleApplyCampaignToForm(campaign, { asCopy: false })
   } catch (e) {
     closeFlashSaleCreateModal()
     const message = e && e.response && e.response.data && e.response.data.error ? e.response.data.error : (e && e.message ? e.message : 'Không thể tải chi tiết flashsale')
+    showAdminToast(String(message), 'error')
+  } finally {
+    flashSaleSetCreateSubmitState(false)
+  }
+}
+
+async function openFlashSaleDuplicateModal(id) {
+  const modal = document.getElementById('createFlashSaleModal')
+  if (!modal) return
+  resetFlashSaleCreateForm()
+  modal.classList.remove('hidden')
+  modal.classList.add('flex')
+  document.body.style.overflow = 'hidden'
+  flashSaleSetCreateSubmitState(true)
+  try {
+    const res = await axios.get('/api/admin/flash-sales/' + id)
+    const campaign = res?.data?.data
+    if (!campaign || !campaign.id) throw new Error('Không tải được dữ liệu flashsale để sao chép')
+    flashSaleApplyCampaignToForm(campaign, { asCopy: true })
+  } catch (e) {
+    closeFlashSaleCreateModal()
+    const message = e && e.response && e.response.data && e.response.data.error ? e.response.data.error : (e && e.message ? e.message : 'Không thể sao chép flashsale')
     showAdminToast(String(message), 'error')
   } finally {
     flashSaleSetCreateSubmitState(false)
@@ -449,6 +489,13 @@ function renderFlashSaleAdminShell(list, meta) {
     const endAt = formatDateTimeVi(item && item.end_at)
     const productCount = Number((item && item.product_count) || 0)
     const itemCount = Number((item && item.item_count) || 0)
+    const isEnded = statusKey === 'ended'
+    const actionClass = isEnded
+      ? 'border-gray-200 bg-gray-100 text-gray-600 hover:bg-gray-200'
+      : 'border-pink-200 bg-pink-50 text-pink-600 hover:bg-pink-100'
+    const actionIcon = isEnded ? 'fa-copy' : 'fa-pen-to-square'
+    const actionText = isEnded ? 'Sao chép' : 'Xem/Sửa'
+    const actionMode = isEnded ? 'duplicate' : 'edit'
     return '<tr class="border-t border-gray-100 hover:bg-pink-50/40 transition">' +
       '<td class="px-4 py-4 align-top">' +
         '<div class="font-semibold text-gray-900">' + itemName + '</div>' +
@@ -468,8 +515,8 @@ function renderFlashSaleAdminShell(list, meta) {
         '</div>' +
       '</td>' +
       '<td class="px-4 py-4 align-top text-center">' +
-        '<button type="button" class="flashsale-shell-action-btn inline-flex items-center gap-2 rounded-xl border border-pink-200 bg-pink-50 px-3 py-2 text-xs font-semibold text-pink-600 hover:bg-pink-100 transition" data-flashsale-id="' + itemId + '">' +
-          '<i class="fas fa-pen-to-square"></i>Xem/Sửa' +
+        '<button type="button" class="flashsale-shell-action-btn inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold transition ' + actionClass + '" data-flashsale-id="' + itemId + '" data-action-mode="' + actionMode + '">' +
+          '<i class="fas ' + actionIcon + '"></i>' + actionText +
         '</button>' +
       '</td>' +
     '</tr>'
@@ -497,7 +544,12 @@ function renderFlashSaleAdminShell(list, meta) {
   document.querySelectorAll('.flashsale-shell-action-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
       const id = Number(btn.getAttribute('data-flashsale-id') || 0)
+      const actionMode = String(btn.getAttribute('data-action-mode') || 'edit')
       if (!Number.isFinite(id) || id <= 0) return
+      if (actionMode === 'duplicate') {
+        openFlashSaleDuplicateModal(id)
+        return
+      }
       openFlashSaleEditModal(id)
     })
   })
