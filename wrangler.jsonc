@@ -11,7 +11,7 @@
       "binding": "DB",
       "database_name": "fashion-store-production",
       "database_id": "a1edf97a-0041-438e-84b9-e2ed9e4f6295",
-      "preview_database_id": "DB"
+      "preview_database_id": "a1edf97a-0041-438e-84b9-e2ed9e4f6295"
     }
   ],
   "vars": {
