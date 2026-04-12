@@ -27,6 +27,13 @@ function flashSaleNormalizeDateTime(value) {
   return Number.isFinite(Date.parse(normalized)) ? normalized : ''
 }
 
+function flashSaleCalculateSalePriceFromDiscount(productPrice, discountPercent) {
+  const basePrice = flashSaleNormalizeNumber(productPrice)
+  const discount = Math.min(99, Math.max(0, flashSaleNormalizeNumber(discountPercent)))
+  if (basePrice <= 0 || discount <= 0) return null
+  return Math.max(0, Math.round(basePrice * (100 - discount) / 100))
+}
+
 function flashSaleGetSelectedItemIndex(productId) {
   return flashSaleCreateSelectedItems.findIndex((item) => String(item.product_id) === String(productId))
 }
@@ -82,6 +89,18 @@ function flashSaleUpdateSelectionSummary() {
   if (count) count.innerHTML = '<i class="fas fa-layer-group"></i>' + total + ' sản phẩm'
 }
 
+function flashSaleSyncSelectedItemRow(productId) {
+  const row = document.querySelector('[data-flash-sale-row-id="' + flashSaleEscapeHtml(productId) + '"]')
+  const item = flashSaleGetSelectedItem(productId)
+  if (!row || !item) return
+  const salePriceInput = row.querySelector('[data-flash-sale-field="sale_price"]')
+  const discountInput = row.querySelector('[data-flash-sale-field="discount_percent"]')
+  const purchaseLimitInput = row.querySelector('[data-flash-sale-field="purchase_limit"]')
+  if (salePriceInput) salePriceInput.value = item.sale_price === null || item.sale_price === undefined ? '' : String(flashSaleNormalizeNumber(item.sale_price))
+  if (discountInput) discountInput.value = item.discount_percent === null || item.discount_percent === undefined ? '' : String(flashSaleNormalizeNumber(item.discount_percent))
+  if (purchaseLimitInput) purchaseLimitInput.value = item.purchase_limit === null || item.purchase_limit === undefined ? '' : String(flashSaleNormalizeNumber(item.purchase_limit))
+}
+
 function renderFlashSaleSelectedItems() {
   const tbody = document.getElementById('flashSaleSelectedItemsBody')
   if (!tbody) return
@@ -101,7 +120,7 @@ function renderFlashSaleSelectedItems() {
     const purchaseLimitValue = item.purchase_limit === null || item.purchase_limit === undefined ? '' : flashSaleNormalizeNumber(item.purchase_limit)
     const enabled = Number(item.is_enabled) === 1
     return '' +
-      '<tr class="border-b last:border-b-0 align-top">' +
+      '<tr class="border-b last:border-b-0 align-top" data-flash-sale-row-id="' + itemId + '">' +
         '<td class="px-4 py-4">' +
           '<div class="flex items-start gap-3">' +
             imageHtml +
@@ -112,9 +131,9 @@ function renderFlashSaleSelectedItems() {
           '</div>' +
         '</td>' +
         '<td class="px-4 py-4 text-center text-gray-700 font-medium">' + (item.product_price > 0 ? flashSaleNormalizeNumber(item.product_price).toLocaleString('vi-VN') + 'đ' : '—') + '</td>' +
-        '<td class="px-4 py-4 text-center"><input type="number" min="0" step="1000" value="' + salePriceValue + '" oninput="updateFlashSaleSelectedItemField(' + itemId + ', &quot;sale_price&quot;, this.value)" class="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-center outline-none focus:border-pink-300 focus:ring-4 focus:ring-pink-100" placeholder="Nhập giá"></td>' +
-        '<td class="px-4 py-4 text-center"><input type="number" min="1" max="99" step="1" value="' + discountValue + '" oninput="updateFlashSaleSelectedItemField(' + itemId + ', &quot;discount_percent&quot;, this.value)" class="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-center outline-none focus:border-pink-300 focus:ring-4 focus:ring-pink-100" placeholder="%"></td>' +
-        '<td class="px-4 py-4 text-center"><input type="number" min="0" step="1" value="' + purchaseLimitValue + '" oninput="updateFlashSaleSelectedItemField(' + itemId + ', &quot;purchase_limit&quot;, this.value)" class="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-center outline-none focus:border-pink-300 focus:ring-4 focus:ring-pink-100" placeholder="0 = không giới hạn"></td>' +
+        '<td class="px-4 py-4 text-center"><input type="number" min="0" step="1000" value="' + salePriceValue + '" data-flash-sale-field="sale_price" oninput="updateFlashSaleSelectedItemField(' + itemId + ', &quot;sale_price&quot;, this.value)" class="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-center outline-none focus:border-pink-300 focus:ring-4 focus:ring-pink-100" placeholder="Nhập giá"></td>' +
+        '<td class="px-4 py-4 text-center"><input type="number" min="1" max="99" step="1" value="' + discountValue + '" data-flash-sale-field="discount_percent" oninput="updateFlashSaleSelectedItemField(' + itemId + ', &quot;discount_percent&quot;, this.value)" class="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-center outline-none focus:border-pink-300 focus:ring-4 focus:ring-pink-100" placeholder="%"></td>' +
+        '<td class="px-4 py-4 text-center"><input type="number" min="0" step="1" value="' + purchaseLimitValue + '" data-flash-sale-field="purchase_limit" oninput="updateFlashSaleSelectedItemField(' + itemId + ', &quot;purchase_limit&quot;, this.value)" class="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-center outline-none focus:border-pink-300 focus:ring-4 focus:ring-pink-100" placeholder="0 = không giới hạn"></td>' +
         '<td class="px-4 py-4 text-center"><label class="inline-flex items-center justify-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold border ' + (enabled ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-gray-50 text-gray-500 border-gray-200') + '"><input type="checkbox" ' + (enabled ? 'checked' : '') + ' onchange="toggleFlashSaleSelectedItemEnabled(' + itemId + ', this.checked)" class="h-4 w-4 rounded border-gray-300 text-pink-600 focus:ring-pink-500"><span>' + (enabled ? 'Đang bật' : 'Đang tắt') + '</span></label></td>' +
         '<td class="px-4 py-4 text-center"><button type="button" onclick="removeFlashSaleSelectedItem(' + itemId + ')" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 text-xs font-semibold transition"><i class="fas fa-trash"></i>Xoá</button></td>' +
       '</tr>'
@@ -236,11 +255,11 @@ function updateFlashSaleSelectedItemField(productId, field, value) {
     if (item.sale_price !== null) item.discount_percent = null
   } else if (field === 'discount_percent') {
     item.discount_percent = String(value ?? '').trim() ? flashSaleNormalizeNumber(value) : null
-    if (item.discount_percent !== null) item.sale_price = null
+    item.sale_price = item.discount_percent === null ? null : flashSaleCalculateSalePriceFromDiscount(item.product_price, item.discount_percent)
   } else if (field === 'purchase_limit') {
     item.purchase_limit = String(value ?? '').trim() ? Math.max(0, Math.floor(flashSaleNormalizeNumber(value))) : null
   }
-  renderFlashSaleSelectedItems()
+  flashSaleSyncSelectedItemRow(productId)
 }
 
 function toggleFlashSaleSelectedItemEnabled(productId, checked) {
