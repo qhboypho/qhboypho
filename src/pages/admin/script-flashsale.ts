@@ -63,6 +63,10 @@ function flashSaleGetSelectedItemsByProduct(productId) {
   return flashSaleCreateSelectedItems.filter((item) => String(item.product_id) === String(productId))
 }
 
+function flashSaleGetCheckedItems() {
+  return flashSaleCreateSelectedItems.filter((item) => Number(item.checked) === 1)
+}
+
 function flashSaleGetPickerProduct(productId) {
   return flashSaleProductPickerItems.find((item) => Number(item.id) === Number(productId)) || null
 }
@@ -143,12 +147,15 @@ function flashSaleSetCreateSubmitState(isSubmitting) {
 function flashSaleUpdateSelectionSummary() {
   const hint = document.getElementById('flashSaleSelectedItemsHint')
   const count = document.getElementById('flashSaleSelectedItemsCount')
+  const checkedCount = document.getElementById('flashSaleSelectedCheckedCount')
   const productCount = new Set(flashSaleCreateSelectedItems.map((item) => item.product_id)).size
   const skuCount = flashSaleCreateSelectedItems.length
+  const checkedSkuCount = flashSaleGetCheckedItems().length
   if (hint) hint.textContent = skuCount
     ? 'Đã chọn ' + productCount + ' sản phẩm với ' + skuCount + ' SKU để cấu hình flashsale.'
     : 'Chưa có sản phẩm nào được gắn vào flashsale.'
-  if (count) count.innerHTML = '<i class="fas fa-layer-group"></i>' + productCount + ' sản phẩm'
+  if (count) count.innerHTML = '<i class="fas fa-layer-group"></i>' + productCount + ' sản phẩm / ' + skuCount + ' SKU'
+  if (checkedCount) checkedCount.innerHTML = '<i class="fas fa-check-double"></i>' + checkedSkuCount + '/' + skuCount + ' đã tick'
 }
 
 function flashSaleSetInputValueIfIdle(input, value) {
@@ -191,6 +198,7 @@ function flashSaleSyncProductGroupRow(productId) {
     checkAll.checked = checkedItems.length === groupItems.length
     checkAll.indeterminate = checkedItems.length > 0 && checkedItems.length < groupItems.length
   }
+  flashSaleUpdateSelectionSummary()
 }
 
 function flashSaleRenderSkuRow(item) {
@@ -229,11 +237,6 @@ function flashSaleRenderProductGroup(productId) {
     : '<div class="h-14 w-14 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-400 shrink-0"><i class="fas fa-image"></i></div>'
   const expanded = flashSaleIsProductExpanded(productId)
   const checkedItems = items.filter((item) => Number(item.checked) === 1)
-  const hasChecked = checkedItems.length > 0
-  const sample = checkedItems[0] || items[0]
-  const salePriceValue = sample && sample.sale_price !== null ? flashSaleNormalizeNumber(sample.sale_price) : ''
-  const discountValue = sample && sample.discount_percent !== null ? flashSaleNormalizeNumber(sample.discount_percent) : ''
-  const purchaseLimitValue = sample && sample.purchase_limit !== null ? flashSaleNormalizeNumber(sample.purchase_limit) : ''
   const parentRow = '' +
     '<tr class="border-b align-top bg-rose-50/40" data-flash-sale-product-row-id="' + productId + '">' +
       '<td class="px-4 py-4">' +
@@ -247,13 +250,12 @@ function flashSaleRenderProductGroup(productId) {
         '</div>' +
       '</td>' +
       '<td class="px-4 py-4 text-center text-gray-700 font-medium">' + (items[0].product_price > 0 ? flashSaleNormalizeNumber(items[0].product_price).toLocaleString('vi-VN') + 'đ' : '—') + '</td>' +
-      '<td class="px-4 py-4 text-center"><input type="number" min="0" step="1000" value="' + salePriceValue + '" data-flash-sale-group-field="sale_price" class="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-center outline-none focus:border-pink-300 focus:ring-4 focus:ring-pink-100" placeholder="Giá chung"></td>' +
-      '<td class="px-4 py-4 text-center"><input type="number" min="1" max="99" step="1" value="' + discountValue + '" data-flash-sale-group-field="discount_percent" class="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-center outline-none focus:border-pink-300 focus:ring-4 focus:ring-pink-100" placeholder="% chung"></td>' +
-      '<td class="px-4 py-4 text-center"><input type="number" min="0" step="1" value="' + purchaseLimitValue + '" data-flash-sale-group-field="purchase_limit" class="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-center outline-none focus:border-pink-300 focus:ring-4 focus:ring-pink-100" placeholder="Giới hạn chung"></td>' +
-      '<td class="px-4 py-4 text-center"><span class="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold border ' + (hasChecked ? 'bg-pink-50 text-pink-700 border-pink-200' : 'bg-gray-50 text-gray-500 border-gray-200') + '">' + checkedItems.length + '/' + items.length + ' đã tick</span></td>' +
+      '<td class="px-4 py-4 text-center text-xs font-semibold text-gray-500">Dùng Set all phía trên</td>' +
+      '<td class="px-4 py-4 text-center text-xs font-semibold text-gray-500">Dùng Set all phía trên</td>' +
+      '<td class="px-4 py-4 text-center text-xs font-semibold text-gray-500">Dùng Set all phía trên</td>' +
+      '<td class="px-4 py-4 text-center"><span class="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold border bg-slate-50 text-slate-600 border-slate-200">Nhóm SKU</span></td>' +
       '<td class="px-4 py-4 text-center">' +
         '<div class="flex items-center justify-center gap-2">' +
-          '<button type="button" onclick="flashSaleApplyGroupFieldsToCheckedSkus(' + productId + ')" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-pink-200 text-pink-600 bg-pink-50 hover:bg-pink-100 text-xs font-semibold transition"><i class="fas fa-wand-magic-sparkles"></i>Set all</button>' +
           '<button type="button" onclick="removeFlashSaleSelectedProduct(' + productId + ')" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 text-xs font-semibold transition"><i class="fas fa-trash"></i>Xoá</button>' +
           '<button type="button" onclick="flashSaleToggleProductExpanded(' + productId + ')" class="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 hover:text-pink-600 hover:border-pink-200 transition"><i class="fas ' + (expanded ? 'fa-chevron-up' : 'fa-chevron-down') + '"></i></button>' +
         '</div>' +
@@ -261,6 +263,30 @@ function flashSaleRenderProductGroup(productId) {
     '</tr>'
   const childRows = expanded ? items.map((item) => flashSaleRenderSkuRow(item)).join('') : ''
   return parentRow + childRows
+}
+
+function flashSaleApplyGroupFieldsToCheckedSkus() {
+  const salePriceInput = document.getElementById('flashSaleGlobalSalePriceInput')
+  const discountInput = document.getElementById('flashSaleGlobalDiscountInput')
+  const purchaseLimitInput = document.getElementById('flashSaleGlobalPurchaseLimitInput')
+  const salePriceValue = salePriceInput ? String(salePriceInput.value || '').trim() : ''
+  const discountValue = discountInput ? String(discountInput.value || '').trim() : ''
+  const purchaseLimitValue = purchaseLimitInput ? String(purchaseLimitInput.value || '').trim() : ''
+  flashSaleGetCheckedItems().forEach((item) => {
+    if (salePriceValue) {
+      item.sale_price = flashSaleNormalizeNumber(salePriceValue)
+      item.discount_percent = null
+    } else if (discountValue) {
+      item.discount_percent = flashSaleNormalizeNumber(discountValue)
+      item.sale_price = item.discount_percent === null ? null : flashSaleCalculateSalePriceFromDiscount(item.product_price, item.discount_percent)
+    }
+    if (purchaseLimitValue) {
+      item.purchase_limit = Math.max(0, Math.floor(flashSaleNormalizeNumber(purchaseLimitValue)))
+    } else if (purchaseLimitValue === '') {
+      item.purchase_limit = null
+    }
+    flashSaleSyncSelectedItemRow(item.product_sku_id)
+  })
 }
 
 function renderFlashSaleSelectedItems() {
@@ -423,34 +449,6 @@ function flashSaleToggleProductSkuChecks(productId, checked) {
     item.checked = checked ? 1 : 0
     flashSaleSyncSelectedItemRow(item.product_sku_id)
   })
-}
-
-function flashSaleApplyGroupFieldsToCheckedSkus(productId) {
-  const row = document.querySelector('[data-flash-sale-product-row-id="' + flashSaleEscapeHtml(productId) + '"]')
-  if (!row) return
-  const salePriceInput = row.querySelector('[data-flash-sale-group-field="sale_price"]')
-  const discountInput = row.querySelector('[data-flash-sale-group-field="discount_percent"]')
-  const purchaseLimitInput = row.querySelector('[data-flash-sale-group-field="purchase_limit"]')
-  const salePriceValue = salePriceInput ? String(salePriceInput.value || '').trim() : ''
-  const discountValue = discountInput ? String(discountInput.value || '').trim() : ''
-  const purchaseLimitValue = purchaseLimitInput ? String(purchaseLimitInput.value || '').trim() : ''
-  flashSaleGetSelectedItemsByProduct(productId)
-    .filter((item) => Number(item.checked) === 1)
-    .forEach((item) => {
-      if (salePriceValue) {
-        item.sale_price = flashSaleNormalizeNumber(salePriceValue)
-        item.discount_percent = null
-      } else if (discountValue) {
-        item.discount_percent = flashSaleNormalizeNumber(discountValue)
-        item.sale_price = item.discount_percent === null ? null : flashSaleCalculateSalePriceFromDiscount(item.product_price, item.discount_percent)
-      }
-      if (purchaseLimitValue) {
-        item.purchase_limit = Math.max(0, Math.floor(flashSaleNormalizeNumber(purchaseLimitValue)))
-      } else if (purchaseLimitValue === '') {
-        item.purchase_limit = null
-      }
-      flashSaleSyncSelectedItemRow(item.product_sku_id)
-    })
 }
 
 function toggleFlashSaleSelectedItemEnabled(productSkuId, checked) {
