@@ -31,17 +31,17 @@ WITH color_variants AS (
   SELECT
     p.id AS product_id,
     TRIM(COALESCE(
-      NULLIF(json_extract(c.value, '$.name'), ''),
-      NULLIF(json_extract(c.value, '$.label'), ''),
+      CASE WHEN c.type = 'object' THEN NULLIF(json_extract(c.value, '$.name'), '') ELSE NULL END,
+      CASE WHEN c.type = 'object' THEN NULLIF(json_extract(c.value, '$.label'), '') ELSE NULL END,
       CASE
-        WHEN json_type(c.value) = 'text' THEN json_extract(c.value, '$')
+        WHEN c.type = 'text' THEN CAST(c.value AS TEXT)
         ELSE ''
       END,
       ''
     )) AS color_name,
     TRIM(COALESCE(
-      NULLIF(json_extract(c.value, '$.image'), ''),
-      NULLIF(json_extract(c.value, '$.image_url'), ''),
+      CASE WHEN c.type = 'object' THEN NULLIF(json_extract(c.value, '$.image'), '') ELSE NULL END,
+      CASE WHEN c.type = 'object' THEN NULLIF(json_extract(c.value, '$.image_url'), '') ELSE NULL END,
       p.thumbnail,
       ''
     )) AS color_image
@@ -62,7 +62,7 @@ size_variants AS (
     p.id AS product_id,
     TRIM(COALESCE(
       CASE
-        WHEN json_type(s.value) = 'text' THEN json_extract(s.value, '$')
+        WHEN s.type = 'text' THEN CAST(s.value AS TEXT)
         ELSE CAST(s.value AS TEXT)
       END,
       ''
