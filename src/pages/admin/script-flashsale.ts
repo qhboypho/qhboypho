@@ -5,19 +5,28 @@ let flashSaleProductPickerQuery = ''
 let flashSaleCreateSubmitting = false
 let flashSaleEditingId = null
 let flashSaleDuplicatingFromId = null
+let flashSaleProductExpandedState = {}
 
 function flashSaleEscapeHtml(value) {
   return String(value ?? '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
+    .replace(/\"/g, '&quot;')
     .replace(/'/g, '&#39;')
 }
 
 function flashSaleNormalizeNumber(value) {
   const num = typeof value === 'number' ? value : Number(String(value ?? '').replace(/,/g, '').trim())
   return Number.isFinite(num) ? num : 0
+}
+
+function flashSaleNormalizeMaybeNumber(value) {
+  if (value === null || value === undefined) return null
+  const raw = String(value).trim()
+  if (!raw) return null
+  const num = flashSaleNormalizeNumber(raw)
+  return Number.isFinite(num) ? num : null
 }
 
 function flashSaleNormalizeDateTime(value) {
@@ -34,27 +43,77 @@ function flashSaleCalculateSalePriceFromDiscount(productPrice, discountPercent) 
   return Math.max(0, Math.round(basePrice * (100 - discount) / 100))
 }
 
-function flashSaleGetSelectedItemIndex(productId) {
-  return flashSaleCreateSelectedItems.findIndex((item) => String(item.product_id) === String(productId))
+function flashSaleFormatSkuLabel(item) {
+  const parts = []
+  if (item.sku_color) parts.push(item.sku_color)
+  if (item.sku_size) parts.push(item.sku_size)
+  return parts.join(' / ') || item.sku_code || 'SKU mặc định'
 }
 
-function flashSaleGetSelectedItem(productId) {
-  const index = flashSaleGetSelectedItemIndex(productId)
+function flashSaleGetSelectedItemIndex(productSkuId) {
+  return flashSaleCreateSelectedItems.findIndex((item) => String(item.product_sku_id) === String(productSkuId))
+}
+
+function flashSaleGetSelectedItem(productSkuId) {
+  const index = flashSaleGetSelectedItemIndex(productSkuId)
   return index >= 0 ? flashSaleCreateSelectedItems[index] : null
 }
 
-function flashSaleMakeSelectedItem(product) {
-  const basePrice = flashSaleNormalizeNumber(product && (product.price ?? product.original_price ?? product.product_price ?? 0))
+function flashSaleGetSelectedItemsByProduct(productId) {
+  return flashSaleCreateSelectedItems.filter((item) => String(item.product_id) === String(productId))
+}
+
+function flashSaleGetPickerProduct(productId) {
+  return flashSaleProductPickerItems.find((item) => Number(item.id) === Number(productId)) || null
+}
+
+function flashSaleGetProductSkus(product) {
+  const source = Array.isArray(product && product.product_skus)
+    ? product.product_skus
+    : (Array.isArray(product && product.skus) ? product.skus : [])
+  return source.map((sku) => ({
+    id: flashSaleNormalizeNumber(sku && sku.id),
+    product_id: flashSaleNormalizeNumber(sku && (sku.product_id ?? product.id)),
+    sku_code: String(sku && (sku.sku_code ?? '')),
+    color: String(sku && (sku.color ?? '')),
+    size: String(sku && (sku.size ?? '')),
+    image: String(sku && (sku.image ?? product.thumbnail ?? '')),
+    price: flashSaleNormalizeNumber(sku && (sku.price ?? product.price ?? product.original_price ?? 0)),
+    original_price: flashSaleNormalizeMaybeNumber(sku && (sku.original_price ?? product.original_price ?? null)),
+    stock: flashSaleNormalizeNumber(sku && (sku.stock ?? product.stock ?? 0)),
+    is_active: Number(sku && (sku.is_active ?? 1)) === 1 ? 1 : 0
+  })).filter((sku) => sku.id > 0 && sku.is_active === 1)
+}
+
+function flashSaleMakeSelectedItem(product, sku) {
+  const basePrice = flashSaleNormalizeNumber(sku && (sku.price ?? sku.original_price ?? product.price ?? product.original_price ?? 0))
   return {
     product_id: flashSaleNormalizeNumber(product && product.id),
     product_name: String(product && (product.name ?? product.product_name ?? '')),
     product_thumbnail: String(product && (product.thumbnail ?? product.product_thumbnail ?? product.image ?? '')),
     product_price: basePrice,
+    product_original_price: flashSaleNormalizeMaybeNumber(sku && (sku.original_price ?? product.original_price ?? null)),
+    product_sku_id: flashSaleNormalizeNumber(sku && sku.id),
+    sku_code: String(sku && (sku.sku_code ?? '')),
+    sku_color: String(sku && (sku.color ?? '')),
+    sku_size: String(sku && (sku.size ?? '')),
+    sku_image: String(sku && (sku.image ?? product.thumbnail ?? '')),
     sale_price: null,
     discount_percent: null,
     purchase_limit: null,
-    is_enabled: 1
+    is_enabled: 1,
+    checked: 1
   }
+}
+
+function flashSaleIsProductExpanded(productId) {
+  return flashSaleProductExpandedState[String(productId)] !== false
+}
+
+function flashSaleToggleProductExpanded(productId) {
+  const key = String(productId)
+  flashSaleProductExpandedState[key] = !flashSaleIsProductExpanded(key)
+  renderFlashSaleSelectedItems()
 }
 
 function flashSaleSyncModalMode() {
@@ -68,7 +127,7 @@ function flashSaleSyncModalMode() {
     ? 'Chỉnh sửa chiến dịch flashsale hiện có. Giá flash sale vẫn ưu tiên cao nhất ngoài storefront.'
     : (isDuplicating
       ? 'Đang tạo chiến dịch mới từ một flashsale đã kết thúc. Bạn có thể chỉnh lại thời gian, giá và sản phẩm trước khi lưu.'
-      : 'Thiết lập thời gian, chọn sản phẩm và cấu hình giá ưu đãi cho từng item.')
+      : 'Thiết lập thời gian, chọn sản phẩm và cấu hình giá ưu đãi theo từng SKU.')
   if (submitText) submitText.textContent = flashSaleCreateSubmitting
     ? (isEditing ? 'Đang cập nhật...' : (isDuplicating ? 'Đang sao chép...' : 'Đang tạo...'))
     : (isEditing ? 'Cập nhật flashsale' : (isDuplicating ? 'Sao chép thành flashsale mới' : 'Tạo flashsale'))
@@ -84,21 +143,124 @@ function flashSaleSetCreateSubmitState(isSubmitting) {
 function flashSaleUpdateSelectionSummary() {
   const hint = document.getElementById('flashSaleSelectedItemsHint')
   const count = document.getElementById('flashSaleSelectedItemsCount')
-  const total = flashSaleCreateSelectedItems.length
-  if (hint) hint.textContent = total ? 'Đã chọn ' + total + ' sản phẩm để cấu hình flashsale.' : 'Chưa có sản phẩm nào được gắn vào flashsale.'
-  if (count) count.innerHTML = '<i class="fas fa-layer-group"></i>' + total + ' sản phẩm'
+  const productCount = new Set(flashSaleCreateSelectedItems.map((item) => item.product_id)).size
+  const skuCount = flashSaleCreateSelectedItems.length
+  if (hint) hint.textContent = skuCount
+    ? 'Đã chọn ' + productCount + ' sản phẩm với ' + skuCount + ' SKU để cấu hình flashsale.'
+    : 'Chưa có sản phẩm nào được gắn vào flashsale.'
+  if (count) count.innerHTML = '<i class="fas fa-layer-group"></i>' + productCount + ' sản phẩm'
 }
 
-function flashSaleSyncSelectedItemRow(productId) {
-  const row = document.querySelector('[data-flash-sale-row-id="' + flashSaleEscapeHtml(productId) + '"]')
-  const item = flashSaleGetSelectedItem(productId)
+function flashSaleSetInputValueIfIdle(input, value) {
+  if (!input) return
+  if (document.activeElement === input) return
+  const nextValue = value === null || value === undefined ? '' : String(value)
+  if (String(input.value) !== nextValue) input.value = nextValue
+}
+
+function flashSaleSyncSelectedItemRow(productSkuId) {
+  const row = document.querySelector('[data-flash-sale-sku-row-id="' + flashSaleEscapeHtml(productSkuId) + '"]')
+  const item = flashSaleGetSelectedItem(productSkuId)
   if (!row || !item) return
   const salePriceInput = row.querySelector('[data-flash-sale-field="sale_price"]')
   const discountInput = row.querySelector('[data-flash-sale-field="discount_percent"]')
   const purchaseLimitInput = row.querySelector('[data-flash-sale-field="purchase_limit"]')
-  if (salePriceInput) salePriceInput.value = item.sale_price === null || item.sale_price === undefined ? '' : String(flashSaleNormalizeNumber(item.sale_price))
-  if (discountInput) discountInput.value = item.discount_percent === null || item.discount_percent === undefined ? '' : String(flashSaleNormalizeNumber(item.discount_percent))
-  if (purchaseLimitInput) purchaseLimitInput.value = item.purchase_limit === null || item.purchase_limit === undefined ? '' : String(flashSaleNormalizeNumber(item.purchase_limit))
+  const enabledCheckbox = row.querySelector('[data-flash-sale-enabled-checkbox]')
+  const enabledBadge = row.querySelector('[data-flash-sale-enabled-badge]')
+  const itemCheckbox = row.querySelector('[data-flash-sale-sku-checkbox]')
+  flashSaleSetInputValueIfIdle(salePriceInput, item.sale_price === null ? '' : flashSaleNormalizeNumber(item.sale_price))
+  flashSaleSetInputValueIfIdle(discountInput, item.discount_percent === null ? '' : flashSaleNormalizeNumber(item.discount_percent))
+  flashSaleSetInputValueIfIdle(purchaseLimitInput, item.purchase_limit === null ? '' : flashSaleNormalizeNumber(item.purchase_limit))
+  if (enabledCheckbox) enabledCheckbox.checked = Number(item.is_enabled) === 1
+  if (itemCheckbox) itemCheckbox.checked = Number(item.checked) === 1
+  if (enabledBadge) {
+    enabledBadge.className = 'inline-flex items-center justify-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold border ' + (Number(item.is_enabled) === 1 ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-gray-50 text-gray-500 border-gray-200')
+    const badgeText = enabledBadge.querySelector('span')
+    if (badgeText) badgeText.textContent = Number(item.is_enabled) === 1 ? 'Đang bật' : 'Đang tắt'
+  }
+  flashSaleSyncProductGroupRow(item.product_id)
+}
+
+function flashSaleSyncProductGroupRow(productId) {
+  const groupItems = flashSaleGetSelectedItemsByProduct(productId)
+  const row = document.querySelector('[data-flash-sale-product-row-id="' + flashSaleEscapeHtml(productId) + '"]')
+  if (!row || !groupItems.length) return
+  const checkAll = row.querySelector('[data-flash-sale-product-check-all]')
+  const checkedItems = groupItems.filter((item) => Number(item.checked) === 1)
+  if (checkAll) {
+    checkAll.checked = checkedItems.length === groupItems.length
+    checkAll.indeterminate = checkedItems.length > 0 && checkedItems.length < groupItems.length
+  }
+}
+
+function flashSaleRenderSkuRow(item) {
+  const imageHtml = item.sku_image
+    ? '<img src="' + flashSaleEscapeHtml(item.sku_image) + '" alt="' + flashSaleEscapeHtml(item.product_name) + '" class="h-12 w-12 rounded-xl object-cover border border-gray-100 bg-gray-50 shrink-0" />'
+    : '<div class="h-12 w-12 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-400 shrink-0"><i class="fas fa-image"></i></div>'
+  const enabled = Number(item.is_enabled) === 1
+  return '' +
+    '<tr class="border-b last:border-b-0 align-top bg-white" data-flash-sale-sku-row-id="' + item.product_sku_id + '">' +
+      '<td class="px-4 py-3">' +
+        '<div class="flex items-start gap-3 pl-8">' +
+          '<label class="mt-3 inline-flex items-center"><input type="checkbox" data-flash-sale-sku-checkbox onchange="flashSaleToggleSkuChecked(' + item.product_sku_id + ', this.checked)" ' + (Number(item.checked) === 1 ? 'checked' : '') + ' class="h-4 w-4 rounded border-gray-300 text-pink-600 focus:ring-pink-500"></label>' +
+          imageHtml +
+          '<div class="min-w-0">' +
+            '<p class="font-semibold text-gray-900">' + flashSaleEscapeHtml(flashSaleFormatSkuLabel(item)) + '</p>' +
+            '<p class="text-xs text-gray-400 mt-1">SKU ID: ' + flashSaleEscapeHtml(item.product_sku_id) + (item.sku_code ? ' • ' + flashSaleEscapeHtml(item.sku_code) : '') + '</p>' +
+          '</div>' +
+        '</div>' +
+      '</td>' +
+      '<td class="px-4 py-3 text-center text-gray-700 font-medium">' + (item.product_price > 0 ? flashSaleNormalizeNumber(item.product_price).toLocaleString('vi-VN') + 'đ' : '—') + '</td>' +
+      '<td class="px-4 py-3 text-center"><input type="number" min="0" step="1000" value="' + (item.sale_price === null ? '' : flashSaleNormalizeNumber(item.sale_price)) + '" data-flash-sale-field="sale_price" oninput="updateFlashSaleSelectedItemField(' + item.product_sku_id + ', &quot;sale_price&quot;, this.value)" class="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-center outline-none focus:border-pink-300 focus:ring-4 focus:ring-pink-100" placeholder="Nhập giá"></td>' +
+      '<td class="px-4 py-3 text-center"><input type="number" min="1" max="99" step="1" value="' + (item.discount_percent === null ? '' : flashSaleNormalizeNumber(item.discount_percent)) + '" data-flash-sale-field="discount_percent" oninput="updateFlashSaleSelectedItemField(' + item.product_sku_id + ', &quot;discount_percent&quot;, this.value)" class="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-center outline-none focus:border-pink-300 focus:ring-4 focus:ring-pink-100" placeholder="%"></td>' +
+      '<td class="px-4 py-3 text-center"><input type="number" min="0" step="1" value="' + (item.purchase_limit === null ? '' : flashSaleNormalizeNumber(item.purchase_limit)) + '" data-flash-sale-field="purchase_limit" oninput="updateFlashSaleSelectedItemField(' + item.product_sku_id + ', &quot;purchase_limit&quot;, this.value)" class="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-center outline-none focus:border-pink-300 focus:ring-4 focus:ring-pink-100" placeholder="0 = không giới hạn"></td>' +
+      '<td class="px-4 py-3 text-center"><label data-flash-sale-enabled-badge class="inline-flex items-center justify-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold border ' + (enabled ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-gray-50 text-gray-500 border-gray-200') + '"><input type="checkbox" data-flash-sale-enabled-checkbox ' + (enabled ? 'checked' : '') + ' onchange="toggleFlashSaleSelectedItemEnabled(' + item.product_sku_id + ', this.checked)" class="h-4 w-4 rounded border-gray-300 text-pink-600 focus:ring-pink-500"><span>' + (enabled ? 'Đang bật' : 'Đang tắt') + '</span></label></td>' +
+      '<td class="px-4 py-3 text-center text-gray-400 text-xs">SKU</td>' +
+    '</tr>'
+}
+
+function flashSaleRenderProductGroup(productId) {
+  const items = flashSaleGetSelectedItemsByProduct(productId)
+  if (!items.length) return ''
+  const product = flashSaleGetPickerProduct(productId) || items[0]
+  const thumb = product.thumbnail || items[0].product_thumbnail || ''
+  const imageHtml = thumb
+    ? '<img src="' + flashSaleEscapeHtml(thumb) + '" alt="' + flashSaleEscapeHtml(product.name || items[0].product_name) + '" class="h-14 w-14 rounded-xl object-cover border border-gray-100 bg-gray-50 shrink-0" />'
+    : '<div class="h-14 w-14 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-400 shrink-0"><i class="fas fa-image"></i></div>'
+  const expanded = flashSaleIsProductExpanded(productId)
+  const checkedItems = items.filter((item) => Number(item.checked) === 1)
+  const hasChecked = checkedItems.length > 0
+  const sample = checkedItems[0] || items[0]
+  const salePriceValue = sample && sample.sale_price !== null ? flashSaleNormalizeNumber(sample.sale_price) : ''
+  const discountValue = sample && sample.discount_percent !== null ? flashSaleNormalizeNumber(sample.discount_percent) : ''
+  const purchaseLimitValue = sample && sample.purchase_limit !== null ? flashSaleNormalizeNumber(sample.purchase_limit) : ''
+  const parentRow = '' +
+    '<tr class="border-b align-top bg-rose-50/40" data-flash-sale-product-row-id="' + productId + '">' +
+      '<td class="px-4 py-4">' +
+        '<div class="flex items-start gap-3">' +
+          '<label class="mt-3 inline-flex items-center"><input type="checkbox" data-flash-sale-product-check-all onchange="flashSaleToggleProductSkuChecks(' + productId + ', this.checked)" ' + (checkedItems.length === items.length ? 'checked' : '') + ' class="h-4 w-4 rounded border-gray-300 text-pink-600 focus:ring-pink-500"></label>' +
+          imageHtml +
+          '<div class="min-w-0">' +
+            '<p class="font-semibold text-gray-900 line-clamp-2">' + flashSaleEscapeHtml(product.name || items[0].product_name) + '</p>' +
+            '<p class="text-xs text-gray-400 mt-1">ID: ' + productId + ' • ' + items.length + ' SKU</p>' +
+          '</div>' +
+        '</div>' +
+      '</td>' +
+      '<td class="px-4 py-4 text-center text-gray-700 font-medium">' + (items[0].product_price > 0 ? flashSaleNormalizeNumber(items[0].product_price).toLocaleString('vi-VN') + 'đ' : '—') + '</td>' +
+      '<td class="px-4 py-4 text-center"><input type="number" min="0" step="1000" value="' + salePriceValue + '" data-flash-sale-group-field="sale_price" class="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-center outline-none focus:border-pink-300 focus:ring-4 focus:ring-pink-100" placeholder="Giá chung"></td>' +
+      '<td class="px-4 py-4 text-center"><input type="number" min="1" max="99" step="1" value="' + discountValue + '" data-flash-sale-group-field="discount_percent" class="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-center outline-none focus:border-pink-300 focus:ring-4 focus:ring-pink-100" placeholder="% chung"></td>' +
+      '<td class="px-4 py-4 text-center"><input type="number" min="0" step="1" value="' + purchaseLimitValue + '" data-flash-sale-group-field="purchase_limit" class="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-center outline-none focus:border-pink-300 focus:ring-4 focus:ring-pink-100" placeholder="Giới hạn chung"></td>' +
+      '<td class="px-4 py-4 text-center"><span class="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold border ' + (hasChecked ? 'bg-pink-50 text-pink-700 border-pink-200' : 'bg-gray-50 text-gray-500 border-gray-200') + '">' + checkedItems.length + '/' + items.length + ' đã tick</span></td>' +
+      '<td class="px-4 py-4 text-center">' +
+        '<div class="flex items-center justify-center gap-2">' +
+          '<button type="button" onclick="flashSaleApplyGroupFieldsToCheckedSkus(' + productId + ')" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-pink-200 text-pink-600 bg-pink-50 hover:bg-pink-100 text-xs font-semibold transition"><i class="fas fa-wand-magic-sparkles"></i>Set all</button>' +
+          '<button type="button" onclick="removeFlashSaleSelectedProduct(' + productId + ')" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 text-xs font-semibold transition"><i class="fas fa-trash"></i>Xoá</button>' +
+          '<button type="button" onclick="flashSaleToggleProductExpanded(' + productId + ')" class="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 hover:text-pink-600 hover:border-pink-200 transition"><i class="fas ' + (expanded ? 'fa-chevron-up' : 'fa-chevron-down') + '"></i></button>' +
+        '</div>' +
+      '</td>' +
+    '</tr>'
+  const childRows = expanded ? items.map((item) => flashSaleRenderSkuRow(item)).join('') : ''
+  return parentRow + childRows
 }
 
 function renderFlashSaleSelectedItems() {
@@ -106,39 +268,12 @@ function renderFlashSaleSelectedItems() {
   if (!tbody) return
   flashSaleUpdateSelectionSummary()
   if (!flashSaleCreateSelectedItems.length) {
-    tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-10 text-center text-gray-500"><div class="flex flex-col items-center gap-2"><div class="flex h-12 w-12 items-center justify-center rounded-full bg-pink-50 text-pink-500"><i class="fas fa-basket-shopping"></i></div><p class="font-medium">Chưa có sản phẩm nào được chọn</p><p class="text-xs text-gray-400">Task 8 sẽ nối phần chọn sản phẩm và cấu hình giá vào đây.</p></div></td></tr>'
+    tbody.innerHTML = '<tr><td colspan="7" class="px-4 py-10 text-center text-gray-500"><div class="flex flex-col items-center gap-2"><div class="flex h-12 w-12 items-center justify-center rounded-full bg-pink-50 text-pink-500"><i class="fas fa-basket-shopping"></i></div><p class="font-medium">Chưa có sản phẩm nào được chọn</p><p class="text-xs text-gray-400">Chọn sản phẩm rồi cấu hình flashsale theo từng SKU.</p></div></td></tr>'
     return
   }
-
-  tbody.innerHTML = flashSaleCreateSelectedItems.map((item) => {
-    const itemId = item.product_id
-    const imageHtml = item.product_thumbnail
-      ? '<img src="' + flashSaleEscapeHtml(item.product_thumbnail) + '" alt="' + flashSaleEscapeHtml(item.product_name) + '" class="h-14 w-14 rounded-xl object-cover border border-gray-100 bg-gray-50 shrink-0" />'
-      : '<div class="h-14 w-14 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-400 shrink-0"><i class="fas fa-image"></i></div>'
-    const salePriceValue = item.sale_price === null || item.sale_price === undefined ? '' : flashSaleNormalizeNumber(item.sale_price)
-    const discountValue = item.discount_percent === null || item.discount_percent === undefined ? '' : flashSaleNormalizeNumber(item.discount_percent)
-    const purchaseLimitValue = item.purchase_limit === null || item.purchase_limit === undefined ? '' : flashSaleNormalizeNumber(item.purchase_limit)
-    const enabled = Number(item.is_enabled) === 1
-    return '' +
-      '<tr class="border-b last:border-b-0 align-top" data-flash-sale-row-id="' + itemId + '">' +
-        '<td class="px-4 py-4">' +
-          '<div class="flex items-start gap-3">' +
-            imageHtml +
-            '<div class="min-w-0">' +
-              '<p class="font-semibold text-gray-900 line-clamp-2">' + flashSaleEscapeHtml(item.product_name) + '</p>' +
-              '<p class="text-xs text-gray-400 mt-1">ID: ' + itemId + '</p>' +
-            '</div>' +
-          '</div>' +
-        '</td>' +
-        '<td class="px-4 py-4 text-center text-gray-700 font-medium">' + (item.product_price > 0 ? flashSaleNormalizeNumber(item.product_price).toLocaleString('vi-VN') + 'đ' : '—') + '</td>' +
-        '<td class="px-4 py-4 text-center"><input type="number" min="0" step="1000" value="' + salePriceValue + '" data-flash-sale-field="sale_price" oninput="updateFlashSaleSelectedItemField(' + itemId + ', &quot;sale_price&quot;, this.value)" class="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-center outline-none focus:border-pink-300 focus:ring-4 focus:ring-pink-100" placeholder="Nhập giá"></td>' +
-        '<td class="px-4 py-4 text-center"><input type="number" min="1" max="99" step="1" value="' + discountValue + '" data-flash-sale-field="discount_percent" oninput="updateFlashSaleSelectedItemField(' + itemId + ', &quot;discount_percent&quot;, this.value)" class="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-center outline-none focus:border-pink-300 focus:ring-4 focus:ring-pink-100" placeholder="%"></td>' +
-        '<td class="px-4 py-4 text-center"><input type="number" min="0" step="1" value="' + purchaseLimitValue + '" data-flash-sale-field="purchase_limit" oninput="updateFlashSaleSelectedItemField(' + itemId + ', &quot;purchase_limit&quot;, this.value)" class="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-center outline-none focus:border-pink-300 focus:ring-4 focus:ring-pink-100" placeholder="0 = không giới hạn"></td>' +
-        '<td class="px-4 py-4 text-center"><label class="inline-flex items-center justify-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold border ' + (enabled ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-gray-50 text-gray-500 border-gray-200') + '"><input type="checkbox" ' + (enabled ? 'checked' : '') + ' onchange="toggleFlashSaleSelectedItemEnabled(' + itemId + ', this.checked)" class="h-4 w-4 rounded border-gray-300 text-pink-600 focus:ring-pink-500"><span>' + (enabled ? 'Đang bật' : 'Đang tắt') + '</span></label></td>' +
-        '<td class="px-4 py-4 text-center"><button type="button" onclick="removeFlashSaleSelectedItem(' + itemId + ')" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 text-xs font-semibold transition"><i class="fas fa-trash"></i>Xoá</button></td>' +
-      '</tr>'
-  }).join('')
-
+  const productIds = [...new Set(flashSaleCreateSelectedItems.map((item) => item.product_id))]
+  tbody.innerHTML = productIds.map((productId) => flashSaleRenderProductGroup(productId)).join('')
+  productIds.forEach((productId) => flashSaleSyncProductGroupRow(productId))
   renderFlashSaleProductPicker()
 }
 
@@ -154,7 +289,8 @@ async function loadFlashSaleProductPickerProducts() {
       thumbnail: String(product && (product.thumbnail ?? product.product_thumbnail ?? product.image ?? '')),
       price: flashSaleNormalizeNumber(product && (product.price ?? product.original_price ?? product.product_price ?? 0)),
       category: String(product && (product.category ?? product.category_name ?? '')),
-      is_active: Number(product && (product.is_active ?? 1)) === 1
+      is_active: Number(product && (product.is_active ?? 1)) === 1,
+      product_skus: flashSaleGetProductSkus(product)
     }))
     renderFlashSaleProductPicker()
   } catch (e) {
@@ -184,12 +320,14 @@ function renderFlashSaleProductPicker() {
   }
 
   list.innerHTML = products.map((product) => {
-    const selected = flashSaleGetSelectedItem(product.id)
+    const selectedCount = flashSaleGetSelectedItemsByProduct(product.id).length
+    const skuCount = Array.isArray(product.product_skus) ? product.product_skus.length : 0
     const thumbHtml = product.thumbnail
       ? '<img src="' + flashSaleEscapeHtml(product.thumbnail) + '" alt="' + flashSaleEscapeHtml(product.name) + '" class="h-16 w-16 rounded-2xl object-cover border border-gray-100 bg-gray-50 shrink-0" />'
       : '<div class="h-16 w-16 rounded-2xl bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-400 shrink-0"><i class="fas fa-image"></i></div>'
+    const selected = selectedCount > 0
     const buttonClass = selected ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-pink-600 text-white border-pink-600 hover:bg-pink-700'
-    const buttonText = selected ? 'Đã chọn' : 'Chọn'
+    const buttonText = selected ? 'Đã chọn ' + selectedCount + '/' + skuCount : 'Chọn toàn bộ'
     const buttonIcon = selected ? 'fa-check' : 'fa-plus'
     return '' +
       '<div class="p-4 flex items-center gap-4 hover:bg-pink-50/40 transition">' +
@@ -199,6 +337,7 @@ function renderFlashSaleProductPicker() {
             '<p class="font-semibold text-gray-900 truncate">' + flashSaleEscapeHtml(product.name) + '</p>' +
             '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 text-[11px] font-semibold">#' + product.id + '</span>' +
             (product.category ? '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-pink-50 text-pink-600 text-[11px] font-semibold">' + flashSaleEscapeHtml(product.category) + '</span>' : '') +
+            '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[11px] font-semibold">' + skuCount + ' SKU</span>' +
           '</div>' +
           '<p class="text-sm text-gray-500 mt-1">Giá gốc: ' + (product.price > 0 ? flashSaleNormalizeNumber(product.price).toLocaleString('vi-VN') + 'đ' : '—') + '</p>' +
         '</div>' +
@@ -236,19 +375,29 @@ function closeFlashSaleProductPickerModal(event) {
 
 function toggleFlashSaleProductSelection(productId) {
   const id = flashSaleNormalizeNumber(productId)
-  const existingIndex = flashSaleGetSelectedItemIndex(id)
-  if (existingIndex >= 0) {
-    flashSaleCreateSelectedItems.splice(existingIndex, 1)
-  } else {
-    const product = flashSaleProductPickerItems.find((item) => Number(item.id) === id)
-    if (!product) return
-    flashSaleCreateSelectedItems.push(flashSaleMakeSelectedItem(product))
+  const existingItems = flashSaleGetSelectedItemsByProduct(id)
+  if (existingItems.length) {
+    flashSaleCreateSelectedItems = flashSaleCreateSelectedItems.filter((item) => Number(item.product_id) !== id)
+    renderFlashSaleSelectedItems()
+    return
   }
+  const product = flashSaleGetPickerProduct(id)
+  if (!product) return
+  const skus = flashSaleGetProductSkus(product)
+  if (!skus.length) {
+    showAdminToast('Sản phẩm chưa có SKU khả dụng để tạo flashsale', 'warning')
+    return
+  }
+  flashSaleProductExpandedState[String(id)] = true
+  skus.forEach((sku) => {
+    if (flashSaleGetSelectedItemIndex(sku.id) >= 0) return
+    flashSaleCreateSelectedItems.push(flashSaleMakeSelectedItem(product, sku))
+  })
   renderFlashSaleSelectedItems()
 }
 
-function updateFlashSaleSelectedItemField(productId, field, value) {
-  const item = flashSaleGetSelectedItem(productId)
+function updateFlashSaleSelectedItemField(productSkuId, field, value) {
+  const item = flashSaleGetSelectedItem(productSkuId)
   if (!item) return
   if (field === 'sale_price') {
     item.sale_price = String(value ?? '').trim() ? flashSaleNormalizeNumber(value) : null
@@ -259,17 +408,59 @@ function updateFlashSaleSelectedItemField(productId, field, value) {
   } else if (field === 'purchase_limit') {
     item.purchase_limit = String(value ?? '').trim() ? Math.max(0, Math.floor(flashSaleNormalizeNumber(value))) : null
   }
-  flashSaleSyncSelectedItemRow(productId)
+  flashSaleSyncSelectedItemRow(productSkuId)
 }
 
-function toggleFlashSaleSelectedItemEnabled(productId, checked) {
-  const item = flashSaleGetSelectedItem(productId)
+function flashSaleToggleSkuChecked(productSkuId, checked) {
+  const item = flashSaleGetSelectedItem(productSkuId)
+  if (!item) return
+  item.checked = checked ? 1 : 0
+  flashSaleSyncSelectedItemRow(productSkuId)
+}
+
+function flashSaleToggleProductSkuChecks(productId, checked) {
+  flashSaleGetSelectedItemsByProduct(productId).forEach((item) => {
+    item.checked = checked ? 1 : 0
+    flashSaleSyncSelectedItemRow(item.product_sku_id)
+  })
+}
+
+function flashSaleApplyGroupFieldsToCheckedSkus(productId) {
+  const row = document.querySelector('[data-flash-sale-product-row-id="' + flashSaleEscapeHtml(productId) + '"]')
+  if (!row) return
+  const salePriceInput = row.querySelector('[data-flash-sale-group-field="sale_price"]')
+  const discountInput = row.querySelector('[data-flash-sale-group-field="discount_percent"]')
+  const purchaseLimitInput = row.querySelector('[data-flash-sale-group-field="purchase_limit"]')
+  const salePriceValue = salePriceInput ? String(salePriceInput.value || '').trim() : ''
+  const discountValue = discountInput ? String(discountInput.value || '').trim() : ''
+  const purchaseLimitValue = purchaseLimitInput ? String(purchaseLimitInput.value || '').trim() : ''
+  flashSaleGetSelectedItemsByProduct(productId)
+    .filter((item) => Number(item.checked) === 1)
+    .forEach((item) => {
+      if (salePriceValue) {
+        item.sale_price = flashSaleNormalizeNumber(salePriceValue)
+        item.discount_percent = null
+      } else if (discountValue) {
+        item.discount_percent = flashSaleNormalizeNumber(discountValue)
+        item.sale_price = item.discount_percent === null ? null : flashSaleCalculateSalePriceFromDiscount(item.product_price, item.discount_percent)
+      }
+      if (purchaseLimitValue) {
+        item.purchase_limit = Math.max(0, Math.floor(flashSaleNormalizeNumber(purchaseLimitValue)))
+      } else if (purchaseLimitValue === '') {
+        item.purchase_limit = null
+      }
+      flashSaleSyncSelectedItemRow(item.product_sku_id)
+    })
+}
+
+function toggleFlashSaleSelectedItemEnabled(productSkuId, checked) {
+  const item = flashSaleGetSelectedItem(productSkuId)
   if (!item) return
   item.is_enabled = checked ? 1 : 0
-  renderFlashSaleSelectedItems()
+  flashSaleSyncSelectedItemRow(productSkuId)
 }
 
-function removeFlashSaleSelectedItem(productId) {
+function removeFlashSaleSelectedProduct(productId) {
   flashSaleCreateSelectedItems = flashSaleCreateSelectedItems.filter((item) => String(item.product_id) !== String(productId))
   renderFlashSaleSelectedItems()
 }
@@ -279,11 +470,18 @@ function flashSaleMapDetailItem(item) {
     product_id: flashSaleNormalizeNumber(item && item.product_id),
     product_name: String(item && (item.product_name ?? '')),
     product_thumbnail: String(item && (item.product_thumbnail ?? '')),
-    product_price: flashSaleNormalizeNumber(item && (item.product_price ?? item.product_original_price ?? 0)),
+    product_price: flashSaleNormalizeNumber(item && (item.sku_price ?? item.product_price ?? item.product_original_price ?? 0)),
+    product_original_price: item && item.sku_original_price !== null && item.sku_original_price !== undefined ? flashSaleNormalizeNumber(item.sku_original_price) : null,
+    product_sku_id: flashSaleNormalizeNumber(item && item.product_sku_id),
+    sku_code: String(item && (item.sku_code ?? '')),
+    sku_color: String(item && (item.sku_color ?? '')),
+    sku_size: String(item && (item.sku_size ?? '')),
+    sku_image: String(item && (item.sku_image ?? item.product_thumbnail ?? '')),
     sale_price: item && item.sale_price !== null && item.sale_price !== undefined ? flashSaleNormalizeNumber(item.sale_price) : null,
     discount_percent: item && item.discount_percent !== null && item.discount_percent !== undefined ? flashSaleNormalizeNumber(item.discount_percent) : null,
     purchase_limit: item && item.purchase_limit !== null && item.purchase_limit !== undefined ? Math.max(0, Math.floor(flashSaleNormalizeNumber(item.purchase_limit))) : null,
-    is_enabled: item && Number(item.is_enabled) === 0 ? 0 : 1
+    is_enabled: item && Number(item.is_enabled) === 0 ? 0 : 1,
+    checked: 1
   }
 }
 
@@ -305,6 +503,10 @@ function flashSaleApplyCampaignToForm(campaign, options) {
   if (startInput) startInput.value = flashSaleNormalizeDateTime(campaign.start_at)
   if (endInput) endInput.value = flashSaleNormalizeDateTime(campaign.end_at)
   flashSaleCreateSelectedItems = Array.isArray(campaign.items) ? campaign.items.map((item) => flashSaleMapDetailItem(item)) : []
+  flashSaleProductExpandedState = {}
+  flashSaleCreateSelectedItems.forEach((item) => {
+    flashSaleProductExpandedState[String(item.product_id)] = true
+  })
   flashSaleSyncModalMode()
   renderFlashSaleSelectedItems()
   loadFlashSaleProductPickerProducts()
@@ -315,6 +517,7 @@ function resetFlashSaleCreateForm() {
   flashSaleDuplicatingFromId = null
   flashSaleCreateSelectedItems = []
   flashSaleProductPickerQuery = ''
+  flashSaleProductExpandedState = {}
   const nameInput = document.getElementById('flashSaleNameInput')
   const startInput = document.getElementById('flashSaleStartInput')
   const endInput = document.getElementById('flashSaleEndInput')
@@ -330,6 +533,7 @@ function resetFlashSaleCreateForm() {
 function flashSaleCollectPayloadItems() {
   return flashSaleCreateSelectedItems.map((item) => ({
     product_id: item.product_id,
+    product_sku_id: item.product_sku_id,
     sale_price: item.sale_price === null ? null : flashSaleNormalizeNumber(item.sale_price),
     discount_percent: item.discount_percent === null ? null : flashSaleNormalizeNumber(item.discount_percent),
     purchase_limit: item.purchase_limit === null ? null : Math.max(0, Math.floor(flashSaleNormalizeNumber(item.purchase_limit))),
@@ -351,11 +555,12 @@ async function submitFlashSaleCreateForm() {
   if (!name) return showAdminToast('Tên flashsale là bắt buộc', 'warning')
   if (!startAt || !endAt) return showAdminToast('Vui lòng chọn thời gian bắt đầu và kết thúc', 'warning')
   if (Date.parse(endAt) <= Date.parse(startAt)) return showAdminToast('Thời gian kết thúc phải sau thời gian bắt đầu', 'warning')
-  if (!items.length) return showAdminToast('Vui lòng chọn ít nhất 1 sản phẩm', 'warning')
+  if (!items.length) return showAdminToast('Vui lòng chọn ít nhất 1 SKU', 'warning')
 
   for (const item of items) {
+    if (!item.product_sku_id) return showAdminToast('Thiếu SKU trong cấu hình flashsale', 'warning')
     if (item.sale_price === null && item.discount_percent === null) {
-      return showAdminToast('Mỗi sản phẩm phải có giá flashsale hoặc % giảm', 'warning')
+      return showAdminToast('Mỗi SKU phải có giá flashsale hoặc % giảm', 'warning')
     }
     if (item.sale_price !== null && item.sale_price <= 0) {
       return showAdminToast('Giá flashsale phải lớn hơn 0', 'warning')
@@ -479,7 +684,7 @@ function escapeFlashSaleHtml(text) {
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
+    .replace(/\"/g, '&quot;')
     .replace(/'/g, '&#39;')
 }
 

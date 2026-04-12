@@ -15,8 +15,10 @@ assert.match(flashSaleSource, /data-flash-sale-field="sale_price"/, 'flashsale s
 assert.match(flashSaleSource, /item\.sale_price = item\.discount_percent === null \? null : flashSaleCalculateSalePriceFromDiscount\(item\.product_price, item\.discount_percent\)/, 'discount input should derive sale price automatically')
 const updateFieldFunction = flashSaleSource.match(/function updateFlashSaleSelectedItemField\([\s\S]*?\n\}/)
 assert.ok(updateFieldFunction, 'flashsale item field updater should exist')
-assert.match(updateFieldFunction[0], /flashSaleSyncSelectedItemRow\(productId\)/, 'typing in flashsale inputs should sync the current row in place')
+assert.match(updateFieldFunction[0], /flashSaleSyncSelectedItemRow\(productSkuId\)/, 'typing in flashsale inputs should sync the current row in place')
 assert.doesNotMatch(updateFieldFunction[0], /renderFlashSaleSelectedItems\(\)/, 'typing in flashsale inputs should not rebuild the entire table')
+assert.match(flashSaleSource, /flashSaleApplyGroupFieldsToCheckedSkus/i, 'flashsale modal should support apply-all for checked skus')
+assert.match(flashSaleSource, /data-flash-sale-sku-checkbox/i, 'flashsale sku rows should expose checkbox hooks')
 assert.match(flashSaleSource, /Tạo flashsale/i, 'flashsale modal should still expose the create action')
 assert.match(adminScriptSource, /adminFlashSaleScript\(\)/, 'admin inline script should still compose flashsale script')
 

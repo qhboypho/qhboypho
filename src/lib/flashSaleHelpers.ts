@@ -235,6 +235,15 @@ export type FlashSaleProductJoinRow = {
   product_display_order?: number | string | null
   product_created_at?: string | null
   product_updated_at?: string | null
+  product_sku_id?: number | string | null
+  product_sku_code?: string | null
+  product_sku_color?: string | null
+  product_sku_size?: string | null
+  product_sku_image?: string | null
+  product_sku_price?: number | string | null
+  product_sku_original_price?: number | string | null
+  product_sku_stock?: number | string | null
+  product_sku_is_active?: number | string | boolean | null
   flash_sale_id?: number | string | null
   flash_sale_name?: string | null
   flash_sale_start_at?: string | null
@@ -374,6 +383,15 @@ export async function loadActiveFlashSaleProductMap(db: D1Database, productIds: 
       p.display_order AS product_display_order,
       p.created_at AS product_created_at,
       p.updated_at AS product_updated_at,
+      ps.id AS product_sku_id,
+      ps.sku_code AS product_sku_code,
+      ps.color AS product_sku_color,
+      ps.size AS product_sku_size,
+      ps.image AS product_sku_image,
+      ps.price AS product_sku_price,
+      ps.original_price AS product_sku_original_price,
+      ps.stock AS product_sku_stock,
+      ps.is_active AS product_sku_is_active,
       fs.id AS flash_sale_id,
       fs.name AS flash_sale_name,
       fs.start_at AS flash_sale_start_at,
@@ -385,15 +403,16 @@ export async function loadActiveFlashSaleProductMap(db: D1Database, productIds: 
       fsi.is_enabled AS flash_sale_is_enabled
     FROM flash_sale_items fsi
     JOIN flash_sales fs ON fs.id = fsi.flash_sale_id
-    JOIN products p ON p.id = fsi.product_id
+    JOIN product_skus ps ON ps.id = fsi.product_sku_id
+    JOIN products p ON p.id = ps.product_id
     WHERE p.id IN (${placeholders})
     ORDER BY datetime(fs.start_at) DESC, fs.id DESC, fsi.id DESC
   `).bind(...normalizedIds).all() as { results?: FlashSaleProductJoinRow[] }
 
   const map = new Map<number, FlashSaleProductJoinRow>()
   for (const row of result.results || []) {
-    const productId = normalizeOptionalNumber(row.product_id ?? row.id)
-    if (productId === null || map.has(productId)) continue
+    const productSkuId = normalizeOptionalNumber(row.product_sku_id)
+    if (productSkuId === null || map.has(productSkuId)) continue
     const status = getFlashSaleStatus({
       is_active: row.flash_sale_is_active,
       start_at: row.flash_sale_start_at,
@@ -401,7 +420,7 @@ export async function loadActiveFlashSaleProductMap(db: D1Database, productIds: 
     })
     if (!status.isActive) continue
     if (!normalizeOptionalBoolean(row.flash_sale_is_enabled)) continue
-    map.set(productId, row)
+    map.set(productSkuId, row)
   }
   return map
 }

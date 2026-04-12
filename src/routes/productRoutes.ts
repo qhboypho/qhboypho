@@ -1,6 +1,8 @@
 import type { Hono } from 'hono'
 import type { AppBindings } from '../types/app'
-import { loadActiveFlashSaleProductMap, shapeFlashSaleProduct } from '../lib/flashSaleHelpers.ts'
+import { shapeFlashSaleProduct, loadActiveFlashSaleProductMap } from '../lib/flashSaleHelpers.ts'
+import { attachSkuStateToProduct } from '../lib/productFlashSaleView.ts'
+import { loadProductSkusByProductIds, syncProductSkus } from '../lib/productSkuHelpers.ts'
 
 type ProductRouteDeps = {
   initDB: (db: D1Database) => Promise<void>
@@ -45,7 +47,11 @@ function parseColorOptions(raw: any): Array<{ name: string; image: string }> {
 
 function compactColorNamesJson(raw: any): string {
   let arr: any[] = []
-  try { arr = JSON.parse(String(raw || '[]')) } catch { arr = [] }
+  try {
+    arr = JSON.parse(String(raw || '[]'))
+  } catch {
+    arr = []
+  }
   if (!Array.isArray(arr)) return '[]'
   const names = arr.map((item: any) => {
     if (typeof item === 'string') return String(item || '').trim()
@@ -55,36 +61,18 @@ function compactColorNamesJson(raw: any): string {
   return JSON.stringify(names)
 }
 
-function buildFlashSaleContext(row: any) {
-  if (!row) return null
-  return {
-    id: row.flash_sale_id,
-    name: row.flash_sale_name,
-    start_at: row.flash_sale_start_at,
-    end_at: row.flash_sale_end_at,
-    is_active: row.flash_sale_is_active
-  }
-}
-
-function buildFlashSaleItem(row: any) {
-  if (!row) return null
-  return {
-    sale_price: row.flash_sale_sale_price,
-    discount_percent: row.flash_sale_discount_percent,
-    purchase_limit: row.flash_sale_purchase_limit,
-    is_enabled: row.flash_sale_is_enabled
-  }
-}
-
-function shapeProductWithFlashSale(product: any, flashSaleRow: any) {
-  if (!flashSaleRow) {
-    return shapeFlashSaleProduct({ product })
-  }
-  return shapeFlashSaleProduct({
-    product,
-    campaign: buildFlashSaleContext(flashSaleRow),
-    item: buildFlashSaleItem(flashSaleRow)
-  })
+async function buildProductsWithSkus(db: D1Database, rows: any[], options?: { includeInactiveSkus?: boolean }) {
+  const skuMap = await loadProductSkusByProductIds(
+    db,
+    rows.map((row: any) => row.id),
+    options?.includeInactiveSkus ? { includeInactive: true } : undefined
+  )
+  const activeFlashSaleRows = await loadActiveFlashSaleProductMap(db, rows.map((row: any) => row.id))
+  return rows.map((row: any) => attachSkuStateToProduct(
+    shapeFlashSaleProduct({ product: row }),
+    skuMap.get(Number(row.id)) || [],
+    activeFlashSaleRows
+  ))
 }
 
 export function registerProductRoutes(app: Hono<{ Bindings: AppBindings }>, deps: ProductRouteDeps) {
@@ -95,10 +83,9 @@ export function registerProductRoutes(app: Hono<{ Bindings: AppBindings }>, deps
         `SELECT * FROM products WHERE is_active = 1 ORDER BY created_at DESC`
       ).all()
       const rows = result.results || []
-      const activeFlashSaleRows = await loadActiveFlashSaleProductMap(c.env.DB, rows.map((row: any) => row.id))
       return c.json({
         success: true,
-        data: rows.map((row: any) => shapeProductWithFlashSale(row, activeFlashSaleRows.get(Number(row.id))))
+        data: await buildProductsWithSkus(c.env.DB, rows)
       })
     } catch (e: any) {
       return c.json({ success: false, error: e.message }, 500)
@@ -111,12 +98,11 @@ export function registerProductRoutes(app: Hono<{ Bindings: AppBindings }>, deps
       const id = c.req.param('id')
       const row = await c.env.DB.prepare(`SELECT * FROM products WHERE id = ?`).bind(id).first()
       if (!row) return c.json({ success: false, error: 'Not found' }, 404)
-      const flashSaleRows = await loadActiveFlashSaleProductMap(c.env.DB, [id])
-      const activeFlashSaleRow = flashSaleRows.get(Number(id))
+      const [shaped] = await buildProductsWithSkus(c.env.DB, [row])
       return c.json({
         success: true,
         data: {
-          ...shapeProductWithFlashSale(row, activeFlashSaleRow),
+          ...shaped,
           color_options: parseColorOptions((row as any).colors),
           color_names: compactColorNamesJson((row as any).colors)
         }
@@ -132,6 +118,7 @@ export function registerProductRoutes(app: Hono<{ Bindings: AppBindings }>, deps
       const id = c.req.param('id')
       const row = await c.env.DB.prepare(`SELECT * FROM products WHERE id = ?`).bind(id).first()
       if (!row) return c.json({ success: false, error: 'Không tìm thấy sản phẩm' }, 404)
+      const skuMap = await loadProductSkusByProductIds(c.env.DB, [id], { includeInactive: true })
       const images = (() => {
         try {
           const parsed = JSON.parse(String((row as any).images || '[]'))
@@ -154,6 +141,8 @@ export function registerProductRoutes(app: Hono<{ Bindings: AppBindings }>, deps
           ...row,
           image_list: images,
           size_list: sizes,
+          skus: skuMap.get(Number(id)) || [],
+          product_skus: skuMap.get(Number(id)) || [],
           color_options: parseColorOptions((row as any).colors),
           color_names: compactColorNamesJson((row as any).colors)
         }
@@ -170,12 +159,18 @@ export function registerProductRoutes(app: Hono<{ Bindings: AppBindings }>, deps
         `SELECT id, name, description, price, original_price, category, brand, material, thumbnail, colors, sizes, stock, is_active, is_featured, is_trending, trending_order, created_at, updated_at, display_order
          FROM products ORDER BY created_at DESC`
       ).all()
-      const rows = (result.results || []).map((row: any) => ({
-        ...row,
-        colors: compactColorNamesJson(row.colors),
-        color_names: compactColorNamesJson(row.colors)
-      }))
-      return c.json({ success: true, data: rows })
+      const rows = result.results || []
+      const skuMap = await loadProductSkusByProductIds(c.env.DB, rows.map((row: any) => row.id), { includeInactive: true })
+      return c.json({
+        success: true,
+        data: rows.map((row: any) => ({
+          ...row,
+          colors: compactColorNamesJson(row.colors),
+          color_names: compactColorNamesJson(row.colors),
+          skus: skuMap.get(Number(row.id)) || [],
+          product_skus: skuMap.get(Number(row.id)) || []
+        }))
+      })
     } catch (e: any) {
       return c.json({ success: false, error: e.message }, 500)
     }
@@ -202,7 +197,7 @@ export function registerProductRoutes(app: Hono<{ Bindings: AppBindings }>, deps
       }
 
       const result = await c.env.DB.prepare(`
-        INSERT INTO products 
+        INSERT INTO products
           (name, description, price, original_price, category, brand, material, thumbnail, images, colors, sizes, stock, is_featured, is_trending, trending_order)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).bind(
@@ -223,7 +218,11 @@ export function registerProductRoutes(app: Hono<{ Bindings: AppBindings }>, deps
         parseInt(trending_order) || 0
       ).run()
 
-      return c.json({ success: true, id: result.meta.last_row_id })
+      const createdId = result.meta.last_row_id
+      const created = await c.env.DB.prepare(`SELECT * FROM products WHERE id = ?`).bind(createdId).first()
+      if (created) await syncProductSkus(c.env.DB, created as any)
+
+      return c.json({ success: true, id: createdId })
     } catch (e: any) {
       return c.json({ success: false, error: e.message }, 500)
     }
@@ -231,6 +230,7 @@ export function registerProductRoutes(app: Hono<{ Bindings: AppBindings }>, deps
 
   app.put('/api/admin/products/:id', async (c) => {
     try {
+      await deps.initDB(c.env.DB)
       const id = c.req.param('id')
       const body = await c.req.json()
       const {
@@ -273,6 +273,9 @@ export function registerProductRoutes(app: Hono<{ Bindings: AppBindings }>, deps
         id
       ).run()
 
+      const updated = await c.env.DB.prepare(`SELECT * FROM products WHERE id = ?`).bind(id).first()
+      if (updated) await syncProductSkus(c.env.DB, updated as any)
+
       return c.json({ success: true })
     } catch (e: any) {
       return c.json({ success: false, error: e.message }, 500)
@@ -296,6 +299,8 @@ export function registerProductRoutes(app: Hono<{ Bindings: AppBindings }>, deps
         UPDATE products SET is_active = CASE WHEN is_active=1 THEN 0 ELSE 1 END,
         updated_at=CURRENT_TIMESTAMP WHERE id=?
       `).bind(id).run()
+      const updated = await c.env.DB.prepare(`SELECT * FROM products WHERE id = ?`).bind(id).first()
+      if (updated) await syncProductSkus(c.env.DB, updated as any)
       return c.json({ success: true })
     } catch (e: any) {
       return c.json({ success: false, error: e.message }, 500)
@@ -325,7 +330,7 @@ export function registerProductRoutes(app: Hono<{ Bindings: AppBindings }>, deps
       const res = await c.env.DB.prepare(
         `SELECT * FROM products WHERE is_active=1 AND is_featured=1 ORDER BY display_order ASC, id DESC`
       ).all()
-      return c.json({ success: true, data: res.results || [] })
+      return c.json({ success: true, data: await buildProductsWithSkus(c.env.DB, res.results || []) })
     } catch (e: any) {
       return c.json({ success: false, error: e.message }, 500)
     }
@@ -342,7 +347,7 @@ export function registerProductRoutes(app: Hono<{ Bindings: AppBindings }>, deps
            datetime(updated_at) DESC,
            id DESC`
       ).all()
-      return c.json({ success: true, data: res.results || [] })
+      return c.json({ success: true, data: await buildProductsWithSkus(c.env.DB, res.results || []) })
     } catch (e: any) {
       return c.json({ success: false, error: e.message }, 500)
     }

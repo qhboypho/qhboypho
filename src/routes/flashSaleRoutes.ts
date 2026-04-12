@@ -1,6 +1,9 @@
 import type { Hono } from 'hono'
 import type { AppBindings } from '../types/app'
-import { getFlashSaleStatus, loadActiveFlashSaleProductMap, shapeFlashSaleProduct } from '../lib/flashSaleHelpers.ts'
+import { getFlashSaleStatus } from '../lib/flashSaleHelpers.ts'
+import { attachSkuStateToProduct } from '../lib/productFlashSaleView.ts'
+import { loadActiveFlashSaleProductMap, shapeFlashSaleProduct } from '../lib/flashSaleHelpers.ts'
+import { loadProductSkusByProductIds } from '../lib/productSkuHelpers.ts'
 
 type FlashSaleRouteDeps = {
   initDB: (db: D1Database) => Promise<void>
@@ -8,6 +11,7 @@ type FlashSaleRouteDeps = {
 
 type FlashSaleCreateItemInput = {
   product_id?: number | string | null
+  product_sku_id?: number | string | null
   sale_price?: number | string | null
   discount_percent?: number | string | null
   purchase_limit?: number | string | null
@@ -82,12 +86,13 @@ function normalizeCreateItems(items: FlashSaleCreateItemInput[] | undefined) {
   return items
     .map((item) => ({
       product_id: normalizeMaybeNumber(item.product_id),
+      product_sku_id: normalizeMaybeNumber(item.product_sku_id),
       sale_price: normalizeMaybeNumber(item.sale_price),
       discount_percent: normalizeMaybeNumber(item.discount_percent),
       purchase_limit: Math.max(0, Math.floor(normalizeMaybeNumber(item.purchase_limit) ?? 0)),
       is_enabled: normalizeBooleanFlag(item.is_enabled)
     }))
-    .filter((item) => item.product_id !== null)
+    .filter((item) => item.product_sku_id !== null)
 }
 
 function validateFlashSalePayload(body: FlashSaleCreateBody): { ok: true; data: FlashSalePayload } | { ok: false; error: string } {
@@ -99,11 +104,11 @@ function validateFlashSalePayload(body: FlashSaleCreateBody): { ok: true; data: 
   if (!name) return { ok: false, error: 'Tên flashsale là bắt buộc' }
   if (!startAt || !endAt) return { ok: false, error: 'Thời gian bắt đầu/kết thúc không hợp lệ' }
   if (Date.parse(endAt) <= Date.parse(startAt)) return { ok: false, error: 'Thời gian kết thúc phải sau thời gian bắt đầu' }
-  if (items.length === 0) return { ok: false, error: 'Vui lòng chọn ít nhất 1 sản phẩm' }
+  if (items.length === 0) return { ok: false, error: 'Vui lòng chọn ít nhất 1 SKU' }
 
   for (const item of items) {
     if (item.sale_price === null && item.discount_percent === null) {
-      return { ok: false, error: 'Mỗi sản phẩm phải có giá flashsale hoặc % giảm' }
+      return { ok: false, error: 'Mỗi SKU phải có giá flashsale hoặc % giảm' }
     }
     if (item.sale_price !== null && item.sale_price <= 0) {
       return { ok: false, error: 'Giá flashsale phải lớn hơn 0' }
@@ -116,7 +121,7 @@ function validateFlashSalePayload(body: FlashSaleCreateBody): { ok: true; data: 
   return { ok: true, data: { name, startAt, endAt, items } }
 }
 
-function buildCampaignSummary(campaign: FlashSaleListRow & { id: number }, itemRows: Array<{ product_id: number }>, status = getFlashSaleStatus(campaign)) {
+function buildCampaignSummary(campaign: FlashSaleListRow & { id: number }, itemRows: Array<{ product_id: number; is_enabled?: number | string }>, status = getFlashSaleStatus(campaign)) {
   const productCount = new Set(itemRows.map((item) => item.product_id).filter((value) => value !== null && value !== undefined)).size
   return {
     id: campaign.id,
@@ -131,7 +136,7 @@ function buildCampaignSummary(campaign: FlashSaleListRow & { id: number }, itemR
     status_label: status.label,
     product_count: productCount,
     item_count: itemRows.length,
-    enabled_item_count: itemRows.filter((item: any) => normalizeBooleanFlag(item.is_enabled) === 1).length
+    enabled_item_count: itemRows.filter((item) => normalizeBooleanFlag(item.is_enabled) === 1).length
   }
 }
 
@@ -157,6 +162,29 @@ function mapCampaignRow(row: FlashSaleListRow) {
     item_count: normalizeNumber(row.item_count),
     enabled_item_count: normalizeNumber(row.enabled_item_count)
   }
+}
+
+async function loadSkuOwnership(db: D1Database, skuIds: number[]) {
+  if (!skuIds.length) return new Map<number, { id: number; product_id: number }>()
+  const placeholders = skuIds.map(() => '?').join(', ')
+  const rows = await db.prepare(
+    `SELECT id, product_id FROM product_skus WHERE id IN (${placeholders}) AND is_active = 1`
+  ).bind(...skuIds).all() as { results?: Array<{ id: number; product_id: number }> }
+  return new Map((rows.results || []).map((row) => [Number(row.id), { id: Number(row.id), product_id: Number(row.product_id) }]))
+}
+
+async function buildActiveFlashSaleProducts(db: D1Database) {
+  const productRes = await db.prepare(`SELECT * FROM products WHERE is_active = 1 ORDER BY created_at DESC`).all()
+  const rows = productRes.results || []
+  const skuMap = await loadProductSkusByProductIds(db, rows.map((row: any) => row.id))
+  const activeFlashSaleMap = await loadActiveFlashSaleProductMap(db, rows.map((row: any) => row.id))
+  return rows
+    .map((product: any) => attachSkuStateToProduct(
+      shapeFlashSaleProduct({ product }),
+      skuMap.get(Number(product.id)) || [],
+      activeFlashSaleMap
+    ))
+    .filter((product: any) => product.has_flash_sale)
 }
 
 export function registerFlashSaleRoutes(app: Hono<{ Bindings: AppBindings }>, deps: FlashSaleRouteDeps) {
@@ -214,6 +242,7 @@ export function registerFlashSaleRoutes(app: Hono<{ Bindings: AppBindings }>, de
           fsi.id,
           fsi.flash_sale_id,
           fsi.product_id,
+          fsi.product_sku_id,
           fsi.sale_price,
           fsi.discount_percent,
           fsi.purchase_limit,
@@ -223,11 +252,19 @@ export function registerFlashSaleRoutes(app: Hono<{ Bindings: AppBindings }>, de
           p.name AS product_name,
           p.thumbnail AS product_thumbnail,
           p.price AS product_price,
-          p.original_price AS product_original_price
+          p.original_price AS product_original_price,
+          ps.sku_code,
+          ps.color AS sku_color,
+          ps.size AS sku_size,
+          ps.image AS sku_image,
+          ps.price AS sku_price,
+          ps.original_price AS sku_original_price,
+          ps.stock AS sku_stock
         FROM flash_sale_items fsi
         LEFT JOIN products p ON p.id = fsi.product_id
+        LEFT JOIN product_skus ps ON ps.id = fsi.product_sku_id
         WHERE fsi.flash_sale_id = ?
-        ORDER BY fsi.id ASC
+        ORDER BY p.id ASC, fsi.id ASC
       `).bind(id).all()
 
       const status = getFlashSaleStatus(campaign)
@@ -260,20 +297,15 @@ export function registerFlashSaleRoutes(app: Hono<{ Bindings: AppBindings }>, de
       }
       const { name, startAt, endAt, items } = validation.data
 
-      const uniqueProductIds = [...new Set(items.map((item) => item.product_id).filter((value): value is number => typeof value === 'number'))]
-      if (uniqueProductIds.length !== items.length) {
-        return c.json({ success: false, error: 'Sản phẩm trong flashsale không được trùng nhau' }, 400)
+      const uniqueSkuIds = [...new Set(items.map((item) => item.product_sku_id).filter((value): value is number => typeof value === 'number'))]
+      if (uniqueSkuIds.length !== items.length) {
+        return c.json({ success: false, error: 'SKU trong flashsale không được trùng nhau' }, 400)
       }
 
-      const placeholders = uniqueProductIds.map(() => '?').join(', ')
-      const productRows = await c.env.DB.prepare(
-        `SELECT id FROM products WHERE id IN (${placeholders}) AND is_active = 1`
-      ).bind(...uniqueProductIds).all() as { results?: Array<{ id: number }> }
-
-      const existingIds = new Set((productRows.results || []).map((row) => row.id))
-      const missingIds = uniqueProductIds.filter((id) => !existingIds.has(id))
+      const skuOwnership = await loadSkuOwnership(c.env.DB, uniqueSkuIds)
+      const missingIds = uniqueSkuIds.filter((id) => !skuOwnership.has(id))
       if (missingIds.length > 0) {
-        return c.json({ success: false, error: `Sản phẩm không hợp lệ: ${missingIds.join(', ')}` }, 400)
+        return c.json({ success: false, error: `SKU không hợp lệ: ${missingIds.join(', ')}` }, 400)
       }
 
       const campaignInsert = await c.env.DB.prepare(`
@@ -283,12 +315,15 @@ export function registerFlashSaleRoutes(app: Hono<{ Bindings: AppBindings }>, de
 
       const campaignId = Number(campaignInsert?.meta?.last_row_id)
       for (const item of items) {
+        const owner = skuOwnership.get(Number(item.product_sku_id))
+        const productId = owner?.product_id ?? Number(item.product_id)
         await c.env.DB.prepare(`
-          INSERT INTO flash_sale_items (flash_sale_id, product_id, sale_price, discount_percent, purchase_limit, is_enabled)
-          VALUES (?, ?, ?, ?, ?, ?)
+          INSERT INTO flash_sale_items (flash_sale_id, product_id, product_sku_id, sale_price, discount_percent, purchase_limit, is_enabled)
+          VALUES (?, ?, ?, ?, ?, ?, ?)
         `).bind(
           campaignId,
-          item.product_id,
+          productId,
+          item.product_sku_id,
           item.sale_price,
           item.discount_percent,
           item.purchase_limit,
@@ -298,7 +333,7 @@ export function registerFlashSaleRoutes(app: Hono<{ Bindings: AppBindings }>, de
 
       const createdCampaign = await c.env.DB.prepare(`SELECT * FROM flash_sales WHERE id = ?`).bind(campaignId).first() as any
       const createdItems = await c.env.DB.prepare(`
-        SELECT id, flash_sale_id, product_id, sale_price, discount_percent, purchase_limit, is_enabled
+        SELECT id, flash_sale_id, product_id, product_sku_id, sale_price, discount_percent, purchase_limit, is_enabled
         FROM flash_sale_items
         WHERE flash_sale_id = ?
         ORDER BY id ASC
@@ -347,20 +382,15 @@ export function registerFlashSaleRoutes(app: Hono<{ Bindings: AppBindings }>, de
       }
       const { name, startAt, endAt, items } = validation.data
 
-      const uniqueProductIds = [...new Set(items.map((item) => item.product_id).filter((value): value is number => typeof value === 'number'))]
-      if (uniqueProductIds.length !== items.length) {
-        return c.json({ success: false, error: 'Sản phẩm trong flashsale không được trùng nhau' }, 400)
+      const uniqueSkuIds = [...new Set(items.map((item) => item.product_sku_id).filter((value): value is number => typeof value === 'number'))]
+      if (uniqueSkuIds.length !== items.length) {
+        return c.json({ success: false, error: 'SKU trong flashsale không được trùng nhau' }, 400)
       }
 
-      const placeholders = uniqueProductIds.map(() => '?').join(', ')
-      const productRows = await c.env.DB.prepare(
-        `SELECT id FROM products WHERE id IN (${placeholders}) AND is_active = 1`
-      ).bind(...uniqueProductIds).all() as { results?: Array<{ id: number }> }
-
-      const existingIds = new Set((productRows.results || []).map((row) => row.id))
-      const missingIds = uniqueProductIds.filter((productId) => !existingIds.has(productId))
+      const skuOwnership = await loadSkuOwnership(c.env.DB, uniqueSkuIds)
+      const missingIds = uniqueSkuIds.filter((skuId) => !skuOwnership.has(skuId))
       if (missingIds.length > 0) {
-        return c.json({ success: false, error: `Sản phẩm không hợp lệ: ${missingIds.join(', ')}` }, 400)
+        return c.json({ success: false, error: `SKU không hợp lệ: ${missingIds.join(', ')}` }, 400)
       }
 
       await c.env.DB.prepare(`
@@ -372,12 +402,15 @@ export function registerFlashSaleRoutes(app: Hono<{ Bindings: AppBindings }>, de
       await c.env.DB.prepare(`DELETE FROM flash_sale_items WHERE flash_sale_id = ?`).bind(id).run()
 
       for (const item of items) {
+        const owner = skuOwnership.get(Number(item.product_sku_id))
+        const productId = owner?.product_id ?? Number(item.product_id)
         await c.env.DB.prepare(`
-          INSERT INTO flash_sale_items (flash_sale_id, product_id, sale_price, discount_percent, purchase_limit, is_enabled)
-          VALUES (?, ?, ?, ?, ?, ?)
+          INSERT INTO flash_sale_items (flash_sale_id, product_id, product_sku_id, sale_price, discount_percent, purchase_limit, is_enabled)
+          VALUES (?, ?, ?, ?, ?, ?, ?)
         `).bind(
           id,
-          item.product_id,
+          productId,
+          item.product_sku_id,
           item.sale_price,
           item.discount_percent,
           item.purchase_limit,
@@ -391,6 +424,7 @@ export function registerFlashSaleRoutes(app: Hono<{ Bindings: AppBindings }>, de
           fsi.id,
           fsi.flash_sale_id,
           fsi.product_id,
+          fsi.product_sku_id,
           fsi.sale_price,
           fsi.discount_percent,
           fsi.purchase_limit,
@@ -400,11 +434,19 @@ export function registerFlashSaleRoutes(app: Hono<{ Bindings: AppBindings }>, de
           p.name AS product_name,
           p.thumbnail AS product_thumbnail,
           p.price AS product_price,
-          p.original_price AS product_original_price
+          p.original_price AS product_original_price,
+          ps.sku_code,
+          ps.color AS sku_color,
+          ps.size AS sku_size,
+          ps.image AS sku_image,
+          ps.price AS sku_price,
+          ps.original_price AS sku_original_price,
+          ps.stock AS sku_stock
         FROM flash_sale_items fsi
         LEFT JOIN products p ON p.id = fsi.product_id
+        LEFT JOIN product_skus ps ON ps.id = fsi.product_sku_id
         WHERE fsi.flash_sale_id = ?
-        ORDER BY fsi.id ASC
+        ORDER BY p.id ASC, fsi.id ASC
       `).bind(id).all() as { results?: Array<any> }
 
       const summary = buildCampaignSummary(updatedCampaign, updatedItems.results || [])
@@ -461,33 +503,7 @@ export function registerFlashSaleRoutes(app: Hono<{ Bindings: AppBindings }>, de
   app.get('/api/flash-sales/active-products', async (c) => {
     try {
       await deps.initDB(c.env.DB)
-      const productRes = await c.env.DB.prepare(`
-        SELECT * FROM products WHERE is_active = 1 ORDER BY created_at DESC
-      `).all()
-      const products = productRes.results || []
-      const activeFlashSaleMap = await loadActiveFlashSaleProductMap(c.env.DB, products.map((row: any) => row.id))
-      const data = products
-        .map((product: any) => {
-          const flashSaleRow = activeFlashSaleMap.get(Number(product.id))
-          return shapeFlashSaleProduct({
-            product,
-            campaign: flashSaleRow ? {
-              id: flashSaleRow.flash_sale_id,
-              name: flashSaleRow.flash_sale_name,
-              start_at: flashSaleRow.flash_sale_start_at,
-              end_at: flashSaleRow.flash_sale_end_at,
-              is_active: flashSaleRow.flash_sale_is_active
-            } : null,
-            item: flashSaleRow ? {
-              sale_price: flashSaleRow.flash_sale_sale_price,
-              discount_percent: flashSaleRow.flash_sale_discount_percent,
-              purchase_limit: flashSaleRow.flash_sale_purchase_limit,
-              is_enabled: flashSaleRow.flash_sale_is_enabled
-            } : null
-          })
-        })
-        .filter((product: any) => product.has_flash_sale)
-      return c.json({ success: true, data })
+      return c.json({ success: true, data: await buildActiveFlashSaleProducts(c.env.DB) })
     } catch (e: any) {
       return c.json({ success: false, error: e.message }, 500)
     }
