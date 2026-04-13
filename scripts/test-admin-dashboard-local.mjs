@@ -46,16 +46,16 @@ const dashboardHtml = await dashboardRes.text()
 assert.match(dashboardHtml, /Dashboard/i, 'Expected dashboard HTML to include Dashboard heading')
 
 const scripts = extractInlineScripts(dashboardHtml)
-assert.ok(scripts.length > 0, 'Expected dashboard HTML to contain inline scripts')
+assert.ok(scripts.length >= 5, `Expected admin dashboard HTML to contain split inline scripts, got ${scripts.length}`)
 
-const longestScript = scripts.sort((a, b) => b.length - a.length)[0]
-assert.ok(longestScript.length > 1000, 'Expected main admin inline script to be present')
-
-try {
-  new Function(longestScript)
-} catch (error) {
-  assert.fail(`Admin dashboard inline script syntax error: ${error.message}`)
-}
+scripts.forEach((scriptSource, index) => {
+  assert.ok(scriptSource.trim().length > 0, `Expected inline script #${index + 1} to be non-empty`)
+  try {
+    new Function(scriptSource)
+  } catch (error) {
+    assert.fail(`Admin dashboard inline script #${index + 1} syntax error: ${error.message}`)
+  }
+})
 
 const statsRes = await fetch(`${baseUrl}/api/admin/stats`, {
   headers: { cookie: cookieHeader },

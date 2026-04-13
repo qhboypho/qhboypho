@@ -1,6 +1,3 @@
-import { adminOrdersScript } from './script-orders'
-import { adminFeaturedSettingsScript } from './script-featured-settings'
-import { adminFlashSaleScript } from './script-flashsale'
 export function adminInlineScript(): string {
   return `// â”€â”€ STATE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 let adminProducts = []
@@ -573,10 +570,6 @@ function openFlashSaleAdmin() {
   setSettingsSubmenuOpen(false)
   showPage('flashsale')
 }
-
-${adminFlashSaleScript()}
-
-${adminFeaturedSettingsScript()}
 
 async function loadDashboard() {
   try {
@@ -1244,9 +1237,6 @@ function addPresetSizes(arr) {
   renderTags('size')
 }
 
-// â”€â”€ ORDERS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-${adminOrdersScript()}
-
 async function loadVouchers() {
   const list = document.getElementById('voucherList')
   list.innerHTML = '<div class="text-center py-8 text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></div>'
@@ -1480,7 +1470,11 @@ function showAdminToast(msg, type='success') {
   setTimeout(() => { t.style.opacity='0'; t.style.transform='translateX(100%)'; t.style.transition='all 0.3s'; setTimeout(()=>t.remove(),300) }, 3000)
 }
 
-// â”€â”€ ESC key handler - close any open modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+`
+}
+
+export function adminBootstrapScript(): string {
+  return `// â”€â”€ ESC key handler - close any open modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') {
     const modals = ['productModal', 'orderDetailModal', 'arrangeSuccessModal', 'createFlashSaleModal']
@@ -1493,12 +1487,10 @@ document.addEventListener('keydown', function(e) {
     closeChangeAdminPasswordModal()
     closeAdminAvatarMenu()
     document.body.style.overflow = ''
-    // Also close sidebar overlay if open
     closeMobileSidebar()
   }
 })
 
-// â”€â”€ Safety: ensure all modals start hidden on page load â”€â”€
 document.addEventListener('DOMContentLoaded', function() {
   scheduleAdminOverlaySanitize()
   syncOrdersHeaderSearchUI()
@@ -1512,7 +1504,6 @@ document.addEventListener('DOMContentLoaded', function() {
   document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') closeOrdersHeaderSearch()
   })
-
   document.addEventListener('click', function(e) {
     const target = e.target
     if (!target) return
@@ -1524,7 +1515,6 @@ document.addEventListener('DOMContentLoaded', function() {
   })
 })
 
-// Init
 async function initAdminAuth() {
   scheduleAdminOverlaySanitize()
   try {
@@ -1536,7 +1526,6 @@ async function initAdminAuth() {
     adminProfile = res.data?.data || null
     applyAdminAvatarUI()
   } catch (e) {
-    // 401 or error â†’ redirect to login
     window.location.replace('/admin/login')
     return
   }
@@ -1544,6 +1533,7 @@ async function initAdminAuth() {
   showPage('dashboard')
   scheduleAdminOverlaySanitize()
 }
+
 initAdminAuth()
 `
 }

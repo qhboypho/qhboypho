@@ -16,7 +16,10 @@ import {
   adminBodyClose,
 } from './admin/sections'
 import { adminModalsSection } from './admin/modals'
-import { adminInlineScript } from './admin/script'
+import { adminInlineScript, adminBootstrapScript } from './admin/script'
+import { adminOrdersScript } from './admin/script-orders'
+import { adminFeaturedSettingsScript } from './admin/script-featured-settings'
+import { adminFlashSaleScript } from './admin/script-flashsale'
 
 export function adminHTML(): string {
   return `<!DOCTYPE html>
@@ -62,6 +65,18 @@ ${adminModalsSection()}
 
 <script>
 ${adminInlineScript()}
+</script>
+<script>
+${adminOrdersScript()}
+</script>
+<script>
+${adminFlashSaleScript()}
+</script>
+<script>
+${adminFeaturedSettingsScript()}
+</script>
+<script>
+${adminBootstrapScript()}
 </script>
 ${adminBodyClose()}
 </html>`
