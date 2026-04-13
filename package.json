@@ -15,6 +15,7 @@
     "test:payos-local": "node scripts/test-payos-local.mjs",
     "test:zalopay-local": "node scripts/test-zalopay-local.mjs",
     "test:initdb-noop": "node --experimental-strip-types scripts/test-initdb-noop-contract.mjs",
+    "test:admin-dashboard-local": "node scripts/test-admin-dashboard-local.mjs",
     "check:ui-safety": "node scripts/check-ui-safety.mjs"
   },
   "dependencies": {

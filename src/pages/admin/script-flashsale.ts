@@ -220,7 +220,7 @@ function flashSaleRenderSkuRow(item) {
           '<div class="flex items-center justify-center">' +
             '<label class="relative inline-flex cursor-pointer items-center">' +
               '<input type="checkbox" data-flash-sale-enabled-checkbox ' + (enabled ? 'checked' : '') + ' onchange="toggleFlashSaleSelectedItemEnabled(' + item.product_sku_id + ', this.checked)" class="peer sr-only">' +
-              '<span class="h-6 w-11 rounded-full bg-slate-200 transition peer-checked:bg-emerald-500 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-100 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all after:content-[\'\'] peer-checked:after:translate-x-5"></span>' +
+              '<span class="h-6 w-11 rounded-full bg-slate-200 transition peer-checked:bg-emerald-500 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-100 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all after:content-[\\\'\\\'] peer-checked:after:translate-x-5"></span>' +
             '</label>' +
           '</div>' +
         '</td>' +
