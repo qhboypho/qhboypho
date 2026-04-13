@@ -56,9 +56,16 @@ const allScriptSource = scripts.join('\n')
   'showPage',
   'openProductModal',
   'closeProductModal',
+  'openChangeAdminPasswordModal',
+  'showOrderDetail',
+  'closeOrderDetailModal',
+  'openArrangeSuccessModal',
+  'copyCode',
   'openFlashSaleCreateModal',
   'closeFlashSaleCreateModal',
   'openFlashSaleProductPickerModal',
+  'openFlashSaleEditModal',
+  'openFlashSaleDuplicateModal',
 ].forEach((fnName) => {
   assert.match(
     allScriptSource,

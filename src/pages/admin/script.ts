@@ -35,6 +35,14 @@ function forceHideAdminOverlay(el) {
   el.style.pointerEvents = 'none'
 }
 
+function showAdminOverlay(el, displayMode = 'flex') {
+  if (!el) return
+  el.style.display = displayMode
+  el.style.pointerEvents = ''
+  el.classList.remove('hidden')
+  if (displayMode === 'flex') el.classList.add('flex')
+}
+
 // NAVIGATION
 function isAdminOverlayDebugEnabled() {
   const host = String(window.location.hostname || '')
@@ -195,14 +203,14 @@ function scheduleAdminOverlaySanitize() {
 
 function openChangeAdminPasswordModal() {
   const modal = document.getElementById('adminChangePasswordModal')
-  if (modal) modal.style.display = 'flex'
+  showAdminOverlay(modal)
   const oldInput = document.getElementById('adminOldPassword')
   if (oldInput) setTimeout(() => oldInput.focus(), 0)
 }
 
 function closeChangeAdminPasswordModal() {
   const modal = document.getElementById('adminChangePasswordModal')
-  if (modal) modal.style.display = 'none'
+  forceHideAdminOverlay(modal)
   const formIds = ['adminOldPassword', 'adminNewPassword', 'adminConfirmPassword']
   formIds.forEach((id) => {
     const el = document.getElementById(id)
@@ -828,12 +836,12 @@ async function openProductModal(id = null) {
     }
   }
   
-  document.getElementById('productModal').classList.remove('hidden')
+  showAdminOverlay(document.getElementById('productModal'))
   document.body.style.overflow = 'hidden'
 }
 
 function closeProductModal() {
-  document.getElementById('productModal').classList.add('hidden')
+  forceHideAdminOverlay(document.getElementById('productModal'))
   document.body.style.overflow = ''
   editingId = null
 }

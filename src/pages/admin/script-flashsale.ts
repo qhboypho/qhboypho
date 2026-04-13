@@ -380,8 +380,7 @@ function renderFlashSaleProductPicker() {
 function openFlashSaleProductPickerModal() {
   const modal = document.getElementById('flashSaleProductPickerModal')
   if (!modal) return
-  modal.classList.remove('hidden')
-  modal.classList.add('flex')
+  showAdminOverlay(modal)
   document.body.style.overflow = 'hidden'
   if (!flashSaleProductPickerItems.length) {
     loadFlashSaleProductPickerProducts()
@@ -397,10 +396,7 @@ function openFlashSaleProductPickerModal() {
 function closeFlashSaleProductPickerModal(event) {
   if (event && event.target && event.currentTarget && event.target !== event.currentTarget) return
   const modal = document.getElementById('flashSaleProductPickerModal')
-  if (modal) {
-    modal.classList.add('hidden')
-    modal.classList.remove('flex')
-  }
+  forceHideAdminOverlay(modal)
   if (!document.querySelector('.modal-overlay:not(.hidden)')) document.body.style.overflow = ''
 }
 
@@ -597,8 +593,7 @@ function openFlashSaleCreateModal() {
   if (!modal) return
   resetFlashSaleCreateForm()
   flashSaleSyncModalMode()
-  modal.classList.remove('hidden')
-  modal.classList.add('flex')
+  showAdminOverlay(modal)
   document.body.style.overflow = 'hidden'
   renderFlashSaleSelectedItems()
   loadFlashSaleProductPickerProducts()
@@ -608,8 +603,7 @@ async function openFlashSaleEditModal(id) {
   const modal = document.getElementById('createFlashSaleModal')
   if (!modal) return
   resetFlashSaleCreateForm()
-  modal.classList.remove('hidden')
-  modal.classList.add('flex')
+  showAdminOverlay(modal)
   document.body.style.overflow = 'hidden'
   flashSaleSetCreateSubmitState(true)
   try {
@@ -630,8 +624,7 @@ async function openFlashSaleDuplicateModal(id) {
   const modal = document.getElementById('createFlashSaleModal')
   if (!modal) return
   resetFlashSaleCreateForm()
-  modal.classList.remove('hidden')
-  modal.classList.add('flex')
+  showAdminOverlay(modal)
   document.body.style.overflow = 'hidden'
   flashSaleSetCreateSubmitState(true)
   try {
@@ -651,10 +644,7 @@ async function openFlashSaleDuplicateModal(id) {
 function closeFlashSaleCreateModal(event) {
   if (event && event.target && event.currentTarget && event.target !== event.currentTarget) return
   const modal = document.getElementById('createFlashSaleModal')
-  if (modal) {
-    modal.classList.add('hidden')
-    modal.classList.remove('flex')
-  }
+  forceHideAdminOverlay(modal)
   closeFlashSaleProductPickerModal()
   if (!document.querySelector('.modal-overlay:not(.hidden)')) document.body.style.overflow = ''
 }

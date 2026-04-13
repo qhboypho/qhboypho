@@ -560,13 +560,17 @@ function openArrangeSuccessModal(count, failedList) {
     }
   }
   const modal = document.getElementById('arrangeSuccessModal')
-  if (modal) modal.classList.remove('hidden')
+  showAdminOverlay(modal)
 }
 
 function closeArrangeSuccessModal() {
   const modal = document.getElementById('arrangeSuccessModal')
-  if (modal) modal.classList.add('hidden')
+  forceHideAdminOverlay(modal)
   arrangedFailedOrders = []
+}
+
+function closeOrderDetailModal() {
+  forceHideAdminOverlay(document.getElementById('orderDetailModal'))
 }
 
 function printArrangedOrdersFromModal() {
@@ -712,7 +716,7 @@ function showOrderDetail(id) {
     \${o.note ? \`<div class="bg-yellow-50 rounded-xl p-3"><p class="text-xs text-gray-500">Ghi chú</p><p class="text-sm">\${o.note}</p></div>\` : ''}
     <p class="text-xs text-gray-400 text-right">Đặt lúc: \${new Date(o.created_at).toLocaleString('vi-VN')}</p>
   </div>\`
-  document.getElementById('orderDetailModal').classList.remove('hidden')
+  showAdminOverlay(document.getElementById('orderDetailModal'))
 }
 
 // ── EXCEL EXPORT ──────────────────────────────────
