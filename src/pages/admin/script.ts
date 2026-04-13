@@ -219,29 +219,29 @@ async function submitAdminPasswordChange(e) {
   const newPassword = String(document.getElementById('adminNewPassword')?.value || '')
   const confirmPassword = String(document.getElementById('adminConfirmPassword')?.value || '')
   if (newPassword.length < 6) {
-    showAdminToast('Máº­t kháº©u má»›i tá»‘i thiá»ƒu 6 kÃ½ tá»±', 'error')
+    showAdminToast('Mật khẩu mới tối thiểu 6 ký tự', 'error')
     return
   }
   if (newPassword !== confirmPassword) {
-    showAdminToast('Nháº­p láº¡i máº­t kháº©u chÆ°a khá»›p', 'error')
+    showAdminToast('Nhập lại mật khẩu chưa khớp', 'error')
     return
   }
   const btn = document.getElementById('adminChangePasswordBtn')
   btn.disabled = true
-  btn.textContent = 'Äang cáº­p nháº­t...'
+  btn.textContent = 'Đang cập nhật...'
   try {
     await axios.put('/api/admin/profile/password', {
       old_password: oldPassword,
       new_password: newPassword
     })
-    showAdminToast('ÄÃ£ Ä‘á»•i máº­t kháº©u thÃ nh cÃ´ng', 'success')
+    showAdminToast('Đã đổi mật khẩu thành công', 'success')
     closeChangeAdminPasswordModal()
   } catch (err) {
-    const msg = err.response?.data?.error || 'Äá»•i máº­t kháº©u tháº¥t báº¡i'
+    const msg = err.response?.data?.error || 'Đổi mật khẩu thất bại'
     showAdminToast(msg, 'error')
   } finally {
     btn.disabled = false
-    btn.textContent = 'Cáº­p nháº­t máº­t kháº©u'
+    btn.textContent = 'Cập nhật mật khẩu'
   }
 }
 
@@ -300,7 +300,7 @@ async function onAdminAvatarSelected(inputOrEvent) {
 async function handleAdminAvatarFile(file) {
   const mimeType = String(file.type || '').toLowerCase()
   if (!mimeType.startsWith('image/')) {
-    showAdminToast('Vui lÃ²ng chá»n file áº£nh', 'error')
+    showAdminToast('Vui lòng chọn file ảnh', 'error')
     return
   }
   try {
@@ -310,11 +310,11 @@ async function handleAdminAvatarFile(file) {
     if (dataUrl.length > 700000) dataUrl = await compressAvatarDataUrl(rawDataUrl, 384, 0.75)
     if (dataUrl.length > 700000) dataUrl = await compressAvatarDataUrl(rawDataUrl, 320, 0.7)
     if (!dataUrl.startsWith('data:image/')) {
-      showAdminToast('File áº£nh khÃ´ng há»£p lá»‡', 'error')
+      showAdminToast('File ảnh không hợp lệ', 'error')
       return
     }
     if (dataUrl.length > 700000) {
-      showAdminToast('áº¢nh quÃ¡ lá»›n, vui lÃ²ng chá»n áº£nh nhá» hÆ¡n', 'error')
+      showAdminToast('Ảnh quá lớn, vui lòng chọn ảnh nhỏ hơn', 'error')
       return
     }
     const prevAvatar = String(adminProfile?.avatar || '').trim()
@@ -326,15 +326,15 @@ async function handleAdminAvatarFile(file) {
       applyAdminAvatarUI()
       applyAvatarSrcDirect(String(adminProfile?.avatar || dataUrl))
       loadAdminProfile()
-      showAdminToast('ÄÃ£ cáº­p nháº­t avatar', 'success')
+      showAdminToast('Đã cập nhật avatar', 'success')
     } catch (e) {
       adminProfile = { ...(adminProfile || {}), avatar: prevAvatar }
       applyAdminAvatarUI()
-      const msg = e.response?.data?.error || 'LÆ°u avatar tháº¥t báº¡i'
+      const msg = e.response?.data?.error || 'Lưu avatar thất bại'
       showAdminToast(msg, 'error')
     }
   } catch (_) {
-    showAdminToast('KhÃ´ng Ä‘á»c Ä‘Æ°á»£c áº£nh, vui lÃ²ng thá»­ láº¡i', 'error')
+    showAdminToast('Không đọc được ảnh, vui lòng thử lại', 'error')
   }
 }
 
@@ -457,7 +457,7 @@ function showPage(name) {
   if (marketingActiveSubPage) {
     document.querySelectorAll('.nav-sub-item[data-sub-page="' + marketingActiveSubPage + '"]').forEach(b => b.classList.add('active'))
   }
-  const titles = {dashboard:'Dashboard', products:'Quáº£n lÃ½ Sáº£n pháº©m', orders:'Quáº£n lÃ½ ÄÆ¡n hÃ ng', vouchers:'Quáº£n lÃ½ Voucher', featured:'Sáº£n pháº©m Ná»•i Báº­t', settings:'CÃ i Ä‘áº·t', 'settings-warehouse':'CÃ i Ä‘áº·t kho hÃ ng', flashsale:'Quáº£n lÃ½ Flashsale'}
+  const titles = {dashboard:'Dashboard', products:'Quản lý Sản phẩm', orders:'Quản lý Đơn hàng', vouchers:'Quản lý Voucher', featured:'Sản phẩm Nổi Bật', settings:'Cài đặt', 'settings-warehouse':'Cài đặt kho hàng', flashsale:'Quản lý Flashsale'}
   document.body.dataset.adminPage = name
   document.getElementById('pageTitle').textContent = titles[name] || name
 
@@ -632,7 +632,7 @@ async function loadAdminProducts() {
     renderAdminProducts(adminProducts)
   } catch(e) {
     if (e && e.response && e.response.status === 401) {
-      showAdminToast('PhiÃªn Ä‘Äƒng nháº­p Ä‘Ã£ háº¿t háº¡n, vui lÃ²ng Ä‘Äƒng nháº­p láº¡i', 'error')
+      showAdminToast('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại', 'error')
       setTimeout(() => { window.location.href = '/admin/login' }, 400)
       return
     }
@@ -657,13 +657,13 @@ function renderAdminProducts(products) {
   const grid = document.getElementById('adminProductsGrid')
   const safeProducts = (Array.isArray(products) ? products : []).filter(Boolean)
   if (!safeProducts.length) {
-    grid.innerHTML = '<div class="col-span-4 text-center py-12 text-gray-400"><i class="fas fa-box-open text-4xl mb-3"></i><p>KhÃ´ng cÃ³ sáº£n pháº©m</p></div>'
+    grid.innerHTML = '<div class="col-span-4 text-center py-12 text-gray-400"><i class="fas fa-box-open text-4xl mb-3"></i><p>Không có sản phẩm</p></div>'
     return
   }
   grid.innerHTML = safeProducts.map(raw => {
     try {
       const p = raw || {}
-      const name = String(p.name || 'Sáº£n pháº©m')
+      const name = String(p.name || 'Sản phẩm')
       const brand = String(p.brand || '').trim()
       const thumbnail = String(p.thumbnail || '').trim() || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'
       const colors = getProductColorOptions(p).map((c) => c.name).filter(Boolean)
@@ -692,12 +692,12 @@ function renderAdminProducts(products) {
         </div>
         \${colors.length ? \`<div class="flex flex-wrap gap-1 mb-2">\${colors.slice(0,3).map(c=>\`<span class="text-xs bg-pink-50 text-pink-600 px-2 py-0.5 rounded-full">\${c}</span>\`).join('')}\${colors.length>3?\`<span class="text-xs text-gray-400">+\${colors.length-3}</span>\`:''}</div>\` : ''}
         \${sizes.length ? \`<div class="flex flex-wrap gap-1 mb-3">\${sizes.slice(0,4).map(s=>\`<span class="text-xs border text-gray-600 px-1.5 py-0.5 rounded">\${s}</span>\`).join('')}\${sizes.length>4?\`<span class="text-xs text-gray-400">+\${sizes.length-4}</span>\`:''}</div>\` : ''}
-        <p class="text-xs text-gray-400 mb-3">Tá»“n kho: <span class="font-semibold text-gray-700">\${p.stock || 0}</span></p>
+        <p class="text-xs text-gray-400 mb-3">Tồn kho: <span class="font-semibold text-gray-700">\${p.stock || 0}</span></p>
         <div class="flex gap-2">
           <button onclick="openProductModal(\${p.id})" class="flex-1 py-2 border-2 border-pink-200 text-pink-600 rounded-xl text-xs font-semibold hover:bg-pink-50 transition">
-            <i class="fas fa-edit mr-1"></i>Sá»­a
+            <i class="fas fa-edit mr-1"></i>Sửa
           </button>
-          <button onclick="toggleProductActive(\${p.id})" class="py-2 px-3 border-2 border-gray-200 rounded-xl text-xs hover:bg-gray-50 transition" title="\${p.is_active ? 'áº¨n' : 'Hiá»‡n'}">
+          <button onclick="toggleProductActive(\${p.id})" class="py-2 px-3 border-2 border-gray-200 rounded-xl text-xs hover:bg-gray-50 transition" title="\${p.is_active ? 'Ẩn' : 'Hiện'}">
             <i class="fas fa-\${p.is_active ? 'eye-slash' : 'eye'} text-gray-500"></i>
           </button>
           <button onclick="deleteProduct(\${p.id})" class="py-2 px-3 border-2 border-red-200 text-red-500 rounded-xl text-xs hover:bg-red-50 transition">
@@ -708,7 +708,7 @@ function renderAdminProducts(products) {
     </div>\`
     } catch (err) {
       const p = raw || {}
-      const name = String(p.name || 'Sáº£n pháº©m')
+      const name = String(p.name || 'Sản phẩm')
       const thumbnail = String(p.thumbnail || '').trim() || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'
       const isActive = !!p.is_active
       const price = Number(p.price || 0)
@@ -726,12 +726,12 @@ function renderAdminProducts(products) {
           <div class="flex items-center gap-2 mb-3">
             <span class="font-bold text-pink-600">\${fmtPrice(price)}</span>
           </div>
-          <p class="text-xs text-gray-400 mb-3">Tá»“n kho: <span class="font-semibold text-gray-700">\${p.stock || 0}</span></p>
+          <p class="text-xs text-gray-400 mb-3">Tồn kho: <span class="font-semibold text-gray-700">\${p.stock || 0}</span></p>
           <div class="flex gap-2">
             <button onclick="openProductModal(\${p.id})" class="flex-1 py-2 border-2 border-pink-200 text-pink-600 rounded-xl text-xs font-semibold hover:bg-pink-50 transition">
-              <i class="fas fa-edit mr-1"></i>Sá»­a
+              <i class="fas fa-edit mr-1"></i>Sửa
             </button>
-            <button onclick="toggleProductActive(\${p.id})" class="py-2 px-3 border-2 border-gray-200 rounded-xl text-xs hover:bg-gray-50 transition" title="\${isActive ? 'áº¨n' : 'Hiá»‡n'}">
+            <button onclick="toggleProductActive(\${p.id})" class="py-2 px-3 border-2 border-gray-200 rounded-xl text-xs hover:bg-gray-50 transition" title="\${isActive ? 'Ẩn' : 'Hiện'}">
               <i class="fas fa-\${isActive ? 'eye-slash' : 'eye'} text-gray-500"></i>
             </button>
             <button onclick="deleteProduct(\${p.id})" class="py-2 px-3 border-2 border-red-200 text-red-500 rounded-xl text-xs hover:bg-red-50 transition">
@@ -748,17 +748,17 @@ async function toggleProductActive(id) {
   try {
     await axios.patch('/api/admin/products/' + id + '/toggle')
     loadAdminProducts()
-    showAdminToast('ÄÃ£ cáº­p nháº­t tráº¡ng thÃ¡i', 'success')
-  } catch(e) { showAdminToast('Lá»—i cáº­p nháº­t', 'error') }
+    showAdminToast('Đã cập nhật trạng thái', 'success')
+  } catch(e) { showAdminToast('Lỗi cập nhật', 'error') }
 }
 
 async function deleteProduct(id) {
-  if (!confirm('Báº¡n cháº¯c cháº¯n muá»‘n xoÃ¡ sáº£n pháº©m nÃ y?')) return
+  if (!confirm('Bạn chắc chắn muốn xóa sản phẩm này?')) return
   try {
     await axios.delete('/api/admin/products/' + id)
     loadAdminProducts()
-    showAdminToast('ÄÃ£ xoÃ¡ sáº£n pháº©m', 'success')
-  } catch(e) { showAdminToast('Lá»—i xoÃ¡ sáº£n pháº©m', 'error') }
+    showAdminToast('Đã xóa sản phẩm', 'success')
+  } catch(e) { showAdminToast('Lỗi xóa sản phẩm', 'error') }
 }
 
 // â”€â”€ PRODUCT MODAL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -788,7 +788,7 @@ async function openProductModal(id = null) {
   }
   
   resetProductForm()
-  document.getElementById('modalTitle').textContent = id ? 'Chá»‰nh sá»­a sáº£n pháº©m' : 'ThÃªm sáº£n pháº©m má»›i'
+  document.getElementById('modalTitle').textContent = id ? 'Chỉnh sửa sản phẩm' : 'Thêm sản phẩm mới'
   
   // Bind gallery slots
   for (let i = 0; i < 9; i++) {
@@ -828,7 +828,7 @@ async function openProductModal(id = null) {
       renderColorOptionsEditor()
       renderTags('size')
     } catch(e) {
-      const msg = e?.response?.data?.error || e?.message || 'Lá»—i táº£i sáº£n pháº©m'
+      const msg = e?.response?.data?.error || e?.message || 'Lỗi tải sản phẩm'
       console.error('openProductModal error:', e)
       showAdminToast(msg, 'error')
       return
@@ -868,8 +868,8 @@ async function saveProduct(e) {
     .map((c) => ({ name: String(c?.name || '').trim(), image: String(c?.image || '').trim() }))
     .filter((c) => c.name || c.image)
   if (!normalizedThumbnail && imgList.length === 0) {
-    showAdminToast('TrÆ°á»ng hÃ¬nh áº£nh lÃ  báº¯t buá»™c', 'error')
-    btn.textContent = 'LÆ°u sáº£n pháº©m'
+    showAdminToast('Trường hình ảnh là bắt buộc', 'error')
+    btn.textContent = 'Lưu sản phẩm'
     return
   }
   
@@ -893,26 +893,26 @@ async function saveProduct(e) {
   }
   const payloadSize = JSON.stringify(data).length
   if (payloadSize > MAX_PRODUCT_PAYLOAD_SIZE) {
-    showAdminToast('áº¢nh quÃ¡ náº·ng, vui lÃ²ng giáº£m dung lÆ°á»£ng hoáº·c sá»‘ lÆ°á»£ng áº£nh', 'error')
-    btn.textContent = 'LÆ°u sáº£n pháº©m'
+    showAdminToast('Ảnh quá nặng, vui lòng giảm dung lượng hoặc số lượng ảnh', 'error')
+    btn.textContent = 'Lưu sản phẩm'
     return
   }
   
   try {
     if (editingId) {
       await axios.put('/api/admin/products/' + editingId, data)
-      showAdminToast('Cáº­p nháº­t sáº£n pháº©m thÃ nh cÃ´ng!', 'success')
+      showAdminToast('Cập nhật sản phẩm thành công!', 'success')
     } else {
       await axios.post('/api/admin/products', data)
-      showAdminToast('ThÃªm sáº£n pháº©m thÃ nh cÃ´ng!', 'success')
+      showAdminToast('Thêm sản phẩm thành công!', 'success')
     }
     closeProductModal()
     loadAdminProducts()
   } catch(e) {
-    const msg = e.response?.data?.error || e.message || 'Lá»—i lÆ°u sáº£n pháº©m'
+    const msg = e.response?.data?.error || e.message || 'Lỗi lưu sản phẩm'
     showAdminToast(msg, 'error')
   } finally {
-    btn.textContent = 'LÆ°u sáº£n pháº©m'
+    btn.textContent = 'Lưu sản phẩm'
   }
 }
 
@@ -992,7 +992,7 @@ async function handleImageDrop(event, targetType, targetIndex = -1) {
   }
   const files = Array.from(event.dataTransfer?.files || []).filter(f => f.type && f.type.startsWith('image/'))
   if (!files.length) {
-    showAdminToast('Vui lÃ²ng kÃ©o tháº£ file áº£nh há»£p lá»‡', 'warning')
+    showAdminToast('Vui lòng kéo thả file ảnh hợp lệ', 'warning')
     return
   }
   await applyMultipleImagesFrom(files, targetType, targetIndex)
@@ -1065,10 +1065,10 @@ async function applyMultipleImagesFrom(files, targetType, startIndex = 0) {
       fileIndex++
     }
     if (fileIndex < files.length) {
-      showAdminToast('ÄÃ£ Ä‘áº§y Ã´ áº£nh, má»™t sá»‘ áº£nh chÆ°a Ä‘Æ°á»£c thÃªm', 'warning')
+      showAdminToast('Đã đầy ô ảnh, một số ảnh chưa được thêm', 'warning')
     }
   } catch (e) {
-    showAdminToast('KhÃ´ng thá»ƒ xá»­ lÃ½ áº£nh, vui lÃ²ng thá»­ áº£nh khÃ¡c', 'error')
+    showAdminToast('Không thể xử lý ảnh, vui lòng thử ảnh khác', 'error')
   }
 }
 
@@ -1076,7 +1076,7 @@ function addGalleryUrl() {
   const url = document.getElementById('galleryUrlInput').value.trim()
   if (!url) return
   const emptySlot = galleryImages.findIndex(v => !v)
-  if (emptySlot === -1) { showAdminToast('ÄÃ£ Ä‘áº§y 9 áº£nh', 'error'); return }
+  if (emptySlot === -1) { showAdminToast('Đã đầy 9 ảnh', 'error'); return }
   setGallerySlot(emptySlot, url)
   document.getElementById('galleryUrlInput').value = ''
 }
@@ -1147,7 +1147,7 @@ function renderTags(type) {
   if (type !== 'size') return
   const container = document.getElementById('sizeTags')
   container.innerHTML = sizes.map(v => \`
-    <span class="tag-item">\${v}<span class="tag-del" onclick="removeTag('size','\${v}')">Ã—</span></span>
+    <span class="tag-item">\${v}<span class="tag-del" onclick="removeTag('size','\${v}')">×</span></span>
   \`).join('')
 }
 
@@ -1163,7 +1163,7 @@ function renderColorOptionsEditor() {
         ondrop="handleColorImageDrop(event, \${idx})">
         <img src="\${color.image || ''}" alt="" class="w-full h-full object-cover rounded-xl \${color.image ? '' : 'hidden'}" id="colorImg-\${idx}">
         <div class="text-[11px] text-gray-400 text-center px-2 leading-tight \${color.image ? 'hidden' : ''}" id="colorPlaceholder-\${idx}">
-          Báº¥m hoáº·c kÃ©o áº£nh
+          Bấm hoặc kéo ảnh
         </div>
         <input type="file" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" id="colorFile-\${idx}" onchange="handleColorImageFile(\${idx}, this)">
         <div class="\${color.image ? 'absolute inset-0 hidden group-hover:flex items-center justify-center bg-black/45 text-white transition z-20' : 'hidden'}" id="colorOverlay-\${idx}">
@@ -1172,7 +1172,7 @@ function renderColorOptionsEditor() {
           </button>
         </div>
       </div>
-      <input type="text" value="\${String(color.name || '').replace(/"/g, '&quot;')}" placeholder="Nháº­p mÃ u (VD: Äen, Navy...)" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400" oninput="updateColorName(\${idx}, this.value)">
+      <input type="text" value="\${String(color.name || '').replace(/"/g, '&quot;')}" placeholder="Nhập màu (VD: Đen, Navy...)" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400" oninput="updateColorName(\${idx}, this.value)">
       <button type="button" onclick="removeColorOptionRow(\${idx})" class="w-9 h-9 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 mt-1">
         <i class="fas fa-trash text-xs"></i>
       </button>
@@ -1235,7 +1235,7 @@ async function applyColorImageFile(idx, file) {
     colors[idx].image = await fileToOptimizedDataURL(file, 500, 0.85)
     renderColorOptionsEditor()
   } catch (_) {
-    showAdminToast('KhÃ´ng thá»ƒ xá»­ lÃ½ áº£nh mÃ u', 'error')
+    showAdminToast('Không thể xử lý ảnh màu', 'error')
   }
 }
 
@@ -1254,7 +1254,7 @@ async function loadVouchers() {
     const res = await axios.get('/api/admin/vouchers')
     const vouchers = res.data.data || []
     if (!vouchers.length) {
-      list.innerHTML = '<div class="text-center py-8 text-gray-400"><i class="fas fa-ticket-alt text-4xl mb-2"></i><p>ChÆ°a cÃ³ voucher nÃ o</p></div>'
+      list.innerHTML = '<div class="text-center py-8 text-gray-400"><i class="fas fa-ticket-alt text-4xl mb-2"></i><p>Chưa có voucher nào</p></div>'
       return
     }
     list.innerHTML = vouchers.map(v => {
@@ -1277,7 +1277,7 @@ async function loadVouchers() {
             <button onclick="toggleVoucher(\${v.id})" class="p-1.5 rounded-lg text-xs \${v.is_active ? 'bg-amber-50 text-amber-600 hover:bg-amber-100' : 'bg-green-50 text-green-600 hover:bg-green-100'} transition" title="\${v.is_active ? 'Táº¯t' : 'Báº­t'}">
               <i class="fas fa-\${v.is_active ? 'toggle-off' : 'toggle-on'}"></i>
             </button>
-            <button onclick="deleteVoucher(\${v.id})" class="p-1.5 bg-red-50 text-red-500 hover:bg-red-100 rounded-lg text-xs transition" title="XoÃ¡">
+            <button onclick="deleteVoucher(\${v.id})" class="p-1.5 bg-red-50 text-red-500 hover:bg-red-100 rounded-lg text-xs transition" title="Xóa">
               <i class="fas fa-trash"></i>
             </button>
           </div>
@@ -1291,7 +1291,7 @@ async function loadVouchers() {
           </span>
         </div>
         <div class="flex gap-3 mt-1.5 text-xs text-gray-500">
-          <span><i class="fas fa-users mr-1 text-gray-400"></i>ÄÃ£ dÃ¹ng: <strong>\${v.used_count}</strong>\${v.usage_limit > 0 ? '/'+v.usage_limit : ' (khÃ´ng giá»›i háº¡n)'}</span>
+          <span><i class="fas fa-users mr-1 text-gray-400"></i>Đã dùng: <strong>\${v.used_count}</strong>\${v.usage_limit > 0 ? '/'+v.usage_limit : ' (không giới hạn)'}</span>
         </div>
       </div>\`
     }).join('')
@@ -1316,14 +1316,14 @@ async function createVoucher(e) {
     const code = res.data.code
     document.getElementById('generatedCode').classList.remove('hidden')
     document.getElementById('generatedCodeText').textContent = code
-    showAdminToast('Táº¡o voucher ' + code + ' thÃ nh cÃ´ng!', 'success')
+    showAdminToast('Tạo voucher ' + code + ' thành công!', 'success')
     e.target.reset()
     loadVouchers()
   } catch(err) {
-    showAdminToast('Lá»—i táº¡o voucher: ' + (err.response?.data?.error || 'Unknown'), 'error')
+    showAdminToast('Lỗi tạo voucher: ' + (err.response?.data?.error || 'Unknown'), 'error')
   } finally {
     btn.disabled = false
-    btn.innerHTML = '<i class="fas fa-magic mr-2"></i>Táº¡o & Sinh mÃ£ Voucher'
+    btn.innerHTML = '<i class="fas fa-magic mr-2"></i>Tạo & Sinh mã Voucher'
   }
 }
 
@@ -1331,22 +1331,22 @@ async function toggleVoucher(id) {
   try {
     await axios.patch('/api/admin/vouchers/' + id + '/toggle')
     loadVouchers()
-    showAdminToast('ÄÃ£ cáº­p nháº­t tráº¡ng thÃ¡i voucher', 'success')
-  } catch(e) { showAdminToast('Lá»—i', 'error') }
+    showAdminToast('Đã cập nhật trạng thái voucher', 'success')
+  } catch(e) { showAdminToast('Lỗi', 'error') }
 }
 
 async function deleteVoucher(id) {
-  if (!confirm('XoÃ¡ voucher nÃ y?')) return
+  if (!confirm('Xóa voucher này?')) return
   try {
     await axios.delete('/api/admin/vouchers/' + id)
     loadVouchers()
-    showAdminToast('ÄÃ£ xoÃ¡ voucher', 'success')
-  } catch(e) { showAdminToast('Lá»—i xoÃ¡', 'error') }
+    showAdminToast('Đã xóa voucher', 'success')
+  } catch(e) { showAdminToast('Lỗi xóa', 'error') }
 }
 
 function copyCode() {
   const code = document.getElementById('generatedCodeText').textContent
-  navigator.clipboard.writeText(code).then(() => showAdminToast('ÄÃ£ sao chÃ©p: ' + code, 'success'))
+  navigator.clipboard.writeText(code).then(() => showAdminToast('Đã sao chép: ' + code, 'success'))
 }
 
 // â”€â”€ UTILS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -1372,7 +1372,7 @@ function getOrderAmountDue(order) {
     : Number(order?.total_price || 0)
 }
 function paymentStatusLabel(v) {
-  return String(v || '').toLowerCase() === 'paid' ? 'ÄÃ£ thanh toÃ¡n' : 'ChÆ°a thanh toÃ¡n'
+  return String(v || '').toLowerCase() === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán'
 }
 function paymentStatusClass(v) {
   return String(v || '').toLowerCase() === 'paid'
@@ -1381,17 +1381,17 @@ function paymentStatusClass(v) {
 }
 function formatPaymentMethod(v) {
   const key = String(v || '').toUpperCase()
-  if (key === 'BANK_TRANSFER') return 'Chuyá»ƒn khoáº£n ngÃ¢n hÃ ng'
-  if (key === 'MOMO') return 'VÃ­ Ä‘iá»‡n tá»­ MoMo'
+  if (key === 'BANK_TRANSFER') return 'Chuyển khoản ngân hàng'
+  if (key === 'MOMO') return 'Ví điện tử MoMo'
   if (key === 'ZALOPAY') return 'ZaloPay'
-  return 'COD - Thanh toÃ¡n khi giao'
+  return 'COD - Thanh toán khi giao'
 }
 function paymentMethodTagHTML(method, paymentStatus) {
   const key = String(method || '').toUpperCase()
   const paid = String(paymentStatus || '').toLowerCase() === 'paid'
   const paidMark = paid ? '<i class="fas fa-check-circle text-green-600"></i>' : ''
   if (key === 'BANK_TRANSFER') {
-    return '<span class="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200"><i class="fas fa-university"></i>CK ngÃ¢n hÃ ng ' + paidMark + '</span>'
+    return '<span class="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200"><i class="fas fa-university"></i>CK ngân hàng ' + paidMark + '</span>'
   }
   if (key === 'MOMO') {
     return '<span class="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-pink-50 text-pink-700 border border-pink-200"><i class="fas fa-wallet"></i>MoMo ' + paidMark + '</span>'
@@ -1404,7 +1404,7 @@ function paymentMethodTagHTML(method, paymentStatus) {
 function displayCustomerName(name) {
   let n = String(name || '').trim()
   while (n.indexOf('  ') >= 0) n = n.replace('  ', ' ')
-  if (/^Tráº§n\s+CÃ´ng\s+Hiáº¿u[a-z]$/i.test(n)) return 'Tráº§n CÃ´ng Hiáº¿u'
+  if (/^Trần\s+Công\s+Hiếu[a-z]$/i.test(n)) return 'Trần Công Hiếu'
   if (n.toLowerCase().endsWith("'s")) n = n.slice(0, -2)
   // Fix common input artifact: Vietnamese char + stray latin suffix (e.g. "Hiáº¿us")
   if (n.length >= 2) {
@@ -1448,28 +1448,28 @@ async function copyTextValue(value, successMessage) {
       document.execCommand('copy')
       document.body.removeChild(ta)
     }
-    showAdminToast(successMessage || 'ÄÃ£ copy', 'success')
+    showAdminToast(successMessage || 'Đã copy', 'success')
     return true
   } catch (_) {
-    showAdminToast('KhÃ´ng thá»ƒ copy', 'error')
+    showAdminToast('Không thể copy', 'error')
     return false
   }
 }
 
 async function copyTrackingCode(fullCode) {
-  await copyTextValue(fullCode, 'ÄÃ£ copy mÃ£ váº­n Ä‘Æ¡n Ä‘áº§y Ä‘á»§')
+  await copyTextValue(fullCode, 'Đã copy mã vận đơn đầy đủ')
 }
 
 async function copyPhoneNumber(phone) {
-  await copyTextValue(phone, 'ÄÃ£ copy sá»‘ Ä‘iá»‡n thoáº¡i')
+  await copyTextValue(phone, 'Đã copy số điện thoại')
 }
 
 async function copyOrderCode(orderCode) {
-  await copyTextValue(orderCode, 'ÄÃ£ copy mÃ£ Ä‘Æ¡n hÃ ng')
+  await copyTextValue(orderCode, 'Đã copy mã đơn hàng')
 }
 function safeJson(v) { try { return JSON.parse(v||'[]') } catch { return [] } }
-function catLabel(c) { return {unisex:'Unisex',male:'Nam',female:'Ná»¯'}[c]||c }
-function statusLabel(s) { return {pending:'Chá» xá»­ lÃ½',confirmed:'XÃ¡c nháº­n',shipping:'Äang giao',done:'HoÃ n thÃ nh',cancelled:'ÄÃ£ há»§y'}[s]||s }
+function catLabel(c) { return {unisex:'Unisex',male:'Nam',female:'Nữ'}[c]||c }
+function statusLabel(s) { return {pending:'Chờ xử lý',confirmed:'Xác nhận',shipping:'Đang giao',done:'Hoàn thành',cancelled:'Đã hủy'}[s]||s }
 
 function showAdminToast(msg, type='success') {
   const c = document.getElementById('adminToast')
