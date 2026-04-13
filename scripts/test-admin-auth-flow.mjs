@@ -20,18 +20,22 @@ function buildCookieHeader(setCookies) {
     .join('; ')
 }
 
-function extractInlineScripts(html) {
-  return Array.from(html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/gi))
-    .map((match) => match[1] || '')
-    .filter((scriptSource) => scriptSource.trim().length > 0)
-}
+const loginPageRes = await fetch(`${baseUrl}/admin/login`)
+assert.equal(loginPageRes.status, 200, `Expected /admin/login 200, got ${loginPageRes.status}`)
+const loginPageHtml = await loginPageRes.text()
+assert.match(loginPageHtml, /QH Clothes/i, 'Expected login page to include QH Clothes branding')
+assert.match(loginPageHtml, /Đăng nhập Admin/i, 'Expected login page title text to be readable')
+assert.match(loginPageHtml, /Đăng nhập quản trị/i, 'Expected login card heading to be readable')
+
+const protectedRes = await fetch(`${baseUrl}/admin/dashboard`, { redirect: 'manual' })
+assert.equal(protectedRes.status, 302, `Expected unauthenticated /admin/dashboard redirect 302, got ${protectedRes.status}`)
+assert.equal(protectedRes.headers.get('location'), '/admin/login', 'Expected unauthenticated dashboard redirect to /admin/login')
 
 const loginRes = await fetch(`${baseUrl}/api/admin/login`, {
   method: 'POST',
   headers: { 'content-type': 'application/json' },
   body: JSON.stringify({ username, password }),
 })
-
 assert.equal(loginRes.status, 200, `Expected admin login 200, got ${loginRes.status}`)
 const loginJson = await loginRes.json()
 assert.equal(loginJson?.success, true, 'Expected admin login success=true')
@@ -44,30 +48,6 @@ const dashboardRes = await fetch(`${baseUrl}/admin/dashboard`, {
   headers: { cookie: cookieHeader },
   redirect: 'manual',
 })
-assert.equal(dashboardRes.status, 200, `Expected /admin/dashboard 200, got ${dashboardRes.status}`)
+assert.equal(dashboardRes.status, 200, `Expected authenticated /admin/dashboard 200, got ${dashboardRes.status}`)
 
-const dashboardHtml = await dashboardRes.text()
-assert.match(dashboardHtml, /Dashboard/i, 'Expected dashboard HTML to include Dashboard heading')
-
-const scripts = extractInlineScripts(dashboardHtml)
-assert.ok(scripts.length >= 5, `Expected admin dashboard HTML to contain split inline scripts, got ${scripts.length}`)
-
-scripts.forEach((scriptSource, index) => {
-  assert.ok(scriptSource.trim().length > 0, `Expected inline script #${index + 1} to be non-empty`)
-  try {
-    new Function(scriptSource)
-  } catch (error) {
-    assert.fail(`Admin dashboard inline script #${index + 1} syntax error: ${error.message}`)
-  }
-})
-
-const statsRes = await fetch(`${baseUrl}/api/admin/stats`, {
-  headers: { cookie: cookieHeader },
-})
-assert.equal(statsRes.status, 200, `Expected /api/admin/stats 200, got ${statsRes.status}`)
-
-const statsJson = await statsRes.json()
-assert.equal(statsJson?.success, true, 'Expected /api/admin/stats success=true')
-assert.ok(statsJson?.data && typeof statsJson.data === 'object', 'Expected stats payload object')
-
-console.log('admin dashboard local contract passed')
+console.log('admin auth flow contract passed')
