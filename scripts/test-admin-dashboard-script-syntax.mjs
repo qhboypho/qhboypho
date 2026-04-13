@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 
 const source = readFileSync(new URL('../src/pages/admin/script.ts', import.meta.url), 'utf8')
 const start = source.indexOf('async function loadDashboard() {')
-const end = source.indexOf('// â”€â”€ PRODUCTS', start)
+const end = source.indexOf('// PRODUCTS', start)
 
 assert.notEqual(start, -1, 'loadDashboard() not found')
 assert.notEqual(end, -1, 'loadDashboard() end marker not found')

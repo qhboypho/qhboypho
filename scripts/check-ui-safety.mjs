@@ -1,20 +1,21 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import { execFileSync } from 'node:child_process'
 import vm from 'node:vm'
 
-const DEFAULT_BASE_URL = process.env.CHECK_BASE_URL || 'http://127.0.0.1:5173'
-const DEFAULT_ADMIN_TOKEN = process.env.CHECK_ADMIN_TOKEN || 'super_secret_admin_token'
-const DEFAULT_ADMIN_USER_KEY = process.env.CHECK_ADMIN_USER_KEY || 'admin'
+const DEFAULT_BASE_URL = process.env.CHECK_BASE_URL || 'http://127.0.0.1:3000'
+const DEFAULT_ADMIN_USERNAME = process.env.CHECK_ADMIN_USERNAME || 'admin'
+const DEFAULT_ADMIN_PASSWORD = process.env.CHECK_ADMIN_PASSWORD || 'Admin@1234'
 const DEFAULT_TARGETS = [
   { pathname: '/' },
-  { pathname: '/admin' },
+  {
+    pathname: '/admin',
+    allowedStatuses: [302],
+    expectLocation: '/admin/dashboard',
+  },
   { pathname: '/admin/login' },
   {
     pathname: '/admin/dashboard',
-    headers: {
-      cookie: `admin_token=${DEFAULT_ADMIN_TOKEN}; admin_user_key=${DEFAULT_ADMIN_USER_KEY}`,
-    },
+    auth: 'admin',
   },
 ]
 const SOURCE_DIRS = ['src/pages', 'src/routes', 'src/lib']
@@ -23,11 +24,15 @@ const SUSPICIOUS_MOJIBAKE = [
   /Ã./,
   /Â./,
   /â€./,
+  /â”./,
+  /â†./,
+  /âœ./,
   /â€¦/,
   /â€“/,
   /â€”/,
   /â€œ/,
   /â€/,
+  /ðŸ./,
   /�/,
 ]
 
@@ -35,6 +40,9 @@ function cloneTarget(target, baseUrl) {
   return {
     url: new URL(target.pathname, baseUrl).toString(),
     headers: target.headers || {},
+    auth: target.auth || null,
+    allowedStatuses: target.allowedStatuses || [200],
+    expectLocation: target.expectLocation || '',
   }
 }
 
@@ -50,12 +58,60 @@ function resolveTargetConfigs() {
   return args.map((pathname) => cloneTarget({ pathname }, DEFAULT_BASE_URL))
 }
 
-async function fetchHtml(target) {
-  const res = await fetch(target.url, { headers: target.headers || {} })
+function getSetCookieHeaders(response) {
+  if (typeof response.headers.getSetCookie === 'function') return response.headers.getSetCookie()
+  const single = response.headers.get('set-cookie')
+  if (!single) return []
+  return single.split(/,(?=\s*[^\s=;,]+=[^;,]+)/g)
+}
+
+function buildCookieHeader(setCookies) {
+  return setCookies
+    .map((value) => String(value || '').split(';')[0]?.trim())
+    .filter(Boolean)
+    .join('; ')
+}
+
+async function fetchAdminCookieHeader(baseUrl) {
+  const loginUrl = new URL('/api/admin/login', baseUrl).toString()
+  const res = await fetch(loginUrl, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({
+      username: DEFAULT_ADMIN_USERNAME,
+      password: DEFAULT_ADMIN_PASSWORD,
+    }),
+  })
   if (!res.ok) {
+    throw new Error(`Admin login failed with HTTP ${res.status} at ${loginUrl}`)
+  }
+  const json = await res.json().catch(() => null)
+  if (!json?.success) {
+    throw new Error(`Admin login returned success=false at ${loginUrl}`)
+  }
+  const cookieHeader = buildCookieHeader(getSetCookieHeaders(res))
+  if (!cookieHeader.includes('admin_token=') || !cookieHeader.includes('admin_user_key=')) {
+    throw new Error(`Admin login did not return required auth cookies at ${loginUrl}`)
+  }
+  return cookieHeader
+}
+
+async function fetchPage(target, cookieHeader) {
+  const headers = { ...(target.headers || {}) }
+  if (target.auth === 'admin' && cookieHeader) headers.cookie = cookieHeader
+  const res = await fetch(target.url, { headers, redirect: 'manual' })
+  if (!target.allowedStatuses.includes(res.status)) {
     throw new Error(`HTTP ${res.status} at ${target.url}`)
   }
-  return res.text()
+  const location = res.headers.get('location') || ''
+  if (target.expectLocation && !location.includes(target.expectLocation)) {
+    throw new Error(`HTTP ${res.status} at ${target.url} redirected to ${location || '<empty>'}, expected ${target.expectLocation}`)
+  }
+  return {
+    status: res.status,
+    location,
+    html: await res.text(),
+  }
 }
 
 function extractInlineScripts(html) {
@@ -104,32 +160,23 @@ async function walkFiles(dir) {
 
 async function scanSourceMojibake(cwd) {
   const findings = []
-  let diff = ''
-  try {
-    diff = execFileSync('git', ['diff', '--unified=0', '--no-color', '--', ...SOURCE_DIRS], {
-      cwd,
-      encoding: 'utf8',
-      maxBuffer: 10 * 1024 * 1024,
-    })
-  } catch {
-    diff = ''
-  }
-
-  const lines = diff.split(/\r?\n/)
-  let currentFile = null
-  for (const line of lines) {
-    if (line.startsWith('+++ b/')) {
-      currentFile = line.slice(6)
+  for (const dir of SOURCE_DIRS) {
+    const fullDir = path.join(cwd, dir)
+    let files = []
+    try {
+      files = await walkFiles(fullDir)
+    } catch {
       continue
     }
-    if (!currentFile || line.startsWith('@@') || line.startsWith('diff --git') || line.startsWith('index ') || line.startsWith('--- ')) {
-      continue
-    }
-    if (!line.startsWith('+')) continue
-    const addedLine = line.slice(1)
-    const suspect = findMojibake(addedLine)
-    if (suspect) {
-      findings.push(`${currentFile} added line contains suspicious text: ${JSON.stringify(suspect)}`)
+    for (const filePath of files) {
+      const content = await fs.readFile(filePath, 'utf8')
+      const lines = content.split(/\r?\n/)
+      lines.forEach((line, index) => {
+        const suspect = findMojibake(line)
+        if (suspect) {
+          findings.push(`${path.relative(cwd, filePath)}:${index + 1} contains suspicious mojibake ${JSON.stringify(suspect)}`)
+        }
+      })
     }
   }
   return findings
@@ -139,9 +186,16 @@ async function main() {
   const cwd = process.cwd()
   const targets = resolveTargetConfigs()
   const failures = []
+  let adminCookieHeader = ''
+
+  if (targets.some((target) => target.auth === 'admin')) {
+    adminCookieHeader = await fetchAdminCookieHeader(DEFAULT_BASE_URL)
+  }
 
   for (const target of targets) {
-    const html = await fetchHtml(target)
+    const page = await fetchPage(target, adminCookieHeader)
+    if (page.status >= 300 && page.status < 400) continue
+    const html = page.html
     const visibleText = stripTagsAndBlocks(html)
     const mojibakeHit = findMojibake(visibleText)
     if (mojibakeHit) {

@@ -51,6 +51,21 @@ assert.match(dashboardHtml, /Dashboard/i, 'Expected dashboard HTML to include Da
 
 const scripts = extractInlineScripts(dashboardHtml)
 assert.ok(scripts.length >= 5, `Expected admin dashboard HTML to contain split inline scripts, got ${scripts.length}`)
+const allScriptSource = scripts.join('\n')
+;[
+  'showPage',
+  'openProductModal',
+  'closeProductModal',
+  'openFlashSaleCreateModal',
+  'closeFlashSaleCreateModal',
+  'openFlashSaleProductPickerModal',
+].forEach((fnName) => {
+  assert.match(
+    allScriptSource,
+    new RegExp(`function\\s+${fnName}\\s*\\(`),
+    `Expected admin dashboard scripts to expose ${fnName}() for button handlers`
+  )
+})
 
 scripts.forEach((scriptSource, index) => {
   assert.ok(scriptSource.trim().length > 0, `Expected inline script #${index + 1} to be non-empty`)

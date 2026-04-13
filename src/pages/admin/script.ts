@@ -1,5 +1,5 @@
 export function adminInlineScript(): string {
-  return `// â”€â”€ STATE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  return `// STATE
 let adminProducts = []
 let adminOrders = []
 let selectedOrderIds = new Set()
@@ -35,7 +35,7 @@ function forceHideAdminOverlay(el) {
   el.style.pointerEvents = 'none'
 }
 
-// â”€â”€ NAVIGATION â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// NAVIGATION
 function isAdminOverlayDebugEnabled() {
   const host = String(window.location.hostname || '')
   return host === '127.0.0.1' || host === 'localhost' || window.location.search.includes('debugOverlay=1')
@@ -615,7 +615,7 @@ async function loadDashboard() {
   }
 }
 
-// â”€â”€ PRODUCTS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// PRODUCTS
 async function loadAdminProducts() {
   const grid = document.getElementById('adminProductsGrid')
   grid.innerHTML = '<div class="col-span-4 text-center py-12 text-gray-400"><i class="fas fa-spinner fa-spin text-3xl"></i></div>'
@@ -668,8 +668,8 @@ function renderAdminProducts(products) {
           class="w-full h-full object-cover" onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'">
         <div class="absolute top-2 left-2 flex gap-1">
           <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-white/90 text-gray-700">\${catLabel(p.category)}</span>
-          \${p.is_featured ? '<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-400 text-white">â­ Hot</span>' : ''}
-          \${p.is_trending ? '<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-500 text-white">ðŸ”¥ Trend</span>' : ''}
+          \${p.is_featured ? '<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-400 text-white"><i class="fas fa-star mr-1"></i>Hot</span>' : ''}
+          \${p.is_trending ? '<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-500 text-white"><i class="fas fa-fire mr-1"></i>Trend</span>' : ''}
           \${p.is_trending && (p.trending_order||0) > 0 ? \`<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-500 text-white">#\${p.trending_order}</span>\` : ''}
         </div>
         <div class="absolute top-2 right-2">
@@ -754,7 +754,7 @@ async function deleteProduct(id) {
   } catch(e) { showAdminToast('Lỗi xóa sản phẩm', 'error') }
 }
 
-// â”€â”€ PRODUCT MODAL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// PRODUCT MODAL
 async function openProductModal(id = null) {
   editingId = id
   colors = []
@@ -909,7 +909,7 @@ async function saveProduct(e) {
   }
 }
 
-// â”€â”€ GALLERY â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// GALLERY
 function handleGallerySlotClick(i) {
   const hasImg = galleryImages[i]
   if (!hasImg) {
@@ -1119,7 +1119,7 @@ function fileToOptimizedDataURL(file, maxWidth = 1200, quality = 0.82) {
   })
 }
 
-// â”€â”€ TAGS (Colors/Sizes) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// TAGS (Colors/Sizes)
 function addTag(type) {
   const input = document.getElementById(type === 'size' ? 'sizeInput' : '')
   if (!input) return
@@ -1260,11 +1260,11 @@ async function loadVouchers() {
           <div class="flex items-center gap-2 flex-wrap">
             <span class="font-mono font-bold text-lg tracking-widest \${isValid ? 'text-green-700' : 'text-gray-500'}">\${v.code}</span>
             <span class="text-xs px-2 py-0.5 rounded-full font-medium \${isValid ? 'bg-green-100 text-green-700' : expired ? 'bg-gray-100 text-gray-500' : notStarted ? 'bg-blue-100 text-blue-600' : 'bg-red-100 text-red-600'}">
-              \${isValid ? 'âœ… Hiá»‡u lá»±c' : expired ? 'â° Háº¿t háº¡n' : notStarted ? 'ðŸ• ChÆ°a báº¯t Ä‘áº§u' : 'ðŸš« Táº¯t'}
+              \${isValid ? '<i class="fas fa-circle-check mr-1"></i>Hiệu lực' : expired ? '<i class="fas fa-clock mr-1"></i>Hết hạn' : notStarted ? '<i class="fas fa-hourglass-start mr-1"></i>Chưa bắt đầu' : '<i class="fas fa-ban mr-1"></i>Tắt'}
             </span>
           </div>
           <div class="flex gap-1 shrink-0">
-            <button onclick="toggleVoucher(\${v.id})" class="p-1.5 rounded-lg text-xs \${v.is_active ? 'bg-amber-50 text-amber-600 hover:bg-amber-100' : 'bg-green-50 text-green-600 hover:bg-green-100'} transition" title="\${v.is_active ? 'Táº¯t' : 'Báº­t'}">
+            <button onclick="toggleVoucher(\${v.id})" class="p-1.5 rounded-lg text-xs \${v.is_active ? 'bg-amber-50 text-amber-600 hover:bg-amber-100' : 'bg-green-50 text-green-600 hover:bg-green-100'} transition" title="\${v.is_active ? 'Tắt' : 'Bật'}">
               <i class="fas fa-\${v.is_active ? 'toggle-off' : 'toggle-on'}"></i>
             </button>
             <button onclick="deleteVoucher(\${v.id})" class="p-1.5 bg-red-50 text-red-500 hover:bg-red-100 rounded-lg text-xs transition" title="Xóa">
@@ -1277,7 +1277,7 @@ async function loadVouchers() {
           <span class="text-gray-400">|</span>
           <span class="text-gray-500 text-xs">
             <i class="fas fa-calendar text-gray-400 mr-1"></i>
-            \${new Date(v.valid_from).toLocaleDateString('vi-VN')} â†’ \${new Date(v.valid_to).toLocaleDateString('vi-VN')}
+            \${new Date(v.valid_from).toLocaleDateString('vi-VN')} -> \${new Date(v.valid_to).toLocaleDateString('vi-VN')}
           </span>
         </div>
         <div class="flex gap-3 mt-1.5 text-xs text-gray-500">
@@ -1339,10 +1339,10 @@ function copyCode() {
   navigator.clipboard.writeText(code).then(() => showAdminToast('Đã sao chép: ' + code, 'success'))
 }
 
-// â”€â”€ UTILS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// UTILS
 function fmtPrice(p) { return new Intl.NumberFormat('vi-VN',{style:'currency',currency:'VND'}).format(p||0) }
 function formatDateTimeVi(value) {
-  if (!value) return 'â€”'
+  if (!value) return '-'
   const parsed = new Date(String(value).trim().replace(' ', 'T'))
   if (!Number.isFinite(parsed.getTime())) return String(value)
   return parsed.toLocaleString('vi-VN', {
@@ -1474,7 +1474,7 @@ function showAdminToast(msg, type='success') {
 }
 
 export function adminBootstrapScript(): string {
-  return `// â”€â”€ ESC key handler - close any open modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  return `// ESC key handler - close any open modal
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') {
     const modals = ['productModal', 'orderDetailModal', 'arrangeSuccessModal', 'createFlashSaleModal']

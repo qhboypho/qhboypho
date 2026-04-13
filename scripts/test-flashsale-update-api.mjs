@@ -20,8 +20,10 @@ class FakeQuery {
     return null
   }
   async all() {
-    if (/FROM products WHERE id IN \(/i.test(this.sql)) {
-      return { results: this.bound.map((id) => ({ id: Number(id) })) }
+    if (/FROM product_skus WHERE id IN \(/i.test(this.sql)) {
+      return {
+        results: this.db.productSkus.filter((row) => this.bound.map(Number).includes(Number(row.id)) && Number(row.is_active) === 1)
+      }
     }
     if (/FROM flash_sale_items fsi/i.test(this.sql) || /FROM flash_sale_items\s+WHERE flash_sale_id = \?/i.test(this.sql)) {
       const id = Number(this.bound[0])
@@ -63,10 +65,11 @@ class FakeQuery {
         id,
         flash_sale_id: Number(this.bound[0]),
         product_id: Number(this.bound[1]),
-        sale_price: this.bound[2],
-        discount_percent: this.bound[3],
-        purchase_limit: this.bound[4],
-        is_enabled: this.bound[5],
+        product_sku_id: Number(this.bound[2]),
+        sale_price: this.bound[3],
+        discount_percent: this.bound[4],
+        purchase_limit: this.bound[5],
+        is_enabled: this.bound[6],
         created_at: '2026-04-05T00:00:00Z',
         updated_at: '2026-04-05T00:00:00Z'
       })
@@ -91,6 +94,7 @@ class FakeDB {
       id: 1,
       flash_sale_id: 1,
       product_id: 11,
+      product_sku_id: 111,
       sale_price: 119000,
       discount_percent: null,
       purchase_limit: 0,
@@ -98,6 +102,10 @@ class FakeDB {
       created_at: '2026-04-05T00:00:00Z',
       updated_at: '2026-04-05T00:00:00Z'
     }]
+    this.productSkus = [
+      { id: 121, product_id: 12, is_active: 1 },
+      { id: 131, product_id: 13, is_active: 1 }
+    ]
     this.nextFlashSaleItemId = 2
   }
   prepare(sql) {
@@ -120,8 +128,8 @@ const res = await app.fetch(new Request('http://localhost/api/admin/flash-sales/
     start_at: '2026-04-05T11:00',
     end_at: '2026-04-05T13:00',
     items: [
-      { product_id: 12, sale_price: 99000, is_enabled: 1 },
-      { product_id: 13, discount_percent: 30, purchase_limit: 2, is_enabled: 1 }
+      { product_id: 12, product_sku_id: 121, sale_price: 99000, is_enabled: 1 },
+      { product_id: 13, product_sku_id: 131, discount_percent: 30, purchase_limit: 2, is_enabled: 1 }
     ]
   })
 }), { DB: db })
@@ -134,5 +142,6 @@ assert.equal(body.data.product_count, 2)
 assert.equal(db.flashSales[0].name, 'Flash sale mới')
 assert.equal(db.flashSaleItems.length, 2)
 assert.deepEqual(db.flashSaleItems.map((row) => row.product_id), [12, 13])
+assert.deepEqual(db.flashSaleItems.map((row) => row.product_sku_id), [121, 131])
 
 console.log('flash sale update API ok')
