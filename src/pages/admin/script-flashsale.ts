@@ -199,7 +199,7 @@ function flashSaleRenderSkuRow(item) {
   const enabled = Number(item.is_enabled) === 1
   return '' +
       '<tr class="border-b last:border-b-0 align-top bg-white" data-flash-sale-sku-row-id="' + item.product_sku_id + '">' +
-        '<td class="px-4 py-3">' +
+        '<td class="px-4 py-3 min-w-[220px]">' +
           '<div class="flex items-start gap-3 pl-8 min-w-[260px]">' +
             '<label class="mt-1 inline-flex items-center"><input type="checkbox" data-flash-sale-sku-checkbox onchange="flashSaleToggleSkuChecked(' + item.product_sku_id + ', this.checked)" ' + (Number(item.checked) === 1 ? 'checked' : '') + ' class="h-4 w-4 rounded border-gray-300 text-pink-600 focus:ring-pink-500"></label>' +
             '<div class="min-w-0">' +
@@ -217,7 +217,7 @@ function flashSaleRenderSkuRow(item) {
             '<i class="fas fa-trash-can text-xs"></i>' +
           '</button>' +
         '</td>' +
-        '<td class="px-4 py-3 text-center sticky right-[80px] z-10 bg-white min-w-[108px] shadow-[-2px_0_6px_-2px_rgba(0,0,0,0.04)]">' +
+        '<td class="px-4 py-3 text-center sticky right-[80px] z-10 bg-white min-w-[70px] shadow-[-2px_0_6px_-2px_rgba(0,0,0,0.04)]">' +
           '<div class="flex items-center justify-center">' +
             '<label class="relative inline-flex cursor-pointer items-center">' +
               '<input type="checkbox" data-flash-sale-enabled-checkbox ' + (enabled ? 'checked' : '') + ' onchange="toggleFlashSaleSelectedItemEnabled(' + item.product_sku_id + ', this.checked)" class="peer sr-only">' +
@@ -240,7 +240,7 @@ function flashSaleRenderProductGroup(productId) {
   const checkedItems = items.filter((item) => Number(item.checked) === 1)
   const parentRow = '' +
       '<tr class="border-b align-top bg-rose-50/40" data-flash-sale-product-row-id="' + productId + '">' +
-        '<td class="px-4 py-4">' +
+        '<td class="px-4 py-4 min-w-[220px]">' +
           '<div class="flex items-start gap-3 min-w-[300px]">' +
             '<label class="mt-2 inline-flex items-center"><input type="checkbox" data-flash-sale-product-check-all onchange="flashSaleToggleProductSkuChecks(' + productId + ', this.checked)" ' + (checkedItems.length === items.length ? 'checked' : '') + ' class="h-4 w-4 rounded border-gray-300 text-pink-600 focus:ring-pink-500"></label>' +
             imageHtml +
@@ -257,7 +257,7 @@ function flashSaleRenderProductGroup(productId) {
         '<td class="px-4 py-4 text-center sticky right-0 z-10 bg-rose-50/40 min-w-[80px] shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.06)]">' +
           '<button type="button" onclick="removeFlashSaleSelectedProduct(' + productId + ')" class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 text-xs font-semibold transition"><i class="fas fa-trash-can text-xs"></i>Xoá</button>' +
         '</td>' +
-        '<td class="px-4 py-4 text-center sticky right-[80px] z-10 bg-rose-50/40 min-w-[108px] shadow-[-2px_0_6px_-2px_rgba(0,0,0,0.04)]">' +
+        '<td class="px-4 py-4 text-center sticky right-[80px] z-10 bg-rose-50/40 min-w-[70px] shadow-[-2px_0_6px_-2px_rgba(0,0,0,0.04)]">' +
           '<div class="flex items-center justify-center gap-1.5">' +
             '<span class="inline-flex items-center justify-center rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-600 border border-slate-200">Theo SKU</span>' +
             '<button type="button" onclick="flashSaleToggleProductExpanded(' + productId + ')" class="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:text-pink-600 hover:border-pink-200 transition"><i class="fas ' + (expanded ? 'fa-chevron-up' : 'fa-chevron-down') + ' text-xs"></i></button>' +
