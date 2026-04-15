@@ -169,16 +169,32 @@ function flashSaleSyncSelectedItemRow(productSkuId) {
   const row = document.querySelector('[data-flash-sale-sku-row-id="' + flashSaleEscapeHtml(productSkuId) + '"]')
   const item = flashSaleGetSelectedItem(productSkuId)
   if (!row || !item) return
+  const enabled = Number(item.is_enabled) === 1
   const salePriceInput = row.querySelector('[data-flash-sale-field="sale_price"]')
   const discountInput = row.querySelector('[data-flash-sale-field="discount_percent"]')
   const purchaseLimitInput = row.querySelector('[data-flash-sale-field="purchase_limit"]')
-  const enabledCheckbox = row.querySelector('[data-flash-sale-enabled-checkbox]')
   const itemCheckbox = row.querySelector('[data-flash-sale-sku-checkbox]')
   flashSaleSetInputValueIfIdle(salePriceInput, item.sale_price === null ? '' : flashSaleNormalizeNumber(item.sale_price))
   flashSaleSetInputValueIfIdle(discountInput, item.discount_percent === null ? '' : flashSaleNormalizeNumber(item.discount_percent))
   flashSaleSetInputValueIfIdle(purchaseLimitInput, item.purchase_limit === null ? '' : flashSaleNormalizeNumber(item.purchase_limit))
-  if (enabledCheckbox) enabledCheckbox.checked = Number(item.is_enabled) === 1
   if (itemCheckbox) itemCheckbox.checked = Number(item.checked) === 1
+  // Update toggle button visual
+  const toggleBtn = row.querySelector('[data-flash-sale-toggle]')
+  if (toggleBtn) {
+    toggleBtn.style.backgroundColor = enabled ? '#10b981' : '#94a3b8'
+    toggleBtn.setAttribute('aria-checked', String(enabled))
+    toggleBtn.setAttribute('onclick', 'toggleFlashSaleSelectedItemEnabled(' + productSkuId + ', ' + !enabled + ')')
+    const thumb = toggleBtn.querySelector('span')
+    if (thumb) thumb.style.transform = 'translateX(' + (enabled ? '20px' : '2px') + ')'
+  }
+  // Toggle disabled state on inputs
+  const clsEnabled = 'w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-center outline-none focus:border-pink-300 focus:ring-4 focus:ring-pink-100'
+  const clsDisabled = 'w-full rounded-xl border border-gray-200 bg-gray-100 px-3 py-2 text-sm text-center text-gray-400 cursor-not-allowed'
+  ;[salePriceInput, discountInput, purchaseLimitInput].forEach(function(inp) {
+    if (!inp) return
+    inp.disabled = !enabled
+    inp.className = enabled ? clsEnabled : clsDisabled
+  })
   flashSaleSyncProductGroupRow(item.product_id)
 }
 
@@ -197,6 +213,10 @@ function flashSaleSyncProductGroupRow(productId) {
 
 function flashSaleRenderSkuRow(item) {
   const enabled = Number(item.is_enabled) === 1
+  const inputCls = enabled
+    ? 'w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-center outline-none focus:border-pink-300 focus:ring-4 focus:ring-pink-100'
+    : 'w-full rounded-xl border border-gray-200 bg-gray-100 px-3 py-2 text-sm text-center text-gray-400 cursor-not-allowed'
+  const disAttr = enabled ? '' : 'disabled'
   return '' +
       '<tr class="border-b last:border-b-0 align-top bg-white" data-flash-sale-sku-row-id="' + item.product_sku_id + '">' +
         '<td class="px-4 py-3 min-w-[220px]">' +
@@ -209,20 +229,19 @@ function flashSaleRenderSkuRow(item) {
           '</div>' +
         '</td>' +
         '<td class="px-4 py-3 text-center text-gray-700 font-medium min-w-[120px] text-sm">' + (item.product_price > 0 ? flashSaleNormalizeNumber(item.product_price).toLocaleString('vi-VN') + 'đ' : '—') + '</td>' +
-        '<td class="px-4 py-3 text-center min-w-[140px]"><input type="number" min="0" step="1000" value="' + (item.sale_price === null ? '' : flashSaleNormalizeNumber(item.sale_price)) + '" data-flash-sale-field="sale_price" oninput="updateFlashSaleSelectedItemField(' + item.product_sku_id + ', &quot;sale_price&quot;, this.value)" class="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-center outline-none focus:border-pink-300 focus:ring-4 focus:ring-pink-100" placeholder="Nhập giá"></td>' +
-        '<td class="px-4 py-3 text-center min-w-[96px]"><input type="number" min="1" max="99" step="1" value="' + (item.discount_percent === null ? '' : flashSaleNormalizeNumber(item.discount_percent)) + '" data-flash-sale-field="discount_percent" oninput="updateFlashSaleSelectedItemField(' + item.product_sku_id + ', &quot;discount_percent&quot;, this.value)" class="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-center outline-none focus:border-pink-300 focus:ring-4 focus:ring-pink-100" placeholder="%"></td>' +
-        '<td class="px-4 py-3 text-center min-w-[120px]"><input type="number" min="0" step="1" value="' + (item.purchase_limit === null ? '' : flashSaleNormalizeNumber(item.purchase_limit)) + '" data-flash-sale-field="purchase_limit" oninput="updateFlashSaleSelectedItemField(' + item.product_sku_id + ', &quot;purchase_limit&quot;, this.value)" class="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-center outline-none focus:border-pink-300 focus:ring-4 focus:ring-pink-100" placeholder="KGH"></td>' +
-        '<td class="px-4 py-3 text-center sticky right-0 z-10 bg-white min-w-[80px] shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.06)]">' +
+        '<td class="px-4 py-3 text-center min-w-[140px]"><input type="number" min="0" step="1000" value="' + (item.sale_price === null ? '' : flashSaleNormalizeNumber(item.sale_price)) + '" data-flash-sale-field="sale_price" oninput="updateFlashSaleSelectedItemField(' + item.product_sku_id + ', &quot;sale_price&quot;, this.value)" ' + disAttr + ' class="' + inputCls + '" placeholder="Nhập giá"></td>' +
+        '<td class="px-4 py-3 text-center min-w-[96px]"><input type="number" min="1" max="99" step="1" value="' + (item.discount_percent === null ? '' : flashSaleNormalizeNumber(item.discount_percent)) + '" data-flash-sale-field="discount_percent" oninput="updateFlashSaleSelectedItemField(' + item.product_sku_id + ', &quot;discount_percent&quot;, this.value)" ' + disAttr + ' class="' + inputCls + '" placeholder="%"></td>' +
+        '<td class="px-4 py-3 text-center min-w-[120px]"><input type="number" min="0" step="1" value="' + (item.purchase_limit === null ? '' : flashSaleNormalizeNumber(item.purchase_limit)) + '" data-flash-sale-field="purchase_limit" oninput="updateFlashSaleSelectedItemField(' + item.product_sku_id + ', &quot;purchase_limit&quot;, this.value)" ' + disAttr + ' class="' + inputCls + '" placeholder="KGH"></td>' +
+        '<td class="px-4 py-3 text-center sticky right-[70px] z-10 bg-white min-w-[80px] shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.06)]">' +
           '<button type="button" onclick="removeFlashSaleSku(' + item.product_sku_id + ')" class="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-red-200 text-red-500 bg-red-50 hover:bg-red-100 transition" title="Xoá SKU này">' +
             '<i class="fas fa-trash-can text-xs"></i>' +
           '</button>' +
         '</td>' +
-        '<td class="px-4 py-3 text-center sticky right-[80px] z-10 bg-white min-w-[70px] shadow-[-2px_0_6px_-2px_rgba(0,0,0,0.04)]">' +
+        '<td class="px-4 py-3 text-center sticky right-0 z-10 bg-white min-w-[70px] shadow-[-2px_0_6px_-2px_rgba(0,0,0,0.04)]">' +
           '<div class="flex items-center justify-center">' +
-            '<label class="relative inline-flex cursor-pointer items-center">' +
-              '<input type="checkbox" data-flash-sale-enabled-checkbox ' + (enabled ? 'checked' : '') + ' onchange="toggleFlashSaleSelectedItemEnabled(' + item.product_sku_id + ', this.checked)" class="peer sr-only">' +
-              '<span class="h-6 w-11 rounded-full bg-slate-200 transition peer-checked:bg-emerald-500 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-100 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all after:content-[""] peer-checked:after:translate-x-5"></span>' +
-            '</label>' +
+            '<button type="button" data-flash-sale-toggle onclick="toggleFlashSaleSelectedItemEnabled(' + item.product_sku_id + ', ' + !enabled + ')" role="switch" aria-checked="' + enabled + '" class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2" style="background-color:' + (enabled ? '#10b981' : '#94a3b8') + '">' +
+              '<span class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out" style="transform:translateX(' + (enabled ? '20px' : '2px') + ')"></span>' +
+            '</button>' +
           '</div>' +
         '</td>' +
       '</tr>'
@@ -254,10 +273,10 @@ function flashSaleRenderProductGroup(productId) {
         '<td class="px-4 py-4 text-center text-xs text-gray-400 italic min-w-[140px]">Set all phía trên</td>' +
         '<td class="px-4 py-4 text-center text-xs text-gray-400 italic min-w-[96px]">Set all phía trên</td>' +
         '<td class="px-4 py-4 text-center text-xs text-gray-400 italic min-w-[120px]">Set all phía trên</td>' +
-        '<td class="px-4 py-4 text-center sticky right-0 z-10 bg-rose-50/40 min-w-[80px] shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.06)]">' +
+        '<td class="px-4 py-4 text-center sticky right-[70px] z-10 bg-rose-50/40 min-w-[80px] shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.06)]">' +
           '<button type="button" onclick="removeFlashSaleSelectedProduct(' + productId + ')" class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 text-xs font-semibold transition"><i class="fas fa-trash-can text-xs"></i>Xoá</button>' +
         '</td>' +
-        '<td class="px-4 py-4 text-center sticky right-[80px] z-10 bg-rose-50/40 min-w-[70px] shadow-[-2px_0_6px_-2px_rgba(0,0,0,0.04)]">' +
+        '<td class="px-4 py-4 text-center sticky right-0 z-10 bg-rose-50/40 min-w-[70px] shadow-[-2px_0_6px_-2px_rgba(0,0,0,0.04)]">' +
           '<div class="flex items-center justify-center gap-1.5">' +
             '<span class="inline-flex items-center justify-center rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-600 border border-slate-200">Theo SKU</span>' +
             '<button type="button" onclick="flashSaleToggleProductExpanded(' + productId + ')" class="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:text-pink-600 hover:border-pink-200 transition"><i class="fas ' + (expanded ? 'fa-chevron-up' : 'fa-chevron-down') + ' text-xs"></i></button>' +
