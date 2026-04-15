@@ -174,7 +174,19 @@ function toggleAdminAvatarMenu() {
   if (menu) menu.classList.toggle('hidden', !adminAvatarMenuOpen)
 }
 
+function hasOpenAdminModal() {
+  return ADMIN_OVERLAY_IDS.some((id) => {
+    const el = document.getElementById(id)
+    if (!el) return false
+    if (el.style.display && el.style.display !== 'none') return true
+    if (!el.classList.contains('hidden')) return true
+    return false
+  })
+}
+
 function sanitizeAdminOverlayState() {
+  // Skip sanitize if a modal is intentionally open - avoids closing user's active modal
+  if (hasOpenAdminModal()) return
   ADMIN_OVERLAY_IDS.forEach((id) => {
     const el = document.getElementById(id)
     forceHideAdminOverlay(el)
@@ -623,6 +635,28 @@ async function loadDashboard() {
   }
 }
 
+// PRODUCT UTILS (also defined in storefront, duplicated here for admin scope)
+function normalizeColorOptions(raw) {
+  const arr = Array.isArray(raw) ? raw : safeJson(raw)
+  if (!Array.isArray(arr)) return []
+  return arr.map((item) => {
+    if (typeof item === 'string') return { name: String(item || '').trim(), image: '' }
+    if (item && typeof item === 'object') {
+      return {
+        name: String(item.name || item.label || '').trim(),
+        image: String(item.image || item.image_url || '').trim()
+      }
+    }
+    return { name: '', image: '' }
+  }).filter((c) => c.name || c.image)
+}
+function getProductColorOptions(product) {
+  if (!product) return []
+  const direct = Array.isArray(product.color_options) ? product.color_options : null
+  if (direct && direct.length) return normalizeColorOptions(direct)
+  return normalizeColorOptions(product.colors || [])
+}
+
 // PRODUCTS
 async function loadAdminProducts() {
   const grid = document.getElementById('adminProductsGrid')
@@ -794,7 +828,7 @@ async function openProductModal(id = null) {
   // Bind gallery slots
   for (let i = 0; i < 9; i++) {
     const slot = document.getElementById('slot-'+i)
-    slot.onclick = () => handleGallerySlotClick(i)
+    if (slot) slot.onclick = () => handleGallerySlotClick(i)
   }
   
   if (id) {
@@ -931,12 +965,10 @@ function setGallerySlot(i, url) {
   const placeholder = document.getElementById('slotPlaceholder-'+i)
   const delBtn = document.getElementById('slotDel-'+i)
   const slot = document.getElementById('slot-'+i)
-  img.src = url
-  img.classList.remove('hidden')
-  placeholder.classList.add('hidden')
-  delBtn.classList.remove('hidden')
-  delBtn.classList.add('flex')
-  slot.classList.add('has-img')
+  if (img) { img.src = url; img.classList.remove('hidden') }
+  if (placeholder) placeholder.classList.add('hidden')
+  if (delBtn) { delBtn.classList.remove('hidden'); delBtn.classList.add('flex') }
+  if (slot) slot.classList.add('has-img')
 }
 
 function clearGallerySlot(i) {
@@ -945,10 +977,10 @@ function clearGallerySlot(i) {
   const placeholder = document.getElementById('slotPlaceholder-'+i)
   const delBtn = document.getElementById('slotDel-'+i)
   const slot = document.getElementById('slot-'+i)
-  img.src = ''; img.classList.add('hidden')
-  placeholder.classList.remove('hidden')
-  delBtn.classList.add('hidden'); delBtn.classList.remove('flex')
-  slot.classList.remove('has-img')
+  if (img) { img.src = ''; img.classList.add('hidden') }
+  if (placeholder) placeholder.classList.remove('hidden')
+  if (delBtn) { delBtn.classList.add('hidden'); delBtn.classList.remove('flex') }
+  if (slot) slot.classList.remove('has-img')
 }
 
 function compactGallerySlots() {
@@ -1485,13 +1517,13 @@ export function adminBootstrapScript(): string {
   return `// ESC key handler - close any open modal
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') {
-    const modals = ['productModal', 'orderDetailModal', 'arrangeSuccessModal', 'createFlashSaleModal']
+    const modals = ['productModal', 'orderDetailModal', 'arrangeSuccessModal', 'createFlashSaleModal', 'flashSaleProductPickerModal']
     modals.forEach(id => {
       const el = document.getElementById(id)
-      if (el && !el.classList.contains('hidden')) {
-        el.classList.add('hidden')
-      }
+      if (el) forceHideAdminOverlay(el)
     })
+    closeFlashSaleCreateModal()
+    closeFlashSaleProductPickerModal()
     closeChangeAdminPasswordModal()
     closeAdminAvatarMenu()
     document.body.style.overflow = ''
@@ -1504,11 +1536,8 @@ document.addEventListener('DOMContentLoaded', function() {
   syncOrdersHeaderSearchUI()
   window.addEventListener('resize', syncSidebarOverlay)
   window.addEventListener('resize', syncOrdersHeaderSearchUI)
-  window.addEventListener('pageshow', scheduleAdminOverlaySanitize)
-  window.addEventListener('focus', scheduleAdminOverlaySanitize)
-  document.addEventListener('visibilitychange', function() {
-    if (document.visibilityState === 'visible') scheduleAdminOverlaySanitize()
-  })
+  // NOTE: pageshow/focus/visibilitychange intentionally NOT hooked to scheduleAdminOverlaySanitize
+  // because triggering sanitize on focus/visibility would force-close modals the user has open
   document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') closeOrdersHeaderSearch()
   })
