@@ -196,36 +196,34 @@ function flashSaleSyncProductGroupRow(productId) {
 }
 
 function flashSaleRenderSkuRow(item) {
-  const imageHtml = item.sku_image
-    ? '<img src="' + flashSaleEscapeHtml(item.sku_image) + '" alt="' + flashSaleEscapeHtml(item.product_name) + '" class="h-12 w-12 rounded-xl object-cover border border-gray-100 bg-gray-50 shrink-0" />'
-    : '<div class="h-12 w-12 rounded-xl bg-gray-100 border border-gray-200 flex items-center justify-center text-gray-400 shrink-0"><i class="fas fa-image"></i></div>'
   const enabled = Number(item.is_enabled) === 1
   return '' +
       '<tr class="border-b last:border-b-0 align-top bg-white" data-flash-sale-sku-row-id="' + item.product_sku_id + '">' +
         '<td class="px-4 py-3">' +
-          '<div class="flex items-start gap-3 pl-8 min-w-[300px]">' +
-            '<label class="mt-2 inline-flex items-center"><input type="checkbox" data-flash-sale-sku-checkbox onchange="flashSaleToggleSkuChecked(' + item.product_sku_id + ', this.checked)" ' + (Number(item.checked) === 1 ? 'checked' : '') + ' class="h-4 w-4 rounded border-gray-300 text-pink-600 focus:ring-pink-500"></label>' +
-            imageHtml +
-            '<div class="min-w-0 max-w-[320px]">' +
-              '<p class="font-semibold text-gray-900 line-clamp-2 break-words">' + flashSaleEscapeHtml(flashSaleFormatSkuLabel(item)) + '</p>' +
-              '<p class="text-xs text-gray-400 mt-1 truncate">SKU ID: ' + flashSaleEscapeHtml(item.product_sku_id) + (item.sku_code ? ' • ' + flashSaleEscapeHtml(item.sku_code) : '') + '</p>' +
+          '<div class="flex items-start gap-3 pl-8 min-w-[260px]">' +
+            '<label class="mt-1 inline-flex items-center"><input type="checkbox" data-flash-sale-sku-checkbox onchange="flashSaleToggleSkuChecked(' + item.product_sku_id + ', this.checked)" ' + (Number(item.checked) === 1 ? 'checked' : '') + ' class="h-4 w-4 rounded border-gray-300 text-pink-600 focus:ring-pink-500"></label>' +
+            '<div class="min-w-0">' +
+              '<p class="font-medium text-gray-800 text-sm">' + flashSaleEscapeHtml(flashSaleFormatSkuLabel(item)) + '</p>' +
+              '<p class="text-xs text-gray-400 mt-0.5 truncate max-w-[200px]">SKU ID: ' + flashSaleEscapeHtml(item.product_sku_id) + (item.sku_code ? ' · ' + flashSaleEscapeHtml(item.sku_code) : '') + '</p>' +
             '</div>' +
           '</div>' +
         '</td>' +
-        '<td class="px-4 py-3 text-center text-gray-700 font-medium min-w-[120px]">' + (item.product_price > 0 ? flashSaleNormalizeNumber(item.product_price).toLocaleString('vi-VN') + 'đ' : '—') + '</td>' +
-        '<td class="px-4 py-3 text-center min-w-[150px]"><input type="number" min="0" step="1000" value="' + (item.sale_price === null ? '' : flashSaleNormalizeNumber(item.sale_price)) + '" data-flash-sale-field="sale_price" oninput="updateFlashSaleSelectedItemField(' + item.product_sku_id + ', &quot;sale_price&quot;, this.value)" class="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-center outline-none focus:border-pink-300 focus:ring-4 focus:ring-pink-100" placeholder="Nhập giá"></td>' +
-        '<td class="px-4 py-3 text-center min-w-[110px]"><input type="number" min="1" max="99" step="1" value="' + (item.discount_percent === null ? '' : flashSaleNormalizeNumber(item.discount_percent)) + '" data-flash-sale-field="discount_percent" oninput="updateFlashSaleSelectedItemField(' + item.product_sku_id + ', &quot;discount_percent&quot;, this.value)" class="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-center outline-none focus:border-pink-300 focus:ring-4 focus:ring-pink-100" placeholder="%"></td>' +
-        '<td class="px-4 py-3 text-center min-w-[138px]"><input type="number" min="0" step="1" value="' + (item.purchase_limit === null ? '' : flashSaleNormalizeNumber(item.purchase_limit)) + '" data-flash-sale-field="purchase_limit" oninput="updateFlashSaleSelectedItemField(' + item.product_sku_id + ', &quot;purchase_limit&quot;, this.value)" class="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-center outline-none focus:border-pink-300 focus:ring-4 focus:ring-pink-100" placeholder="Không giới hạn"></td>' +
-        '<td class="px-4 py-3 text-center sticky right-[124px] z-10 bg-white min-w-[124px]">' +
+        '<td class="px-4 py-3 text-center text-gray-700 font-medium min-w-[120px] text-sm">' + (item.product_price > 0 ? flashSaleNormalizeNumber(item.product_price).toLocaleString('vi-VN') + 'đ' : '—') + '</td>' +
+        '<td class="px-4 py-3 text-center min-w-[140px]"><input type="number" min="0" step="1000" value="' + (item.sale_price === null ? '' : flashSaleNormalizeNumber(item.sale_price)) + '" data-flash-sale-field="sale_price" oninput="updateFlashSaleSelectedItemField(' + item.product_sku_id + ', &quot;sale_price&quot;, this.value)" class="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-center outline-none focus:border-pink-300 focus:ring-4 focus:ring-pink-100" placeholder="Nhập giá"></td>' +
+        '<td class="px-4 py-3 text-center min-w-[96px]"><input type="number" min="1" max="99" step="1" value="' + (item.discount_percent === null ? '' : flashSaleNormalizeNumber(item.discount_percent)) + '" data-flash-sale-field="discount_percent" oninput="updateFlashSaleSelectedItemField(' + item.product_sku_id + ', &quot;discount_percent&quot;, this.value)" class="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-center outline-none focus:border-pink-300 focus:ring-4 focus:ring-pink-100" placeholder="%"></td>' +
+        '<td class="px-4 py-3 text-center min-w-[120px]"><input type="number" min="0" step="1" value="' + (item.purchase_limit === null ? '' : flashSaleNormalizeNumber(item.purchase_limit)) + '" data-flash-sale-field="purchase_limit" oninput="updateFlashSaleSelectedItemField(' + item.product_sku_id + ', &quot;purchase_limit&quot;, this.value)" class="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-center outline-none focus:border-pink-300 focus:ring-4 focus:ring-pink-100" placeholder="KGH"></td>' +
+        '<td class="px-4 py-3 text-center sticky right-0 z-10 bg-white min-w-[80px] shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.06)]">' +
+          '<button type="button" onclick="removeFlashSaleSku(' + item.product_sku_id + ')" class="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-red-200 text-red-500 bg-red-50 hover:bg-red-100 transition" title="Xoá SKU này">' +
+            '<i class="fas fa-trash-can text-xs"></i>' +
+          '</button>' +
+        '</td>' +
+        '<td class="px-4 py-3 text-center sticky right-[80px] z-10 bg-white min-w-[108px] shadow-[-2px_0_6px_-2px_rgba(0,0,0,0.04)]">' +
           '<div class="flex items-center justify-center">' +
             '<label class="relative inline-flex cursor-pointer items-center">' +
               '<input type="checkbox" data-flash-sale-enabled-checkbox ' + (enabled ? 'checked' : '') + ' onchange="toggleFlashSaleSelectedItemEnabled(' + item.product_sku_id + ', this.checked)" class="peer sr-only">' +
-              '<span class="h-6 w-11 rounded-full bg-slate-200 transition peer-checked:bg-emerald-500 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-100 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all after:content-[\\\'\\\'] peer-checked:after:translate-x-5"></span>' +
+              '<span class="h-6 w-11 rounded-full bg-slate-200 transition peer-checked:bg-emerald-500 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-100 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all after:content-[\'\'] peer-checked:after:translate-x-5"></span>' +
             '</label>' +
           '</div>' +
-        '</td>' +
-        '<td class="px-4 py-3 text-center sticky right-0 z-10 bg-white min-w-[124px]">' +
-          '<span class="text-xs font-semibold text-gray-400">SKU</span>' +
         '</td>' +
       '</tr>'
 }
@@ -252,20 +250,20 @@ function flashSaleRenderProductGroup(productId) {
             '</div>' +
           '</div>' +
         '</td>' +
-        '<td class="px-4 py-4 text-center text-gray-700 font-medium min-w-[120px]">' + (items[0].product_price > 0 ? flashSaleNormalizeNumber(items[0].product_price).toLocaleString('vi-VN') + 'đ' : '—') + '</td>' +
-        '<td class="px-4 py-4 text-center text-xs font-semibold text-gray-500 min-w-[150px]">Dùng Set all phía trên</td>' +
-        '<td class="px-4 py-4 text-center text-xs font-semibold text-gray-500 min-w-[110px]">Dùng Set all phía trên</td>' +
-        '<td class="px-4 py-4 text-center text-xs font-semibold text-gray-500 min-w-[138px]">Dùng Set all phía trên</td>' +
-        '<td class="px-4 py-4 text-center sticky right-[124px] z-10 bg-rose-50/40 min-w-[124px]">' +
-          '<span class="inline-flex items-center justify-center rounded-full bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 border border-slate-200">Theo SKU</span>' +
+        '<td class="px-4 py-4 text-center text-gray-700 font-medium min-w-[120px] text-sm">' + (items[0].product_price > 0 ? flashSaleNormalizeNumber(items[0].product_price).toLocaleString('vi-VN') + 'đ' : '—') + '</td>' +
+        '<td class="px-4 py-4 text-center text-xs text-gray-400 italic min-w-[140px]">Set all phía trên</td>' +
+        '<td class="px-4 py-4 text-center text-xs text-gray-400 italic min-w-[96px]">Set all phía trên</td>' +
+        '<td class="px-4 py-4 text-center text-xs text-gray-400 italic min-w-[120px]">Set all phía trên</td>' +
+        '<td class="px-4 py-4 text-center sticky right-0 z-10 bg-rose-50/40 min-w-[80px] shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.06)]">' +
+          '<button type="button" onclick="removeFlashSaleSelectedProduct(' + productId + ')" class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 text-xs font-semibold transition"><i class="fas fa-trash-can text-xs"></i>Xoá</button>' +
         '</td>' +
-        '<td class="px-4 py-4 text-center sticky right-0 z-10 bg-rose-50/40 min-w-[124px]">' +
-          '<div class="flex items-center justify-center gap-2">' +
-            '<button type="button" onclick="removeFlashSaleSelectedProduct(' + productId + ')" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 text-xs font-semibold transition"><i class="fas fa-trash"></i>Xoá</button>' +
-            '<button type="button" onclick="flashSaleToggleProductExpanded(' + productId + ')" class="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-500 hover:text-pink-600 hover:border-pink-200 transition"><i class="fas ' + (expanded ? 'fa-chevron-up' : 'fa-chevron-down') + '"></i></button>' +
-        '</div>' +
-      '</td>' +
-    '</tr>'
+        '<td class="px-4 py-4 text-center sticky right-[80px] z-10 bg-rose-50/40 min-w-[108px] shadow-[-2px_0_6px_-2px_rgba(0,0,0,0.04)]">' +
+          '<div class="flex items-center justify-center gap-1.5">' +
+            '<span class="inline-flex items-center justify-center rounded-full bg-white px-2.5 py-1 text-xs font-semibold text-slate-600 border border-slate-200">Theo SKU</span>' +
+            '<button type="button" onclick="flashSaleToggleProductExpanded(' + productId + ')" class="inline-flex h-7 w-7 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 hover:text-pink-600 hover:border-pink-200 transition"><i class="fas ' + (expanded ? 'fa-chevron-up' : 'fa-chevron-down') + ' text-xs"></i></button>' +
+          '</div>' +
+        '</td>' +
+      '</tr>'
   const childRows = expanded ? items.map((item) => flashSaleRenderSkuRow(item)).join('') : ''
   return parentRow + childRows
 }
@@ -461,6 +459,19 @@ function toggleFlashSaleSelectedItemEnabled(productSkuId, checked) {
 
 function removeFlashSaleSelectedProduct(productId) {
   flashSaleCreateSelectedItems = flashSaleCreateSelectedItems.filter((item) => String(item.product_id) !== String(productId))
+  renderFlashSaleSelectedItems()
+}
+
+function removeFlashSaleSku(productSkuId) {
+  const skuId = String(productSkuId)
+  const item = flashSaleGetSelectedItem(skuId)
+  if (!item) return
+  const productId = item.product_id
+  flashSaleCreateSelectedItems = flashSaleCreateSelectedItems.filter((i) => String(i.product_sku_id) !== skuId)
+  // Nếu sản phẩm không còn SKU nào → xoá luôn nhóm sản phẩm
+  if (!flashSaleGetSelectedItemsByProduct(productId).length) {
+    delete flashSaleProductExpandedState[String(productId)]
+  }
   renderFlashSaleSelectedItems()
 }
 
