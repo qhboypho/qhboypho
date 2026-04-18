@@ -12,6 +12,7 @@ import {
 } from './storefront/sections'
 import { storefrontModalsSection } from './storefront/modals'
 import { storefrontInlineScript } from './storefront/script'
+import { storefrontPurchaseToastScript } from './storefront/script-purchase-toast'
 
 export function storefrontHTML(): string {
   return `<!DOCTYPE html>
@@ -57,10 +58,13 @@ ${storefrontFeaturesSection()}
 
 ${storefrontFooterSection()}
 
+<div id="purchaseToastContainer" class="fixed bottom-6 left-6 z-[60] flex flex-col gap-2 pointer-events-none" style="max-width:320px;"></div>
+
 ${storefrontModalsSection()}
 
 <script>
 ${storefrontInlineScript()}
+${storefrontPurchaseToastScript()}
 </script>
 ${storefrontBodyClose()}
 </html>`
