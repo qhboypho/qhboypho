@@ -196,7 +196,7 @@ export function adminModalsSection(): string {
 </div>
 
 <!-- CHANGE ADMIN PASSWORD MODAL -->
-<div id="adminChangePasswordModal" onclick="if(event.target===this) closeChangeAdminPasswordModal()" style="display:none" class="fixed inset-0 modal-overlay z-50 items-start justify-center p-4 overflow-y-auto">
+<div id="adminChangePasswordModal" onclick="if(event.target===this) closeChangeAdminPasswordModal()" style="display:none" class="fixed inset-0 modal-overlay z-50 hidden items-start justify-center p-4 overflow-y-auto">
   <div class="modal-card bg-white rounded-3xl shadow-2xl w-full max-w-md my-8">
     <div class="sticky top-0 bg-white rounded-t-3xl border-b px-6 py-4 flex items-center justify-between">
       <h2 class="font-bold text-lg text-gray-900">Thay đổi mật khẩu</h2>

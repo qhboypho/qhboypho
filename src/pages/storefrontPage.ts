@@ -58,7 +58,7 @@ ${storefrontFeaturesSection()}
 
 ${storefrontFooterSection()}
 
-<div id="purchaseToastContainer" class="fixed bottom-6 left-6 z-[60] flex flex-col gap-2 pointer-events-none" style="max-width:320px;"></div>
+<div id="purchaseToastContainer" style="position:fixed;bottom:24px;left:24px;z-index:60;display:flex;flex-direction:column;gap:8px;pointer-events:none;max-width:320px;"></div>
 
 ${storefrontModalsSection()}
 

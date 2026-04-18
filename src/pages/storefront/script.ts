@@ -1445,7 +1445,7 @@ function closeUserMenu() {
   const overlay = document.getElementById('userMenuOverlay')
   const panel = document.getElementById('userMenuPanel')
   panel.classList.add('closing')
-  setTimeout(() => { overlay.classList.add('hidden'); panel.classList.remove('closing'); closeShippingJourneyModal() }, 300)
+  setTimeout(() => { overlay.classList.add('hidden'); panel.classList.remove('closing'); closeShippingJourneyModal(); document.body.style.overflow = '' }, 300)
 }
 function handleUserMenuOverlayClick(e) { if (e.target.id === 'userMenuOverlay') closeUserMenu() }
 
