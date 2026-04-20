@@ -131,7 +131,7 @@ async function openOrder(id) {
     document.getElementById('voucherStatus').classList.add('hidden')
     document.getElementById('discountRow').classList.add('hidden')
     document.getElementById('subtotalRow').classList.add('hidden')
-    document.querySelectorAll('.payment-method-btn').forEach(b => b.classList.remove('active','border-pink-500','bg-pink-50'))
+    resetCheckoutPaymentMethod('order')
     // Clear field errors
     ;['fieldName','fieldPhone','fieldAddress','fieldColor','sizeSection','fieldPaymentMethod'].forEach(id => {
       document.getElementById(id)?.classList.remove('field-error','shake')
@@ -201,11 +201,7 @@ function selectOrderSize(s, btn) {
   document.getElementById('sizeSection')?.classList.remove('field-error','shake')
 }
 function selectPaymentMethod(method, btn) {
-  if (!btn || btn.disabled || btn.closest('.payment-method-unavailable')) return
-  document.querySelectorAll('.payment-method-btn').forEach(b => b.classList.remove('active','border-pink-500','bg-pink-50'))
-  btn.classList.add('active','border-pink-500','bg-pink-50')
-  selectedPaymentMethod = method
-  document.getElementById('fieldPaymentMethod')?.classList.remove('field-error','shake')
+  selectCheckoutPaymentMethod('order', method, btn)
 }
 function isPopupTabAlive(tab) {
   try { return !!(tab && !tab.closed) } catch (_) { return false }
@@ -396,30 +392,118 @@ function clearFieldError(fieldId) {
   document.getElementById(fieldId)?.classList.remove('field-error')
 }
 
+async function continueOrderPaymentFlow({ orderCode, orderId, orderTotal, paymentMethod, payTabRef }) {
+  if (paymentMethod === 'BANK_TRANSFER') {
+    let payosData = null
+    try {
+      const payos = await axios.post('/api/orders/' + orderId + '/payos-link', { origin: window.location.origin })
+      payosData = payos.data?.data || null
+    } catch (_) {
+      showToast('PayOS tạm lỗi, đang chuyển sang QR dự phòng.', 'error', 4500)
+    }
+    if (payosData?.alreadyPaid) {
+      onOrderMarkedPaid(orderCode)
+      showToast('Đơn ' + orderCode + ' đã được thanh toán trước đó.', 'success', 4500)
+      return { handled: true }
+    }
+    const checkoutUrl = String(payosData?.checkoutUrl || '').trim()
+    if (checkoutUrl) {
+      let payTab = payTabRef
+      if (payTab) {
+        try { payTab.location.href = checkoutUrl } catch (_) { payTab = null }
+      }
+      if (!payTab) payTab = window.open(checkoutUrl, '_blank')
+      if (payTab) {
+        startOrderPaymentPolling(orderCode)
+        showToast('Đơn ' + orderCode + ': đã mở tab PayOS, vui lòng hoàn tất thanh toán.', 'success', 5000)
+      } else {
+        showToast('Trình duyệt đang chặn popup, hiển thị QR dự phòng để bạn thanh toán thủ công.', 'error', 5000)
+        openOrderBankTransferModal({
+          orderCode,
+          orderId,
+          amount: orderTotal,
+          transferContent: 'DH' + orderId,
+          paymentLinkId: payosData?.paymentLinkId || ''
+        })
+      }
+      return { handled: true }
+    }
+
+    try { if (payTabRef && !payTabRef.closed) payTabRef.close() } catch (_) { }
+    openOrderBankTransferModal({
+      orderCode,
+      orderId,
+      amount: orderTotal,
+      transferContent: 'DH' + orderId,
+      paymentLinkId: payosData?.paymentLinkId || ''
+    })
+    showToast('Đơn hàng ' + orderCode + ' đã tạo. Vui lòng chuyển khoản để hoàn tất.', 'success', 5000)
+    return { handled: true }
+  }
+
+  if (paymentMethod === 'ZALOPAY') {
+    let zaloData = null
+    try {
+      const zalo = await axios.post('/api/orders/' + orderId + '/zalopay-link', { origin: window.location.origin })
+      zaloData = zalo.data?.data || null
+    } catch (err) {
+      const errCode = err.response?.data?.error
+      const missing = Array.isArray(err.response?.data?.missing) ? err.response.data.missing : []
+      if (errCode === 'ZALOPAY_CONFIG_MISSING') {
+        const detail = missing.length ? (': ' + missing.join(', ')) : ''
+        showToast('ZaloPay chua cau hinh day du' + detail, 'error', 5500)
+      } else {
+        showToast('ZaloPay tam loi, vui long thu lai sau it phut.', 'error', 4500)
+      }
+    }
+
+    if (zaloData?.alreadyPaid) {
+      onOrderMarkedPaid(orderCode)
+      showToast('Đơn ' + orderCode + ' đã được thanh toán trước đó.', 'success', 4500)
+      return { handled: true }
+    }
+
+    const checkoutUrl = String(zaloData?.orderUrl || '').trim()
+    if (!checkoutUrl) {
+      try { if (payTabRef && !payTabRef.closed) payTabRef.close() } catch (_) { }
+      showToast('Không tạo được liên kết thanh toán ZaloPay.', 'error', 4500)
+      return { handled: true }
+    }
+
+    let payTab = payTabRef
+    if (payTab) {
+      try { payTab.location.href = checkoutUrl } catch (_) { payTab = null }
+    }
+    if (!payTab) payTab = window.open(checkoutUrl, '_blank')
+
+    if (payTab) {
+      zaloPayLinkTab = payTab
+      startOrderPaymentPolling(orderCode)
+      showToast('Đơn ' + orderCode + ': đã mở tab ZaloPay, vui lòng quét QR để thanh toán.', 'success', 5000)
+    } else {
+      startOrderPaymentPolling(orderCode)
+      window.location.href = checkoutUrl
+    }
+    return { handled: true }
+  }
+
+  showToast('🎉 Đặt hàng thành công! Mã đơn: ' + orderCode, 'success', 5000)
+  return { handled: true }
+}
+
 // ── SUBMIT ORDER ───────────────────────────────────
 async function submitOrder() {
-  const name = document.getElementById('orderName').value.trim()
-  const phone = document.getElementById('orderPhone').value.trim()
-  const addressPayload = getAddressPayload('order')
-  const address = addressPayload.address
   const sizes = safeJson(currentProduct?.sizes)
   const hasColorOptions = Array.isArray(orderColorOptions) ? orderColorOptions.length > 0 : false
   const hasSizeOptions = Array.isArray(sizes) ? sizes.length > 0 : false
-
-  // Validate with shake + scroll
-  if (!name) { shakeField('fieldName'); return }
-  clearFieldError('fieldName')
-  if (!phone || !/^[0-9]{9,11}$/.test(phone.replace(/\\s/g,''))) { shakeField('fieldPhone'); return }
-  clearFieldError('fieldPhone')
-  if (!addressPayload.valid) { shakeField('fieldAddress'); return }
-  clearFieldError('fieldAddress')
-  if (hasColorOptions && !selectedColor) { shakeField('fieldColor'); return }
-  clearFieldError('fieldColor')
-  if (hasSizeOptions && !selectedSize) { shakeField('sizeSection'); return }
-  clearFieldError('sizeSection')
-  if (!selectedPaymentMethod) { shakeField('fieldPaymentMethod'); return }
-  clearFieldError('fieldPaymentMethod')
-  if (selectedPaymentMethod === 'ZALOPAY') {
+  const payload = validateCheckoutFields('order', {
+    requireColor: hasColorOptions,
+    requireSize: hasSizeOptions,
+    requirePayment: true
+  })
+  if (!payload) return
+  const paymentMethod = getCheckoutSelectedPaymentMethod('order')
+  if (paymentMethod === 'ZALOPAY') {
     const check = await ensureZaloPayConfigReady(true)
     if (!check.ready) return
   }
@@ -428,9 +512,9 @@ async function submitOrder() {
   btn.disabled = true
   btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Đang xử lý...'
   let payTabRef = null
-  if (selectedPaymentMethod === 'BANK_TRANSFER') {
+  if (paymentMethod === 'BANK_TRANSFER') {
     try { payTabRef = window.open('about:blank', '_blank') } catch (_) { payTabRef = null }
-  } else if (selectedPaymentMethod === 'ZALOPAY') {
+  } else if (paymentMethod === 'ZALOPAY') {
     payTabRef = openOrReuseZaloPayLinkTab()
     if (!payTabRef) {
       try { payTabRef = window.open('about:blank', '_blank') } catch (_) { payTabRef = null }
@@ -440,9 +524,9 @@ async function submitOrder() {
   try {
     const resolvedColorImage = getSelectedColorImageFromProduct(currentProduct, selectedColor)
     const res = await axios.post('/api/orders', {
-      customer_name: name,
-      customer_phone: phone,
-      customer_address: address,
+      customer_name: payload.name,
+      customer_phone: payload.phone,
+      customer_address: payload.address,
       product_id: currentProduct.id,
       color: selectedColor,
       selected_color_image: resolvedColorImage || selectedColorImage || (currentProduct?.thumbnail || ''),
@@ -450,103 +534,13 @@ async function submitOrder() {
       quantity: orderQty,
       voucher_code: appliedVoucher ? appliedVoucher.code : '',
       note: document.getElementById('orderNote').value.trim(),
-      payment_method: selectedPaymentMethod
+      payment_method: paymentMethod
     })
     closeOrder()
     const orderCode = res.data.order_code
     const orderTotal = Number(res.data.total || 0)
     const orderId = Number(res.data.id || 0)
-    if (selectedPaymentMethod === 'BANK_TRANSFER') {
-      let payosData = null
-      try {
-        const payos = await axios.post('/api/orders/' + orderId + '/payos-link', { origin: window.location.origin })
-        payosData = payos.data?.data || null
-      } catch (_) {
-        showToast('PayOS tạm lỗi, đang chuyển sang QR dự phòng.', 'error', 4500)
-      }
-      if (payosData?.alreadyPaid) {
-        onOrderMarkedPaid(orderCode)
-        showToast('Đơn ' + orderCode + ' đã được thanh toán trước đó.', 'success', 4500)
-        return
-      }
-      const checkoutUrl = String(payosData?.checkoutUrl || '').trim()
-      if (checkoutUrl) {
-        let payTab = payTabRef
-        if (payTab) {
-          try { payTab.location.href = checkoutUrl } catch (_) { payTab = null }
-        }
-        if (!payTab) payTab = window.open(checkoutUrl, '_blank')
-        if (payTab) {
-          startOrderPaymentPolling(orderCode)
-          showToast(\`Đơn \${orderCode}: đã mở tab PayOS, vui lòng hoàn tất thanh toán.\`, 'success', 5000)
-        } else {
-          showToast('Trình duyệt đang chặn popup, hiển thị QR dự phòng để bạn thanh toán thủ công.', 'error', 5000)
-          openOrderBankTransferModal({
-            orderCode,
-            orderId,
-            amount: orderTotal,
-            transferContent: 'DH' + orderId,
-            paymentLinkId: payosData?.paymentLinkId || ''
-          })
-        }
-      } else {
-        try { if (payTabRef && !payTabRef.closed) payTabRef.close() } catch (_) { }
-        openOrderBankTransferModal({
-          orderCode,
-          orderId,
-          amount: orderTotal,
-          transferContent: 'DH' + orderId,
-          paymentLinkId: payosData?.paymentLinkId || ''
-        })
-        showToast(\`Đơn hàng \${orderCode} đã tạo. Vui lòng chuyển khoản để hoàn tất.\`, 'success', 5000)
-      }
-    } else if (selectedPaymentMethod === 'ZALOPAY') {
-      let zaloData = null
-      try {
-        const zalo = await axios.post('/api/orders/' + orderId + '/zalopay-link', { origin: window.location.origin })
-        zaloData = zalo.data?.data || null
-      } catch (err) {
-        const errCode = err.response?.data?.error
-        const missing = Array.isArray(err.response?.data?.missing) ? err.response.data.missing : []
-        if (errCode === 'ZALOPAY_CONFIG_MISSING') {
-          const detail = missing.length ? (': ' + missing.join(', ')) : ''
-          showToast('ZaloPay chua cau hinh day du' + detail, 'error', 5500)
-        } else {
-          showToast('ZaloPay tam loi, vui long thu lai sau it phut.', 'error', 4500)
-        }
-      }
-
-      if (zaloData?.alreadyPaid) {
-        onOrderMarkedPaid(orderCode)
-        showToast('Đơn ' + orderCode + ' đã được thanh toán trước đó.', 'success', 4500)
-        return
-      }
-
-      const checkoutUrl = String(zaloData?.orderUrl || '').trim()
-      if (!checkoutUrl) {
-        try { if (payTabRef && !payTabRef.closed) payTabRef.close() } catch (_) { }
-        showToast('Không tạo được liên kết thanh toán ZaloPay.', 'error', 4500)
-        return
-      }
-
-      let payTab = payTabRef
-      if (payTab) {
-        try { payTab.location.href = checkoutUrl } catch (_) { payTab = null }
-      }
-      if (!payTab) payTab = window.open(checkoutUrl, '_blank')
-
-      if (payTab) {
-        zaloPayLinkTab = payTab
-        startOrderPaymentPolling(orderCode)
-        showToast(\`Đơn \${orderCode}: đã mở tab ZaloPay, vui lòng quét QR để thanh toán.\`, 'success', 5000)
-      } else {
-        // Fallback: popup bị chặn, điều hướng luôn tại tab hiện tại
-        startOrderPaymentPolling(orderCode)
-        window.location.href = checkoutUrl
-      }
-    } else {
-      showToast(\`🎉 Đặt hàng thành công! Mã đơn: \${orderCode}\`, 'success', 5000)
-    }
+    await continueOrderPaymentFlow({ orderCode, orderId, orderTotal, paymentMethod, payTabRef })
   } catch(e) {
     try { if (payTabRef && !payTabRef.closed) payTabRef.close() } catch (_) { }
     const errCode = e.response?.data?.error

@@ -25,6 +25,7 @@ let userOrderHistoryCache = []
 let cart = []
 let cartStep = 1  // 1=list, 2=checkout
 let ckAppliedVoucher = null
+let cartSelectedPaymentMethod = ''
 let currentUser = null
 let isAdminUser = false
 let cartStorageKey = 'qhclothes_cart_guest'
@@ -76,6 +77,80 @@ function normalizeSearchText(input) {
     .normalize('NFD')
     .replace(/[\\u0300-\\u036f]/g, '')
     .trim()
+}
+
+function getCheckoutScopeConfig(scope) {
+  const isCart = scope === 'ck'
+  return {
+    isCart,
+    nameFieldId: isCart ? 'ckFieldName' : 'fieldName',
+    phoneFieldId: isCart ? 'ckFieldPhone' : 'fieldPhone',
+    addressFieldId: isCart ? 'ckFieldAddress' : 'fieldAddress',
+    colorFieldId: 'fieldColor',
+    sizeFieldId: 'sizeSection',
+    paymentFieldId: isCart ? 'ckFieldPaymentMethod' : 'fieldPaymentMethod',
+    nameInputId: isCart ? 'ckName' : 'orderName',
+    phoneInputId: isCart ? 'ckPhone' : 'orderPhone'
+  }
+}
+
+function getCheckoutSelectedPaymentMethod(scope) {
+  return scope === 'ck' ? cartSelectedPaymentMethod : selectedPaymentMethod
+}
+
+function resetCheckoutPaymentMethod(scope) {
+  if (scope === 'ck') cartSelectedPaymentMethod = ''
+  else selectedPaymentMethod = ''
+  document.querySelectorAll('.payment-method-btn[data-payment-scope="' + scope + '"]').forEach((btn) => {
+    btn.classList.remove('active', 'border-pink-500', 'bg-pink-50')
+  })
+}
+
+function selectCheckoutPaymentMethod(scope, method, btn) {
+  if (!btn || btn.disabled || btn.closest('.payment-method-unavailable')) return
+  document.querySelectorAll('.payment-method-btn[data-payment-scope="' + scope + '"]').forEach((node) => {
+    node.classList.remove('active', 'border-pink-500', 'bg-pink-50')
+  })
+  btn.classList.add('active', 'border-pink-500', 'bg-pink-50')
+  if (scope === 'ck') cartSelectedPaymentMethod = method
+  else selectedPaymentMethod = method
+  const cfg = getCheckoutScopeConfig(scope)
+  if (scope === 'ck') clearCheckoutError(cfg.paymentFieldId)
+  else clearFieldError(cfg.paymentFieldId)
+}
+
+function validateCheckoutFields(scope, options) {
+  const cfg = getCheckoutScopeConfig(scope)
+  const values = {
+    name: document.getElementById(cfg.nameInputId)?.value.trim() || '',
+    phone: document.getElementById(cfg.phoneInputId)?.value.trim() || '',
+    addressPayload: getAddressPayload(scope)
+  }
+  values.address = values.addressPayload.address
+  const shake = scope === 'ck' ? shakeCheckoutField : shakeField
+  const clear = scope === 'ck' ? clearCheckoutError : clearFieldError
+
+  if (!values.name) { shake(cfg.nameFieldId); return null }
+  clear(cfg.nameFieldId)
+  if (!values.phone || !/^[0-9]{9,11}$/.test(values.phone.replace(/\\s/g, ''))) { shake(cfg.phoneFieldId); return null }
+  clear(cfg.phoneFieldId)
+  if (!values.addressPayload.valid) { shake(cfg.addressFieldId); return null }
+  clear(cfg.addressFieldId)
+
+  if (options?.requireColor) {
+    if (!selectedColor) { shake(cfg.colorFieldId); return null }
+    clear(cfg.colorFieldId)
+  }
+  if (options?.requireSize) {
+    if (!selectedSize) { shake(cfg.sizeFieldId); return null }
+    clear(cfg.sizeFieldId)
+  }
+  if (options?.requirePayment) {
+    if (!getCheckoutSelectedPaymentMethod(scope)) { shake(cfg.paymentFieldId); return null }
+    clear(cfg.paymentFieldId)
+  }
+
+  return values
 }
 
 function getAddressPreferenceKey() {
@@ -954,7 +1029,8 @@ async function proceedToCheckout() {
   // reset form
   ;['ckName','ckPhone','ckAddress','ckAddressDetail','ckNote'].forEach(id => { const el=document.getElementById(id); if(el) el.value='' })
   await applySavedAddressToScope('ck')
-  ;['ckFieldName','ckFieldPhone','ckFieldAddress'].forEach(id => clearCheckoutError(id))
+  ;['ckFieldName','ckFieldPhone','ckFieldAddress','ckFieldPaymentMethod'].forEach(id => clearCheckoutError(id))
+  resetCheckoutPaymentMethod('ck')
   ckAppliedVoucher = null
   document.getElementById('ckVoucher').value = ''
   document.getElementById('ckVoucherStatus').classList.add('hidden')
@@ -968,7 +1044,7 @@ async function proceedToCheckout() {
   document.getElementById('cartStep2').classList.add('flex')
   document.getElementById('cartBackBtn').classList.remove('hidden')
   document.getElementById('cartTitle').textContent = 'Xác nhận đơn hàng'
-  document.getElementById('cartSubtitle').textContent = checked.reduce(function(s,i){return s+i.qty},0) + ' san pham'
+  document.getElementById('cartSubtitle').textContent = checked.reduce(function(s,i){return s+i.qty},0) + ' sản phẩm'
 }
 
 function updateCkTotal() {
@@ -1036,43 +1112,59 @@ function clearCheckoutError(fieldId) {
   document.getElementById(fieldId)?.classList.remove('field-error')
 }
 async function submitCartOrder() {
-  const name = document.getElementById('ckName').value.trim()
-  const phone = document.getElementById('ckPhone').value.trim()
-  const addressPayload = getAddressPayload('ck')
-  const address = addressPayload.address
-  if (!name) { shakeCheckoutField('ckFieldName'); return }
-  clearCheckoutError('ckFieldName')
-  if (!phone || !/^[0-9]{9,11}$/.test(phone.replace(/s/g,''))) { shakeCheckoutField('ckFieldPhone'); return }
-  clearCheckoutError('ckFieldPhone')
-  if (!addressPayload.valid) { shakeCheckoutField('ckFieldAddress'); return }
-  clearCheckoutError('ckFieldAddress')
+  const payload = validateCheckoutFields('ck', { requirePayment: true })
+  if (!payload) return
 
   const note = document.getElementById('ckNote').value.trim()
   const checkedItems = cart.filter(i=>i.checked)
+  const paymentMethod = getCheckoutSelectedPaymentMethod('ck')
+  if (paymentMethod === 'BANK_TRANSFER' && checkedItems.length !== 1) {
+    showToast('Chuyển khoản từ giỏ hiện chỉ hỗ trợ 1 sản phẩm mỗi lần. Hãy chọn 1 sản phẩm hoặc dùng COD.', 'error', 5000)
+    return
+  }
   const btn = document.getElementById('submitCartBtn')
   btn.disabled=true
   btn.innerHTML='<i class="fas fa-spinner fa-spin mr-2"></i>Đang xử lý...'
+  let payTabRef = null
+  if (paymentMethod === 'BANK_TRANSFER') {
+    try { payTabRef = window.open('about:blank', '_blank') } catch (_) { payTabRef = null }
+  }
 
   try {
-    const codes = []
+    const createdOrders = []
     for (const item of checkedItems) {
       const res = await axios.post('/api/orders', {
-        customer_name: name, customer_phone: phone, customer_address: address,
+        customer_name: payload.name, customer_phone: payload.phone, customer_address: payload.address,
         product_id: item.productId, color: item.color, size: item.size,
         selected_color_image: item.colorImage || '',
         quantity: item.qty,
         voucher_code: ckAppliedVoucher ? ckAppliedVoucher.code : '',
         note,
-        payment_method: 'COD'
+        payment_method: paymentMethod
       })
-      codes.push(res.data.order_code)
+      createdOrders.push({
+        orderCode: res.data.order_code,
+        orderId: Number(res.data.id || 0),
+        orderTotal: Number(res.data.total || 0)
+      })
     }
     // Remove checked items from cart
     cart = cart.filter(i=>!i.checked)
     saveCart()
     closeCart()
-    showToast('Dat hang thanh cong! ' + codes.length + ' don hang da duoc tao', 'success', 5000)
+    if (paymentMethod === 'BANK_TRANSFER' && createdOrders[0]) {
+      await continueOrderPaymentFlow({
+        orderCode: createdOrders[0].orderCode,
+        orderId: createdOrders[0].orderId,
+        orderTotal: createdOrders[0].orderTotal,
+        paymentMethod,
+        payTabRef
+      })
+    } else {
+      showToast('Đặt hàng thành công! ' + createdOrders.length + ' đơn hàng đã được tạo', 'success', 5000)
+    }
   } catch(e) {
+    try { if (payTabRef && !payTabRef.closed) payTabRef.close() } catch (_) { }
     const errCode = e.response?.data?.error
     if (errCode==='INVALID_VOUCHER'||errCode==='VOUCHER_LIMIT') {
       showToast('Voucher không còn hiệu lực','error')
