@@ -8,6 +8,9 @@ const storefrontSectionsSource = await readFile(new URL('../src/pages/storefront
 const storefrontStylesSource = await readFile(new URL('../src/pages/storefront/styles.ts', import.meta.url), 'utf8')
 const storefrontScriptSource = await readFile(new URL('../src/pages/storefront/script.ts', import.meta.url), 'utf8')
 const adminSectionsSource = await readFile(new URL('../src/pages/admin/sections.ts', import.meta.url), 'utf8')
+const adminStylesSource = await readFile(new URL('../src/pages/admin/styles.ts', import.meta.url), 'utf8')
+const adminSettingsScriptSource = await readFile(new URL('../src/pages/admin/script-featured-settings.ts', import.meta.url), 'utf8')
+const adminUtilityRoutesSource = await readFile(new URL('../src/routes/adminUtilityRoutes.ts', import.meta.url), 'utf8')
 
 assert.match(
   purchaseToastSource,
@@ -79,6 +82,75 @@ assert.doesNotMatch(
   adminSectionsSource,
   /<!-- FLASH SALE PAGE -->|Giai đoạn đầu|Phase 1|Task 8|sẽ được phát triển thêm sau/i,
   'admin flash sale page should not ship developer comments or temporary implementation notes in production HTML',
+)
+
+assert.match(
+  storefrontSectionsSource,
+  /searchInput[\s\S]*?w-64/,
+  'storefront search input should expand to w-64 for a less cramped search field',
+)
+assert.match(
+  storefrontSectionsSource,
+  /Chính sách đổi trả|Chính sách bảo mật/,
+  'storefront footer should include policy links',
+)
+assert.match(
+  storefrontSectionsSource,
+  /footerSocialLinks|TikTok|Shopee|Facebook|Threads/,
+  'storefront footer should reserve a social links area for configured MXH handles',
+)
+
+assert.match(
+  purchaseToastSource,
+  /purchaseToastSessionCap|purchaseToastShownCount|sessionStorage/,
+  'purchase toast should cap how many times it can appear in a session',
+)
+assert.doesNotMatch(
+  purchaseToastSource,
+  /t=setTimeout\(show,1000\);\s*\},5000\);\s*\}\s*t=setTimeout\(show,5000\);/s,
+  'purchase toast should not keep the old infinite loop without a session cap',
+)
+
+assert.match(
+  storefrontScriptSource,
+  /handleGlobalEscape|closeVisibleStorefrontOverlay|storefrontClosableOverlays/,
+  'storefront script should centralize Escape handling for closable overlays',
+)
+assert.match(
+  storefrontScriptSource,
+  /cartOverlay|detailOverlay|userMenuOverlay|shippingJourneyOverlay|orderBankTransferOverlay/,
+  'storefront Escape handling should cover the major modal and drawer overlays',
+)
+
+assert.match(
+  adminSectionsSource,
+  /Setting<\/span>|>Setting</,
+  'admin sidebar should expose the Setting group label',
+)
+assert.match(
+  adminSectionsSource,
+  /data-sub-page="settings-social"|>MXH</,
+  'admin sidebar should include the MXH settings submenu',
+)
+assert.match(
+  adminSectionsSource,
+  /page-settings-social|Cấu hình MXH|Lưu cấu hình MXH/,
+  'admin settings page should include the MXH settings screen',
+)
+assert.match(
+  adminSettingsScriptSource,
+  /loadSocialSettings|saveSocialSettings|previewSocialUrl|socialTiktokHandle|socialShopeeHandle|socialFacebookHandle|socialThreadsHandle/,
+  'admin settings script should load and save MXH handles with link previews',
+)
+assert.match(
+  adminUtilityRoutesSource,
+  /\/api\/admin\/settings\/social|\/api\/public\/social-links|social_tiktok_handle|social_shopee_handle|social_facebook_handle|social_threads_handle/,
+  'routes should persist social handles for admin and expose public social links safely',
+)
+assert.match(
+  adminStylesSource,
+  /sidebar-collapsed|data-sidebar-state|sidebar-toggle-desktop|sidebar-mini/,
+  'admin styles should include a desktop mini sidebar state',
 )
 
 console.log('Critical UI contract passed.')

@@ -23,6 +23,7 @@ let settingsSubmenuOpen = false
 let settingsActiveSubPage = ''
 let marketingSubmenuOpen = false
 let marketingActiveSubPage = ''
+let desktopSidebarCollapsed = false
 let selectedColorImage = ''
 const MAX_PRODUCT_PAYLOAD_SIZE = 1200000
 const ADMIN_OVERLAY_IDS = ['productModal', 'orderDetailModal', 'arrangeSuccessModal', 'createFlashSaleModal', 'flashSaleProductPickerModal', 'adminChangePasswordModal']
@@ -439,7 +440,7 @@ function closeOrdersHeaderSearch() {
   syncOrdersHeaderSearchUI()
 }
 function showPage(name) {
-  ['dashboard','products','orders','vouchers','featured','settings','settings-warehouse','flashsale'].forEach(p => {
+  ['dashboard','products','orders','vouchers','featured','settings','settings-social','settings-warehouse','flashsale'].forEach(p => {
     const section = document.getElementById('page-'+p)
     if (section) section.classList.toggle('hidden', p !== name)
   })
@@ -449,14 +450,15 @@ function showPage(name) {
   document.querySelectorAll('.nav-sub-item').forEach(b => {
     b.classList.toggle('active', b.dataset.subPage === settingsActiveSubPage || b.dataset.subPage === marketingActiveSubPage)
   })
-  if (name === 'settings' || name === 'settings-warehouse') {
+  if (name === 'settings' || name === 'settings-social' || name === 'settings-warehouse') {
     const settingsBtn = document.getElementById('settingsMenuBtn')
     if (settingsBtn) settingsBtn.classList.add('active')
     setSettingsSubmenuOpen(true)
+    if (name === 'settings-social') settingsActiveSubPage = 'settings-social'
     if (name === 'settings-warehouse') settingsActiveSubPage = 'settings-warehouse'
   } else {
     setSettingsSubmenuOpen(false)
-    if (name !== 'settings-warehouse') settingsActiveSubPage = ''
+    if (name !== 'settings-social' && name !== 'settings-warehouse') settingsActiveSubPage = ''
   }
   if (name === 'flashsale') {
     const marketingBtn = document.getElementById('marketingMenuBtn')
@@ -474,7 +476,7 @@ function showPage(name) {
   if (marketingActiveSubPage) {
     document.querySelectorAll('.nav-sub-item[data-sub-page="' + marketingActiveSubPage + '"]').forEach(b => b.classList.add('active'))
   }
-  const titles = {dashboard:'Dashboard', products:'Quản lý Sản phẩm', orders:'Quản lý Đơn hàng', vouchers:'Quản lý Voucher', featured:'Sản phẩm Nổi Bật', settings:'Cài đặt', 'settings-warehouse':'Cài đặt kho hàng', flashsale:'Quản lý Flashsale'}
+  const titles = {dashboard:'Dashboard', products:'Quản lý Sản phẩm', orders:'Quản lý Đơn hàng', vouchers:'Quản lý Voucher', featured:'Sản phẩm Nổi Bật', settings:'Setting', 'settings-social':'Cấu hình MXH', 'settings-warehouse':'Cài đặt kho hàng', flashsale:'Quản lý Flashsale'}
   document.body.dataset.adminPage = name
   document.getElementById('pageTitle').textContent = titles[name] || name
 
@@ -484,6 +486,7 @@ function showPage(name) {
   else if (name === 'vouchers') loadVouchers()
   else if (name === 'featured') loadFeaturedAdmin()
   else if (name === 'settings') loadSettingsAdmin()
+  else if (name === 'settings-social') loadSocialSettings()
   else if (name === 'settings-warehouse') loadSettingsWarehousePage()
   else if (name === 'flashsale') loadFlashSaleAdmin()
 
@@ -551,6 +554,19 @@ function syncSidebarOverlay() {
   }
 }
 
+function setDesktopSidebarCollapsed(collapsed) {
+  desktopSidebarCollapsed = !!collapsed
+  document.body.dataset.sidebarState = desktopSidebarCollapsed ? 'collapsed' : 'expanded'
+  const sidebar = document.getElementById('sidebar')
+  if (sidebar) sidebar.dataset.sidebarState = document.body.dataset.sidebarState
+}
+
+function toggleDesktopSidebar() {
+  const isDesktop = window.matchMedia && window.matchMedia('(min-width: 768px)').matches
+  if (!isDesktop) return
+  setDesktopSidebarCollapsed(!desktopSidebarCollapsed)
+}
+
 function setSettingsSubmenuOpen(open) {
   settingsSubmenuOpen = !!open
   const submenu = document.getElementById('settingsSubmenu')
@@ -569,6 +585,14 @@ function openSettingsWarehouse() {
   setSettingsSubmenuOpen(true)
   setMarketingSubmenuOpen(false)
   showPage('settings-warehouse')
+}
+
+function openSettingsSocial() {
+  settingsActiveSubPage = 'settings-social'
+  marketingActiveSubPage = ''
+  setSettingsSubmenuOpen(true)
+  setMarketingSubmenuOpen(false)
+  showPage('settings-social')
 }
 
 function setMarketingSubmenuOpen(open) {
@@ -1532,6 +1556,7 @@ document.addEventListener('keydown', function(e) {
 })
 
 document.addEventListener('DOMContentLoaded', function() {
+  setDesktopSidebarCollapsed(false)
   scheduleAdminOverlaySanitize()
   syncOrdersHeaderSearchUI()
   window.addEventListener('resize', syncSidebarOverlay)

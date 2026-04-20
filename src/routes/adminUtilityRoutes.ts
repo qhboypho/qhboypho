@@ -23,11 +23,67 @@ type PickupConfigInput = {
   pick_tel?: unknown
 }
 
+type SocialSettingsInput = {
+  tiktok_handle?: unknown
+  shopee_handle?: unknown
+  facebook_handle?: unknown
+  threads_handle?: unknown
+}
+
 type AdminUtilityRouteDeps = {
   initDB: (db: D1Database) => Promise<void>
   getGhtkPickupConfig: (db: D1Database, env: AppBindings) => Promise<GhtkPickupConfig>
   upsertAppSettings: (db: D1Database, entries: AppSettingEntry[]) => Promise<void>
   ghtkFetchPickupAddresses: (env: AppBindings) => Promise<GhtkPickupAddressFetchResult>
+}
+
+const SOCIAL_SETTING_KEYS = [
+  'social_tiktok_handle',
+  'social_shopee_handle',
+  'social_facebook_handle',
+  'social_threads_handle',
+] as const
+
+async function readSocialHandles(db: D1Database) {
+  const query = `SELECT key, value FROM app_settings WHERE key IN (${SOCIAL_SETTING_KEYS.map(() => '?').join(',')})`
+  const result = await db.prepare(query).bind(...SOCIAL_SETTING_KEYS).all()
+  const map = new Map<string, string>()
+  for (const row of (result.results || []) as any[]) {
+    map.set(String(row.key || ''), String(row.value || '').trim())
+  }
+  return {
+    tiktok_handle: String(map.get('social_tiktok_handle') || '').trim(),
+    shopee_handle: String(map.get('social_shopee_handle') || '').trim(),
+    facebook_handle: String(map.get('social_facebook_handle') || '').trim(),
+    threads_handle: String(map.get('social_threads_handle') || '').trim(),
+  }
+}
+
+function buildSocialLinks(handles: Record<string, string>) {
+  const makeLink = (handle: string, prefix: string, needsAt = false) => {
+    const normalized = String(handle || '').trim().replace(/^@+/, '')
+    if (!normalized) return ''
+    return prefix + (needsAt ? '@' : '') + normalized
+  }
+
+  return {
+    tiktok: {
+      handle: String(handles.tiktok_handle || '').trim().replace(/^@+/, ''),
+      url: makeLink(handles.tiktok_handle, 'https://www.tiktok.com/', true),
+    },
+    shopee: {
+      handle: String(handles.shopee_handle || '').trim().replace(/^\/+|\/+$/g, ''),
+      url: makeLink(String(handles.shopee_handle || '').trim().replace(/^\/+|\/+$/g, ''), 'https://shopee.vn/'),
+    },
+    facebook: {
+      handle: String(handles.facebook_handle || '').trim().replace(/^@+/, ''),
+      url: makeLink(handles.facebook_handle, 'https://www.facebook.com/'),
+    },
+    threads: {
+      handle: String(handles.threads_handle || '').trim().replace(/^@+/, ''),
+      url: makeLink(handles.threads_handle, 'https://www.threads.net/', true),
+    },
+  }
 }
 
 export function registerAdminUtilityRoutes(app: Hono<{ Bindings: AppBindings }>, deps: AdminUtilityRouteDeps) {
@@ -122,6 +178,49 @@ export function registerAdminUtilityRoutes(app: Hono<{ Bindings: AppBindings }>,
         return c.json({ success: false, error: sync.message, detail: sync.detail || null }, 400)
       }
       return c.json({ success: true, data: sync.data || [] })
+    } catch (e: any) {
+      return c.json({ success: false, error: e.message }, 500)
+    }
+  })
+
+  app.get('/api/admin/settings/social', async (c) => {
+    try {
+      await deps.initDB(c.env.DB)
+      const handles = await readSocialHandles(c.env.DB)
+      return c.json({ success: true, data: handles })
+    } catch (e: any) {
+      return c.json({ success: false, error: e.message }, 500)
+    }
+  })
+
+  app.put('/api/admin/settings/social', async (c) => {
+    try {
+      await deps.initDB(c.env.DB)
+      const body: SocialSettingsInput = await c.req.json<SocialSettingsInput>().catch(() => ({} as SocialSettingsInput))
+      const sanitize = (value: unknown, max = 80) => String(value || '').trim().replace(/^@+/, '').slice(0, max)
+      const payload = {
+        tiktok: sanitize(body.tiktok_handle, 80),
+        shopee: sanitize(body.shopee_handle, 120).replace(/^\/+|\/+$/g, ''),
+        facebook: sanitize(body.facebook_handle, 120),
+        threads: sanitize(body.threads_handle, 80),
+      }
+      await deps.upsertAppSettings(c.env.DB, [
+        { key: 'social_tiktok_handle', value: payload.tiktok },
+        { key: 'social_shopee_handle', value: payload.shopee },
+        { key: 'social_facebook_handle', value: payload.facebook },
+        { key: 'social_threads_handle', value: payload.threads },
+      ])
+      return c.json({ success: true, data: payload })
+    } catch (e: any) {
+      return c.json({ success: false, error: e.message }, 500)
+    }
+  })
+
+  app.get('/api/public/social-links', async (c) => {
+    try {
+      await deps.initDB(c.env.DB)
+      const handles = await readSocialHandles(c.env.DB)
+      return c.json({ success: true, data: buildSocialLinks(handles) })
     } catch (e: any) {
       return c.json({ success: false, error: e.message }, 500)
     }

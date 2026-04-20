@@ -1184,12 +1184,33 @@ function toggleCart() { openCart() }
 document.getElementById('orderOverlay').addEventListener('click', (e) => { if(e.target.id==='orderOverlay') closeOrder() })
 document.getElementById('detailOverlay').addEventListener('click', (e) => { if(e.target.id==='detailOverlay') closeDetail() })
 document.getElementById('orderBankTransferOverlay').addEventListener('click', (e) => { if (e.target.id === 'orderBankTransferOverlay') closeOrderBankTransferModal() })
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') {
-    const bankModal = document.getElementById('orderBankTransferOverlay')
-    if (bankModal && !bankModal.classList.contains('hidden')) closeOrderBankTransferModal()
+const storefrontClosableOverlays = [
+  { id: 'orderBankTransferOverlay', close: () => closeOrderBankTransferModal() },
+  { id: 'shippingJourneyOverlay', close: () => closeShippingJourneyModal() },
+  { id: 'orderOverlay', close: () => closeOrder() },
+  { id: 'detailOverlay', close: () => closeDetail() },
+  { id: 'cartOverlay', close: () => closeCart() },
+  { id: 'userMenuOverlay', close: () => closeUserMenu() },
+]
+
+function closeVisibleStorefrontOverlay() {
+  for (const item of storefrontClosableOverlays) {
+    const overlay = document.getElementById(item.id)
+    if (overlay && !overlay.classList.contains('hidden')) {
+      item.close()
+      return true
+    }
   }
-})
+  return false
+}
+
+function handleGlobalEscape(e) {
+  if (e.key !== 'Escape') return
+  if (closeVisibleStorefrontOverlay()) return
+  if (heroBannersIsExpanded) collapseBanners()
+}
+
+document.addEventListener('keydown', handleGlobalEscape)
 
 // Auto clear error on input
 ;['orderName','orderPhone','orderAddressDetail','orderProvince','orderCommune'].forEach(id => {
@@ -1211,6 +1232,41 @@ document.addEventListener('keydown', (e) => {
 let heroBannersData = []
 let heroBannersIsExpanded = false
 let lastHeroMobileMode = null
+
+function renderFooterSocialLinks(data) {
+  const section = document.getElementById('footerSocialSection')
+  const container = document.getElementById('footerSocialLinks')
+  if (!section || !container) return
+  const platforms = [
+    { key: 'tiktok', label: 'TikTok', icon: 'fa-brands fa-tiktok' },
+    { key: 'shopee', label: 'Shopee', icon: 'fa-solid fa-bag-shopping' },
+    { key: 'facebook', label: 'Facebook', icon: 'fa-brands fa-facebook-f' },
+    { key: 'threads', label: 'Threads', icon: 'fa-brands fa-threads' },
+  ]
+  const items = platforms.filter((item) => {
+    const row = data && data[item.key]
+    return row && row.url && row.handle
+  })
+  if (!items.length) {
+    section.classList.add('hidden')
+    container.innerHTML = ''
+    return
+  }
+  section.classList.remove('hidden')
+  container.innerHTML = items.map((item) => {
+    const row = data[item.key]
+    return '<a href="' + row.url + '" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-2 text-gray-200 hover:text-pink-300 hover:border-pink-300/40 transition"><i class="' + item.icon + ' text-pink-400"></i><span>' + item.label + '</span></a>'
+  }).join('')
+}
+
+async function loadFooterSocialLinks() {
+  try {
+    const res = await axios.get('/api/public/social-links')
+    renderFooterSocialLinks((res.data && res.data.data) || {})
+  } catch (_) {
+    renderFooterSocialLinks({})
+  }
+}
 
 async function loadSettings() {
   try {
@@ -1403,10 +1459,6 @@ function handleBannerOverlayClick(e) {
   if (e.target.id === 'heroBannersExpanded') collapseBanners()
 }
 
-document.addEventListener('keydown', e => {
-  if (e.key === 'Escape' && heroBannersIsExpanded) collapseBanners()
-})
-
 window.addEventListener('resize', () => {
   const mobileMode = isMobileHeroLayout()
   if (lastHeroMobileMode === null) {
@@ -1423,6 +1475,7 @@ window.addEventListener('resize', () => {
 // Init
 bindAddressSearchableDropdowns()
 loadSettings()
+loadFooterSocialLinks()
 loadCart()
 loadProducts()
 checkUserAuth()

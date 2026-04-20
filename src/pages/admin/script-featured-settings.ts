@@ -261,6 +261,65 @@ async function saveGhtkPickupConfig() {
   }
 }
 
+function buildSocialPreviewUrl(platform, rawHandle) {
+  const handle = String(rawHandle || '').trim().replace(/^@+/, '')
+  if (!handle) return ''
+  if (platform === 'tiktok') return 'https://www.tiktok.com/@' + handle
+  if (platform === 'shopee') return 'https://shopee.vn/' + handle.replace(/^\\/+|\\/+$/g, '')
+  if (platform === 'facebook') return 'https://www.facebook.com/' + handle
+  if (platform === 'threads') return 'https://www.threads.net/@' + handle
+  return ''
+}
+
+function previewSocialUrl(platform) {
+  const input = document.getElementById('social' + platform.charAt(0).toUpperCase() + platform.slice(1) + 'Handle')
+  const preview = document.getElementById('social' + platform.charAt(0).toUpperCase() + platform.slice(1) + 'Preview')
+  if (!preview) return
+  const url = buildSocialPreviewUrl(platform, input ? input.value : '')
+  preview.href = url || '#'
+  preview.textContent = url || 'Chưa cấu hình'
+  preview.classList.toggle('pointer-events-none', !url)
+}
+
+function fillSocialSettings(cfg) {
+  document.getElementById('socialTiktokHandle').value = cfg.tiktok_handle || ''
+  document.getElementById('socialShopeeHandle').value = cfg.shopee_handle || ''
+  document.getElementById('socialFacebookHandle').value = cfg.facebook_handle || ''
+  document.getElementById('socialThreadsHandle').value = cfg.threads_handle || ''
+  ;['tiktok','shopee','facebook','threads'].forEach(previewSocialUrl)
+}
+
+async function loadSocialSettings() {
+  try {
+    const res = await axios.get('/api/admin/settings/social')
+    fillSocialSettings(res.data.data || {})
+  } catch (e) {
+    showAdminToast('Lỗi tải cấu hình MXH', 'error')
+  }
+}
+
+async function saveSocialSettings() {
+  const btn = document.getElementById('saveSocialSettingsBtn')
+  const payload = {
+    tiktok_handle: document.getElementById('socialTiktokHandle').value.trim(),
+    shopee_handle: document.getElementById('socialShopeeHandle').value.trim(),
+    facebook_handle: document.getElementById('socialFacebookHandle').value.trim(),
+    threads_handle: document.getElementById('socialThreadsHandle').value.trim(),
+  }
+  btn.disabled = true
+  btn.innerHTML = '<i class=\"fas fa-spinner fa-spin\"></i> Đang lưu...'
+  try {
+    await axios.put('/api/admin/settings/social', payload)
+    showAdminToast('Đã lưu cấu hình MXH', 'success')
+    await loadSocialSettings()
+  } catch (e) {
+    showAdminToast('Lưu cấu hình MXH thất bại', 'error')
+  } finally {
+    btn.disabled = false
+    btn.innerHTML = '<i class=\"fas fa-save\"></i>Lưu cấu hình MXH'
+  }
+}
+
 
 // ── DASHBOARD ─────────────────────────────────────
 `
