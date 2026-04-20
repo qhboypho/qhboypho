@@ -416,7 +416,7 @@ function updateOrderSelectionUI() {
 async function deleteSelectedOrders() {
   const ids = Array.from(selectedOrderIds)
   if (!ids.length) return
-  if (!confirm('Xoá ' + ids.length + ' đơn đã chọn?')) return
+  if (!confirm('Bạn có chắc muốn xoá ' + ids.length + ' đơn hàng đã chọn? Hành động này không thể hoàn tác.')) return
   try {
     await Promise.all(ids.map(id => axios.delete('/api/admin/orders/' + id)))
     selectedOrderIds.clear()
