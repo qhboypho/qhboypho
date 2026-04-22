@@ -12,7 +12,7 @@ export function adminModalsSection(): string {
                 </div>`).join('')
 
   return `<!-- PRODUCT MODAL -->
-<div id="productModal" class="fixed inset-0 modal-overlay z-50 hidden flex items-start justify-center p-4 overflow-y-auto">
+<div id="productModal" class="fixed inset-0 modal-overlay z-50 hidden items-start justify-center p-4 overflow-y-auto">
   <div class="modal-card bg-white rounded-3xl shadow-2xl w-full max-w-3xl my-4">
     <div class="sticky top-0 bg-white rounded-t-3xl border-b px-6 py-4 flex items-center justify-between">
       <h2 id="modalTitle" class="font-bold text-xl text-gray-900">Thêm sản phẩm mới</h2>
@@ -158,7 +158,7 @@ export function adminModalsSection(): string {
 </div>
 
 <!-- ORDER DETAIL MODAL -->
-<div id="orderDetailModal" class="fixed inset-0 modal-overlay z-50 hidden flex items-center justify-center p-4" onclick="if(event.target === this) closeOrderDetailModal()">
+<div id="orderDetailModal" class="fixed inset-0 modal-overlay z-50 hidden items-center justify-center p-4" onclick="if(event.target === this) closeOrderDetailModal()">
   <div class="modal-card bg-white rounded-3xl shadow-2xl w-full max-w-lg" onclick="event.stopPropagation()">
     <div class="border-b px-6 py-4 flex items-center justify-between">
       <h2 class="font-bold text-xl text-gray-900">Chi tiết đơn hàng</h2>
@@ -171,7 +171,7 @@ export function adminModalsSection(): string {
 </div>
 
 <!-- SHIPPING ARRANGE SUCCESS MODAL -->
-<div id="arrangeSuccessModal" class="fixed inset-0 modal-overlay z-[80] hidden flex items-center justify-center p-4">
+<div id="arrangeSuccessModal" class="fixed inset-0 modal-overlay z-[80] hidden items-center justify-center p-4">
   <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden">
     <div class="px-6 py-4 border-b flex items-center justify-between">
       <h3 class="font-bold text-lg text-gray-900">Sắp xếp vận chuyển</h3>

@@ -32,7 +32,7 @@ export function storefrontDetailOrderScript(): string {
         <h2 class="font-display text-2xl font-bold text-gray-900 mb-3">\${p.name}</h2>
         \${p.has_flash_sale ? \`<div class="flex flex-wrap items-center gap-2 mb-3"><span class="flash-sale-badge"><i class="fas fa-bolt"></i> Flash Sale</span><span class="flash-sale-countdown" data-flash-sale-ends-at="\${flashMeta?.endsAt || ''}">\${formatFlashSaleCountdown(flashMeta?.endsAt || '')}</span></div>\` : ''}
         <div class="flex items-baseline gap-3 mb-4">
-          <span class="text-3xl font-bold text-pink-600">\${fmtPrice(detailDisplayPrice)}</span>
+          <span class="text-3xl font-bold text-gradient-price">\${fmtPrice(detailDisplayPrice)}</span>
           \${detailDisplayOriginalPrice > detailDisplayPrice ? \`<span class="text-gray-400 line-through">\${fmtPrice(detailDisplayOriginalPrice)}</span><span class="badge-sale text-white text-xs px-2 py-1 rounded-full">-\${discount}%</span>\` : ''}
         </div>
         \${p.description ? \`<p class="text-gray-600 text-sm leading-relaxed mb-4">\${p.description}</p>\` : ''}

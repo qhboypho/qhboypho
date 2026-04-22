@@ -80,7 +80,7 @@ export function storefrontModalsSection(): string {
         <img id="orderProductImg" src="" alt="" class="w-16 h-20 object-cover rounded-xl">
         <div>
           <p id="orderProductName" class="font-semibold text-gray-800 text-sm"></p>
-          <p id="orderProductPrice" class="text-pink-600 font-bold mt-1"></p>
+          <p id="orderProductPrice" class="text-gradient-price font-bold mt-1"></p>
         </div>
       </div>
 
@@ -215,7 +215,7 @@ export function storefrontModalsSection(): string {
           </div>
           <div class="flex justify-between items-center">
             <span class="font-semibold text-gray-700">Tổng cộng:</span>
-            <span id="orderTotal" class="text-2xl font-bold text-pink-600">0đ</span>
+            <span id="orderTotal" class="text-2xl font-bold text-gradient-price">0đ</span>
           </div>
         </div>
 
@@ -278,7 +278,7 @@ export function storefrontModalsSection(): string {
           </div>
           <div class="flex justify-between items-center bg-white rounded-lg px-3 py-2 border">
             <span class="text-gray-500">Số tiền</span>
-            <span class="font-bold text-pink-600" id="orderBankAmountDisplay"></span>
+            <span class="font-bold text-gradient-price" id="orderBankAmountDisplay"></span>
           </div>
           <div class="flex justify-between items-center bg-white rounded-lg px-3 py-2 border">
             <span class="text-gray-500">Mã đơn</span>
@@ -364,7 +364,7 @@ export function storefrontModalsSection(): string {
       <div id="cartFooter" class="hidden flex-shrink-0 border-t bg-white px-5 py-4">
         <div class="flex items-center justify-between mb-3">
           <span class="text-gray-600 font-medium">Tổng cộng (<span id="cartSelectedItems">0</span> sản phẩm):</span>
-          <span id="cartTotalPrice" class="text-xl font-bold text-pink-600">0đ</span>
+          <span id="cartTotalPrice" class="text-xl font-bold text-gradient-price">0đ</span>
         </div>
         <button onclick="proceedToCheckout()" id="checkoutBtn"
           class="btn-primary w-full text-white py-3.5 rounded-xl font-bold text-base disabled:opacity-50">
@@ -488,7 +488,7 @@ export function storefrontModalsSection(): string {
             </div>
             <div class="flex justify-between items-center">
               <span class="font-semibold text-gray-700">Tổng cộng:</span>
-              <span id="ckTotal" class="text-2xl font-bold text-pink-600">0đ</span>
+              <span id="ckTotal" class="text-2xl font-bold text-gradient-price">0đ</span>
             </div>
           </div>
         </div>

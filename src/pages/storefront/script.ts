@@ -680,7 +680,7 @@ async function loadFlashSaleShop() {
           <div class="space-y-3 p-4">
             <h3 class="line-clamp-2 text-sm font-semibold leading-6 text-slate-900">\${product.name}</h3>
             <div class="flex items-end gap-2">
-              <span class="text-2xl font-bold text-rose-600">\${fmtPrice(price)}</span>
+              <span class="text-2xl font-bold text-gradient-price">\${fmtPrice(price)}</span>
               \${original > price ? \`<span class="pb-0.5 text-sm text-slate-400 line-through">\${fmtPrice(original)}</span>\` : ''}
             </div>
             <button onclick="event.stopPropagation();openOrder(\${product.id})" class="btn-primary w-full rounded-2xl py-3 text-sm font-semibold text-white">
@@ -727,7 +727,7 @@ function renderProducts(products) {
         \${p.brand ? \`<p class="text-xs text-pink-500 font-medium mb-1">\${p.brand}</p>\` : ''}
         <h3 class="font-semibold text-gray-900 text-sm leading-tight mb-2 line-clamp-2">\${p.name}</h3>
         <div class="flex items-center gap-2 mb-3">
-          <span class="text-pink-600 font-bold">\${fmtPrice(displayPrice)}</span>
+          <span class="text-gradient-price font-bold">\${fmtPrice(displayPrice)}</span>
           \${displayOriginalPrice > displayPrice ? \`<span class="text-gray-400 text-xs line-through">\${fmtPrice(displayOriginalPrice)}</span>\` : ''}
         </div>
         \${colors.length > 0 ? \`
@@ -928,7 +928,7 @@ function renderCartStep1() {
       + '<p class="text-xs text-gray-400 mb-1">' + item.sku + '</p>'
       + '<div class="flex flex-wrap gap-1 mb-2">' + colorTag + sizeTag + '</div>'
       + '<div class="flex items-center justify-between">'
-      + '<span class="text-pink-600 font-bold text-sm">' + fmtPrice(item.price) + '</span>'
+      + '<span class="text-gradient-price font-bold text-sm">' + fmtPrice(item.price) + '</span>'
       + '<div class="flex items-center gap-2">'
       + '<button class="cart-qty-btn w-7 h-7 rounded-full border flex items-center justify-center text-gray-600 hover:border-pink-400 hover:text-pink-500 transition font-bold text-base" data-id="' + item.cartId + '" data-delta="-1">&minus;</button>'
       + '<span class="text-sm font-bold w-6 text-center">' + item.qty + '</span>'
@@ -1880,7 +1880,7 @@ async function showUserOrders() {
           + '<p class="text-sm font-semibold text-gray-800 leading-snug order-history-title">' + productTitle + '</p>'
           + '<p class="text-xs text-gray-500 mt-1">Màu: ' + escapeHtml(colorText) + ' | Size: ' + escapeHtml(sizeText) + quantityText + '</p>'
           + '<div class="flex justify-between items-center mt-2 gap-2"><span class="text-xs text-gray-400">' + new Date(o.created_at).toLocaleDateString('vi-VN') + '</span>'
-          + '<span class="font-bold text-pink-600 text-sm whitespace-nowrap">' + fmtPrice(getOrderAmountDue(o)) + '</span></div>'
+          + '<span class="font-bold text-gradient-price text-sm whitespace-nowrap">' + fmtPrice(getOrderAmountDue(o)) + '</span></div>'
           + '<div class="mt-2">' + statusHtml + '</div>'
           + resumeActionHtml
           + '</div>'
@@ -2132,7 +2132,7 @@ function showWalletInMenu() {
     }
     var tc = 'QHVN90' + currentUser.userId
     var html = '<div class="bg-gradient-to-r from-pink-50 to-purple-50 rounded-2xl p-4 mb-4 flex items-center justify-between">'
-    html += '<div><p class="text-xs text-gray-500">Số dư ví</p><p class="text-xl font-bold text-pink-600">' + fmtBalance(currentUser.balance) + '</p></div>'
+    html += '<div><p class="text-xs text-gray-500">Số dư ví</p><p class="text-xl font-bold text-gradient-price">' + fmtBalance(currentUser.balance) + '</p></div>'
     html += '<i class="fas fa-wallet text-3xl text-pink-300"></i></div>'
     html += '<h4 class="font-semibold text-gray-700 text-sm mb-2"><i class="fas fa-coins text-pink-400 mr-1"></i>Chọn số tiền</h4>'
     html += '<div class="grid grid-cols-3 gap-2 mb-3" id="topupAmountGrid">'
@@ -2153,7 +2153,7 @@ function showWalletInMenu() {
     html += '<div class="flex justify-between items-center bg-gray-50 rounded-lg px-3 py-2"><span class="text-gray-500">Số TK</span><span class="font-bold text-gray-800">' + BANK_CONFIG.accountNo + ' <i class="fas fa-copy text-gray-400 cursor-pointer ml-1 copy-btn" data-copy="' + BANK_CONFIG.accountNo + '"></i></span></div>'
     html += '<div class="flex justify-between items-center bg-gray-50 rounded-lg px-3 py-2"><span class="text-gray-500">Chủ TK</span><span class="font-bold text-gray-800">' + BANK_CONFIG.accountName + '</span></div>'
     html += '<div class="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2"><p class="text-amber-600 font-semibold mb-0.5">Nội dung CK (BẮT BUỘC)</p><div class="flex justify-between items-center"><span class="font-mono font-bold text-amber-800 text-sm">' + tc + '</span><i class="fas fa-copy text-amber-400 cursor-pointer copy-btn" data-copy="' + tc + '"></i></div></div>'
-    html += '<div class="flex justify-between items-center bg-gray-50 rounded-lg px-3 py-2"><span class="text-gray-500">Số tiền</span><span class="font-bold text-pink-600" id="qrAmountDisplay">' + fmtBalance(selectedTopupAmount) + '</span></div>'
+    html += '<div class="flex justify-between items-center bg-gray-50 rounded-lg px-3 py-2"><span class="text-gray-500">Số tiền</span><span class="font-bold text-gradient-price" id="qrAmountDisplay">' + fmtBalance(selectedTopupAmount) + '</span></div>'
     html += '</div></div>'
     html += '<div class="mt-3 bg-blue-50 border border-blue-200 rounded-xl px-3 py-2 text-xs text-blue-700 space-y-1">'
     html += '<p class="font-semibold"><i class="fas fa-info-circle mr-1"></i>Lưu ý:</p>'
