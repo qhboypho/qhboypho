@@ -21,7 +21,7 @@ export function storefrontBestsellersSection(): string {
     </div>
     <a href="#products" class="text-sm text-violet-400 hover:text-pink-400 font-semibold transition whitespace-nowrap">Xem tất cả →</a>
   </div>
-  <div class="px-4">
+  <div class="max-w-7xl mx-auto px-4">
     <div id="bestsellersTrack" class="bestsellers-track">
       <div class="bs-card"><div class="skeleton" style="aspect-ratio:1/1;width:100%"></div><div class="p-3 space-y-2"><div class="skeleton h-3 rounded-full"></div><div class="skeleton h-3 w-2/3 rounded-full"></div><div class="skeleton h-8 rounded-xl"></div></div></div>
       <div class="bs-card"><div class="skeleton" style="aspect-ratio:1/1;width:100%"></div><div class="p-3 space-y-2"><div class="skeleton h-3 rounded-full"></div><div class="skeleton h-3 w-2/3 rounded-full"></div><div class="skeleton h-8 rounded-xl"></div></div></div>
