@@ -102,13 +102,18 @@ assert.match(
 
 assert.match(
   purchaseToastSource,
-  /purchaseToastSessionCap|purchaseToastShownCount|sessionStorage/,
-  'purchase toast should cap how many times it can appear in a session',
+  /purchaseToastSessionCap|purchaseToastShownCount/,
+  'purchase toast should cap how many times it can appear in a single page load',
+)
+assert.doesNotMatch(
+  purchaseToastSource,
+  /sessionStorage/,
+  'purchase toast cap should not persist across reloads in the same tab',
 )
 assert.doesNotMatch(
   purchaseToastSource,
   /t=setTimeout\(show,1000\);\s*\},5000\);\s*\}\s*t=setTimeout\(show,5000\);/s,
-  'purchase toast should not keep the old infinite loop without a session cap',
+  'purchase toast should not keep the old infinite loop without a page-load cap',
 )
 
 assert.match(
