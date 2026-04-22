@@ -3,6 +3,7 @@ import {
   storefrontBodyOpen,
   storefrontNavbarSection,
   storefrontHeroSection,
+  storefrontBestsellersSection,
   storefrontFilterBarSection,
   storefrontFlashSaleShopSection,
   storefrontProductsSection,
@@ -47,6 +48,8 @@ ${storefrontBodyOpen()}
 ${storefrontNavbarSection()}
 
 ${storefrontHeroSection()}
+
+${storefrontBestsellersSection()}
 
 ${storefrontFilterBarSection()}
 

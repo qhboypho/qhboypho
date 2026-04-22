@@ -559,6 +559,48 @@ async function loadProducts() {
   }
 }
 
+async function loadBestSellers() {
+  const track = document.getElementById('bestsellersTrack')
+  if (!track) return
+  try {
+    const res = await axios.get('/api/bestsellers?limit=10')
+    const products = Array.isArray(res.data?.data) ? res.data.data : []
+    if (!products.length) { track.innerHTML = '<p class="text-gray-400 text-sm py-4 px-2">Chưa có dữ liệu bán hàng.</p>'; return }
+    const medalClass = (i) => i === 0 ? 'bs-medal-1' : i === 1 ? 'bs-medal-2' : i === 2 ? 'bs-medal-3' : 'bs-medal-n'
+    const medalIcon = (i) => i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : String(i + 1)
+    const fmtSold = (n) => n >= 1000 ? (n / 1000).toFixed(1) + 'k' : String(n)
+    track.innerHTML = products.map((p, i) => {
+      const flashMeta = getFlashSaleMeta(p)
+      const price = Number(flashMeta?.salePrice || p.display_price || p.price || 0)
+      const soldCount = Number(p.total_sold || 0)
+      return \`<div class="bs-card" onclick="showDetail(\${p.id})">
+        <div class="relative">
+          <img src="\${p.thumbnail || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'}"
+            alt="\${p.name}" class="bs-card-img" loading="lazy"
+            onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'">
+          <div class="bs-medal \${medalClass(i)}">\${medalIcon(i)}</div>
+          \${p.has_flash_sale ? '<div class="absolute bottom-2 right-2"><span class="flash-sale-badge text-xs"><i class="fas fa-bolt"></i></span></div>' : ''}
+        </div>
+        <div class="p-3">
+          <p class="bs-name mb-1.5">\${p.name}</p>
+          <div class="flex items-center justify-between mb-2">
+            <span class="bs-price">\${fmtPrice(price)}</span>
+            <span class="bs-stars">★★★★★</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="bs-sold-chip"><i class="fas fa-fire-flame-curved"></i> \${fmtSold(soldCount)} đã bán</span>
+          </div>
+          <button onclick="event.stopPropagation();openOrder(\${p.id})" class="btn-primary w-full mt-2.5 py-2 text-xs font-bold text-white rounded-xl">
+            <i class="fas fa-bolt mr-1"></i>Mua ngay
+          </button>
+        </div>
+      </div>\`
+    }).join('')
+  } catch(e) {
+    if (track) track.innerHTML = ''
+  }
+}
+
 function getFlashSaleMeta(product) {
   const flashSale = product?.flash_sale
   const hasFlashSale = !!product?.has_flash_sale && flashSale && flashSale.item
@@ -2165,6 +2207,10 @@ document.addEventListener('click', function(e) {
     copyText(e.target.dataset.copy)
   }
 })
+
+// Load bestsellers on page start
+loadBestSellers()
+
 
 function openTopupModal() {
     if (!currentUser) { toggleUserMenu(); return }

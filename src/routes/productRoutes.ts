@@ -35,13 +35,13 @@ function parseColorOptions(raw: any): Array<{ name: string; image: string }> {
   const parsed = Array.isArray(raw)
     ? raw
     : (() => {
-        try {
-          const value = JSON.parse(String(raw || '[]'))
-          return Array.isArray(value) ? value : []
-        } catch {
-          return []
-        }
-      })()
+      try {
+        const value = JSON.parse(String(raw || '[]'))
+        return Array.isArray(value) ? value : []
+      } catch {
+        return []
+      }
+    })()
   return normalizeColorOptionsInput(parsed)
 }
 
@@ -348,6 +348,37 @@ export function registerProductRoutes(app: Hono<{ Bindings: AppBindings }>, deps
            id DESC`
       ).all()
       return c.json({ success: true, data: await buildProductsWithSkus(c.env.DB, res.results || []) })
+    } catch (e: any) {
+      return c.json({ success: false, error: e.message }, 500)
+    }
+  })
+
+  app.get('/api/bestsellers', async (c) => {
+    try {
+      await deps.initDB(c.env.DB)
+      const limit = Math.min(20, Math.max(1, Number(c.req.query('limit') || 10)))
+      // Sum quantity for orders with status: done/shipping/waiting_pickup (confirmed sold)
+      const res = await c.env.DB.prepare(
+        `SELECT p.*, COALESCE(s.total_sold, 0) as total_sold
+         FROM products p
+         LEFT JOIN (
+           SELECT product_id, SUM(quantity) as total_sold
+           FROM orders
+           WHERE status IN ('done', 'shipping', 'waiting_pickup', 'pending')
+           GROUP BY product_id
+         ) s ON s.product_id = p.id
+         WHERE p.is_active = 1
+         ORDER BY COALESCE(s.total_sold, 0) DESC, p.id DESC
+         LIMIT ?`
+      ).bind(limit).all()
+      const rows = res.results || []
+      const shaped = await buildProductsWithSkus(c.env.DB, rows)
+      // Attach total_sold from the raw rows since buildProductsWithSkus may not preserve it
+      const result = shaped.map((item: any, idx: number) => ({
+        ...item,
+        total_sold: Number((rows[idx] as any).total_sold || 0)
+      }))
+      return c.json({ success: true, data: result })
     } catch (e: any) {
       return c.json({ success: false, error: e.message }, 500)
     }
