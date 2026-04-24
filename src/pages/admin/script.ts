@@ -33,6 +33,7 @@ const ADMIN_OVERLAY_IDS = ['productModal', 'orderDetailModal', 'arrangeSuccessMo
 
 function forceHideAdminOverlay(el) {
   if (!el) return
+  el.removeAttribute('data-admin-overlay-open')
   el.classList.add('hidden')
   el.classList.remove('flex')
   el.style.display = 'none'
@@ -41,6 +42,7 @@ function forceHideAdminOverlay(el) {
 
 function showAdminOverlay(el, displayMode = 'flex') {
   if (!el) return
+  el.setAttribute('data-admin-overlay-open', '1')
   el.style.display = displayMode
   el.style.pointerEvents = ''
   el.classList.remove('hidden')
@@ -207,6 +209,7 @@ function adminOverlayHasVisibleContent(el) {
 function getActiveAdminModalOverlays() {
   return ADMIN_OVERLAY_IDS
     .map((id) => document.getElementById(id))
+    .filter((el) => String(el?.dataset?.adminOverlayOpen || '') === '1')
     .filter((el) => isAdminOverlayElementVisible(el) && adminOverlayHasVisibleContent(el))
 }
 
