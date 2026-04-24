@@ -71,8 +71,19 @@ export function adminLoginHTML(): string {
   </div>
 <script>
   function sanitizeLoginSurface() {
+    const loginShell = document.querySelector('.login-shell')
+    document.documentElement.style.opacity = '1'
+    document.documentElement.style.filter = 'none'
+    document.documentElement.style.pointerEvents = 'auto'
+    document.body.style.opacity = '1'
+    document.body.style.filter = 'none'
     document.body.style.pointerEvents = ''
     document.body.style.overflow = 'hidden'
+    if (loginShell instanceof HTMLElement) {
+      loginShell.style.opacity = '1'
+      loginShell.style.filter = 'none'
+      loginShell.style.pointerEvents = 'auto'
+    }
     document.querySelectorAll('#sidebarOverlay, .modal-overlay, .mobile-overlay').forEach((node) => {
       if (!(node instanceof HTMLElement)) return
       node.style.display = 'none'
@@ -80,11 +91,22 @@ export function adminLoginHTML(): string {
       node.classList.add('hidden')
       node.setAttribute('aria-hidden', 'true')
     })
+    document.querySelectorAll('body > div, body > section, body > aside').forEach((node) => {
+      if (!(node instanceof HTMLElement) || node.classList.contains('login-shell')) return
+      const style = window.getComputedStyle(node)
+      const isFullscreen = style.position === 'fixed' && style.inset === '0px'
+      const coversViewport = node.clientWidth >= window.innerWidth - 4 && node.clientHeight >= window.innerHeight - 4
+      if (!isFullscreen && !coversViewport) return
+      node.style.display = 'none'
+      node.style.pointerEvents = 'none'
+      node.setAttribute('aria-hidden', 'true')
+    })
   }
 
   sanitizeLoginSurface()
   window.addEventListener('load', sanitizeLoginSurface)
   window.addEventListener('pageshow', sanitizeLoginSurface)
+  new MutationObserver(() => sanitizeLoginSurface()).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style'] })
 
   document.getElementById('loginPassword').addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin() })
   document.getElementById('loginUsername').addEventListener('keydown', (e) => { if (e.key === 'Enter') document.getElementById('loginPassword').focus() })

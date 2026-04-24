@@ -30,6 +30,8 @@ assert.match(loginPageHtml, /sanitizeLoginSurface\(\)/, 'Expected admin login pa
 assert.match(loginPageHtml, /#sidebarOverlay, \.modal-overlay, \.mobile-overlay \{ display: none !important; pointer-events: none !important; \}/, 'Expected admin login page CSS to force-hide stray overlays')
 assert.match(loginPageHtml, /body\.login-bg > \* \{ position: relative; z-index: 2147483646; \}/, 'Expected admin login shell to sit above stray full-screen overlays')
 assert.match(loginPageHtml, /class="login-shell fade-up w-full max-w-md"/, 'Expected admin login markup to wrap the page content in a dedicated high z-index shell')
+assert.match(loginPageHtml, /new MutationObserver\(\(\) => sanitizeLoginSurface\(\)\)\.observe\(document\.body, \{ childList: true, subtree: true, attributes: true, attributeFilter: \['class', 'style'\] \}\)/, 'Expected admin login page to re-sanitize overlays when runtime DOM mutations occur')
+assert.match(loginPageHtml, /document\.documentElement\.style\.filter = 'none'/, 'Expected admin login sanitizer to clear filter-based dimming on the root document')
 
 const protectedRes = await fetch(`${baseUrl}/admin/dashboard`, { redirect: 'manual' })
 assert.equal(protectedRes.status, 302, `Expected unauthenticated /admin/dashboard redirect 302, got ${protectedRes.status}`)
