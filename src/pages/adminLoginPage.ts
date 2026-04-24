@@ -21,6 +21,8 @@ export function adminLoginHTML(): string {
   .input-dark::placeholder { color: rgba(255,255,255,0.4); }
   .input-dark:focus { border-color: #e84393; box-shadow: 0 0 0 3px rgba(232,67,147,0.15); outline: none; }
   body.login-bg { overflow: hidden; isolation: isolate; }
+  body.login-bg > * { position: relative; z-index: 2147483646; }
+  .login-shell { position: relative; z-index: 2147483647; pointer-events: auto; }
   #sidebarOverlay, .modal-overlay, .mobile-overlay { display: none !important; pointer-events: none !important; }
   @keyframes fadeUp { from { opacity:0; transform:translateY(30px); } to { opacity:1; transform:translateY(0); } }
   .fade-up { animation: fadeUp 0.6s ease; }
@@ -29,7 +31,7 @@ export function adminLoginHTML(): string {
 </style>
 </head>
 <body class="login-bg flex items-center justify-center p-4">
-  <div class="fade-up w-full max-w-md">
+  <div class="login-shell fade-up w-full max-w-md">
     <!-- Logo -->
     <div class="text-center mb-8">
       <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-pink-500 to-red-500 flex items-center justify-center mx-auto mb-4 shadow-xl">

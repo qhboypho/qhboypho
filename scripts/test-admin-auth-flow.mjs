@@ -28,6 +28,8 @@ assert.match(loginPageHtml, /Đăng nhập Admin/i, 'Expected login page title t
 assert.match(loginPageHtml, /Đăng nhập quản trị/i, 'Expected login card heading to be readable')
 assert.match(loginPageHtml, /sanitizeLoginSurface\(\)/, 'Expected admin login page to hard-reset stray overlays on load')
 assert.match(loginPageHtml, /#sidebarOverlay, \.modal-overlay, \.mobile-overlay \{ display: none !important; pointer-events: none !important; \}/, 'Expected admin login page CSS to force-hide stray overlays')
+assert.match(loginPageHtml, /body\.login-bg > \* \{ position: relative; z-index: 2147483646; \}/, 'Expected admin login shell to sit above stray full-screen overlays')
+assert.match(loginPageHtml, /class="login-shell fade-up w-full max-w-md"/, 'Expected admin login markup to wrap the page content in a dedicated high z-index shell')
 
 const protectedRes = await fetch(`${baseUrl}/admin/dashboard`, { redirect: 'manual' })
 assert.equal(protectedRes.status, 302, `Expected unauthenticated /admin/dashboard redirect 302, got ${protectedRes.status}`)
