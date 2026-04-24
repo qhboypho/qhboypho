@@ -26,6 +26,10 @@ export function storefrontDetailOrderScript(): string {
           <img src="\${img}" alt="" class="w-full h-16 object-cover rounded-lg border-2 border-transparent hover:border-pink-400"
             onclick="document.getElementById('mainDetailImg').src='\${img}'">\`).join('')}
         </div>
+        <!-- Reviews section - only shown when logged in -->
+        <div id="detailReviewsSection" class="review-section ${currentUser ? '' : 'hidden'}">
+          <div id="detailReviewsContent"><div class="flex items-center gap-2 py-3"><i class="fas fa-spinner fa-spin text-violet-400 text-sm"></i><span class="text-sm text-gray-400">Đang tải đánh giá...</span></div></div>
+        </div>
       </div>
       <div>
         \${p.brand ? \`<p class="text-sm text-pink-500 font-medium mb-1">\${p.brand}</p>\` : ''}
@@ -77,6 +81,8 @@ export function storefrontDetailOrderScript(): string {
       const label = document.getElementById('detailColorLabel')
       if (label) label.textContent = ''
     }
+    // Load reviews (only if user is logged in)
+    if (currentUser) loadProductReviews(Number(p.id))
   } catch(e) { showToast('Không thể tải chi tiết sản phẩm', 'error') }
 }
 

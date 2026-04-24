@@ -10,6 +10,7 @@ import { registerPaymentRoutes } from './routes/paymentRoutes'
 import { registerVoucherStatsRoutes } from './routes/voucherStatsRoutes'
 import { registerAdminUtilityRoutes } from './routes/adminUtilityRoutes'
 import { registerFlashSaleRoutes } from './routes/flashSaleRoutes'
+import { registerReviewRoutes } from './routes/reviewRoutes'
 import { createInitDB } from './lib/db'
 import type { AppBindings } from './types/app'
 import {
@@ -134,6 +135,11 @@ registerVoucherStatsRoutes(app, {
 registerFlashSaleRoutes(app, {
   initDB
 })
+
+registerReviewRoutes(app, {
+  initDB
+})
+
 
 registerPageRoutes(app)
 

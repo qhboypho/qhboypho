@@ -559,6 +559,172 @@ async function loadProducts() {
   }
 }
 
+// ── REVIEWS ─────────────────────────────────────────
+let _reviewState = { productId: 0, orderId: 0, rating: 5, images: [], submitting: false }
+
+async function loadProductReviews(productId) {
+  const section = document.getElementById('detailReviewsSection')
+  const content = document.getElementById('detailReviewsContent')
+  if (!section || !content || !currentUser) return
+  section.classList.remove('hidden')
+  try {
+    const res = await axios.get('/api/reviews?productId=' + productId)
+    const reviews = Array.isArray(res.data?.data) ? res.data.data : []
+    const avg = Number(res.data?.avgRating || 0)
+    const total = Number(res.data?.total || 0)
+    if (!reviews.length) {
+      content.innerHTML = '<p class="text-gray-400 text-sm py-2">Chưa có đánh giá nào. Hãy là người đầu tiên!</p>'
+      return
+    }
+    const stars = (n) => '★'.repeat(Math.round(n)) + '☆'.repeat(5 - Math.round(n))
+    content.innerHTML = `
+      <div class="flex items-center gap-2 mb-3">
+        <span class="review-avg-stars text-lg">${stars(avg)}</span>
+        <span class="font-bold text-gray-800 text-sm">${avg.toFixed(1)}</span>
+        <span class="text-gray-400 text-xs">(${total} đánh giá)</span>
+      </div>
+      <div class="space-y-3">
+        ${reviews.slice(0, 5).map(r => {
+          const avatarHtml = r.user_avatar
+            ? `<img src="${escapeHtml(r.user_avatar)}" class="review-avatar" onerror="this.src=''">`
+            : `<div class="review-avatar bg-violet-100 flex items-center justify-center text-violet-500 text-xs font-bold">${escapeHtml((r.user_name||'?')[0].toUpperCase())}</div>`
+          const imgHtml = Array.isArray(r.images) && r.images.length
+            ? `<div class="flex gap-1.5 mt-2 flex-wrap">${r.images.map(img => `<img src="${escapeHtml(img)}" class="review-img-thumb" onclick="window.open('${escapeHtml(img)}','_blank')">`).join('')}</div>`
+            : ''
+          return `<div class="review-card">
+            <div class="flex items-center gap-2 mb-1.5">
+              ${avatarHtml}
+              <div>
+                <p class="text-xs font-semibold text-gray-700">${escapeHtml(r.user_name || 'Khách hàng')}</p>
+                <span class="review-stars">${'★'.repeat(Number(r.rating))}${'☆'.repeat(5-Number(r.rating))}</span>
+              </div>
+              <span class="ml-auto text-xs text-gray-400">${new Date(r.created_at).toLocaleDateString('vi-VN')}</span>
+            </div>
+            ${r.comment ? `<p class="text-sm text-gray-600 leading-relaxed">${escapeHtml(r.comment)}</p>` : ''}
+            ${imgHtml}
+          </div>`
+        }).join('')}
+      </div>`
+  } catch(e) {
+    content.innerHTML = '<p class="text-gray-400 text-xs py-2">Không thể tải đánh giá.</p>'
+  }
+}
+
+async function openReviewModal(orderId, productId) {
+  if (!currentUser) { showToast('Vui lòng đăng nhập để đánh giá', 'error'); return }
+  _reviewState = { productId: Number(productId), orderId: Number(orderId), rating: 5, images: [], submitting: false }
+  // Reset UI
+  setReviewRating(5)
+  document.getElementById('reviewComment').value = ''
+  document.getElementById('reviewImgPreviews').innerHTML = ''
+  document.getElementById('reviewImgInput').value = ''
+  // Load product info for display
+  try {
+    const res = await axios.get('/api/products/' + productId)
+    const p = res.data?.data
+    if (p) {
+      document.getElementById('reviewProductInfo').innerHTML =
+        `<img src="${escapeHtml(p.thumbnail||'')}" class="w-12 h-12 rounded-lg object-cover bg-gray-100" onerror="this.style.display='none'">
+        <div><p class="text-sm font-semibold text-gray-800">${escapeHtml(p.name||'')}</p><p class="text-xs text-gray-400">Đơn hàng #${orderId}</p></div>`
+    }
+  } catch { document.getElementById('reviewProductInfo').innerHTML = '<p class="text-sm text-gray-500">Đơn hàng #' + orderId + '</p>' }
+  document.getElementById('reviewModalOverlay').classList.remove('hidden')
+  document.body.style.overflow = 'hidden'
+}
+
+function closeReviewModal() {
+  document.getElementById('reviewModalOverlay').classList.add('hidden')
+  document.body.style.overflow = ''
+}
+
+function handleReviewOverlayClick(e) {
+  if (e.target === document.getElementById('reviewModalOverlay')) closeReviewModal()
+}
+
+function setReviewRating(n) {
+  _reviewState.rating = n
+  document.querySelectorAll('.review-star-btn').forEach(btn => {
+    const v = Number(btn.getAttribute('data-v'))
+    btn.textContent = v <= n ? '★' : '☆'
+    btn.classList.toggle('active', v <= n)
+    btn.style.color = v <= n ? '#f59e0b' : '#d1d5db'
+  })
+}
+
+function onReviewImgSelected(input) {
+  const files = Array.from(input.files || [])
+  const remaining = 3 - _reviewState.images.length
+  if (!remaining) { showToast('Tối đa 3 ảnh', 'error'); return }
+  const toAdd = files.slice(0, remaining)
+  const previews = document.getElementById('reviewImgPreviews')
+  toAdd.forEach(file => {
+    if (!file.type.startsWith('image/')) return
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const dataUrl = e.target.result
+      if (dataUrl.length > 700000) { showToast('Ảnh quá lớn (tối đa 500KB)', 'error'); return }
+      _reviewState.images.push(dataUrl)
+      const wrapper = document.createElement('div')
+      wrapper.className = 'relative'
+      wrapper.innerHTML = `<img src="${dataUrl}" class="review-img-preview">
+        <button onclick="removeReviewImg(${_reviewState.images.length - 1}, this.parentNode)"
+          class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs font-bold flex items-center justify-center">×</button>`
+      previews.appendChild(wrapper)
+    }
+    reader.readAsDataURL(file)
+  })
+}
+
+function removeReviewImg(idx, wrapper) {
+  _reviewState.images.splice(idx, 1)
+  wrapper?.remove()
+  // Refresh indices on remaining remove buttons
+  document.querySelectorAll('#reviewImgPreviews > div').forEach((el, i) => {
+    const btn = el.querySelector('button')
+    if (btn) btn.setAttribute('onclick', `removeReviewImg(${i}, this.parentNode)`)
+  })
+}
+
+async function submitReview() {
+  if (_reviewState.submitting) return
+  if (!currentUser) { showToast('Vui lòng đăng nhập', 'error'); return }
+  const comment = (document.getElementById('reviewComment').value || '').trim()
+  if (!comment) { showToast('Vui lòng nhập nhận xét', 'error'); document.getElementById('reviewComment').focus(); return }
+  _reviewState.submitting = true
+  const btn = document.getElementById('reviewSubmitBtn')
+  btn.disabled = true
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Đang gửi...'
+  try {
+    const res = await axios.post('/api/reviews', {
+      product_id: _reviewState.productId,
+      order_id: _reviewState.orderId,
+      rating: _reviewState.rating,
+      comment,
+      images: _reviewState.images
+    })
+    closeReviewModal()
+    showToast('Cảm ơn bạn đã đánh giá! ⭐', 'success', 3500)
+    // Refresh reviews in product detail if open
+    if (detailSelectedProductId === _reviewState.productId) {
+      loadProductReviews(_reviewState.productId)
+    }
+    // Refresh order history to remove the rate button for this order
+    showUserOrders()
+  } catch(e) {
+    const code = e.response?.data?.error
+    const msg = code === 'ALREADY_REVIEWED' ? 'Bạn đã đánh giá đơn hàng này rồi'
+              : code === 'ORDER_NOT_ELIGIBLE' ? 'Đơn hàng chưa đủ điều kiện đánh giá'
+              : code === 'UNAUTHORIZED' ? 'Vui lòng đăng nhập để đánh giá'
+              : 'Gửi đánh giá thất bại, thử lại sau'
+    showToast(msg, 'error')
+  } finally {
+    _reviewState.submitting = false
+    btn.disabled = false
+    btn.innerHTML = '<i class="fas fa-paper-plane mr-2"></i>Gửi đánh giá'
+  }
+}
+
+
 async function loadBestSellers() {
   const track = document.getElementById('bestsellersTrack')
   if (!track) return
@@ -1883,6 +2049,9 @@ async function showUserOrders() {
           + '<span class="font-bold text-gradient-price text-sm whitespace-nowrap">' + fmtPrice(getOrderAmountDue(o)) + '</span></div>'
           + '<div class="mt-2">' + statusHtml + '</div>'
           + resumeActionHtml
+          + (orderStatus === 'done'
+            ? '<button class="btn-rate-order mt-2" onclick="openReviewModal(' + o.id + ',' + o.product_id + ')"><i class=\"fas fa-star mr-1\"></i>Đánh giá</button>'
+            : '')
           + '</div>'
           + '</div>'
           + '</div>'

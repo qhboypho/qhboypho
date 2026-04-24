@@ -555,5 +555,48 @@ export function storefrontModalsSection(): string {
   </div>
 </div>
 
+<!-- REVIEW MODAL -->
+<div id="reviewModalOverlay" class="review-modal-overlay hidden" onclick="handleReviewOverlayClick(event)">
+  <div class="review-modal-panel" id="reviewModalPanel">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-display text-lg font-bold text-gray-900"><i class="fas fa-star text-amber-400 mr-2"></i>Đánh giá sản phẩm</h3>
+      <button onclick="closeReviewModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition">
+        <i class="fas fa-times text-gray-600"></i>
+      </button>
+    </div>
+    <div id="reviewProductInfo" class="flex items-center gap-3 mb-4 p-3 bg-gray-50 rounded-xl"></div>
+    <!-- Star rating -->
+    <div class="mb-4">
+      <p class="text-sm font-semibold text-gray-700 mb-2">Chất lượng sản phẩm</p>
+      <div class="flex gap-1" id="reviewStarRow">
+        <button class="review-star-btn" data-v="1" onclick="setReviewRating(1)">☆</button>
+        <button class="review-star-btn" data-v="2" onclick="setReviewRating(2)">☆</button>
+        <button class="review-star-btn" data-v="3" onclick="setReviewRating(3)">☆</button>
+        <button class="review-star-btn" data-v="4" onclick="setReviewRating(4)">☆</button>
+        <button class="review-star-btn" data-v="5" onclick="setReviewRating(5)">☆</button>
+      </div>
+    </div>
+    <!-- Comment -->
+    <div class="mb-4">
+      <label class="block text-sm font-semibold text-gray-700 mb-1.5">Nhận xét</label>
+      <textarea id="reviewComment" rows="3" maxlength="1000" placeholder="Chia sẻ trải nghiệm của bạn với sản phẩm này..."
+        class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-violet-400 focus:ring-1 focus:ring-violet-200 resize-none"></textarea>
+    </div>
+    <!-- Image upload -->
+    <div class="mb-5">
+      <p class="text-sm font-semibold text-gray-700 mb-1.5">Ảnh đính kèm (tối đa 3)</p>
+      <div class="flex gap-2 flex-wrap" id="reviewImgPreviews"></div>
+      <label class="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-violet-600 bg-violet-50 border border-violet-200 rounded-full px-3 py-1.5 cursor-pointer hover:bg-violet-100 transition">
+        <i class="fas fa-camera"></i> Chọn ảnh
+        <input type="file" id="reviewImgInput" accept="image/*" multiple class="hidden" onchange="onReviewImgSelected(this)">
+      </label>
+    </div>
+    <button id="reviewSubmitBtn" onclick="submitReview()"
+      class="btn-primary w-full text-white py-3 rounded-xl font-bold text-sm">
+      <i class="fas fa-paper-plane mr-2"></i>Gửi đánh giá
+    </button>
+  </div>
+</div>
+
 <div id="toastContainer" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2 pointer-events-none"></div>`
 }
