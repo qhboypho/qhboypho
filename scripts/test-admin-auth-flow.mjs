@@ -26,6 +26,8 @@ const loginPageHtml = await loginPageRes.text()
 assert.match(loginPageHtml, /QH Clothes/i, 'Expected login page to include QH Clothes branding')
 assert.match(loginPageHtml, /Đăng nhập Admin/i, 'Expected login page title text to be readable')
 assert.match(loginPageHtml, /Đăng nhập quản trị/i, 'Expected login card heading to be readable')
+assert.match(loginPageHtml, /sanitizeLoginSurface\(\)/, 'Expected admin login page to hard-reset stray overlays on load')
+assert.match(loginPageHtml, /#sidebarOverlay, \.modal-overlay, \.mobile-overlay \{ display: none !important; pointer-events: none !important; \}/, 'Expected admin login page CSS to force-hide stray overlays')
 
 const protectedRes = await fetch(`${baseUrl}/admin/dashboard`, { redirect: 'manual' })
 assert.equal(protectedRes.status, 302, `Expected unauthenticated /admin/dashboard redirect 302, got ${protectedRes.status}`)

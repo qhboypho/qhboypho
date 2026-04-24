@@ -20,6 +20,8 @@ export function adminLoginHTML(): string {
   .input-dark { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: white; }
   .input-dark::placeholder { color: rgba(255,255,255,0.4); }
   .input-dark:focus { border-color: #e84393; box-shadow: 0 0 0 3px rgba(232,67,147,0.15); outline: none; }
+  body.login-bg { overflow: hidden; isolation: isolate; }
+  #sidebarOverlay, .modal-overlay, .mobile-overlay { display: none !important; pointer-events: none !important; }
   @keyframes fadeUp { from { opacity:0; transform:translateY(30px); } to { opacity:1; transform:translateY(0); } }
   .fade-up { animation: fadeUp 0.6s ease; }
   @keyframes shake { 0%,100%{transform:translateX(0)} 15%{transform:translateX(-8px)} 30%{transform:translateX(8px)} 45%{transform:translateX(-6px)} 60%{transform:translateX(6px)} 75%{transform:translateX(-3px)} 90%{transform:translateX(3px)} }
@@ -66,6 +68,22 @@ export function adminLoginHTML(): string {
     <p class="text-center text-gray-500 text-xs mt-6">&copy; 2026 QH Clothes. All rights reserved.</p>
   </div>
 <script>
+  function sanitizeLoginSurface() {
+    document.body.style.pointerEvents = ''
+    document.body.style.overflow = 'hidden'
+    document.querySelectorAll('#sidebarOverlay, .modal-overlay, .mobile-overlay').forEach((node) => {
+      if (!(node instanceof HTMLElement)) return
+      node.style.display = 'none'
+      node.style.pointerEvents = 'none'
+      node.classList.add('hidden')
+      node.setAttribute('aria-hidden', 'true')
+    })
+  }
+
+  sanitizeLoginSurface()
+  window.addEventListener('load', sanitizeLoginSurface)
+  window.addEventListener('pageshow', sanitizeLoginSurface)
+
   document.getElementById('loginPassword').addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin() })
   document.getElementById('loginUsername').addEventListener('keydown', (e) => { if (e.key === 'Enter') document.getElementById('loginPassword').focus() })
 
