@@ -27,6 +27,7 @@ let marketingSubmenuOpen = false
 let marketingActiveSubPage = ''
 let desktopSidebarCollapsed = false
 let selectedColorImage = ''
+let adminOverlaySafetyScheduled = false
 const MAX_PRODUCT_PAYLOAD_SIZE = 1200000
 const ADMIN_OVERLAY_IDS = ['productModal', 'orderDetailModal', 'arrangeSuccessModal', 'createFlashSaleModal', 'flashSaleProductPickerModal', 'adminChangePasswordModal', 'reviewAdminModal']
 
@@ -44,6 +45,7 @@ function showAdminOverlay(el, displayMode = 'flex') {
   el.style.pointerEvents = ''
   el.classList.remove('hidden')
   if (displayMode === 'flex') el.classList.add('flex')
+  queueAdminOverlaySafetySync()
 }
 
 // NAVIGATION
@@ -187,25 +189,63 @@ function hasOpenAdminModal() {
   })
 }
 
-function sanitizeAdminOverlayState() {
-  // Skip sanitize if a modal is intentionally open - avoids closing user's active modal
-  if (hasOpenAdminModal()) return
+function isAdminOverlayElementVisible(el) {
+  if (!el) return false
+  const style = window.getComputedStyle(el)
+  return style.display !== 'none' && style.visibility !== 'hidden' && style.opacity !== '0'
+}
+
+function adminOverlayHasVisibleContent(el) {
+  if (!el) return false
+  return Array.from(el.children || []).some((child) => {
+    if (!(child instanceof HTMLElement)) return false
+    const style = window.getComputedStyle(child)
+    return style.display !== 'none' && style.visibility !== 'hidden'
+  })
+}
+
+function getActiveAdminModalOverlays() {
+  return ADMIN_OVERLAY_IDS
+    .map((id) => document.getElementById(id))
+    .filter((el) => isAdminOverlayElementVisible(el) && adminOverlayHasVisibleContent(el))
+}
+
+function normalizeAdminOverlayState(options = {}) {
+  const preserveActiveModal = options.preserveActiveModal !== false
+  const reason = String(options.reason || '')
+  const activeModals = preserveActiveModal ? getActiveAdminModalOverlays() : []
+  const activeSet = new Set(activeModals)
+
   ADMIN_OVERLAY_IDS.forEach((id) => {
     const el = document.getElementById(id)
+    if (!el || activeSet.has(el)) return
     forceHideAdminOverlay(el)
   })
-  closeChangeAdminPasswordModal()
-  closeAdminAvatarMenu()
+
+  const passwordModal = document.getElementById('adminChangePasswordModal')
+  if (!activeSet.has(passwordModal)) closeChangeAdminPasswordModal()
+  if (!activeModals.length) closeAdminAvatarMenu()
+
   const sidebarOverlay = document.getElementById('sidebarOverlay')
   if (sidebarOverlay) {
-    sidebarOverlay.style.display = 'none'
-    sidebarOverlay.style.pointerEvents = 'none'
-    sidebarOverlay.classList.add('hidden')
+    const sidebar = document.getElementById('sidebar')
+    const isDesktop = window.matchMedia && window.matchMedia('(min-width: 768px)').matches
+    const sidebarOpen = sidebar && !sidebar.classList.contains('-translate-x-full')
+    if (isDesktop || !sidebarOpen) {
+      sidebarOverlay.style.display = 'none'
+      sidebarOverlay.style.pointerEvents = 'none'
+      sidebarOverlay.classList.add('hidden')
+    }
   }
+
   syncSidebarOverlay()
-  document.body.style.overflow = ''
+  document.body.style.overflow = activeModals.length ? 'hidden' : ''
   document.body.style.pointerEvents = ''
-  debugAdminOverlayState('sanitize')
+  debugAdminOverlayState(reason || 'normalize')
+}
+
+function sanitizeAdminOverlayState() {
+  normalizeAdminOverlayState({ preserveActiveModal: false, reason: 'sanitize' })
 }
 
 function scheduleAdminOverlaySanitize() {
@@ -214,6 +254,26 @@ function scheduleAdminOverlaySanitize() {
     sanitizeAdminOverlayState()
     setTimeout(sanitizeAdminOverlayState, 0)
   })
+}
+
+function queueAdminOverlaySafetySync() {
+  if (adminOverlaySafetyScheduled) return
+  adminOverlaySafetyScheduled = true
+  requestAnimationFrame(() => {
+    adminOverlaySafetyScheduled = false
+    normalizeAdminOverlayState({ preserveActiveModal: true, reason: 'queued-sync' })
+  })
+}
+
+function bindAdminOverlaySafetyObserver() {
+  if (document.body?.dataset.adminOverlayObserverBound === '1') return
+  document.body.dataset.adminOverlayObserverBound = '1'
+  const overlayNodes = ADMIN_OVERLAY_IDS
+    .map((id) => document.getElementById(id))
+    .concat(document.getElementById('sidebarOverlay'))
+    .filter(Boolean)
+  const observer = new MutationObserver(() => queueAdminOverlaySafetySync())
+  overlayNodes.forEach((node) => observer.observe(node, { attributes: true, attributeFilter: ['class', 'style'] }))
 }
 
 function openChangeAdminPasswordModal() {
@@ -1759,10 +1819,16 @@ document.addEventListener('keydown', function(e) {
 
 document.addEventListener('DOMContentLoaded', function() {
   setDesktopSidebarCollapsed(false)
+  bindAdminOverlaySafetyObserver()
   scheduleAdminOverlaySanitize()
   syncOrdersHeaderSearchUI()
   window.addEventListener('resize', syncSidebarOverlay)
   window.addEventListener('resize', syncOrdersHeaderSearchUI)
+  window.addEventListener('load', scheduleAdminOverlaySanitize)
+  window.addEventListener('pageshow', () => normalizeAdminOverlayState({ preserveActiveModal: true, reason: 'pageshow' }))
+  document.addEventListener('visibilitychange', function() {
+    if (!document.hidden) normalizeAdminOverlayState({ preserveActiveModal: true, reason: 'visibilitychange' })
+  })
   // NOTE: pageshow/focus/visibilitychange intentionally NOT hooked to scheduleAdminOverlaySanitize
   // because triggering sanitize on focus/visibility would force-close modals the user has open
   document.addEventListener('keydown', function(e) {

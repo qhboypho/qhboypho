@@ -7,6 +7,10 @@ const flashSaleScriptSource = fs.readFileSync(new URL('../src/pages/admin/script
 const modalsSource = fs.readFileSync(new URL('../src/pages/admin/modals.ts', import.meta.url), 'utf8')
 
 assert.match(adminScriptSource, /function showAdminOverlay\(el,\s*displayMode = 'flex'\)/, 'admin core script should expose a reusable modal show helper')
+assert.match(adminScriptSource, /function normalizeAdminOverlayState\(options = \{\}\)/, 'admin core script should expose a shared overlay normalization helper')
+assert.match(adminScriptSource, /function bindAdminOverlaySafetyObserver\(\)/, 'admin core script should bind an overlay safety observer during bootstrap')
+assert.match(adminScriptSource, /function sanitizeAdminOverlayState\(\)\s*\{[\s\S]*normalizeAdminOverlayState\(\{ preserveActiveModal: false, reason: 'sanitize' \}\)/, 'overlay sanitize should hard-reset stray admin overlays on bootstrap')
+assert.match(adminScriptSource, /window\.addEventListener\('pageshow',\s*\(\)\s*=>\s*normalizeAdminOverlayState\(\{ preserveActiveModal: true, reason: 'pageshow' \}\)\)/, 'admin bootstrap should re-normalize overlays when the page is restored from history')
 assert.match(adminScriptSource, /function openChangeAdminPasswordModal\(\)\s*\{[\s\S]*showAdminOverlay\(modal\)/, 'change password button should reopen the modal after overlay sanitize')
 assert.match(adminScriptSource, /async function openProductModal\(id = null\)\s*\{[\s\S]*showAdminOverlay\(document\.getElementById\('productModal'\)\)/, 'product edit/create buttons should reopen product modal after overlay sanitize')
 assert.match(ordersScriptSource, /function openArrangeSuccessModal\(count,\s*failedList\)\s*\{[\s\S]*showAdminOverlay\(modal\)/, 'shipping arrange success button flow should reopen its modal after overlay sanitize')
