@@ -8,6 +8,7 @@ import {
   adminDashboardPage,
   adminProductsPage,
   adminOrdersPage,
+  adminReviewsPage,
   adminVouchersPage,
   adminFeaturedPage,
   adminFlashSalePage,
@@ -50,6 +51,8 @@ ${adminDashboardPage()}
 ${adminProductsPage()}
 
 ${adminOrdersPage()}
+
+${adminReviewsPage()}
 
 ${adminVouchersPage()}
 

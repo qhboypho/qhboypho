@@ -2,6 +2,8 @@ export function adminInlineScript(): string {
   return `// STATE
 let adminProducts = []
 let adminOrders = []
+let adminReviews = []
+let adminReviewFormImages = []
 let selectedOrderIds = new Set()
 let filteredAdminOrders = []
 let paginatedAdminOrders = []
@@ -26,7 +28,7 @@ let marketingActiveSubPage = ''
 let desktopSidebarCollapsed = false
 let selectedColorImage = ''
 const MAX_PRODUCT_PAYLOAD_SIZE = 1200000
-const ADMIN_OVERLAY_IDS = ['productModal', 'orderDetailModal', 'arrangeSuccessModal', 'createFlashSaleModal', 'flashSaleProductPickerModal', 'adminChangePasswordModal']
+const ADMIN_OVERLAY_IDS = ['productModal', 'orderDetailModal', 'arrangeSuccessModal', 'createFlashSaleModal', 'flashSaleProductPickerModal', 'adminChangePasswordModal', 'reviewAdminModal']
 
 function forceHideAdminOverlay(el) {
   if (!el) return
@@ -440,7 +442,7 @@ function closeOrdersHeaderSearch() {
   syncOrdersHeaderSearchUI()
 }
 function showPage(name) {
-  ['dashboard','products','orders','vouchers','featured','settings','settings-social','settings-warehouse','flashsale'].forEach(p => {
+  ['dashboard','products','orders','reviews','vouchers','featured','settings','settings-social','settings-warehouse','flashsale'].forEach(p => {
     const section = document.getElementById('page-'+p)
     if (section) section.classList.toggle('hidden', p !== name)
   })
@@ -476,13 +478,14 @@ function showPage(name) {
   if (marketingActiveSubPage) {
     document.querySelectorAll('.nav-sub-item[data-sub-page="' + marketingActiveSubPage + '"]').forEach(b => b.classList.add('active'))
   }
-  const titles = {dashboard:'Dashboard', products:'Quản lý Sản phẩm', orders:'Quản lý Đơn hàng', vouchers:'Quản lý Voucher', featured:'Sản phẩm Nổi Bật', settings:'Setting', 'settings-social':'Cấu hình MXH', 'settings-warehouse':'Cài đặt kho hàng', flashsale:'Quản lý Flashsale'}
+  const titles = {dashboard:'Dashboard', products:'Quản lý Sản phẩm', orders:'Quản lý Đơn hàng', reviews:'Quản lý Đánh giá', vouchers:'Quản lý Voucher', featured:'Sản phẩm Nổi Bật', settings:'Setting', 'settings-social':'Cấu hình MXH', 'settings-warehouse':'Cài đặt kho hàng', flashsale:'Quản lý Flashsale'}
   document.body.dataset.adminPage = name
   document.getElementById('pageTitle').textContent = titles[name] || name
 
   if (name === 'dashboard') loadDashboard()
   else if (name === 'products') loadAdminProducts()
   else if (name === 'orders') loadAdminOrders()
+  else if (name === 'reviews') loadAdminReviews()
   else if (name === 'vouchers') loadVouchers()
   else if (name === 'featured') loadFeaturedAdmin()
   else if (name === 'settings') loadSettingsAdmin()
@@ -1299,6 +1302,205 @@ async function applyColorImageFile(idx, file) {
 function addPresetSizes(arr) {
   arr.forEach(s => { if (!sizes.includes(s)) sizes.push(s) })
   renderTags('size')
+}
+
+async function ensureAdminReviewProductsLoaded() {
+  if (Array.isArray(adminProducts) && adminProducts.length) return adminProducts
+  const res = await axios.get('/api/admin/products')
+  adminProducts = Array.isArray(res.data?.data) ? res.data.data : []
+  return adminProducts
+}
+
+function populateAdminReviewProductOptions(selectedId = '') {
+  const select = document.getElementById('adminReviewProductId')
+  const filter = document.getElementById('adminReviewProductFilter')
+  const options = Array.isArray(adminProducts) ? adminProducts : []
+  const optionsHtml = ['<option value="">Tất cả sản phẩm</option>'].concat(options.map((p) => {
+    return '<option value="' + p.id + '">' + String(p.name || 'Sản phẩm #' + p.id) + '</option>'
+  })).join('')
+  if (filter) {
+    const current = String(filter.value || '')
+    filter.innerHTML = optionsHtml
+    filter.value = current
+  }
+  if (select) {
+    select.innerHTML = '<option value="">Chọn sản phẩm</option>' + options.map((p) => {
+      return '<option value="' + p.id + '">' + String(p.name || 'Sản phẩm #' + p.id) + '</option>'
+    }).join('')
+    if (selectedId) select.value = String(selectedId)
+  }
+}
+
+function renderAdminReviewImagePreviews() {
+  const wrap = document.getElementById('adminReviewImagePreviews')
+  if (!wrap) return
+  wrap.innerHTML = adminReviewFormImages.map((src, idx) => {
+    return '<div class="relative w-20 h-20 rounded-xl overflow-hidden border bg-gray-50">'
+      + '<img src="' + src + '" alt="" class="w-full h-full object-cover">'
+      + '<button type="button" onclick="removeAdminReviewImage(' + idx + ')" class="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/70 text-white text-xs flex items-center justify-center">×</button>'
+      + '</div>'
+  }).join('')
+}
+
+function resetAdminReviewForm() {
+  adminReviewFormImages = []
+  document.getElementById('adminReviewId').value = ''
+  document.getElementById('adminReviewProductId').value = ''
+  document.getElementById('adminReviewReviewerName').value = ''
+  document.getElementById('adminReviewReviewerAvatar').value = ''
+  document.getElementById('adminReviewOrderId').value = ''
+  document.getElementById('adminReviewRating').value = '5'
+  document.getElementById('adminReviewComment').value = ''
+  document.getElementById('adminReviewImageUrl').value = ''
+  document.getElementById('adminReviewImagesInput').value = ''
+  document.getElementById('reviewAdminModalTitle').textContent = 'Thêm đánh giá'
+  document.getElementById('adminReviewSaveText').textContent = 'Lưu đánh giá'
+  renderAdminReviewImagePreviews()
+}
+
+async function openAdminReviewModal(id) {
+  await ensureAdminReviewProductsLoaded()
+  populateAdminReviewProductOptions('')
+  resetAdminReviewForm()
+  if (id) {
+    const review = Array.isArray(adminReviews) ? adminReviews.find((item) => Number(item.id) === Number(id)) : null
+    if (review) {
+      document.getElementById('adminReviewId').value = String(review.id || '')
+      document.getElementById('adminReviewProductId').value = String(review.product_id || '')
+      document.getElementById('adminReviewReviewerName').value = String(review.user_name || '')
+      document.getElementById('adminReviewReviewerAvatar').value = String(review.user_avatar || '')
+      document.getElementById('adminReviewOrderId').value = review.order_id ? String(review.order_id) : ''
+      document.getElementById('adminReviewRating').value = String(review.rating || 5)
+      document.getElementById('adminReviewComment').value = String(review.comment || '')
+      adminReviewFormImages = Array.isArray(review.images) ? review.images.slice(0, 3) : []
+      document.getElementById('reviewAdminModalTitle').textContent = 'Sửa đánh giá'
+      document.getElementById('adminReviewSaveText').textContent = 'Cập nhật đánh giá'
+      renderAdminReviewImagePreviews()
+    }
+  }
+  showAdminOverlay(document.getElementById('reviewAdminModal'))
+}
+
+function closeAdminReviewModal() {
+  forceHideAdminOverlay(document.getElementById('reviewAdminModal'))
+}
+
+async function handleAdminReviewImages(input) {
+  const files = Array.from(input.files || []).filter((file) => file.type && file.type.startsWith('image/'))
+  for (const file of files) {
+    if (adminReviewFormImages.length >= 3) break
+    try {
+      const dataUrl = await fileToOptimizedDataURL(file, 900, 0.8)
+      adminReviewFormImages.push(dataUrl)
+    } catch (_) {
+      showAdminToast('Không thể xử lý ảnh đánh giá', 'error')
+    }
+  }
+  renderAdminReviewImagePreviews()
+  input.value = ''
+}
+
+function addAdminReviewImageUrl() {
+  const input = document.getElementById('adminReviewImageUrl')
+  const value = String(input?.value || '').trim()
+  if (!value) return
+  if (adminReviewFormImages.length >= 3) {
+    showAdminToast('Tối đa 3 ảnh cho mỗi đánh giá', 'warning')
+    return
+  }
+  adminReviewFormImages.push(value)
+  input.value = ''
+  renderAdminReviewImagePreviews()
+}
+
+function removeAdminReviewImage(idx) {
+  adminReviewFormImages.splice(idx, 1)
+  renderAdminReviewImagePreviews()
+}
+
+async function saveAdminReview(e) {
+  e.preventDefault()
+  const id = String(document.getElementById('adminReviewId').value || '').trim()
+  const payload = {
+    product_id: Number(document.getElementById('adminReviewProductId').value || 0),
+    reviewer_name: String(document.getElementById('adminReviewReviewerName').value || '').trim(),
+    reviewer_avatar: String(document.getElementById('adminReviewReviewerAvatar').value || '').trim(),
+    order_id: Number(document.getElementById('adminReviewOrderId').value || 0) || null,
+    rating: Number(document.getElementById('adminReviewRating').value || 5),
+    comment: String(document.getElementById('adminReviewComment').value || '').trim(),
+    images: adminReviewFormImages.slice(0, 3),
+  }
+  if (!payload.product_id) { showAdminToast('Vui lòng chọn sản phẩm', 'error'); return }
+  if (!payload.reviewer_name) { showAdminToast('Vui lòng nhập tên người đánh giá', 'error'); return }
+
+  const btn = document.getElementById('adminReviewSaveBtn')
+  btn.disabled = true
+  try {
+    if (id) await axios.patch('/api/admin/reviews/' + id, payload)
+    else await axios.post('/api/admin/reviews', payload)
+    closeAdminReviewModal()
+    await loadAdminReviews()
+    showAdminToast(id ? 'Đã cập nhật đánh giá' : 'Đã thêm đánh giá', 'success')
+  } catch (err) {
+    showAdminToast(err.response?.data?.error || 'Không lưu được đánh giá', 'error')
+  } finally {
+    btn.disabled = false
+  }
+}
+
+async function deleteAdminReview(id) {
+  if (!confirm('Xoá đánh giá này?')) return
+  try {
+    await axios.delete('/api/admin/reviews/' + id)
+    await loadAdminReviews()
+    showAdminToast('Đã xoá đánh giá', 'success')
+  } catch (err) {
+    showAdminToast(err.response?.data?.error || 'Không thể xoá đánh giá', 'error')
+  }
+}
+
+async function loadAdminReviews() {
+  const tbody = document.getElementById('adminReviewsTable')
+  const empty = document.getElementById('adminReviewsEmpty')
+  if (!tbody || !empty) return
+  tbody.innerHTML = '<tr><td colspan="8" class="px-4 py-10 text-center text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></td></tr>'
+  try {
+    await ensureAdminReviewProductsLoaded()
+    populateAdminReviewProductOptions('')
+    const params = {
+      query: String(document.getElementById('adminReviewSearch')?.value || '').trim(),
+      product_id: String(document.getElementById('adminReviewProductFilter')?.value || '').trim(),
+      rating: String(document.getElementById('adminReviewRatingFilter')?.value || '').trim(),
+      has_images: document.getElementById('adminReviewHasImagesFilter')?.checked ? '1' : '',
+    }
+    const res = await axios.get('/api/admin/reviews', { params })
+    adminReviews = Array.isArray(res.data?.data) ? res.data.data : []
+    empty.classList.toggle('hidden', adminReviews.length > 0)
+    tbody.innerHTML = adminReviews.map((review) => {
+      const imageHtml = Array.isArray(review.images) && review.images.length
+        ? '<div class="flex justify-center -space-x-2">' + review.images.slice(0, 3).map((img) => '<img src="' + img + '" alt="" class="w-8 h-8 rounded-lg object-cover border-2 border-white bg-gray-100">').join('') + '</div>'
+        : '<span class="text-gray-300">-</span>'
+      const sourceHtml = review.created_by_admin
+        ? '<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-200 text-xs font-semibold">Admin thêm</span>'
+        : '<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-semibold">Khách thật</span>'
+      const stars = '★'.repeat(Number(review.rating || 0)) + '☆'.repeat(5 - Number(review.rating || 0))
+      const comment = String(review.comment || '').trim()
+      return '<tr class="border-b last:border-b-0 align-top">'
+        + '<td class="px-4 py-3"><div class="flex items-start gap-3"><img src="' + String(review.product_thumbnail || '') + '" alt="" class="w-12 h-12 rounded-xl object-cover bg-gray-100"><div><p class="font-semibold text-gray-800 leading-snug">' + String(review.product_name || 'Sản phẩm') + '</p><p class="text-xs text-gray-400 mt-1">#' + review.product_id + '</p></div></div></td>'
+        + '<td class="px-4 py-3"><div><p class="font-semibold text-gray-800">' + String(review.user_name || 'Khách hàng') + '</p><p class="text-xs text-gray-400 mt-1">' + (review.order_code ? ('Đơn ' + review.order_code) : 'Review thủ công') + '</p></div></td>'
+        + '<td class="px-4 py-3 text-center font-semibold text-amber-500">' + stars + '</td>'
+        + '<td class="px-4 py-3 text-gray-600 max-w-[320px]"><p class="line-clamp-3">' + (comment || '<span class="text-gray-300">Không có nội dung</span>') + '</p></td>'
+        + '<td class="px-4 py-3 text-center">' + sourceHtml + '</td>'
+        + '<td class="px-4 py-3 text-center">' + imageHtml + '</td>'
+        + '<td class="px-4 py-3 text-center text-xs text-gray-500 whitespace-nowrap">' + formatDateTimeVi(review.created_at) + '</td>'
+        + '<td class="px-4 py-3"><div class="flex items-center justify-center gap-2"><button onclick="openAdminReviewModal(' + review.id + ')" class="w-9 h-9 rounded-xl border border-gray-200 text-gray-600 hover:border-pink-300 hover:text-pink-600 transition"><i class="fas fa-pen"></i></button><button onclick="deleteAdminReview(' + review.id + ')" class="w-9 h-9 rounded-xl border border-red-200 text-red-500 hover:bg-red-50 transition"><i class="fas fa-trash"></i></button></div></td>'
+        + '</tr>'
+    }).join('')
+    if (!adminReviews.length) tbody.innerHTML = ''
+  } catch (err) {
+    tbody.innerHTML = '<tr><td colspan="8" class="px-4 py-10 text-center text-red-400">Lỗi tải danh sách đánh giá</td></tr>'
+    showAdminToast(err.response?.data?.error || 'Không tải được đánh giá', 'error')
+  }
 }
 
 async function loadVouchers() {

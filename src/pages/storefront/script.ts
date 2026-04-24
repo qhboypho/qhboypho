@@ -612,6 +612,7 @@ async function loadProductReviews(productId) {
 
 async function openReviewModal(orderId, productId) {
   if (!currentUser) { showToast('Vui lòng đăng nhập để đánh giá', 'error'); return }
+  if (!isAdminUser) { showToast('Chỉ admin mới có thể quản lý đánh giá', 'error'); return }
   _reviewState = { productId: Number(productId), orderId: Number(orderId), rating: 5, images: [], submitting: false }
   // Reset UI
   setReviewRating(5)
@@ -688,6 +689,7 @@ function removeReviewImg(idx, wrapper) {
 async function submitReview() {
   if (_reviewState.submitting) return
   if (!currentUser) { showToast('Vui lòng đăng nhập', 'error'); return }
+  if (!isAdminUser) { showToast('Chỉ admin mới có thể quản lý đánh giá', 'error'); return }
   const comment = (document.getElementById('reviewComment').value || '').trim()
   if (!comment) { showToast('Vui lòng nhập nhận xét', 'error'); document.getElementById('reviewComment').focus(); return }
   _reviewState.submitting = true
@@ -695,8 +697,12 @@ async function submitReview() {
   btn.disabled = true
   btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Đang gửi...'
   try {
-    const res = await axios.post('/api/reviews', {
+    const order = Array.isArray(userOrderHistoryCache)
+      ? userOrderHistoryCache.find((item) => Number(item.id) === Number(_reviewState.orderId))
+      : null
+    const res = await axios.post('/api/admin/reviews', {
       product_id: _reviewState.productId,
+      user_id: Number(order?.user_id || currentUser?.userId || 0),
       order_id: _reviewState.orderId,
       rating: _reviewState.rating,
       comment,
@@ -2049,9 +2055,9 @@ async function showUserOrders() {
           + '<span class="font-bold text-gradient-price text-sm whitespace-nowrap">' + fmtPrice(getOrderAmountDue(o)) + '</span></div>'
           + '<div class="mt-2">' + statusHtml + '</div>'
           + resumeActionHtml
-          + (orderStatus === 'done'
-            ? '<button class="btn-rate-order mt-2" onclick="openReviewModal(' + o.id + ',' + o.product_id + ')"><i class=\"fas fa-star mr-1\"></i>Đánh giá</button>'
-            : '')
+          + (isAdminUser && orderStatus === 'done' && !o.has_review
+             ? '<button class="btn-rate-order mt-2" onclick="openReviewModal(' + o.id + ',' + o.product_id + ')"><i class=\"fas fa-star mr-1\"></i>Đánh giá</button>'
+             : '')
           + '</div>'
           + '</div>'
           + '</div>'

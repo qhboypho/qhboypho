@@ -227,6 +227,73 @@ export function adminModalsSection(): string {
   </div>
 </div>
 
+<!-- REVIEW ADMIN MODAL -->
+<div id="reviewAdminModal" class="fixed inset-0 modal-overlay z-[85] hidden items-center justify-center p-4" onclick="if(event.target === this) closeAdminReviewModal()">
+  <div class="modal-card bg-white rounded-3xl shadow-2xl w-full max-w-2xl" onclick="event.stopPropagation()">
+    <div class="border-b px-6 py-4 flex items-center justify-between">
+      <h2 id="reviewAdminModalTitle" class="font-bold text-xl text-gray-900">Thêm đánh giá</h2>
+      <button onclick="closeAdminReviewModal()" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition">
+        <i class="fas fa-times text-gray-600"></i>
+      </button>
+    </div>
+    <form onsubmit="saveAdminReview(event)" class="px-6 py-5 space-y-4">
+      <input type="hidden" id="adminReviewId">
+      <div class="grid md:grid-cols-2 gap-4">
+        <div class="md:col-span-2">
+          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Sản phẩm *</label>
+          <select id="adminReviewProductId" required class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
+            <option value="">Chọn sản phẩm</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Tên người đánh giá *</label>
+          <input type="text" id="adminReviewReviewerName" maxlength="120" required placeholder="VD: Minh Anh" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Ảnh đại diện (URL)</label>
+          <input type="url" id="adminReviewReviewerAvatar" placeholder="https://..." class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Mã đơn (tuỳ chọn)</label>
+          <input type="number" id="adminReviewOrderId" min="0" placeholder="Nếu muốn gắn với đơn done" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
+        </div>
+        <div>
+          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Số sao *</label>
+          <select id="adminReviewRating" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
+            <option value="5">5 sao</option>
+            <option value="4">4 sao</option>
+            <option value="3">3 sao</option>
+            <option value="2">2 sao</option>
+            <option value="1">1 sao</option>
+          </select>
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Nhận xét</label>
+          <textarea id="adminReviewComment" rows="4" maxlength="1000" placeholder="Nhập nội dung đánh giá..." class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 resize-none"></textarea>
+        </div>
+        <div class="md:col-span-2">
+          <label class="block text-sm font-semibold text-gray-700 mb-1.5">Ảnh đánh giá</label>
+          <div class="flex flex-wrap gap-2 mb-3" id="adminReviewImagePreviews"></div>
+          <div class="flex flex-wrap gap-2">
+            <label class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-pink-200 text-sm font-semibold text-pink-600 bg-pink-50 hover:bg-pink-100 cursor-pointer">
+              <i class="fas fa-camera"></i>Tải ảnh
+              <input type="file" id="adminReviewImagesInput" accept="image/*" multiple class="hidden" onchange="handleAdminReviewImages(this)">
+            </label>
+            <input type="url" id="adminReviewImageUrl" placeholder="Dán URL ảnh..." class="flex-1 min-w-[220px] border rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-pink-400">
+            <button type="button" onclick="addAdminReviewImageUrl()" class="px-4 py-2 rounded-xl border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition">Thêm URL</button>
+          </div>
+        </div>
+      </div>
+      <div class="flex gap-3 pt-2">
+        <button type="button" onclick="closeAdminReviewModal()" class="flex-1 border-2 border-gray-200 text-gray-700 py-3 rounded-xl font-semibold hover:bg-gray-50 transition">Huỷ</button>
+        <button type="submit" id="adminReviewSaveBtn" class="flex-1 btn-pink text-white py-3 rounded-xl font-semibold">
+          <i class="fas fa-save mr-2"></i><span id="adminReviewSaveText">Lưu đánh giá</span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div id="adminToast" class="fixed top-6 right-6 z-50 flex flex-col gap-2 pointer-events-none"></div>`
 }

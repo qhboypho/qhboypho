@@ -47,6 +47,7 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
     const orders = await c.env.DB.prepare(`
       SELECT o.*,
              p.thumbnail AS product_thumbnail,
+             EXISTS(SELECT 1 FROM reviews r WHERE r.order_id = o.id) AS has_review,
              CASE WHEN LOWER(COALESCE(o.payment_status, ''))='paid' THEN 0 ELSE o.total_price END AS amount_due
       FROM orders o
       LEFT JOIN products p ON p.id = o.product_id
@@ -185,6 +186,10 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
       const id = c.req.param('id')
       const { status } = await c.req.json()
       const nextStatus = String(status || '').trim().toLowerCase()
+      const allowedStatuses = new Set(['pending', 'confirmed', 'shipping', 'done', 'cancelled'])
+      if (!allowedStatuses.has(nextStatus)) {
+        return c.json({ success: false, error: 'INVALID_STATUS' }, 400)
+      }
       const existing = await c.env.DB.prepare(`
         SELECT id, status, shipping_carrier, shipping_tracking_code, shipping_arranged
         FROM orders
@@ -192,6 +197,23 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
         LIMIT 1
       `).bind(id).first() as any
       if (!existing) return c.json({ success: false, error: 'ORDER_NOT_FOUND' }, 404)
+
+      const currentStatus = String(existing.status || '').trim().toLowerCase()
+      const hasShippingEvidence = Number(existing.shipping_arranged || 0) === 1 || !!String(existing.shipping_tracking_code || '').trim()
+
+      if (currentStatus === 'cancelled' || currentStatus === 'done') {
+        return c.json({ success: false, error: 'ORDER_ALREADY_CLOSED' }, 400)
+      }
+
+      if (nextStatus === 'shipping' && !hasShippingEvidence) {
+        return c.json({ success: false, error: 'SHIPPING_NOT_READY' }, 400)
+      }
+
+      if (nextStatus === 'done') {
+        if (currentStatus !== 'shipping' || !hasShippingEvidence) {
+          return c.json({ success: false, error: 'ORDER_NOT_DELIVERED' }, 400)
+        }
+      }
 
       if (nextStatus === 'cancelled') {
         const carrier = String(existing.shipping_carrier || '').trim().toUpperCase()
