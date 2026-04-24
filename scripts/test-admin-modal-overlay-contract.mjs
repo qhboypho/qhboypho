@@ -5,6 +5,7 @@ const adminScriptSource = fs.readFileSync(new URL('../src/pages/admin/script.ts'
 const ordersScriptSource = fs.readFileSync(new URL('../src/pages/admin/script-orders.ts', import.meta.url), 'utf8')
 const flashSaleScriptSource = fs.readFileSync(new URL('../src/pages/admin/script-flashsale.ts', import.meta.url), 'utf8')
 const modalsSource = fs.readFileSync(new URL('../src/pages/admin/modals.ts', import.meta.url), 'utf8')
+const sectionsSource = fs.readFileSync(new URL('../src/pages/admin/sections.ts', import.meta.url), 'utf8')
 
 assert.match(adminScriptSource, /function showAdminOverlay\(el,\s*displayMode = 'flex'\)/, 'admin core script should expose a reusable modal show helper')
 assert.match(adminScriptSource, /function normalizeAdminOverlayState\(options = \{\}\)/, 'admin core script should expose a shared overlay normalization helper')
@@ -14,6 +15,10 @@ assert.match(adminScriptSource, /window\.addEventListener\('pageshow',\s*\(\)\s*
 assert.match(adminScriptSource, /function forceHideAdminOverlay\(el\)\s*\{[\s\S]*removeAttribute\('data-admin-overlay-open'\)/, 'closing an admin overlay should clear its explicit open marker')
 assert.match(adminScriptSource, /function showAdminOverlay\(el,\s*displayMode = 'flex'\)\s*\{[\s\S]*setAttribute\('data-admin-overlay-open', '1'\)/, 'opening an admin overlay should set an explicit open marker')
 assert.match(adminScriptSource, /function getActiveAdminModalOverlays\(\)\s*\{[\s\S]*dataset\?\.adminOverlayOpen[\s\S]*=== '1'/, 'overlay normalization should only preserve overlays that were explicitly opened by admin code')
+assert.match(sectionsSource, /id=\\\"sidebarOverlay\\\"[\s\S]*class=\\\"fixed inset-0 mobile-overlay z-30 hidden md:hidden\\\"[\s\S]*style=\\\"display:none;pointer-events:none\\\"/, 'sidebar overlay should start hidden and non-interactive before admin state sync runs')
+assert.match(sectionsSource, /header class=\\\"bg-white border-b px-6 py-4 flex items-center justify-between sticky top-0 z-\[45\] shadow-sm\\\"/, 'admin header should sit above stray sidebar blockers but below real modals')
+assert.match(sectionsSource, /id=\\\"adminAvatarMenuRoot\\\" class=\\\"relative z-\[49\]\\\"/, 'admin avatar trigger should have its own stacking context above stale dashboard blockers')
+assert.match(sectionsSource, /id=\\\"adminAvatarDropdown\\\" class=\\\"hidden absolute right-0 mt-2 w-\[320px\][\s\S]*z-\[49\]\\\"/, 'admin avatar dropdown should remain clickable while staying below real modal overlays')
 assert.match(adminScriptSource, /function openChangeAdminPasswordModal\(\)\s*\{[\s\S]*showAdminOverlay\(modal\)/, 'change password button should reopen the modal after overlay sanitize')
 assert.match(adminScriptSource, /async function openProductModal\(id = null\)\s*\{[\s\S]*showAdminOverlay\(document\.getElementById\('productModal'\)\)/, 'product edit/create buttons should reopen product modal after overlay sanitize')
 assert.match(ordersScriptSource, /function openArrangeSuccessModal\(count,\s*failedList\)\s*\{[\s\S]*showAdminOverlay\(modal\)/, 'shipping arrange success button flow should reopen its modal after overlay sanitize')
