@@ -606,7 +606,7 @@ async function loadProductReviews(productId) {
         }).join('')}
       </div>\`
   } catch(e) {
-    content.innerHTML = '<p class="text-gray-400 text-xs py-2">Không thể tải đánh giá.</p>'
+    section.classList.add('hidden')
   }
 }
 
