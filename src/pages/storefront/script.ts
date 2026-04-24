@@ -577,34 +577,34 @@ async function loadProductReviews(productId) {
       return
     }
     const stars = (n) => '★'.repeat(Math.round(n)) + '☆'.repeat(5 - Math.round(n))
-    content.innerHTML = `
+    content.innerHTML = \`
       <div class="flex items-center gap-2 mb-3">
-        <span class="review-avg-stars text-lg">${stars(avg)}</span>
-        <span class="font-bold text-gray-800 text-sm">${avg.toFixed(1)}</span>
-        <span class="text-gray-400 text-xs">(${total} đánh giá)</span>
+        <span class="review-avg-stars text-lg">\${stars(avg)}</span>
+        <span class="font-bold text-gray-800 text-sm">\${avg.toFixed(1)}</span>
+        <span class="text-gray-400 text-xs">(\${total} đánh giá)</span>
       </div>
       <div class="space-y-3">
-        ${reviews.slice(0, 5).map(r => {
+        \${reviews.slice(0, 5).map(r => {
           const avatarHtml = r.user_avatar
-            ? `<img src="${escapeHtml(r.user_avatar)}" class="review-avatar" onerror="this.src=''">`
-            : `<div class="review-avatar bg-violet-100 flex items-center justify-center text-violet-500 text-xs font-bold">${escapeHtml((r.user_name||'?')[0].toUpperCase())}</div>`
+            ? \`<img src="\${escapeHtml(r.user_avatar)}" class="review-avatar" onerror="this.src=''">\`
+            : \`<div class="review-avatar bg-violet-100 flex items-center justify-center text-violet-500 text-xs font-bold">\${escapeHtml((r.user_name||'?')[0].toUpperCase())}</div>\`
           const imgHtml = Array.isArray(r.images) && r.images.length
-            ? `<div class="flex gap-1.5 mt-2 flex-wrap">${r.images.map(img => `<img src="${escapeHtml(img)}" class="review-img-thumb" onclick="window.open('${escapeHtml(img)}','_blank')">`).join('')}</div>`
+            ? \`<div class="flex gap-1.5 mt-2 flex-wrap">\${r.images.map(img => \`<img src="\${escapeHtml(img)}" class="review-img-thumb" onclick="window.open('\${escapeHtml(img)}','_blank')">\`).join('')}</div>\`
             : ''
-          return `<div class="review-card">
+          return \`<div class="review-card">
             <div class="flex items-center gap-2 mb-1.5">
-              ${avatarHtml}
+              \${avatarHtml}
               <div>
-                <p class="text-xs font-semibold text-gray-700">${escapeHtml(r.user_name || 'Khách hàng')}</p>
-                <span class="review-stars">${'★'.repeat(Number(r.rating))}${'☆'.repeat(5-Number(r.rating))}</span>
+                <p class="text-xs font-semibold text-gray-700">\${escapeHtml(r.user_name || 'Khách hàng')}</p>
+                <span class="review-stars">\${'★'.repeat(Number(r.rating))}\${'☆'.repeat(5-Number(r.rating))}</span>
               </div>
-              <span class="ml-auto text-xs text-gray-400">${new Date(r.created_at).toLocaleDateString('vi-VN')}</span>
+              <span class="ml-auto text-xs text-gray-400">\${new Date(r.created_at).toLocaleDateString('vi-VN')}</span>
             </div>
-            ${r.comment ? `<p class="text-sm text-gray-600 leading-relaxed">${escapeHtml(r.comment)}</p>` : ''}
-            ${imgHtml}
-          </div>`
+            \${r.comment ? \`<p class="text-sm text-gray-600 leading-relaxed">\${escapeHtml(r.comment)}</p>\` : ''}
+            \${imgHtml}
+          </div>\`
         }).join('')}
-      </div>`
+      </div>\`
   } catch(e) {
     content.innerHTML = '<p class="text-gray-400 text-xs py-2">Không thể tải đánh giá.</p>'
   }
@@ -624,8 +624,8 @@ async function openReviewModal(orderId, productId) {
     const p = res.data?.data
     if (p) {
       document.getElementById('reviewProductInfo').innerHTML =
-        `<img src="${escapeHtml(p.thumbnail||'')}" class="w-12 h-12 rounded-lg object-cover bg-gray-100" onerror="this.style.display='none'">
-        <div><p class="text-sm font-semibold text-gray-800">${escapeHtml(p.name||'')}</p><p class="text-xs text-gray-400">Đơn hàng #${orderId}</p></div>`
+        \`<img src="\${escapeHtml(p.thumbnail||'')}" class="w-12 h-12 rounded-lg object-cover bg-gray-100" onerror="this.style.display='none'">
+        <div><p class="text-sm font-semibold text-gray-800">\${escapeHtml(p.name||'')}</p><p class="text-xs text-gray-400">Đơn hàng #\${orderId}</p></div>\`
     }
   } catch { document.getElementById('reviewProductInfo').innerHTML = '<p class="text-sm text-gray-500">Đơn hàng #' + orderId + '</p>' }
   document.getElementById('reviewModalOverlay').classList.remove('hidden')
@@ -666,9 +666,9 @@ function onReviewImgSelected(input) {
       _reviewState.images.push(dataUrl)
       const wrapper = document.createElement('div')
       wrapper.className = 'relative'
-      wrapper.innerHTML = `<img src="${dataUrl}" class="review-img-preview">
-        <button onclick="removeReviewImg(${_reviewState.images.length - 1}, this.parentNode)"
-          class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs font-bold flex items-center justify-center">×</button>`
+      wrapper.innerHTML = \`<img src="\${dataUrl}" class="review-img-preview">
+        <button onclick="removeReviewImg(\${_reviewState.images.length - 1}, this.parentNode)"
+          class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs font-bold flex items-center justify-center">×</button>\`
       previews.appendChild(wrapper)
     }
     reader.readAsDataURL(file)
@@ -681,7 +681,7 @@ function removeReviewImg(idx, wrapper) {
   // Refresh indices on remaining remove buttons
   document.querySelectorAll('#reviewImgPreviews > div').forEach((el, i) => {
     const btn = el.querySelector('button')
-    if (btn) btn.setAttribute('onclick', `removeReviewImg(${i}, this.parentNode)`)
+    if (btn) btn.setAttribute('onclick', \`removeReviewImg(\${i}, this.parentNode)\`)
   })
 }
 
