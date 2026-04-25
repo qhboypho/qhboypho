@@ -170,6 +170,11 @@ assert.match(
 )
 assert.match(
   adminStylesSource,
+  /body\[data-mobile-sidebar-state='open'\] #sidebarOverlay[\s\S]*left: 16rem/,
+  'admin mobile sidebar overlay should cover only the content area, not the opened sidebar',
+)
+assert.match(
+  adminStylesSource,
   /\.sidebar-toggle-desktop[\s\S]*position: fixed[\s\S]*left: calc\(16rem - 1\.25rem\)[\s\S]*body\[data-sidebar-state='collapsed'\] \.sidebar-toggle-desktop[\s\S]*left: calc\(5\.5rem - 1\.25rem\)/,
   'admin desktop sidebar toggle should sit on the sidebar/content boundary in both states',
 )
