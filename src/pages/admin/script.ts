@@ -682,6 +682,27 @@ function syncSidebarOverlay() {
   }
 }
 
+function resetAdminTransientSurface(reason = 'navigation-reset') {
+  closeMobileSidebar()
+  closeAdminAvatarMenu()
+  scheduleAdminOverlaySanitize()
+  debugAdminOverlayState(reason)
+}
+
+function shouldHardResetAdminSurfaceOnPageShow(event) {
+  const navEntry = performance.getEntriesByType && performance.getEntriesByType('navigation')[0]
+  const navType = String(navEntry?.type || '')
+  return !!event?.persisted || navType === 'navigate' || navType === 'reload' || navType === 'back_forward'
+}
+
+function handleAdminPageShow(event) {
+  if (shouldHardResetAdminSurfaceOnPageShow(event)) {
+    resetAdminTransientSurface('pageshow-reset')
+    return
+  }
+  normalizeAdminOverlayState({ preserveActiveModal: true, reason: 'pageshow' })
+}
+
 function setDesktopSidebarCollapsed(collapsed) {
   desktopSidebarCollapsed = !!collapsed
   document.body.dataset.sidebarState = desktopSidebarCollapsed ? 'collapsed' : 'expanded'
@@ -1885,7 +1906,7 @@ document.addEventListener('keydown', function(e) {
 document.addEventListener('DOMContentLoaded', function() {
   setDesktopSidebarCollapsed(false)
   bindAdminOverlaySafetyObserver()
-  scheduleAdminOverlaySanitize()
+  resetAdminTransientSurface('dom-ready-reset')
   syncOrdersHeaderSearchUI()
   window.addEventListener('resize', syncSidebarOverlay)
   window.addEventListener('resize', syncOrdersHeaderSearchUI)
@@ -1893,8 +1914,8 @@ document.addEventListener('DOMContentLoaded', function() {
   window.addEventListener('scroll', () => {
     if (adminAvatarMenuOpen) positionAdminAvatarMenu()
   }, true)
-  window.addEventListener('load', scheduleAdminOverlaySanitize)
-  window.addEventListener('pageshow', () => normalizeAdminOverlayState({ preserveActiveModal: true, reason: 'pageshow' }))
+  window.addEventListener('load', () => resetAdminTransientSurface('load-reset'))
+  window.addEventListener('pageshow', handleAdminPageShow)
   document.addEventListener('visibilitychange', function() {
     if (!document.hidden) normalizeAdminOverlayState({ preserveActiveModal: true, reason: 'visibilitychange' })
   })
@@ -1915,7 +1936,7 @@ document.addEventListener('DOMContentLoaded', function() {
 })
 
 async function initAdminAuth() {
-  scheduleAdminOverlaySanitize()
+  resetAdminTransientSurface('auth-start-reset')
   try {
     const res = await axios.get('/api/auth/me')
     if (!res.data.isAdmin) {
@@ -1930,7 +1951,7 @@ async function initAdminAuth() {
   }
   await loadAdminProfile()
   showPage('dashboard')
-  scheduleAdminOverlaySanitize()
+  resetAdminTransientSurface('auth-ready-reset')
 }
 
 initAdminAuth()

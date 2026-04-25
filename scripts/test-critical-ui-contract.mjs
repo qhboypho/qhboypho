@@ -188,5 +188,15 @@ assert.match(
   /function syncMobileSidebarToggle\(open\)[\s\S]*dataset\.mobileSidebarState[\s\S]*menuToggleIcon[\s\S]*fa-xmark/,
   'admin mobile sidebar script should keep the floating toggle position and icon in sync',
 )
+assert.match(
+  adminScriptSource,
+  /function resetAdminTransientSurface\(reason = 'navigation-reset'\)[\s\S]*closeMobileSidebar\(\)[\s\S]*scheduleAdminOverlaySanitize\(\)/,
+  'admin dashboard should hard-reset stale mobile/sidebar overlays when entering from login or browser history',
+)
+assert.match(
+  adminScriptSource,
+  /window\.addEventListener\('pageshow', handleAdminPageShow\)/,
+  'admin dashboard should sanitize restored browser sessions through a dedicated pageshow handler',
+)
 
 console.log('Critical UI contract passed.')
