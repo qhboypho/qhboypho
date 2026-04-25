@@ -607,24 +607,46 @@ function showPage(name) {
   closeMobileSidebar()
 }
 
+function syncMobileSidebarToggle(open) {
+  document.body.dataset.mobileSidebarState = open ? 'open' : 'closed'
+  const toggle = document.getElementById('menuToggle')
+  const icon = document.getElementById('menuToggleIcon')
+  if (toggle) {
+    toggle.setAttribute('aria-expanded', open ? 'true' : 'false')
+    toggle.setAttribute('aria-label', open ? 'Đóng menu quản trị' : 'Mở menu quản trị')
+    toggle.title = open ? 'Đóng menu' : 'Mở menu'
+  }
+  if (icon) {
+    icon.className = open ? 'fas fa-xmark text-gray-700' : 'fas fa-bars text-gray-700'
+  }
+}
+
 function closeMobileSidebar() {
   const sidebar = document.getElementById('sidebar')
   const overlay = document.getElementById('sidebarOverlay')
-  if (!sidebar || !overlay) return
+  if (!sidebar || !overlay) {
+    syncMobileSidebarToggle(false)
+    return
+  }
   sidebar.classList.add('-translate-x-full')
   overlay.style.display = 'none'
   overlay.classList.add('hidden')
   overlay.style.pointerEvents = 'none'
+  syncMobileSidebarToggle(false)
 }
 
 function openMobileSidebar() {
   const sidebar = document.getElementById('sidebar')
   const overlay = document.getElementById('sidebarOverlay')
-  if (!sidebar || !overlay) return
+  if (!sidebar || !overlay) {
+    syncMobileSidebarToggle(false)
+    return
+  }
   sidebar.classList.remove('-translate-x-full')
   overlay.style.display = 'block'
   overlay.classList.remove('hidden')
   overlay.style.pointerEvents = ''
+  syncMobileSidebarToggle(true)
 }
 
 function toggleSidebar() {
@@ -642,11 +664,13 @@ function syncSidebarOverlay() {
   const isDesktop = window.matchMedia && window.matchMedia('(min-width: 768px)').matches
   const sidebarOpen = !sidebar.classList.contains('-translate-x-full')
   if (isDesktop) {
+    syncMobileSidebarToggle(false)
     overlay.style.display = 'none'
     overlay.classList.add('hidden')
     overlay.style.pointerEvents = 'none'
     return
   }
+  syncMobileSidebarToggle(sidebarOpen)
   if (sidebarOpen) {
     overlay.style.display = 'block'
     overlay.classList.remove('hidden')

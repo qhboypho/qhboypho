@@ -9,6 +9,7 @@ const storefrontStylesSource = await readFile(new URL('../src/pages/storefront/s
 const storefrontScriptSource = await readFile(new URL('../src/pages/storefront/script.ts', import.meta.url), 'utf8')
 const adminSectionsSource = await readFile(new URL('../src/pages/admin/sections.ts', import.meta.url), 'utf8')
 const adminStylesSource = await readFile(new URL('../src/pages/admin/styles.ts', import.meta.url), 'utf8')
+const adminScriptSource = await readFile(new URL('../src/pages/admin/script.ts', import.meta.url), 'utf8')
 const adminSettingsScriptSource = await readFile(new URL('../src/pages/admin/script-featured-settings.ts', import.meta.url), 'utf8')
 const adminUtilityRoutesSource = await readFile(new URL('../src/routes/adminUtilityRoutes.ts', import.meta.url), 'utf8')
 
@@ -156,6 +157,31 @@ assert.match(
   adminStylesSource,
   /sidebar-collapsed|data-sidebar-state|sidebar-toggle-desktop|sidebar-mini/,
   'admin styles should include a desktop mini sidebar state',
+)
+assert.match(
+  adminSectionsSource,
+  /menuToggle[\s\S]*z-\[70\][\s\S]*menuToggleIcon/,
+  'admin mobile sidebar toggle should stay above the sticky header and expose a stateful icon',
+)
+assert.match(
+  adminStylesSource,
+  /body\[data-mobile-sidebar-state='open'\] #menuToggle[\s\S]*left: calc\(16rem - 1\.375rem\)/,
+  'admin mobile sidebar toggle should slide to the sidebar/content boundary when opened',
+)
+assert.match(
+  adminStylesSource,
+  /\.sidebar-toggle-desktop[\s\S]*position: fixed[\s\S]*left: calc\(16rem - 1\.25rem\)[\s\S]*body\[data-sidebar-state='collapsed'\] \.sidebar-toggle-desktop[\s\S]*left: calc\(5\.5rem - 1\.25rem\)/,
+  'admin desktop sidebar toggle should sit on the sidebar/content boundary in both states',
+)
+assert.match(
+  adminStylesSource,
+  /body\[data-sidebar-state='collapsed'\] \.sidebar-chevron,[\s\S]*\.sidebar-badge[\s\S]*display: none !important[\s\S]*body\[data-sidebar-state='collapsed'\] #sidebar \.nav-item[\s\S]*gap: 0[\s\S]*border-left: 0[\s\S]*#sidebar \.nav-item > i:first-child/,
+  'collapsed admin sidebar should center icons without leftover badge, label gap, or active border offset',
+)
+assert.match(
+  adminScriptSource,
+  /function syncMobileSidebarToggle\(open\)[\s\S]*dataset\.mobileSidebarState[\s\S]*menuToggleIcon[\s\S]*fa-xmark/,
+  'admin mobile sidebar script should keep the floating toggle position and icon in sync',
 )
 
 console.log('Critical UI contract passed.')

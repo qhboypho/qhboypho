@@ -3,7 +3,7 @@ export function adminBodyOpen(): string {
 }
 
 export function adminMobileMenuToggle(): string {
-  return "<!-- MOBILE MENU TOGGLE -->\n<button id=\"menuToggle\" onclick=\"toggleSidebar()\" class=\"fixed top-4 left-4 z-40 md:hidden bg-white shadow-lg rounded-xl p-2.5\">\n  <i class=\"fas fa-bars text-gray-700\"></i>\n</button>"
+  return "<!-- MOBILE MENU TOGGLE -->\n<button id=\"menuToggle\" type=\"button\" onclick=\"toggleSidebar()\" aria-label=\"Mở menu quản trị\" aria-expanded=\"false\" class=\"sidebar-mobile-toggle fixed top-3 left-3 z-[70] md:hidden bg-white shadow-lg rounded-xl w-11 h-11 inline-flex items-center justify-center border border-gray-200 text-gray-700\">\n  <i id=\"menuToggleIcon\" class=\"fas fa-bars text-gray-700\"></i>\n</button>"
 }
 
 export function adminSidebarOverlay(): string {
