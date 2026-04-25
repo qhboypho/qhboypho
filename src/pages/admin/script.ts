@@ -33,11 +33,11 @@ const ADMIN_OVERLAY_IDS = ['productModal', 'orderDetailModal', 'arrangeSuccessMo
 
 function forceHideAdminOverlay(el) {
   if (!el) return
-  el.removeAttribute('data-admin-overlay-open')
-  el.classList.add('hidden')
-  el.classList.remove('flex')
-  el.style.display = 'none'
-  el.style.pointerEvents = 'none'
+  if (el.hasAttribute('data-admin-overlay-open')) el.removeAttribute('data-admin-overlay-open')
+  if (!el.classList.contains('hidden')) el.classList.add('hidden')
+  if (el.classList.contains('flex')) el.classList.remove('flex')
+  if (el.style.display !== 'none') el.style.display = 'none'
+  if (el.style.pointerEvents !== 'none') el.style.pointerEvents = 'none'
 }
 
 function showAdminOverlay(el, displayMode = 'flex') {
@@ -253,6 +253,7 @@ function getActiveAdminModalOverlays() {
 function normalizeAdminOverlayState(options = {}) {
   const preserveActiveModal = options.preserveActiveModal !== false
   const reason = String(options.reason || '')
+  const closeFloatingMenus = options.closeFloatingMenus === true || reason === 'sanitize'
   const activeModals = preserveActiveModal ? getActiveAdminModalOverlays() : []
   const activeSet = new Set(activeModals)
 
@@ -264,7 +265,7 @@ function normalizeAdminOverlayState(options = {}) {
 
   const passwordModal = document.getElementById('adminChangePasswordModal')
   if (!activeSet.has(passwordModal)) closeChangeAdminPasswordModal()
-  if (!activeModals.length) closeAdminAvatarMenu()
+  if (closeFloatingMenus && !activeModals.length) closeAdminAvatarMenu()
 
   const sidebarOverlay = document.getElementById('sidebarOverlay')
   if (sidebarOverlay) {
