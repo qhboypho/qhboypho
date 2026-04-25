@@ -169,16 +169,53 @@ async function loadAdminProfile() {
   }
 }
 
-function closeAdminAvatarMenu() {
-  adminAvatarMenuOpen = false
+function positionAdminAvatarMenu() {
   const menu = document.getElementById('adminAvatarDropdown')
-  if (menu) menu.classList.add('hidden')
+  const trigger = document.getElementById('adminAvatarMenuTrigger')
+  if (!menu || !trigger) return
+  const rect = trigger.getBoundingClientRect()
+  const viewportWidth = window.innerWidth || document.documentElement.clientWidth || 0
+  const mobile = viewportWidth < 640
+  menu.style.position = 'fixed'
+  menu.style.top = Math.round(rect.bottom + 8) + 'px'
+  if (mobile) {
+    menu.style.left = '8px'
+    menu.style.right = '8px'
+    menu.style.width = 'auto'
+  } else {
+    menu.style.left = 'auto'
+    menu.style.right = Math.max(8, Math.round(viewportWidth - rect.right)) + 'px'
+    menu.style.width = '320px'
+  }
 }
 
-function toggleAdminAvatarMenu() {
-  adminAvatarMenuOpen = !adminAvatarMenuOpen
+function setAdminAvatarMenuOpen(open) {
+  adminAvatarMenuOpen = !!open
   const menu = document.getElementById('adminAvatarDropdown')
-  if (menu) menu.classList.toggle('hidden', !adminAvatarMenuOpen)
+  if (!menu) return
+  if (adminAvatarMenuOpen) {
+    positionAdminAvatarMenu()
+    menu.classList.remove('hidden')
+    menu.style.display = 'block'
+    menu.style.pointerEvents = 'auto'
+    requestAnimationFrame(positionAdminAvatarMenu)
+    return
+  }
+  menu.classList.add('hidden')
+  menu.style.display = 'none'
+  menu.style.pointerEvents = 'none'
+}
+
+function closeAdminAvatarMenu() {
+  setAdminAvatarMenuOpen(false)
+}
+
+function toggleAdminAvatarMenu(evt) {
+  if (evt) {
+    evt.preventDefault()
+    evt.stopPropagation()
+  }
+  setAdminAvatarMenuOpen(!adminAvatarMenuOpen)
 }
 
 function hasOpenAdminModal() {
@@ -1827,6 +1864,10 @@ document.addEventListener('DOMContentLoaded', function() {
   syncOrdersHeaderSearchUI()
   window.addEventListener('resize', syncSidebarOverlay)
   window.addEventListener('resize', syncOrdersHeaderSearchUI)
+  window.addEventListener('resize', positionAdminAvatarMenu)
+  window.addEventListener('scroll', () => {
+    if (adminAvatarMenuOpen) positionAdminAvatarMenu()
+  }, true)
   window.addEventListener('load', scheduleAdminOverlaySanitize)
   window.addEventListener('pageshow', () => normalizeAdminOverlayState({ preserveActiveModal: true, reason: 'pageshow' }))
   document.addEventListener('visibilitychange', function() {
