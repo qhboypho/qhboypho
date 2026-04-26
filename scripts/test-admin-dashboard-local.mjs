@@ -91,5 +91,9 @@ assert.equal(statsRes.status, 200, `Expected /api/admin/stats 200, got ${statsRe
 const statsJson = await statsRes.json()
 assert.equal(statsJson?.success, true, 'Expected /api/admin/stats success=true')
 assert.ok(statsJson?.data && typeof statsJson.data === 'object', 'Expected stats payload object')
+assert.ok(
+  (statsJson.data.recentOrders || []).every((order) => String(order?.status || '').toLowerCase() !== 'cancelled'),
+  'Expected dashboard recent orders to exclude cancelled orders'
+)
 
 console.log('admin dashboard local contract passed')

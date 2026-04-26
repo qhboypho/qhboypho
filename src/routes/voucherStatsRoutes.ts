@@ -96,7 +96,10 @@ export function registerVoucherStatsRoutes(app: Hono<{ Bindings: AppBindings }>,
       await deps.initDB(c.env.DB)
       const includeInternal = c.req.query('include_internal') === '1'
       const internalFilterSql = includeInternal ? '1=1' : `NOT ${deps.buildInternalTestOrderWhereSql()}`
-      const recentInternalFilterSql = includeInternal ? '1=1' : `NOT ${deps.buildInternalTestOrderWhereSql('o')}`
+      const recentInternalFilterSql = [
+        "LOWER(COALESCE(o.status, '')) != 'cancelled'",
+        includeInternal ? '1=1' : `NOT ${deps.buildInternalTestOrderWhereSql('o')}`,
+      ].join(' AND ')
       const totalProducts = await c.env.DB.prepare(`SELECT COUNT(*) as count FROM products WHERE is_active=1`).first() as any
       const totalOrders = await c.env.DB.prepare(`SELECT COUNT(*) as count FROM orders WHERE ${internalFilterSql}`).first() as any
       const pendingOrders = await c.env.DB.prepare(`SELECT COUNT(*) as count FROM orders WHERE status='pending' AND ${internalFilterSql}`).first() as any

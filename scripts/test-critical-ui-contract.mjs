@@ -280,5 +280,10 @@ assert.match(
   /p\.thumbnail AS product_thumbnail[\s\S]*p\.images AS product_images[\s\S]*p\.colors AS product_colors[\s\S]*LEFT JOIN products p ON p\.id = o\.product_id/,
   'admin stats recent orders should include joined product image data for dashboard cards',
 )
+assert.match(
+  voucherStatsRoutesSource,
+  /recentInternalFilterSql[\s\S]*LOWER\(COALESCE\(o\.status, ''\)\) != 'cancelled'/,
+  'admin stats recent orders should exclude cancelled orders at the data source',
+)
 
 console.log('Critical UI contract passed.')
