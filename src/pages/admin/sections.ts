@@ -19,7 +19,70 @@ export function adminMainContentStart(): string {
 }
 
 export function adminDashboardPage(): string {
-  return "<!-- DASHBOARD PAGE -->\n  <div id=\"page-dashboard\" class=\"p-6\">\n    <div class=\"grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8\">\n      <div class=\"stat-card rounded-2xl p-5 text-white\" style=\"--from:#e84393;--to:#c0392b\">\n        <div class=\"flex justify-between items-start\">\n          <div><p class=\"text-white/80 text-sm\">Sản phẩm</p><p id=\"statProducts\" class=\"text-3xl font-bold mt-1\">—</p></div>\n          <div class=\"w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center\"><i class=\"fas fa-tshirt\"></i></div>\n        </div>\n      </div>\n      <div class=\"stat-card rounded-2xl p-5 text-white\" style=\"--from:#667eea;--to:#764ba2\">\n        <div class=\"flex justify-between items-start\">\n          <div><p class=\"text-white/80 text-sm\">Đơn hàng</p><p id=\"statOrders\" class=\"text-3xl font-bold mt-1\">—</p></div>\n          <div class=\"w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center\"><i class=\"fas fa-shopping-bag\"></i></div>\n        </div>\n      </div>\n      <div class=\"stat-card rounded-2xl p-5 text-white\" style=\"--from:#f093fb;--to:#f5576c\">\n        <div class=\"flex justify-between items-start\">\n          <div><p class=\"text-white/80 text-sm\">Chờ xử lý</p><p id=\"statPending\" class=\"text-3xl font-bold mt-1\">—</p></div>\n          <div class=\"w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center\"><i class=\"fas fa-clock\"></i></div>\n        </div>\n      </div>\n      <div class=\"stat-card rounded-2xl p-5 text-white\" style=\"--from:#43e97b;--to:#38f9d7\">\n        <div class=\"flex justify-between items-start\">\n          <div><p class=\"text-white/80 text-sm\">Doanh thu</p><p id=\"statRevenue\" class=\"text-2xl font-bold mt-1\">—</p></div>\n          <div class=\"w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center\"><i class=\"fas fa-coins\"></i></div>\n        </div>\n      </div>\n    </div>\n    \n    <div class=\"bg-white rounded-2xl shadow-sm border p-6\">\n      <div class=\"flex items-center justify-between mb-4\">\n        <h2 class=\"font-bold text-gray-800\">Đơn hàng gần đây</h2>\n        <button onclick=\"showPage('orders')\" class=\"text-pink-500 text-sm hover:underline\">Xem tất cả</button>\n      </div>\n      <div id=\"recentOrdersTable\" class=\"overflow-x-auto\">\n        <div class=\"text-center py-8 text-gray-400\"><i class=\"fas fa-spinner fa-spin text-2xl\"></i></div>\n      </div>\n    </div>\n  </div>"
+  return `<!-- DASHBOARD PAGE -->
+  <div id="page-dashboard" class="p-3 md:p-6">
+    <div class="dashboard-stat-grid grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
+      <div class="dashboard-stat-card stat-card rounded-2xl p-4 md:p-5 text-white overflow-hidden" style="--from:#e84393;--to:#c0392b">
+        <div class="flex justify-between items-start gap-3 min-w-0">
+          <div class="min-w-0"><p class="dashboard-stat-label text-white/80 text-sm">Sản phẩm</p><p id="statProducts" class="dashboard-stat-value text-3xl font-bold mt-1">—</p></div>
+          <div class="dashboard-stat-icon w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0"><i class="fas fa-tshirt"></i></div>
+        </div>
+      </div>
+      <div class="dashboard-stat-card stat-card rounded-2xl p-4 md:p-5 text-white overflow-hidden" style="--from:#667eea;--to:#764ba2">
+        <div class="flex justify-between items-start gap-3 min-w-0">
+          <div class="min-w-0"><p class="dashboard-stat-label text-white/80 text-sm">Đơn hàng</p><p id="statOrders" class="dashboard-stat-value text-3xl font-bold mt-1">—</p></div>
+          <div class="dashboard-stat-icon w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0"><i class="fas fa-shopping-bag"></i></div>
+        </div>
+      </div>
+      <div class="dashboard-stat-card stat-card rounded-2xl p-4 md:p-5 text-white overflow-hidden" style="--from:#f093fb;--to:#f5576c">
+        <div class="flex justify-between items-start gap-3 min-w-0">
+          <div class="min-w-0"><p class="dashboard-stat-label text-white/80 text-sm">Chờ xử lý</p><p id="statPending" class="dashboard-stat-value text-3xl font-bold mt-1">—</p></div>
+          <div class="dashboard-stat-icon w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0"><i class="fas fa-clock"></i></div>
+        </div>
+      </div>
+      <div class="dashboard-stat-card stat-card rounded-2xl p-4 md:p-5 text-white overflow-hidden" style="--from:#43e97b;--to:#38f9d7">
+        <div class="flex justify-between items-start gap-3 min-w-0">
+          <div class="min-w-0"><p class="dashboard-stat-label text-white/80 text-sm">Doanh thu</p><p id="statRevenue" class="dashboard-stat-value dashboard-stat-value-revenue text-2xl font-bold mt-1">—</p></div>
+          <div class="dashboard-stat-icon w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0"><i class="fas fa-coins"></i></div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="dashboard-recent-orders-panel bg-white rounded-2xl shadow-sm border p-4 md:p-6 overflow-hidden">
+      <div class="flex items-center justify-between gap-3 mb-4">
+        <h2 class="font-bold text-gray-800">Đơn hàng gần đây</h2>
+        <button onclick="showPage('orders')" class="text-pink-500 text-sm hover:underline shrink-0">Xem tất cả</button>
+      </div>
+      <div id="recentOrdersTable" class="min-w-0">
+        <div class="text-center py-8 text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></div>
+      </div>
+    </div>
+
+    <div id="dashboardCustomerModal" class="fixed inset-0 modal-overlay z-[85] hidden items-center justify-center p-4" style="display:none;pointer-events:none" onclick="if(event.target===this) closeDashboardCustomerModal()">
+      <div class="modal-card bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden" onclick="event.stopPropagation()">
+        <div class="border-b px-5 py-4 flex items-center justify-between gap-3">
+          <h3 class="font-bold text-gray-900">Thông tin khách</h3>
+          <button type="button" onclick="closeDashboardCustomerModal()" class="w-9 h-9 rounded-full bg-gray-100 text-gray-500 hover:text-gray-900 hover:bg-gray-200 transition">
+            <i class="fas fa-xmark"></i>
+          </button>
+        </div>
+        <div class="p-5 space-y-3 text-sm">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-gray-400">Tên khách</p>
+            <p id="dashboardCustomerName" class="mt-1 font-semibold text-gray-900 break-words">—</p>
+          </div>
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-gray-400">Số điện thoại</p>
+            <p id="dashboardCustomerPhone" class="mt-1 font-semibold text-gray-900 break-words">—</p>
+          </div>
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-wide text-gray-400">Địa chỉ</p>
+            <p id="dashboardCustomerAddress" class="mt-1 text-gray-700 break-words">—</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`
 }
 
 export function adminProductsPage(): string {

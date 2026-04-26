@@ -29,7 +29,7 @@ let desktopSidebarCollapsed = false
 let selectedColorImage = ''
 let adminOverlaySafetyScheduled = false
 const MAX_PRODUCT_PAYLOAD_SIZE = 1200000
-const ADMIN_OVERLAY_IDS = ['productModal', 'orderDetailModal', 'arrangeSuccessModal', 'createFlashSaleModal', 'flashSaleProductPickerModal', 'adminChangePasswordModal', 'reviewAdminModal']
+const ADMIN_OVERLAY_IDS = ['productModal', 'orderDetailModal', 'arrangeSuccessModal', 'createFlashSaleModal', 'flashSaleProductPickerModal', 'adminChangePasswordModal', 'reviewAdminModal', 'dashboardCustomerModal']
 
 function forceHideAdminOverlay(el) {
   if (!el) return
@@ -764,6 +764,108 @@ function openFlashSaleAdmin() {
   showPage('flashsale')
 }
 
+function escapeDashboardHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (ch) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  })[ch])
+}
+
+function dashboardStatusClass(status) {
+  return String(status || '').replace(/[^a-z0-9_-]/gi, '') || 'pending'
+}
+
+function encodeDashboardCustomer(order) {
+  return encodeURIComponent(JSON.stringify({
+    name: displayCustomerName(order?.customer_name),
+    phone: String(order?.customer_phone || '').trim(),
+    address: String(order?.customer_address || '').trim()
+  }))
+}
+
+function decodeDashboardCustomer(payload) {
+  try {
+    return JSON.parse(decodeURIComponent(String(payload || ''))) || {}
+  } catch (_) {
+    return {}
+  }
+}
+
+function openDashboardCustomerModal(payload) {
+  const data = decodeDashboardCustomer(payload)
+  const modal = document.getElementById('dashboardCustomerModal')
+  const name = document.getElementById('dashboardCustomerName')
+  const phone = document.getElementById('dashboardCustomerPhone')
+  const address = document.getElementById('dashboardCustomerAddress')
+  if (name) name.textContent = data.name || 'Chưa có tên'
+  if (phone) phone.textContent = data.phone || 'Chưa có số điện thoại'
+  if (address) address.textContent = data.address || 'Chưa có địa chỉ'
+  showAdminOverlay(modal)
+}
+
+function closeDashboardCustomerModal() {
+  forceHideAdminOverlay(document.getElementById('dashboardCustomerModal'))
+}
+
+function getDashboardOrderImage(order) {
+  if (typeof getOrderItemImage === 'function') return getOrderItemImage(order)
+  const selectedColorImage = String(order?.selected_color_image || '').trim()
+  if (selectedColorImage) return selectedColorImage
+  const fallback = String(order?.product_thumbnail || order?.thumbnail || '').trim()
+    || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=80'
+  const rawImages = String(order?.product_images || '').trim()
+  if (!rawImages) return fallback
+  let images = []
+  try { images = JSON.parse(rawImages || '[]') } catch (_) { images = [] }
+  if (!Array.isArray(images) || !images.length) return fallback
+  const first = images.find((img) => String(img || '').trim())
+  return first ? String(first).trim() : fallback
+}
+
+function renderRecentDashboardMobileCard(order) {
+  const status = dashboardStatusClass(order?.status)
+  const customerName = displayCustomerName(order?.customer_name)
+  const encodedCustomer = encodeDashboardCustomer(order)
+  const orderCode = escapeDashboardHtml(order?.order_code || '')
+  const productName = escapeDashboardHtml(order?.product_name || 'Sản phẩm')
+  const quantity = Number(order?.quantity || 0)
+  const img = escapeDashboardHtml(getDashboardOrderImage(order))
+  return '<article class="dashboard-recent-card rounded-2xl border border-gray-100 bg-white p-3 shadow-sm">' +
+    '<div class="flex items-start justify-between gap-2">' +
+      '<div class="flex items-center gap-2 min-w-0 flex-1">' +
+        '<button type="button" onclick="openDashboardCustomerModal(\\'' + encodedCustomer + '\\')" class="min-w-0 truncate text-left text-sm font-semibold text-gray-900 hover:text-pink-600 transition">' + escapeDashboardHtml(customerName) + '</button>' +
+        '<span class="font-mono text-[11px] text-blue-600 shrink-0">' + orderCode + '</span>' +
+      '</div>' +
+      '<span class="badge badge-' + status + ' shrink-0">' + escapeDashboardHtml(statusLabel(order?.status)) + '</span>' +
+    '</div>' +
+    '<div class="mt-3 flex items-center gap-3">' +
+      '<img src="' + img + '" alt="" loading="lazy" onerror="this.src=\\'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=80\\'" class="h-14 w-14 shrink-0 rounded-xl border border-gray-100 bg-gray-100 object-cover">' +
+      '<div class="min-w-0 flex-1 flex items-start gap-2">' +
+        '<p class="min-w-0 flex-1 text-sm font-semibold leading-snug text-gray-800 break-words">' + productName + '</p>' +
+        '<span class="ml-auto shrink-0 text-sm font-bold text-gray-900">x ' + quantity + '</span>' +
+      '</div>' +
+    '</div>' +
+  '</article>'
+}
+
+function renderRecentDashboardOrders(recent) {
+  const desktopRows = recent.map((order) => {
+    const status = dashboardStatusClass(order?.status)
+    return '<tr class="border-b last:border-0">' +
+      '<td class="py-2 pr-4 font-mono text-xs text-blue-600">' + escapeDashboardHtml(order?.order_code || '') + '</td>' +
+      '<td class="py-2 pr-4">' + escapeDashboardHtml(displayCustomerName(order?.customer_name)) + '</td>' +
+      '<td class="py-2 pr-4 text-right font-semibold">' + fmtPrice(getOrderAmountDue(order)) + '</td>' +
+      '<td class="py-2 text-center"><span class="badge badge-' + status + '">' + escapeDashboardHtml(statusLabel(order?.status)) + '</span></td>' +
+    '</tr>'
+  }).join('')
+  const desktopTable = '<div class="dashboard-recent-desktop-table overflow-x-auto"><table class="w-full text-sm"><thead><tr class="border-b text-gray-500"><th class="py-2 text-left pr-4">Mã ĐH</th><th class="py-2 text-left pr-4">Khách hàng</th><th class="py-2 text-right pr-4">Còn phải thu</th><th class="py-2 text-center">Trạng thái</th></tr></thead><tbody>' + desktopRows + '</tbody></table></div>'
+  const mobileList = '<div class="dashboard-recent-mobile-list">' + recent.map(renderRecentDashboardMobileCard).join('') + '</div>'
+  return desktopTable + mobileList
+}
+
 async function loadDashboard() {
   try {
     const res = await axios.get('/api/admin/stats')
@@ -793,9 +895,7 @@ async function loadDashboard() {
       recentOrdersTable.innerHTML = '<div class="text-center py-8 text-gray-400">Chưa có đơn hàng nào</div>'
       return
     }
-    recentOrdersTable.innerHTML = '<table class="w-full text-sm"><thead><tr class="border-b text-gray-500"><th class="py-2 text-left pr-4">Mã ĐH</th><th class="py-2 text-left pr-4">Khách hàng</th><th class="py-2 text-right pr-4">Còn phải thu</th><th class="py-2 text-center">Trạng thái</th></tr></thead><tbody>' +
-      recent.map(o => '<tr class="border-b last:border-0"><td class="py-2 pr-4 font-mono text-xs text-blue-600">' + o.order_code + '</td><td class="py-2 pr-4">' + displayCustomerName(o.customer_name) + '</td><td class="py-2 pr-4 text-right font-semibold">' + fmtPrice(getOrderAmountDue(o)) + '</td><td class="py-2 text-center"><span class="badge badge-' + o.status + '">' + statusLabel(o.status) + '</span></td></tr>').join('') +
-      '</tbody></table>'
+    recentOrdersTable.innerHTML = renderRecentDashboardOrders(recent)
   } catch(e) {
     if (e && e.response && e.response.status === 401) {
       showAdminToast('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại', 'error')
@@ -1808,15 +1908,6 @@ function displayCustomerName(name) {
   while (n.indexOf('  ') >= 0) n = n.replace('  ', ' ')
   if (/^Trần\s+Công\s+Hiếu[a-z]$/i.test(n)) return 'Trần Công Hiếu'
   if (n.toLowerCase().endsWith("'s")) n = n.slice(0, -2)
-  // Fix common input artifact: Vietnamese char + stray latin suffix (e.g. "Hiáº¿us")
-  if (n.length >= 2) {
-    const last = n.charAt(n.length - 1)
-    const prev = n.charAt(n.length - 2)
-    const isAsciiLetter = (last >= 'A' && last <= 'Z') || (last >= 'a' && last <= 'z')
-    if (isAsciiLetter && prev.charCodeAt(0) > 127) {
-      n = n.slice(0, -1)
-    }
-  }
   return n
 }
 function isInternalTestOrder(o) {
@@ -1889,7 +1980,7 @@ export function adminBootstrapScript(): string {
   return `// ESC key handler - close any open modal
 document.addEventListener('keydown', function(e) {
   if (e.key === 'Escape') {
-    const modals = ['productModal', 'orderDetailModal', 'arrangeSuccessModal', 'createFlashSaleModal', 'flashSaleProductPickerModal']
+    const modals = ['productModal', 'orderDetailModal', 'arrangeSuccessModal', 'createFlashSaleModal', 'flashSaleProductPickerModal', 'dashboardCustomerModal']
     modals.forEach(id => {
       const el = document.getElementById(id)
       if (el) forceHideAdminOverlay(el)
@@ -1897,6 +1988,7 @@ document.addEventListener('keydown', function(e) {
     closeFlashSaleCreateModal()
     closeFlashSaleProductPickerModal()
     closeChangeAdminPasswordModal()
+    closeDashboardCustomerModal()
     closeAdminAvatarMenu()
     document.body.style.overflow = ''
     closeMobileSidebar()

@@ -12,6 +12,7 @@ const adminStylesSource = await readFile(new URL('../src/pages/admin/styles.ts',
 const adminScriptSource = await readFile(new URL('../src/pages/admin/script.ts', import.meta.url), 'utf8')
 const adminSettingsScriptSource = await readFile(new URL('../src/pages/admin/script-featured-settings.ts', import.meta.url), 'utf8')
 const adminUtilityRoutesSource = await readFile(new URL('../src/routes/adminUtilityRoutes.ts', import.meta.url), 'utf8')
+const voucherStatsRoutesSource = await readFile(new URL('../src/routes/voucherStatsRoutes.ts', import.meta.url), 'utf8')
 
 assert.match(
   purchaseToastSource,
@@ -223,6 +224,46 @@ assert.match(
   adminScriptSource,
   /window\.addEventListener\('pageshow', handleAdminPageShow\)/,
   'admin dashboard should sanitize restored browser sessions through a dedicated pageshow handler',
+)
+assert.doesNotMatch(
+  adminScriptSource,
+  /prev\.charCodeAt\(0\) > 127/,
+  'admin customer-name display should not strip valid Vietnamese final letters such as the u in Hiếu',
+)
+assert.match(
+  adminSectionsSource,
+  /dashboard-stat-card[\s\S]*dashboard-stat-value-revenue[\s\S]*dashboard-recent-orders-panel[\s\S]*dashboardCustomerModal/,
+  'admin dashboard should expose mobile-safe stat classes and a customer info modal',
+)
+assert.match(
+  adminStylesSource,
+  /\.dashboard-stat-value[\s\S]*overflow-wrap: anywhere[\s\S]*\.dashboard-recent-mobile-list/,
+  'admin dashboard stat values should scale/wrap safely and define a mobile recent-order list',
+)
+assert.match(
+  adminStylesSource,
+  /@media \(max-width: 767px\)[\s\S]*\.dashboard-recent-desktop-table \{ display: none; \}[\s\S]*\.dashboard-recent-mobile-list \{ display: flex;/,
+  'admin dashboard should hide the recent-order table and show card list on mobile',
+)
+assert.match(
+  adminScriptSource,
+  /function renderRecentDashboardOrders[\s\S]*dashboard-recent-desktop-table[\s\S]*dashboard-recent-mobile-list/,
+  'admin dashboard should render desktop table plus mobile cards and open customer modal from mobile cards',
+)
+assert.match(
+  adminScriptSource,
+  /function openDashboardCustomerModal[\s\S]*dashboardCustomerModal[\s\S]*showAdminOverlay/,
+  'admin dashboard should open the customer info modal from mobile cards',
+)
+assert.match(
+  adminScriptSource,
+  /getDashboardOrderImage[\s\S]*getOrderItemImage[\s\S]*product_thumbnail/,
+  'admin dashboard mobile cards should resolve order thumbnails through existing order image data',
+)
+assert.match(
+  voucherStatsRoutesSource,
+  /p\.thumbnail AS product_thumbnail[\s\S]*p\.images AS product_images[\s\S]*p\.colors AS product_colors[\s\S]*LEFT JOIN products p ON p\.id = o\.product_id/,
+  'admin stats recent orders should include joined product image data for dashboard cards',
 )
 
 console.log('Critical UI contract passed.')

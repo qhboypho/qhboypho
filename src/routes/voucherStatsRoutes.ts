@@ -96,6 +96,7 @@ export function registerVoucherStatsRoutes(app: Hono<{ Bindings: AppBindings }>,
       await deps.initDB(c.env.DB)
       const includeInternal = c.req.query('include_internal') === '1'
       const internalFilterSql = includeInternal ? '1=1' : `NOT ${deps.buildInternalTestOrderWhereSql()}`
+      const recentInternalFilterSql = includeInternal ? '1=1' : `NOT ${deps.buildInternalTestOrderWhereSql('o')}`
       const totalProducts = await c.env.DB.prepare(`SELECT COUNT(*) as count FROM products WHERE is_active=1`).first() as any
       const totalOrders = await c.env.DB.prepare(`SELECT COUNT(*) as count FROM orders WHERE ${internalFilterSql}`).first() as any
       const pendingOrders = await c.env.DB.prepare(`SELECT COUNT(*) as count FROM orders WHERE status='pending' AND ${internalFilterSql}`).first() as any
@@ -114,11 +115,15 @@ export function registerVoucherStatsRoutes(app: Hono<{ Bindings: AppBindings }>,
       `).first() as any
       const revenue = await c.env.DB.prepare(`SELECT SUM(total_price) as total FROM orders WHERE status != 'cancelled' AND ${internalFilterSql}`).first() as any
       const recentOrdersRes = await c.env.DB.prepare(`
-        SELECT *,
-               CASE WHEN LOWER(COALESCE(payment_status, ''))='paid' THEN 0 ELSE total_price END AS amount_due
-        FROM orders
-        WHERE ${internalFilterSql}
-        ORDER BY created_at DESC
+        SELECT o.*,
+               p.thumbnail AS product_thumbnail,
+               p.images AS product_images,
+               p.colors AS product_colors,
+               CASE WHEN LOWER(COALESCE(o.payment_status, ''))='paid' THEN 0 ELSE o.total_price END AS amount_due
+        FROM orders o
+        LEFT JOIN products p ON p.id = o.product_id
+        WHERE ${recentInternalFilterSql}
+        ORDER BY o.created_at DESC
         LIMIT 5
       `).all()
       const recentOrders = recentOrdersRes
