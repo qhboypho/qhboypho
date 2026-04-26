@@ -261,6 +261,11 @@ assert.match(
   'admin mobile header account trigger should render as avatar-only without the black pill or profile text',
 )
 assert.match(
+  adminStylesSource,
+  /#adminAvatarMenuRoot \{[\s\S]*width: 6\.5rem;[\s\S]*justify-content: flex-end;/,
+  'admin mobile header should keep the original account slot width so the collapsed orders search icon does not shift right',
+)
+assert.match(
   adminScriptSource,
   /function renderRecentDashboardOrders[\s\S]*dashboard-recent-desktop-table[\s\S]*dashboard-recent-mobile-list/,
   'admin dashboard should render desktop table plus mobile cards and open customer modal from mobile cards',
