@@ -124,6 +124,21 @@ assert.match(
 )
 assert.match(
   storefrontScriptSource,
+  /const medalIcon = \(i\) => String\(i \+ 1\)/,
+  'storefront bestseller badges should render stable numeric ranks instead of emoji medals',
+)
+assert.doesNotMatch(
+  storefrontScriptSource,
+  /🥇|🥈|🥉/,
+  'storefront bestseller badges should not depend on emoji medal rendering',
+)
+assert.match(
+  storefrontStylesSource,
+  /\.bs-medal \{[\s\S]*width: 32px; height: 32px;[\s\S]*font-size: 18px;[\s\S]*font-weight: 900;/,
+  'storefront bestseller badge should keep the circle size while enlarging the rank number',
+)
+assert.match(
+  storefrontScriptSource,
   /cartOverlay|detailOverlay|userMenuOverlay|shippingJourneyOverlay|orderBankTransferOverlay/,
   'storefront Escape handling should cover the major modal and drawer overlays',
 )

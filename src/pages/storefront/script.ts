@@ -739,7 +739,7 @@ async function loadBestSellers() {
     const products = Array.isArray(res.data?.data) ? res.data.data : []
     if (!products.length) { track.innerHTML = '<p class="text-gray-400 text-sm py-4 px-2">Chưa có dữ liệu bán hàng.</p>'; return }
     const medalClass = (i) => i === 0 ? 'bs-medal-1' : i === 1 ? 'bs-medal-2' : i === 2 ? 'bs-medal-3' : 'bs-medal-n'
-    const medalIcon = (i) => i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : String(i + 1)
+    const medalIcon = (i) => String(i + 1)
     const fmtSold = (n) => n >= 1000 ? (n / 1000).toFixed(1) + 'k' : String(n)
     track.innerHTML = products.map((p, i) => {
       const flashMeta = getFlashSaleMeta(p)
