@@ -247,8 +247,8 @@ assert.match(
 )
 assert.match(
   adminStylesSource,
-  /\.orders-header-search\.expanded \{[\s\S]*left: 4rem;[\s\S]*right: 0\.5rem;/,
-  'admin orders mobile expanded search should leave room for the hamburger toggle',
+  /\.orders-header-search\.expanded \{[\s\S]*left: 4rem;[\s\S]*right: var\(--orders-search-expanded-right,/,
+  'admin orders mobile expanded search should use the measured original search button slot',
 )
 assert.doesNotMatch(
   adminStylesSource,
@@ -264,6 +264,16 @@ assert.match(
   adminStylesSource,
   /#adminAvatarMenuRoot \{[\s\S]*width: 6\.5rem;[\s\S]*justify-content: flex-end;/,
   'admin mobile header should keep the original account slot width so the collapsed orders search icon does not shift right',
+)
+assert.match(
+  adminStylesSource,
+  /\.orders-header-search\.expanded \.orders-header-search-shell \{[\s\S]*flex-direction: row-reverse;/,
+  'admin orders mobile expanded search should keep the search icon anchored while the input opens leftward',
+)
+assert.match(
+  adminScriptSource,
+  /function syncOrdersSearchAnchor\(\)[\s\S]*getBoundingClientRect\(\)[\s\S]*document\.documentElement\?\.clientWidth[\s\S]*setProperty\('--orders-search-expanded-right'/,
+  'admin orders search should measure the collapsed button position before expanding so the icon does not jump',
 )
 assert.match(
   adminScriptSource,
