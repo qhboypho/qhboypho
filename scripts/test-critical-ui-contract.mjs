@@ -246,6 +246,21 @@ assert.match(
   'admin dashboard should hide the recent-order table and show card list on mobile',
 )
 assert.match(
+  adminStylesSource,
+  /\.orders-header-search\.expanded \{[\s\S]*left: 4rem;[\s\S]*right: 0\.5rem;/,
+  'admin orders mobile expanded search should leave room for the hamburger toggle',
+)
+assert.doesNotMatch(
+  adminStylesSource,
+  /\.orders-header-search\.expanded \{[\s\S]*left: 8px;[\s\S]*right: 8px;/,
+  'admin orders mobile expanded search should not span under the hamburger toggle',
+)
+assert.match(
+  adminStylesSource,
+  /#adminAvatarMenuTrigger \{[\s\S]*background: transparent !important;[\s\S]*box-shadow: none !important;[\s\S]*#adminHeaderProfileName \{[\s\S]*display: none !important;/,
+  'admin mobile header account trigger should render as avatar-only without the black pill or profile text',
+)
+assert.match(
   adminScriptSource,
   /function renderRecentDashboardOrders[\s\S]*dashboard-recent-desktop-table[\s\S]*dashboard-recent-mobile-list/,
   'admin dashboard should render desktop table plus mobile cards and open customer modal from mobile cards',
