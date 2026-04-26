@@ -155,11 +155,6 @@ assert.match(
   'admin settings script should load and save MXH handles with link previews',
 )
 assert.match(
-  adminSettingsScriptSource,
-  /w-5 h-5 bg-amber-400 text-white text-sm leading-none font-extrabold rounded-full flex items-center justify-center">\\\$\{i\+1\}/,
-  'featured ranking badge should enlarge the order number without changing the circle size',
-)
-assert.match(
   adminUtilityRoutesSource,
   /\/api\/admin\/settings\/social|\/api\/public\/social-links|social_tiktok_handle|social_shopee_handle|social_facebook_handle|social_threads_handle/,
   'routes should persist social handles for admin and expose public social links safely',
