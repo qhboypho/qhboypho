@@ -866,6 +866,34 @@ function renderRecentDashboardOrders(recent) {
   return desktopTable + mobileList
 }
 
+function fitDashboardStatValues() {
+  const values = Array.from(document.querySelectorAll('.dashboard-stat-value'))
+  values.forEach((el) => {
+    if (!(el instanceof HTMLElement)) return
+    el.style.fontSize = ''
+    el.style.whiteSpace = 'nowrap'
+
+    const computed = window.getComputedStyle(el)
+    const maxFont = Number.parseFloat(computed.fontSize || '') || 24
+    const minFont = el.classList.contains('dashboard-stat-value-revenue') ? 11 : 16
+    let nextFont = maxFont
+    el.style.fontSize = nextFont + 'px'
+
+    let guard = 0
+    while (el.scrollWidth > el.clientWidth + 1 && nextFont > minFont && guard < 40) {
+      nextFont = Math.max(minFont, nextFont - 1)
+      el.style.fontSize = nextFont + 'px'
+      guard += 1
+    }
+
+    if (el.scrollWidth > el.clientWidth + 1 && el.clientWidth > 0) {
+      const ratio = el.clientWidth / el.scrollWidth
+      nextFont = Math.max(9, Math.floor(nextFont * ratio * 0.96))
+      el.style.fontSize = nextFont + 'px'
+    }
+  })
+}
+
 async function loadDashboard() {
   try {
     const res = await axios.get('/api/admin/stats')
@@ -878,6 +906,8 @@ async function loadDashboard() {
     if (statOrdersEl) statOrdersEl.textContent = d.totalOrders ?? '0'
     if (statPendingEl) statPendingEl.textContent = d.pendingOrders ?? '0'
     if (statRevenueEl) statRevenueEl.textContent = fmtPrice(d.revenue || 0)
+    fitDashboardStatValues()
+    requestAnimationFrame(fitDashboardStatValues)
 
     const shippingQueueOrders = Number(d.shippingQueueOrders || 0)
     if (shippingQueueOrders > 0) {
@@ -2003,6 +2033,7 @@ document.addEventListener('DOMContentLoaded', function() {
   window.addEventListener('resize', syncSidebarOverlay)
   window.addEventListener('resize', syncOrdersHeaderSearchUI)
   window.addEventListener('resize', positionAdminAvatarMenu)
+  window.addEventListener('resize', fitDashboardStatValues)
   window.addEventListener('scroll', () => {
     if (adminAvatarMenuOpen) positionAdminAvatarMenu()
   }, true)

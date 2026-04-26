@@ -261,6 +261,21 @@ assert.match(
   'admin dashboard mobile cards should resolve order thumbnails through existing order image data',
 )
 assert.match(
+  adminScriptSource,
+  /function fitDashboardStatValues[\s\S]*scrollWidth[\s\S]*clientWidth[\s\S]*fontSize/,
+  'admin dashboard stat values should auto-fit their font size against actual rendered width',
+)
+assert.match(
+  adminScriptSource,
+  /statRevenueEl\.textContent = fmtPrice\(d\.revenue \|\| 0\)[\s\S]*fitDashboardStatValues\(\)/,
+  'admin dashboard should re-fit stat values after loading large revenue numbers',
+)
+assert.match(
+  adminScriptSource,
+  /window\.addEventListener\('resize', fitDashboardStatValues\)/,
+  'admin dashboard should re-fit stat values after viewport changes',
+)
+assert.match(
   voucherStatsRoutesSource,
   /p\.thumbnail AS product_thumbnail[\s\S]*p\.images AS product_images[\s\S]*p\.colors AS product_colors[\s\S]*LEFT JOIN products p ON p\.id = o\.product_id/,
   'admin stats recent orders should include joined product image data for dashboard cards',
