@@ -135,7 +135,7 @@ function updateFeaturedPreview() {
         <img src="\${p.thumbnail || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=80'}" alt="\${p.name}"
           class="w-16 h-20 object-cover rounded-xl border-2 border-amber-300 shadow-sm"
           onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=80'">
-        <span class="absolute -top-1 -left-1 w-5 h-5 bg-amber-400 text-white text-xs font-bold rounded-full flex items-center justify-center">\${i+1}</span>
+        <span class="absolute -top-1 -left-1 w-5 h-5 bg-amber-400 text-white text-sm leading-none font-extrabold rounded-full flex items-center justify-center">\${i+1}</span>
       </div>
       <p class="text-xs text-gray-600 text-center leading-tight w-16 truncate">\${p.name}</p>
     </div>
