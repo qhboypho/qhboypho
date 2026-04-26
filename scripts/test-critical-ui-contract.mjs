@@ -133,6 +133,12 @@ assert.match(
   /Setting<\/span>|>Setting</,
   'admin sidebar should expose the Setting group label',
 )
+assert.ok(
+  adminSectionsSource.indexOf('id=\\"marketingMenuBtn\\"') < adminSectionsSource.indexOf('data-page=\\"reviews\\"')
+    && adminSectionsSource.indexOf('data-page=\\"reviews\\"') < adminSectionsSource.indexOf('id=\\"settingsMenuBtn\\"')
+    && adminSectionsSource.indexOf('id=\\"settingsMenuBtn\\"') < adminSectionsSource.indexOf('</nav>'),
+  'admin sidebar should place Reviews near the bottom and Setting as the last navigation group',
+)
 assert.match(
   adminSectionsSource,
   /data-sub-page="settings-social"|>MXH</,
