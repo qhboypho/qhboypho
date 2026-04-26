@@ -738,8 +738,8 @@ async function loadBestSellers() {
     const res = await axios.get('/api/bestsellers?limit=10')
     const products = Array.isArray(res.data?.data) ? res.data.data : []
     if (!products.length) { track.innerHTML = '<p class="text-gray-400 text-sm py-4 px-2">Chưa có dữ liệu bán hàng.</p>'; return }
-    const medalClass = (i) => i === 0 ? 'bs-medal-1' : i === 1 ? 'bs-medal-2' : i === 2 ? 'bs-medal-3' : 'bs-medal-n'
-    const medalIcon = (i) => String(i + 1)
+    const medalClass = (i) => i < 3 ? 'bs-medal bs-medal-top bs-medal-top-' + (i + 1) : 'bs-medal bs-medal-n'
+    const medalIcon = (i) => i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : String(i + 1)
     const fmtSold = (n) => n >= 1000 ? (n / 1000).toFixed(1) + 'k' : String(n)
     track.innerHTML = products.map((p, i) => {
       const flashMeta = getFlashSaleMeta(p)
@@ -750,7 +750,7 @@ async function loadBestSellers() {
           <img src="\${p.thumbnail || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'}"
             alt="\${p.name}" class="bs-card-img" loading="lazy"
             onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'">
-          <div class="bs-medal \${medalClass(i)}">\${medalIcon(i)}</div>
+          <div class="\${medalClass(i)}">\${medalIcon(i)}</div>
           \${p.has_flash_sale ? '<div class="absolute bottom-2 right-2"><span class="flash-sale-badge text-xs"><i class="fas fa-bolt"></i></span></div>' : ''}
         </div>
         <div class="p-3">

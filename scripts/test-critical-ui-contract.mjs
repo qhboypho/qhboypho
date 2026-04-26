@@ -124,18 +124,23 @@ assert.match(
 )
 assert.match(
   storefrontScriptSource,
-  /const medalIcon = \(i\) => String\(i \+ 1\)/,
-  'storefront bestseller badges should render stable numeric ranks instead of emoji medals',
+  /const medalClass = \(i\) => i < 3 \? 'bs-medal bs-medal-top bs-medal-top-' \+ \(i \+ 1\) : 'bs-medal bs-medal-n'/,
+  'storefront bestseller badges should render emoji-only medals for the top 3 and keep numbered circular badges for ranks 4+',
 )
-assert.doesNotMatch(
+assert.match(
   storefrontScriptSource,
-  /🥇|🥈|🥉/,
-  'storefront bestseller badges should not depend on emoji medal rendering',
+  /const medalIcon = \(i\) => i === 0 \? '🥇' : i === 1 \? '🥈' : i === 2 \? '🥉' : String\(i \+ 1\)/,
+  'storefront bestseller badges should keep emoji medals for the top 3 ranks',
 )
 assert.match(
   storefrontStylesSource,
-  /\.bs-medal \{[\s\S]*width: 32px; height: 32px;[\s\S]*font-size: 18px;[\s\S]*font-weight: 900;/,
-  'storefront bestseller badge should keep the circle size while enlarging the rank number',
+  /\.bs-medal-top \{[\s\S]*background: none;[\s\S]*box-shadow: none;[\s\S]*font-size: 24px;/,
+  'storefront bestseller top-3 medals should drop the circle background and enlarge the emoji',
+)
+assert.match(
+  storefrontStylesSource,
+  /\.bs-medal-n \{[\s\S]*width: 32px;[\s\S]*height: 32px;[\s\S]*border-radius: 50%;[\s\S]*font-size: 15px;/,
+  'storefront bestseller ranks 4+ should keep the circular numbered badge sizing',
 )
 assert.match(
   storefrontScriptSource,
