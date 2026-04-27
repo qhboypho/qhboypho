@@ -13,6 +13,10 @@ const adminScriptSource = await readFile(new URL('../src/pages/admin/script.ts',
 const adminSettingsScriptSource = await readFile(new URL('../src/pages/admin/script-featured-settings.ts', import.meta.url), 'utf8')
 const adminUtilityRoutesSource = await readFile(new URL('../src/routes/adminUtilityRoutes.ts', import.meta.url), 'utf8')
 const voucherStatsRoutesSource = await readFile(new URL('../src/routes/voucherStatsRoutes.ts', import.meta.url), 'utf8')
+const mobileOrderCardSource = ordersSource.slice(
+  ordersSource.indexOf('function renderOrdersMobileList'),
+  ordersSource.indexOf('function toggleOrderSelection'),
+)
 
 assert.match(
   purchaseToastSource,
@@ -39,6 +43,31 @@ assert.match(
   ordersSource,
   /Hành động này không thể hoàn tác/,
   'bulk delete should warn that deleting selected orders cannot be undone',
+)
+assert.match(
+  mobileOrderCardSource,
+  /mobile-order-title-row[\s\S]*mobile-order-total[\s\S]*fmtPrice\(getOrderAmountDue\(o\)\)/,
+  'admin mobile order cards should show the order total in the product title row instead of the old quantity badge',
+)
+assert.match(
+  mobileOrderCardSource,
+  /mobile-order-sku-row[\s\S]*SKU:[\s\S]*mobile-order-quantity[\s\S]*x\\\$\{o\.quantity \|\| 1\}/,
+  'admin mobile order cards should place quantity on the SKU row and align it to the right',
+)
+assert.doesNotMatch(
+  mobileOrderCardSource,
+  /mobile-order-meta|Tổng tiền|Voucher|voucherHtml/,
+  'admin mobile order cards should remove the old total/voucher boxes and payment method tag to reduce card height',
+)
+assert.match(
+  ordersSource,
+  /compact[\s\S]*\? 'grid grid-cols-2 gap-2 items-stretch w-full min-w-0'/,
+  'admin mobile order action controls should put the primary button and secondary dropdown in a 50:50 row',
+)
+assert.match(
+  mobileOrderCardSource,
+  /mobile-order-payment-status[\s\S]*justify-end[\s\S]*paymentStatusLabel\(o\.payment_status\)/,
+  'admin mobile order cards should show only the payment status at the bottom right',
 )
 
 assert.doesNotMatch(

@@ -144,10 +144,10 @@ function renderOrderRowActionControls(order, compact = false) {
     ? (ordersViewMode === 'waiting_ship' ? 'In giấy tờ' : 'Sắp xếp')
     : meta.label
   const wrapClass = compact
-    ? 'flex flex-col gap-2 items-stretch w-full min-w-0'
+    ? 'grid grid-cols-2 gap-2 items-stretch w-full min-w-0'
     : 'flex flex-col gap-2 items-stretch w-full max-w-[240px] mx-auto'
   const buttonClass = compact
-    ? 'w-full inline-flex items-center justify-center gap-1 rounded-lg px-2 py-2 text-[10px] leading-tight font-semibold whitespace-normal break-words text-center flex-wrap transition ' + meta.className
+    ? 'w-full h-full inline-flex items-center justify-center gap-1 rounded-lg px-2 py-2 text-[10px] leading-tight font-semibold whitespace-normal break-words text-center flex-wrap transition ' + meta.className
     : 'w-full inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-[11px] font-semibold whitespace-nowrap transition ' + meta.className
   return ''
     + '<div class="' + wrapClass + '">'
@@ -248,9 +248,6 @@ function renderOrdersMobileList(orders) {
     const qtyClass = Number(o.quantity || 1) > 1
       ? 'font-bold text-gray-900 bg-amber-100 border border-amber-300 shadow-sm'
       : 'font-semibold text-gray-700 bg-gray-100 border border-gray-200'
-    const voucherHtml = o.voucher_code
-      ? '<span class="font-mono text-[11px] bg-green-50 text-green-700 border border-green-200 px-2 py-1 rounded-lg font-semibold">' + o.voucher_code + '</span>'
-      : '<span class="text-gray-300 text-xs">—</span>'
     return \`
       <div class="orders-mobile-card">
         <div class="mobile-order-main flex items-start gap-2.5">
@@ -263,10 +260,15 @@ function renderOrdersMobileList(orders) {
                   <button type="button"
                     onclick="copyOrderCode(decodeURIComponent('\${encodeURIComponent(String(o.order_code || '').trim())}')); return false;"
                     class="font-mono text-[11px] text-blue-600 font-semibold truncate max-w-[150px] text-left">Mã ĐH: \${o.order_code}</button>
-                  <span class="inline-flex min-w-7 justify-center text-[11px] \${qtyClass} rounded-md px-2 py-0.5 shrink-0">x\${o.quantity || 1}</span>
                 </div>
-                <p class="mt-1 text-sm font-semibold text-gray-900 leading-5 truncate">\${o.product_name}</p>
-                <p class="mt-1 text-xs text-gray-500 truncate">SKU: \${buildOrderSkuText(o)}</p>
+                <div class="mobile-order-title-row mt-1 flex items-start justify-between gap-2 min-w-0">
+                  <p class="min-w-0 flex-1 text-sm font-semibold text-gray-900 leading-5 truncate">\${o.product_name}</p>
+                  <span class="mobile-order-total shrink-0 text-sm font-extrabold text-gray-900 whitespace-nowrap">\${fmtPrice(getOrderAmountDue(o))}</span>
+                </div>
+                <div class="mobile-order-sku-row mt-1 flex items-center justify-between gap-2 min-w-0 text-xs text-gray-500">
+                  <p class="min-w-0 truncate">SKU: \${buildOrderSkuText(o)}</p>
+                  <span class="mobile-order-quantity inline-flex min-w-7 justify-center text-[11px] \${qtyClass} rounded-md px-2 py-0.5 shrink-0">x\${o.quantity || 1}</span>
+                </div>
                 <div class="mt-1.5 text-xs text-gray-500 flex items-center gap-1.5 flex-wrap">
                   <span>\${displayCustomerName(o.customer_name)}</span>
                   <span>•</span>
@@ -289,20 +291,11 @@ function renderOrdersMobileList(orders) {
                   : ''}
               </div>
             </div>
-            <div class="mobile-order-meta grid grid-cols-2 gap-2 text-xs min-w-0">
-              <div class="rounded-xl border border-gray-200 bg-white px-3 py-2">
-                <p class="text-gray-400 uppercase tracking-wide text-[10px]">Tổng tiền</p>
-                <p class="mt-1 text-sm font-bold text-gray-900">\${fmtPrice(getOrderAmountDue(o))}</p>
-                <p class="mt-1"><span class="text-[11px] px-2 py-0.5 rounded-full \${paymentStatusClass(o.payment_status)}">\${paymentStatusLabel(o.payment_status)}</span></p>
-              </div>
-              <div class="rounded-xl border border-gray-200 bg-white px-3 py-2">
-                <p class="text-gray-400 uppercase tracking-wide text-[10px]">Voucher</p>
-                <div class="mt-1">\${voucherHtml}</div>
-                <div class="mt-2">\${paymentMethodTagHTML(o.payment_method, o.payment_status)}</div>
-              </div>
-            </div>
             <div class="mobile-order-actions min-w-0">
               \${renderOrderRowActionControls(o, true)}
+            </div>
+            <div class="mobile-order-payment-status flex justify-end">
+              <span class="text-[11px] px-2 py-0.5 rounded-full \${paymentStatusClass(o.payment_status)}">\${paymentStatusLabel(o.payment_status)}</span>
             </div>
           </div>
         </div>
