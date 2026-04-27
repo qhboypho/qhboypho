@@ -463,17 +463,6 @@ function isOrdersPageActive() {
   return document.body.dataset.adminPage === 'orders'
 }
 
-function syncOrdersSearchAnchor() {
-  const wrap = document.getElementById('ordersHeaderSearch')
-  const button = document.getElementById('ordersHeaderSearchButton')
-  if (!wrap || !button || window.innerWidth >= 768) return
-  if (wrap.classList.contains('expanded')) return
-  const rect = button.getBoundingClientRect()
-  const viewportWidth = document.documentElement?.clientWidth || window.innerWidth
-  const rightOffset = Math.max(8, viewportWidth - rect.right - 1)
-  wrap.style.setProperty('--orders-search-expanded-right', rightOffset + 'px')
-}
-
 function syncOrdersHeaderSearchUI() {
   const wrap = document.getElementById('ordersHeaderSearch')
   const input = document.getElementById('orderSearch')
@@ -494,7 +483,6 @@ function syncOrdersHeaderSearchUI() {
   }
 
   const shouldExpand = ordersSearchExpanded || hasValue
-  if (shouldExpand) syncOrdersSearchAnchor()
   wrap.classList.toggle('expanded', shouldExpand)
   icon.className = (hasValue ? 'fas fa-times' : 'fas fa-search') + ' text-sm'
 }
