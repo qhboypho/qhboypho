@@ -67,23 +67,21 @@ function filterReturns() {
 }
 
 function getCancelReason(order) {
-  // Use cancelled_by field if available
+  // Priority 1: Use cancelled_by field if available (most accurate)
   const cancelledBy = String(order.cancelled_by || '').toLowerCase()
   if (cancelledBy === 'shop') return 'Shop huỷ'
   if (cancelledBy === 'customer') return 'Khách tự huỷ'
   
-  // Fallback: Determine if cancelled by customer or shop based on shipping status
-  const status = String(order.status || '').toLowerCase()
-  const shippingArranged = Number(order.shipping_arranged || 0)
+  // Priority 2: Check if order has GHTK tracking code
+  // If has tracking code → order was shipped → customer cancelled (bom hang)
+  // If no tracking code → shop cancelled before shipping
   const trackingCode = String(order.shipping_tracking_code || '').trim()
-  
-  // If order was cancelled before shipping was arranged, it's shop cancelled
-  if (status === 'cancelled' && !shippingArranged && !trackingCode) {
-    return 'Shop huỷ'
+  if (trackingCode) {
+    return 'Khách tự huỷ'
   }
   
-  // If order has tracking code but was cancelled, it's customer cancelled (bom hang)
-  return 'Khách tự huỷ'
+  // Priority 3: Fallback - if no tracking code, assume shop cancelled
+  return 'Shop huỷ'
 }
 
 function renderReturnsTable() {

@@ -224,6 +224,18 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
             return c.json({ success: false, error: cancelRes.message || 'GHTK_CANCEL_FAILED', detail: cancelRes.detail || null }, 400)
           }
         }
+        
+        // Set cancelled_by = 'shop' when admin cancels the order
+        // Also set return_status = 'cancelled' for returns management
+        await c.env.DB.prepare(`
+          UPDATE orders 
+          SET status = ?, 
+              return_status = 'cancelled',
+              cancelled_by = 'shop',
+              updated_at = CURRENT_TIMESTAMP 
+          WHERE id = ?
+        `).bind(nextStatus, id).run()
+        return c.json({ success: true, status: nextStatus, cancelled_by: 'shop' })
       }
 
       await c.env.DB.prepare(`

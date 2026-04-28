@@ -101,11 +101,11 @@ export function registerReturnsRoutes(app: Hono<{ Bindings: AppBindings }>, deps
             // Determine cancelled_by for cancelled orders
             let cancelledBy: string | null = null
             if (returnStatus === 'cancelled') {
-              // If order has tracking code, customer cancelled (bom hang)
-              // Otherwise, shop cancelled
+              // LOGIC: If order has tracking code from GHTK, it means the order was shipped
+              // So if it's cancelled, it MUST be customer who cancelled (bom hang)
+              // If no tracking code, it means shop cancelled before shipping
               const trackingCode = String(order.shipping_tracking_code || '').trim()
-              const shippingArranged = Number(order.shipping_arranged || 0)
-              cancelledBy = (trackingCode && shippingArranged) ? 'customer' : 'shop'
+              cancelledBy = trackingCode ? 'customer' : 'shop'
             }
             
             await c.env.DB.prepare(`
