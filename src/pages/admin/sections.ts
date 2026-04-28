@@ -128,6 +128,9 @@ export function adminReturnsPage(): string {
       <button id="returnsTabCancelled" onclick="switchReturnsTab('cancelled')" class="returns-tab px-6 py-3 text-sm font-semibold text-gray-500 border-b-2 border-transparent hover:text-pink-600 transition">
         <i class="fas fa-ban mr-2"></i>Đơn huỷ
       </button>
+      <button id="returnsTabDeliveryFailed" onclick="switchReturnsTab('delivery_failed')" class="returns-tab px-6 py-3 text-sm font-semibold text-gray-500 border-b-2 border-transparent hover:text-pink-600 transition">
+        <i class="fas fa-truck-ramp-box mr-2"></i>Giao không thành công
+      </button>
     </div>
 
     <!-- Filters & Actions -->
@@ -188,6 +191,7 @@ export function adminReturnsPage(): string {
               <th class="px-4 py-3 text-left font-semibold text-gray-600">Sản phẩm</th>
               <th class="px-4 py-3 text-center font-semibold text-gray-600">SL</th>
               <th class="px-4 py-3 text-right font-semibold text-gray-600">Tổng tiền</th>
+              <th class="px-4 py-3 text-center font-semibold text-gray-600">Lý do</th>
               <th class="px-4 py-3 text-center font-semibold text-gray-600">Mã vận đơn</th>
               <th class="px-4 py-3 text-center font-semibold text-gray-600">Ngày tạo</th>
               <th class="px-4 py-3 text-center font-semibold text-gray-600">Hành động</th>
@@ -195,7 +199,7 @@ export function adminReturnsPage(): string {
           </thead>
           <tbody id="returnsTableBodyCancelled">
             <tr>
-              <td colspan="8" class="px-4 py-16 text-center text-gray-400">
+              <td colspan="9" class="px-4 py-16 text-center text-gray-400">
                 <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
                 <p>Đang tải dữ liệu...</p>
               </td>
@@ -209,9 +213,41 @@ export function adminReturnsPage(): string {
         <p>Không có đơn huỷ nào</p>
       </div>
     </div>
+
+    <!-- Delivery Failed Orders Table -->
+    <div id="returnsTableDeliveryFailed" class="hidden bg-white rounded-2xl shadow-sm border overflow-hidden">
+      <div class="hidden md:block overflow-x-auto scrollbar-thin">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-gray-50 border-b">
+              <th class="px-4 py-3 text-left font-semibold text-gray-600">Mã đơn</th>
+              <th class="px-4 py-3 text-left font-semibold text-gray-600">Khách hàng</th>
+              <th class="px-4 py-3 text-left font-semibold text-gray-600">Sản phẩm</th>
+              <th class="px-4 py-3 text-center font-semibold text-gray-600">SL</th>
+              <th class="px-4 py-3 text-right font-semibold text-gray-600">Tổng tiền</th>
+              <th class="px-4 py-3 text-center font-semibold text-gray-600">Mã vận đơn</th>
+              <th class="px-4 py-3 text-center font-semibold text-gray-600">Ngày tạo</th>
+              <th class="px-4 py-3 text-center font-semibold text-gray-600">Hành động</th>
+            </tr>
+          </thead>
+          <tbody id="returnsTableBodyDeliveryFailed">
+            <tr>
+              <td colspan="8" class="px-4 py-16 text-center text-gray-400">
+                <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                <p>Đang tải dữ liệu...</p>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div id="returnsMobileListDeliveryFailed" class="md:hidden"></div>
+      <div id="returnsEmptyDeliveryFailed" class="hidden text-center py-16 text-gray-400">
+        <i class="fas fa-truck-ramp-box text-4xl mb-3"></i>
+        <p>Không có đơn giao thất bại nào</p>
+      </div>
+    </div>
   </div>`
 }
-
 export function adminBodyClose(): string {
   return "</body>"
 }

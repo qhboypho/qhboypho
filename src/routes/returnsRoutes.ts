@@ -6,20 +6,21 @@ type ReturnsRouteDeps = {
 }
 
 export function registerReturnsRoutes(app: Hono<{ Bindings: AppBindings }>, deps: ReturnsRouteDeps) {
-  // Get all returns (returned and cancelled orders)
+  // Get all returns (returned, cancelled, and delivery_failed orders)
   app.get('/api/admin/returns', async (c) => {
     try {
       await deps.initDB(c.env.DB)
       
       // Query orders with return_status field
       // Đơn hoàn: return_status = 'returned' (khách nhận nhưng hoàn hàng)
-      // Đơn huỷ: return_status = 'cancelled' (khách không nhận - bom hàng)
+      // Đơn huỷ: return_status = 'cancelled' (khách không nhận - bom hàng, hoặc shop tự huỷ)
+      // Giao không thành công: return_status = 'delivery_failed' (đã giao đi nhưng thất bại)
       const query = `
         SELECT o.*,
                p.thumbnail AS product_thumbnail
         FROM orders o
         LEFT JOIN products p ON p.id = o.product_id
-        WHERE o.return_status IN ('returned', 'cancelled')
+        WHERE o.return_status IN ('returned', 'cancelled', 'delivery_failed')
         ORDER BY o.created_at DESC
       `
       
@@ -81,28 +82,46 @@ export function registerReturnsRoutes(app: Hono<{ Bindings: AppBindings }>, deps
           // Map GHTK status to return_status
           // Status 9: Đã huỷ (cancelled)
           // Status 10: Đã hoàn (returned)
+          // Status 6, 7, 8: Giao không thành công (delivery_failed)
           let returnStatus: string | null = null
           
           if (ghtkStatus === '9' || ghtkStatusText.includes('hủy') || ghtkStatusText.includes('huy')) {
             returnStatus = 'cancelled'
           } else if (ghtkStatus === '10' || ghtkStatusText.includes('hoàn') || ghtkStatusText.includes('hoan')) {
             returnStatus = 'returned'
+          } else if (ghtkStatus === '6' || ghtkStatus === '7' || ghtkStatus === '8' || 
+                     ghtkStatusText.includes('giao không thành công') || 
+                     ghtkStatusText.includes('giao that bai') ||
+                     ghtkStatusText.includes('không giao được')) {
+            returnStatus = 'delivery_failed'
           }
 
           // Update if status changed
           if (returnStatus && order.return_status !== returnStatus) {
+            // Determine cancelled_by for cancelled orders
+            let cancelledBy: string | null = null
+            if (returnStatus === 'cancelled') {
+              // If order has tracking code, customer cancelled (bom hang)
+              // Otherwise, shop cancelled
+              const trackingCode = String(order.shipping_tracking_code || '').trim()
+              const shippingArranged = Number(order.shipping_arranged || 0)
+              cancelledBy = (trackingCode && shippingArranged) ? 'customer' : 'shop'
+            }
+            
             await c.env.DB.prepare(`
               UPDATE orders 
               SET return_status = ?,
+                  cancelled_by = ?,
                   updated_at = CURRENT_TIMESTAMP
               WHERE id = ?
-            `).bind(returnStatus, order.id).run()
+            `).bind(returnStatus, cancelledBy, order.id).run()
             
             syncedCount++
             updatedOrders.push({
               order_code: order.order_code,
               old_status: order.return_status,
-              new_status: returnStatus
+              new_status: returnStatus,
+              cancelled_by: cancelledBy
             })
           }
         } catch (err) {
@@ -129,7 +148,7 @@ export function registerReturnsRoutes(app: Hono<{ Bindings: AppBindings }>, deps
       const id = c.req.param('id')
       const { return_status } = await c.req.json()
       
-      const allowedStatuses = ['returned', 'cancelled', null]
+      const allowedStatuses = ['returned', 'cancelled', 'delivery_failed', null]
       if (!allowedStatuses.includes(return_status)) {
         return c.json({ success: false, error: 'INVALID_RETURN_STATUS' }, 400)
       }
