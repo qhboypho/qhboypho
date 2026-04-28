@@ -543,7 +543,7 @@ function closeOrdersHeaderSearch() {
   syncOrdersHeaderSearchUI()
 }
 function showPage(name) {
-  ['dashboard','products','orders','reviews','vouchers','featured','settings','settings-social','settings-warehouse','flashsale'].forEach(p => {
+  ['dashboard','products','orders','returns','reviews','vouchers','featured','settings','settings-social','settings-warehouse','flashsale'].forEach(p => {
     const section = document.getElementById('page-'+p)
     if (section) section.classList.toggle('hidden', p !== name)
   })
@@ -579,13 +579,14 @@ function showPage(name) {
   if (marketingActiveSubPage) {
     document.querySelectorAll('.nav-sub-item[data-sub-page="' + marketingActiveSubPage + '"]').forEach(b => b.classList.add('active'))
   }
-  const titles = {dashboard:'Dashboard', products:'Quản lý Sản phẩm', orders:'Quản lý Đơn hàng', reviews:'Quản lý Đánh giá', vouchers:'Quản lý Voucher', featured:'Sản phẩm Nổi Bật', settings:'Setting', 'settings-social':'Cấu hình MXH', 'settings-warehouse':'Cài đặt kho hàng', flashsale:'Quản lý Flashsale'}
+  const titles = {dashboard:'Dashboard', products:'Quản lý Sản phẩm', orders:'Quản lý Đơn hàng', returns:'Quản lý hoàn trả', reviews:'Quản lý Đánh giá', vouchers:'Quản lý Voucher', featured:'Sản phẩm Nổi Bật', settings:'Setting', 'settings-social':'Cấu hình MXH', 'settings-warehouse':'Cài đặt kho hàng', flashsale:'Quản lý Flashsale'}
   document.body.dataset.adminPage = name
   document.getElementById('pageTitle').textContent = titles[name] || name
 
   if (name === 'dashboard') loadDashboard()
   else if (name === 'products') loadAdminProducts()
   else if (name === 'orders') loadAdminOrders()
+  else if (name === 'returns') loadReturns()
   else if (name === 'reviews') loadAdminReviews()
   else if (name === 'vouchers') loadVouchers()
   else if (name === 'featured') loadFeaturedAdmin()

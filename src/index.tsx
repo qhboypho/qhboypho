@@ -6,6 +6,7 @@ import { registerPageRoutes } from './routes/pageRoutes'
 import { registerAuthRoutes } from './routes/authRoutes'
 import { registerProductRoutes } from './routes/productRoutes'
 import { registerOrderRoutes } from './routes/orderRoutes'
+import { registerReturnsRoutes } from './routes/returnsRoutes'
 import { registerPaymentRoutes } from './routes/paymentRoutes'
 import { registerVoucherStatsRoutes } from './routes/voucherStatsRoutes'
 import { registerAdminUtilityRoutes } from './routes/adminUtilityRoutes'
@@ -93,6 +94,10 @@ registerOrderRoutes(app, {
   ghtkCreateShipment,
   ghtkFetchLabelPdf,
   mergePdfBytes
+})
+
+registerReturnsRoutes(app, {
+  initDB
 })
 
 registerAdminUtilityRoutes(app, {

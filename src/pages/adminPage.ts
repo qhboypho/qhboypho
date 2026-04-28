@@ -8,6 +8,7 @@ import {
   adminDashboardPage,
   adminProductsPage,
   adminOrdersPage,
+  adminReturnsPage,
   adminReviewsPage,
   adminVouchersPage,
   adminFeaturedPage,
@@ -21,6 +22,7 @@ import { adminInlineScript, adminBootstrapScript } from './admin/script'
 import { adminOrdersScript } from './admin/script-orders'
 import { adminFeaturedSettingsScript } from './admin/script-featured-settings'
 import { adminFlashSaleScript } from './admin/script-flashsale'
+import { adminReturnsScript } from './admin/script-returns'
 
 export function adminHTML(): string {
   return `<!DOCTYPE html>
@@ -52,6 +54,8 @@ ${adminProductsPage()}
 
 ${adminOrdersPage()}
 
+${adminReturnsPage()}
+
 ${adminReviewsPage()}
 
 ${adminVouchersPage()}
@@ -71,6 +75,9 @@ ${adminInlineScript()}
 </script>
 <script>
 ${adminOrdersScript()}
+</script>
+<script>
+${adminReturnsScript()}
 </script>
 <script>
 ${adminFlashSaleScript()}
