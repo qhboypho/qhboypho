@@ -180,6 +180,16 @@ async function loadSettingsAdmin() {
 }
 
 function fillGhtkPickupConfig(cfg) {
+  const tokenInput = document.getElementById('ghtkToken')
+  const clientSourceInput = document.getElementById('ghtkClientSource')
+  const credentialHint = document.getElementById('ghtkCredentialHint')
+  if (tokenInput) tokenInput.value = cfg.token || ''
+  if (clientSourceInput) clientSourceInput.value = cfg.clientSource || ''
+  if (credentialHint) {
+    credentialHint.textContent = cfg.token && cfg.clientSource
+      ? 'Đã có key GHTK lưu trong cấu hình.'
+      : 'Thiếu token hoặc client source thì đồng bộ GHTK sẽ báo MISSING_GHTK_KEYS.'
+  }
   document.getElementById('ghtkPickupAddressId').value = cfg.pickAddressId || ''
   document.getElementById('ghtkPickName').value = cfg.pickName || ''
   document.getElementById('ghtkPickTel').value = cfg.pickTel || ''
@@ -240,6 +250,8 @@ async function syncGhtkPickupAddresses(silent = false, selectedId = '') {
 async function saveGhtkPickupConfig() {
   const btn = document.getElementById('saveGhtkPickupBtn')
   const payload = {
+    ghtk_token: document.getElementById('ghtkToken')?.value.trim() || '',
+    ghtk_client_source: document.getElementById('ghtkClientSource')?.value.trim() || '',
     pick_address_id: document.getElementById('ghtkPickupAddressId').value.trim(),
     pick_name: document.getElementById('ghtkPickName').value.trim(),
     pick_tel: document.getElementById('ghtkPickTel').value.trim(),

@@ -2,6 +2,8 @@
 import type { AppBindings } from '../types/app'
 
 export type GhtkPickupConfig = {
+  token: string
+  clientSource: string
   pickAddressId: string
   pickName: string
   pickAddress: string
@@ -27,6 +29,8 @@ export type GhtkPickupAddressFetchResult =
   | { ok: false, message: string, data: GhtkPickupAddress[], detail?: unknown }
 
 const GHTK_PICKUP_SETTING_KEYS = [
+  'ghtk_token',
+  'ghtk_client_source',
   'ghtk_pick_address_id',
   'ghtk_pick_name',
   'ghtk_pick_address',
@@ -35,6 +39,18 @@ const GHTK_PICKUP_SETTING_KEYS = [
   'ghtk_pick_ward',
   'ghtk_pick_tel'
 ] as const
+
+export async function getGhtkApiCredentials(db: D1Database, env: AppBindings) {
+  const query = 'SELECT key, value FROM app_settings WHERE key IN (?, ?)'
+  const result = await db.prepare(query).bind('ghtk_token', 'ghtk_client_source').all()
+  const map = new Map<string, string>()
+  for (const row of (result.results || []) as any[]) {
+    map.set(String(row.key || ''), String(row.value || ''))
+  }
+  const token = String(env.GHTK_TOKEN || map.get('ghtk_token') || '').trim()
+  const clientSource = String(env.GHTK_CLIENT_SOURCE || map.get('ghtk_client_source') || '').trim()
+  return { token, clientSource }
+}
 
 export function normalizeGHTKOriginal(v: any) {
   const value = String(v || '').toLowerCase()
@@ -150,6 +166,8 @@ export async function getGhtkPickupConfig(db: D1Database, env: AppBindings): Pro
   }
   const dbValue = (key: string) => String(map.get(key) || '').trim()
   return {
+    token: dbValue('ghtk_token'),
+    clientSource: dbValue('ghtk_client_source'),
     pickAddressId: dbValue('ghtk_pick_address_id'),
     pickName: dbValue('ghtk_pick_name') || String(env.GHTK_PICK_NAME || '').trim(),
     pickAddress: dbValue('ghtk_pick_address') || String(env.GHTK_PICK_ADDRESS || '').trim(),
@@ -160,9 +178,8 @@ export async function getGhtkPickupConfig(db: D1Database, env: AppBindings): Pro
   }
 }
 
-export async function ghtkFetchPickupAddresses(env: AppBindings): Promise<GhtkPickupAddressFetchResult> {
-  const token = String(env.GHTK_TOKEN || '').trim()
-  const clientSource = String(env.GHTK_CLIENT_SOURCE || '').trim()
+export async function ghtkFetchPickupAddresses(env: AppBindings, db: D1Database): Promise<GhtkPickupAddressFetchResult> {
+  const { token, clientSource } = await getGhtkApiCredentials(db, env)
   if (!token || !clientSource) return { ok: false, message: 'MISSING_GHTK_KEYS', data: [] }
 
   const resp = await fetch('https://services.giaohangtietkiem.vn/services/shipment/list_pick_add', {
@@ -199,8 +216,7 @@ export async function ghtkFetchPickupAddresses(env: AppBindings): Promise<GhtkPi
 }
 
 export async function ghtkCreateShipment(env: any, db: D1Database, order: any) {
-  const token = String(env.GHTK_TOKEN || '').trim()
-  const clientSource = String(env.GHTK_CLIENT_SOURCE || '').trim()
+  const { token, clientSource } = await getGhtkApiCredentials(db, env)
   if (!token || !clientSource) return { ok: false, message: 'MISSING_GHTK_KEYS' }
 
   const pickup = await getGhtkPickupConfig(db, env)

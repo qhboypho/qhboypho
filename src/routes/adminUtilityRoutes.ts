@@ -14,6 +14,8 @@ type HeroBannerInput = {
 }
 
 type PickupConfigInput = {
+  ghtk_token?: unknown
+  ghtk_client_source?: unknown
   pick_address_id?: unknown
   pick_name?: unknown
   pick_address?: unknown
@@ -34,7 +36,7 @@ type AdminUtilityRouteDeps = {
   initDB: (db: D1Database) => Promise<void>
   getGhtkPickupConfig: (db: D1Database, env: AppBindings) => Promise<GhtkPickupConfig>
   upsertAppSettings: (db: D1Database, entries: AppSettingEntry[]) => Promise<void>
-  ghtkFetchPickupAddresses: (env: AppBindings) => Promise<GhtkPickupAddressFetchResult>
+  ghtkFetchPickupAddresses: (env: AppBindings, db: D1Database) => Promise<GhtkPickupAddressFetchResult>
 }
 
 const SOCIAL_SETTING_KEYS = [
@@ -131,10 +133,12 @@ export function registerAdminUtilityRoutes(app: Hono<{ Bindings: AppBindings }>,
     try {
       await deps.initDB(c.env.DB)
       const config = await deps.getGhtkPickupConfig(c.env.DB, c.env)
+      const hasToken = !!String(c.env.GHTK_TOKEN || config.token || '').trim()
+      const hasClientSource = !!String(c.env.GHTK_CLIENT_SOURCE || config.clientSource || '').trim()
       return c.json({
         success: true,
         data: config,
-        has_ghtk_keys: !!String(c.env.GHTK_TOKEN || '').trim() && !!String(c.env.GHTK_CLIENT_SOURCE || '').trim()
+        has_ghtk_keys: hasToken && hasClientSource
       })
     } catch (e: any) {
       return c.json({ success: false, error: e.message }, 500)
@@ -147,6 +151,8 @@ export function registerAdminUtilityRoutes(app: Hono<{ Bindings: AppBindings }>,
       const body: PickupConfigInput = await c.req.json<PickupConfigInput>().catch(() => ({} as PickupConfigInput))
       const sanitize = (value: unknown, max = 200) => String(value || '').trim().slice(0, max)
       const payload = {
+        token: sanitize(body.ghtk_token, 500),
+        clientSource: sanitize(body.ghtk_client_source, 120),
         pickAddressId: sanitize(body.pick_address_id, 80),
         pickName: sanitize(body.pick_name, 120),
         pickAddress: sanitize(body.pick_address, 220),
@@ -156,6 +162,8 @@ export function registerAdminUtilityRoutes(app: Hono<{ Bindings: AppBindings }>,
         pickTel: sanitize(body.pick_tel, 30)
       }
       await deps.upsertAppSettings(c.env.DB, [
+        { key: 'ghtk_token', value: payload.token },
+        { key: 'ghtk_client_source', value: payload.clientSource },
         { key: 'ghtk_pick_address_id', value: payload.pickAddressId },
         { key: 'ghtk_pick_name', value: payload.pickName },
         { key: 'ghtk_pick_address', value: payload.pickAddress },
@@ -173,7 +181,7 @@ export function registerAdminUtilityRoutes(app: Hono<{ Bindings: AppBindings }>,
   app.get('/api/admin/ghtk/pickup-addresses', async (c) => {
     try {
       await deps.initDB(c.env.DB)
-      const sync = await deps.ghtkFetchPickupAddresses(c.env)
+      const sync = await deps.ghtkFetchPickupAddresses(c.env, c.env.DB)
       if (!sync.ok) {
         return c.json({ success: false, error: sync.message, detail: sync.detail || null }, 400)
       }

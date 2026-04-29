@@ -1,5 +1,6 @@
 import type { Hono } from 'hono'
 import type { AppBindings } from '../types/app'
+import { getGhtkApiCredentials } from '../lib/shippingHelpers'
 
 type ReturnsRouteDeps = {
   initDB: (db: D1Database) => Promise<void>
@@ -36,8 +37,7 @@ export function registerReturnsRoutes(app: Hono<{ Bindings: AppBindings }>, deps
     try {
       await deps.initDB(c.env.DB)
       
-      const token = String(c.env.GHTK_TOKEN || '').trim()
-      const clientSource = String(c.env.GHTK_CLIENT_SOURCE || '').trim()
+      const { token, clientSource } = await getGhtkApiCredentials(c.env.DB, c.env)
       
       if (!token || !clientSource) {
         return c.json({ success: false, error: 'MISSING_GHTK_KEYS' }, 400)

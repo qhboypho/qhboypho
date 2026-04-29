@@ -682,6 +682,32 @@ function closeFlashSaleCreateModal(event) {
 function loadSettingsWarehousePage() {
   const el = document.getElementById('settingsWarehouseContent')
   if (!el) return
+  el.innerHTML = '<div class="space-y-5">' +
+    '<div class="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4">' +
+      '<div class="grid gap-4 md:grid-cols-2">' +
+        '<div><label class="block text-sm font-semibold text-gray-700 mb-1.5">GHTK Token</label><input type="password" id="ghtkToken" autocomplete="off" placeholder="Nhập token GHTK" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-400"></div>' +
+        '<div><label class="block text-sm font-semibold text-gray-700 mb-1.5">GHTK Client Source</label><input type="text" id="ghtkClientSource" autocomplete="off" placeholder="Nhập client source" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-400"></div>' +
+        '<p id="ghtkCredentialHint" class="md:col-span-2 text-xs text-gray-500">Hai key này dùng cho đồng bộ kho, tạo vận đơn và đồng bộ hoàn trả từ GHTK.</p>' +
+      '</div>' +
+    '</div>' +
+    '<div class="rounded-2xl border border-gray-200 bg-gray-50 p-4">' +
+      '<div class="flex flex-wrap items-center justify-between gap-3 mb-4">' +
+        '<div><h3 class="font-bold text-gray-800 flex items-center gap-2"><i class="fas fa-warehouse text-emerald-500"></i>Kho lấy hàng GHTK</h3><p class="text-sm text-gray-500 mt-1">Chọn kho đã tạo trên GHTK để dùng mặc định khi bấm sắp xếp vận chuyển.</p></div>' +
+        '<button onclick="syncGhtkPickupAddresses()" id="syncGhtkPickupBtn" class="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm font-medium transition flex items-center gap-2"><i class="fas fa-rotate"></i> Đồng bộ kho từ GHTK</button>' +
+      '</div>' +
+      '<div class="grid md:grid-cols-2 gap-4">' +
+        '<div class="md:col-span-2"><label class="block text-sm font-semibold text-gray-700 mb-1.5">Kho lấy hàng từ GHTK</label><select id="ghtkPickupAddressId" onchange="applySelectedGhtkWarehouse()" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-400"><option value="">-- Chọn kho đồng bộ --</option></select><p id="ghtkPickupHint" class="text-xs text-gray-500 mt-1.5">Nếu chưa thấy kho, bấm Đồng bộ kho từ GHTK.</p></div>' +
+        '<div><label class="block text-sm font-semibold text-gray-700 mb-1.5">Tên người lấy hàng</label><input type="text" id="ghtkPickName" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-400"></div>' +
+        '<div><label class="block text-sm font-semibold text-gray-700 mb-1.5">Số điện thoại lấy hàng</label><input type="text" id="ghtkPickTel" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-400"></div>' +
+        '<div class="md:col-span-2"><label class="block text-sm font-semibold text-gray-700 mb-1.5">Địa chỉ lấy hàng (chi tiết)</label><input type="text" id="ghtkPickAddress" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-400"></div>' +
+        '<div><label class="block text-sm font-semibold text-gray-700 mb-1.5">Tỉnh/Thành</label><input type="text" id="ghtkPickProvince" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-400"></div>' +
+        '<div><label class="block text-sm font-semibold text-gray-700 mb-1.5">Quận/Huyện</label><input type="text" id="ghtkPickDistrict" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-400"></div>' +
+        '<div><label class="block text-sm font-semibold text-gray-700 mb-1.5">Phường/Xã</label><input type="text" id="ghtkPickWard" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-400"></div>' +
+        '<div class="md:col-span-2 flex justify-end"><button onclick="saveGhtkPickupConfig()" id="saveGhtkPickupBtn" class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2 transition"><i class="fas fa-save"></i>Lưu cấu hình GHTK</button></div>' +
+      '</div>' +
+    '</div>' +
+  '</div>'
+  if (typeof loadSettingsAdmin === 'function') loadSettingsAdmin()
 }
 
 let flashSaleAdminItems = []
