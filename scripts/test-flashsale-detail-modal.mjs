@@ -3,8 +3,12 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 const root = process.cwd()
-const storefrontPagePath = path.join(root, 'src', 'pages', 'storefrontPage.ts')
-const source = fs.readFileSync(storefrontPagePath, 'utf8')
+const source = [
+  path.join(root, 'src', 'pages', 'storefrontPage.ts'),
+  path.join(root, 'src', 'pages', 'storefront', 'script.ts'),
+  path.join(root, 'src', 'pages', 'storefront', 'script-detail-order.ts'),
+  path.join(root, 'src', 'pages', 'storefront', 'styles.ts')
+].map((filePath) => fs.readFileSync(filePath, 'utf8')).join('\n')
 
 assert.match(source, /async function showDetail\(/, 'showDetail should exist')
 assert.match(source, /const flashMeta = getFlashSaleMeta\(p\)/, 'detail modal should derive flash sale metadata')

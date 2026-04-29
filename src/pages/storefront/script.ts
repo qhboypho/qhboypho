@@ -751,7 +751,6 @@ async function loadBestSellers() {
             alt="\${p.name}" class="bs-card-img" loading="lazy"
             onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'">
           <div class="\${medalClass(i)}">\${medalIcon(i)}</div>
-          \${p.has_flash_sale ? '<div class="absolute bottom-2 right-2"><span class="flash-sale-badge text-xs"><i class="fas fa-bolt"></i></span></div>' : ''}
         </div>
         <div class="p-3">
           <p class="bs-name mb-1.5">\${p.name}</p>
@@ -759,6 +758,7 @@ async function loadBestSellers() {
             <span class="bs-price">\${fmtPrice(price)}</span>
             <span class="bs-stars">★★★★★</span>
           </div>
+          \${p.has_flash_sale ? renderFlashSaleMiniStrip(flashMeta) : ''}
           <div class="flex items-center gap-1.5">
             <span class="bs-sold-chip"><i class="fas fa-fire-flame-curved"></i> \${fmtSold(soldCount)} đã bán</span>
           </div>
@@ -787,6 +787,15 @@ function getFlashSaleMeta(product) {
     endsAt: flashSale.campaign?.end_at || flashSale.end_at || '',
     campaignName: flashSale.campaign?.name || flashSale.name || 'Flash Sale'
   }
+}
+
+function renderFlashSaleMiniStrip(flashMeta) {
+  if (!flashMeta) return ''
+  return \`<div class="flash-sale-mini-strip mt-2 mb-3 inline-flex max-w-full items-center overflow-hidden rounded-md border border-rose-100 bg-rose-50 shadow-[0_1px_4px_rgba(244,63,94,0.14)]" aria-label="Flash sale đang chạy">
+    <span class="flash-sale-mini-label shrink-0 bg-rose-500 px-2.5 py-1 text-[11px] font-extrabold leading-none text-white md:text-xs">Flash Sale</span>
+    <span class="flash-sale-mini-bolt -mx-0.5 flex h-6 w-6 shrink-0 items-center justify-center bg-yellow-300 text-[13px] text-rose-600 [clip-path:polygon(18%_0,100%_0,82%_100%,0_100%)]"><i class="fas fa-bolt"></i></span>
+    <span class="flash-sale-countdown flash-sale-mini-timer min-w-[74px] px-2.5 py-1 text-center font-mono text-[11px] font-bold leading-none text-rose-700 md:min-w-[82px] md:text-xs" style="background:#fff1f2;color:#be123c;border-radius:0;box-shadow:none;backdrop-filter:none;" data-flash-sale-ends-at="\${flashMeta.endsAt || ''}">\${formatFlashSaleCountdown(flashMeta.endsAt || '')}</span>
+  </div>\`
 }
 
 function formatFlashSaleCountdown(endAt) {
@@ -889,7 +898,7 @@ function renderProducts(products) {
         <img src="\${p.thumbnail || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'}"
           alt="\${p.name}" class="w-full product-img-main" loading="lazy"
           onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'">
-        \${p.has_flash_sale ? \`<div class="absolute left-3 top-3 flex flex-col gap-2"><span class="flash-sale-badge"><i class="fas fa-bolt"></i> Flash Sale</span><span class="flash-sale-countdown" data-flash-sale-ends-at="\${flashMeta?.endsAt || ''}">\${formatFlashSaleCountdown(flashMeta?.endsAt || '')}</span></div>\` : (discount > 0 ? \`<span class="absolute top-3 left-3 badge-sale text-white text-xs font-bold px-2 py-1 rounded-full">-\${discount}%</span>\` : '')}
+        \${!p.has_flash_sale && discount > 0 ? \`<span class="absolute top-3 left-3 badge-sale text-white text-xs font-bold px-2 py-1 rounded-full">-\${discount}%</span>\` : ''}
         \${p.is_featured ? \`<span class="absolute top-3 right-3 bg-amber-400 text-white text-xs font-bold px-2 py-1 rounded-full">⭐ Hot</span>\` : ''}
         <div class="absolute inset-0 bg-black/0 hover:bg-black/10 transition flex items-center justify-center opacity-0 hover:opacity-100">
           <span class="bg-white/90 text-gray-800 px-3 py-1 rounded-full text-xs font-semibold">Xem chi tiết</span>
@@ -902,6 +911,7 @@ function renderProducts(products) {
           <span class="text-gradient-price font-bold">\${fmtPrice(displayPrice)}</span>
           \${displayOriginalPrice > displayPrice ? \`<span class="text-gray-400 text-xs line-through">\${fmtPrice(displayOriginalPrice)}</span>\` : ''}
         </div>
+        \${p.has_flash_sale ? renderFlashSaleMiniStrip(flashMeta) : ''}
         \${colors.length > 0 ? \`
         <div class="flex gap-1 mb-3 flex-wrap">
           \${colors.slice(0,4).map(c => \`<span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">\${c}</span>\`).join('')}

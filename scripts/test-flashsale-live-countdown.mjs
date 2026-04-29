@@ -3,7 +3,11 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 const root = process.cwd()
-const storefrontSource = fs.readFileSync(path.join(root, 'src', 'pages', 'storefrontPage.ts'), 'utf8')
+const storefrontSource = [
+  path.join(root, 'src', 'pages', 'storefrontPage.ts'),
+  path.join(root, 'src', 'pages', 'storefront', 'script.ts'),
+  path.join(root, 'src', 'pages', 'storefront', 'sections.ts')
+].map((filePath) => fs.readFileSync(filePath, 'utf8')).join('\n')
 
 assert.match(storefrontSource, /async function startFlashSaleCountdownTicker\(/, 'storefront should expose a flash sale countdown ticker')
 assert.match(storefrontSource, /data-flash-sale-ends-at=/, 'flash sale countdown render should carry end-time data attributes')
