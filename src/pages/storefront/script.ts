@@ -847,16 +847,10 @@ async function loadFlashSaleShop() {
       const meta = getFlashSaleMeta(product)
       const price = meta?.salePrice || Number(product.display_price ?? product.price ?? 0)
       const original = meta?.basePrice || Number(product.display_original_price ?? product.original_price ?? price)
-      const discount = Number(meta?.discountPercent || 0)
       return \`
         <div class="flash-sale-shop-card shrink-0 basis-[78%] cursor-pointer md:basis-auto" onclick="showDetail(\${product.id})">
           <div class="relative aspect-square overflow-hidden bg-slate-100">
             <img src="\${product.thumbnail || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'}" alt="\${product.name}" class="h-full w-full object-cover" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'">
-            <div class="absolute left-3 top-3 flex flex-col gap-2">
-              <span class="flash-sale-badge"><i class="fas fa-bolt"></i> Flash Sale</span>
-              <span class="flash-sale-countdown" data-flash-sale-ends-at="\${meta?.endsAt || ''}">\${formatFlashSaleCountdown(meta?.endsAt || '')}</span>
-            </div>
-            \${discount > 0 ? \`<span class="absolute bottom-3 left-3 rounded-full bg-black/75 px-3 py-1 text-xs font-bold text-white">-\${discount}%</span>\` : ''}
           </div>
           <div class="space-y-3 p-4">
             <h3 class="line-clamp-2 text-sm font-semibold leading-6 text-slate-900">\${product.name}</h3>
@@ -864,6 +858,7 @@ async function loadFlashSaleShop() {
               <span class="text-2xl font-bold text-gradient-price">\${fmtPrice(price)}</span>
               \${original > price ? \`<span class="pb-0.5 text-sm text-slate-400 line-through">\${fmtPrice(original)}</span>\` : ''}
             </div>
+            \${renderFlashSaleMiniStrip(meta)}
             <button onclick="event.stopPropagation();openOrder(\${product.id})" class="btn-primary w-full rounded-2xl py-3 text-sm font-semibold text-white">
               <i class="fas fa-bolt mr-1"></i>Mua ngay
             </button>

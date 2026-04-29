@@ -26,4 +26,17 @@ assert.match(
   'flash sale strip should be rendered below the product card price'
 )
 
+const flashSaleShopLoader = source.match(/async function loadFlashSaleShop\([\s\S]*?\n\}/)
+assert.ok(flashSaleShopLoader, 'flash sale shop loader should be present')
+assert.doesNotMatch(
+  flashSaleShopLoader[0],
+  /absolute left-3 top-3[\s\S]*flash-sale-badge[\s\S]*flash-sale-countdown/,
+  'flash sale shop cards should not overlay badge and countdown on product images'
+)
+assert.match(
+  flashSaleShopLoader[0],
+  /text-gradient-price[\s\S]{0,420}renderFlashSaleMiniStrip\(meta\)/,
+  'flash sale shop cards should reuse the compact flash sale strip below the price'
+)
+
 console.log('flash sale storefront UI contract ok')
