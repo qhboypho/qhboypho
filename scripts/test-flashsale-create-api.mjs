@@ -22,7 +22,7 @@ class FakeQuery {
   async all() {
     if (/FROM product_skus WHERE id IN \(/i.test(this.sql)) {
       return {
-        results: this.db.productSkus.filter((row) => this.bound.map(Number).includes(Number(row.id)) && Number(row.is_active) === 1)
+        results: this.db.productSkus.filter((row) => this.bound.map(Number).includes(Number(row.id)))
       }
     }
     if (/FROM flash_sale_items/i.test(this.sql)) {
@@ -74,6 +74,7 @@ class FakeDB {
       { id: 101, product_id: 11, is_active: 1 },
       { id: 102, product_id: 11, is_active: 1 },
       { id: 201, product_id: 12, is_active: 1 },
+      { id: 301, product_id: 13, is_active: 0 },
     ]
     this.nextFlashSaleId = 1
     this.nextFlashSaleItemId = 1
@@ -105,7 +106,8 @@ const res = await app.fetch(new Request('http://localhost/api/admin/flash-sales'
     items: [
       { product_id: 11, product_sku_id: 101, sale_price: 119000 },
       { product_id: 11, product_sku_id: 102, discount_percent: 15 },
-      { product_id: 12, product_sku_id: 201, discount_percent: 20 }
+      { product_id: 12, product_sku_id: 201, discount_percent: 20 },
+      { product_id: 13, product_sku_id: 301, discount_percent: 25 }
     ]
   })
 }), { DB: db })
@@ -114,18 +116,18 @@ assert.equal(res.status, 201, 'create API should return 201 for a valid campaign
 const body = await res.json()
 assert.equal(body.success, true)
 assert.equal(body.data.name, 'Flash sale T1')
-assert.equal(body.data.item_count, 3)
-assert.equal(body.data.product_count, 2)
+assert.equal(body.data.item_count, 4)
+assert.equal(body.data.product_count, 3)
 assert.equal(db.flashSales.length, 1)
-assert.equal(db.flashSaleItems.length, 3)
+assert.equal(db.flashSaleItems.length, 4)
 assert.equal(initCalls.length, 1)
 assert.match(db.prepares.join('\n'), /INSERT INTO flash_sales/i)
 assert.match(db.prepares.join('\n'), /INSERT INTO flash_sale_items/i)
 assert.match(db.prepares.join('\n'), /FROM product_skus/i)
 assert.deepEqual(
   db.flashSaleItems.map((item) => item.product_sku_id),
-  [101, 102, 201],
-  'flash sale items should persist sku ids'
+  [101, 102, 201, 301],
+  'flash sale items should persist sku ids that exist in admin products, even when a SKU is currently inactive'
 )
 
 console.log('flash sale create API red-green test ok')

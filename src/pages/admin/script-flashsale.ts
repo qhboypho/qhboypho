@@ -86,7 +86,7 @@ function flashSaleGetProductSkus(product) {
     original_price: flashSaleNormalizeMaybeNumber(sku && (sku.original_price ?? product.original_price ?? null)),
     stock: flashSaleNormalizeNumber(sku && (sku.stock ?? product.stock ?? 0)),
     is_active: Number(sku && (sku.is_active ?? 1)) === 1 ? 1 : 0
-  })).filter((sku) => sku.id > 0 && sku.is_active === 1)
+  })).filter((sku) => sku.id > 0)
 }
 
 function flashSaleMakeSelectedItem(product, sku) {
@@ -635,7 +635,9 @@ async function openFlashSaleEditModal(id) {
   resetFlashSaleCreateForm()
   showAdminOverlay(modal)
   document.body.style.overflow = 'hidden'
-  flashSaleSetCreateSubmitState(true)
+  if (!flashSaleProductPickerItems.length) {
+    await loadFlashSaleProductPickerProducts()
+  }
   try {
     const res = await axios.get('/api/admin/flash-sales/' + id)
     const campaign = res?.data?.data
@@ -645,8 +647,6 @@ async function openFlashSaleEditModal(id) {
     closeFlashSaleCreateModal()
     const message = e && e.response && e.response.data && e.response.data.error ? e.response.data.error : (e && e.message ? e.message : 'Không thể tải chi tiết flashsale')
     showAdminToast(String(message), 'error')
-  } finally {
-    flashSaleSetCreateSubmitState(false)
   }
 }
 
@@ -656,7 +656,9 @@ async function openFlashSaleDuplicateModal(id) {
   resetFlashSaleCreateForm()
   showAdminOverlay(modal)
   document.body.style.overflow = 'hidden'
-  flashSaleSetCreateSubmitState(true)
+  if (!flashSaleProductPickerItems.length) {
+    await loadFlashSaleProductPickerProducts()
+  }
   try {
     const res = await axios.get('/api/admin/flash-sales/' + id)
     const campaign = res?.data?.data
@@ -666,8 +668,6 @@ async function openFlashSaleDuplicateModal(id) {
     closeFlashSaleCreateModal()
     const message = e && e.response && e.response.data && e.response.data.error ? e.response.data.error : (e && e.message ? e.message : 'Không thể sao chép flashsale')
     showAdminToast(String(message), 'error')
-  } finally {
-    flashSaleSetCreateSubmitState(false)
   }
 }
 

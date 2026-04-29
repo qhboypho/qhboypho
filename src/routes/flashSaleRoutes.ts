@@ -168,7 +168,7 @@ async function loadSkuOwnership(db: D1Database, skuIds: number[]) {
   if (!skuIds.length) return new Map<number, { id: number; product_id: number }>()
   const placeholders = skuIds.map(() => '?').join(', ')
   const rows = await db.prepare(
-    `SELECT id, product_id FROM product_skus WHERE id IN (${placeholders}) AND is_active = 1`
+    `SELECT id, product_id FROM product_skus WHERE id IN (${placeholders})`
   ).bind(...skuIds).all() as { results?: Array<{ id: number; product_id: number }> }
   return new Map((rows.results || []).map((row) => [Number(row.id), { id: Number(row.id), product_id: Number(row.product_id) }]))
 }
