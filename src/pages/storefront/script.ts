@@ -29,12 +29,39 @@ let cartSelectedPaymentMethod = ''
 let currentUser = null
 let isAdminUser = false
 let cartStorageKey = 'qhclothes_cart_guest'
+const STOREFRONT_THEME_KEY = 'qhclothes_storefront_theme'
 const ADDRESS_EFFECTIVE_DATE = 'latest'
 let addressProvinceOptions = []
 let addressCommuneOptionsByProvince = {}
 let addressKitLoadingPromise = null
 let addressAutoFillInProgress = false
 const addressDropdownSearchState = {}
+
+function loadStorefrontThemePreference() {
+  try {
+    const saved = localStorage.getItem(STOREFRONT_THEME_KEY)
+    if (saved === 'dark' || saved === 'light') return saved
+  } catch (_) { }
+  return 'light'
+}
+
+function applyStorefrontTheme(theme) {
+  theme = theme === 'dark' ? 'dark' : 'light'
+  document.body.dataset.storefrontTheme = theme
+  const icon = document.getElementById('storefrontThemeIcon')
+  const btn = document.getElementById('storefrontThemeToggle')
+  if (icon) icon.className = theme === 'dark' ? 'fas fa-sun text-lg' : 'fas fa-moon text-lg'
+  if (btn) {
+    btn.setAttribute('aria-label', theme === 'dark' ? 'Chuyển giao diện sáng' : 'Chuyển giao diện tối')
+    btn.setAttribute('title', theme === 'dark' ? 'Chuyển giao diện sáng' : 'Chuyển giao diện tối')
+  }
+}
+
+function toggleStorefrontTheme() {
+  const theme = document.body.dataset.storefrontTheme === 'dark' ? 'light' : 'dark'
+  try { localStorage.setItem(STOREFRONT_THEME_KEY, theme) } catch (_) { }
+  applyStorefrontTheme(theme)
+}
 
 function getAddressScopeElements(scope) {
   const isCart = scope === 'ck'
@@ -888,7 +915,7 @@ function renderProducts(products) {
     const displayOriginalPrice = Number(flashMeta?.basePrice || p.display_original_price || p.original_price || displayPrice)
     const discount = flashMeta ? Number(flashMeta.discountPercent || 0) : (p.original_price ? Math.round((1 - p.price/p.original_price)*100) : 0)
     return \`
-    <div class="bg-white rounded-2xl overflow-hidden card-hover shadow-sm border border-gray-100 cursor-pointer" onclick="showDetail(\${p.id})">
+    <div class="product-card bg-white rounded-2xl overflow-hidden card-hover shadow-sm border border-gray-100 cursor-pointer" onclick="showDetail(\${p.id})">
       <div class="relative overflow-hidden bg-gray-100">
         <img src="\${p.thumbnail || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'}"
           alt="\${p.name}" class="w-full product-img-main" loading="lazy"
@@ -1692,6 +1719,7 @@ window.addEventListener('resize', () => {
 })
 
 // Init
+applyStorefrontTheme(loadStorefrontThemePreference())
 bindAddressSearchableDropdowns()
 loadSettings()
 loadFooterSocialLinks()
