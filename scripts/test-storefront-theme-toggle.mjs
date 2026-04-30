@@ -13,8 +13,8 @@ assert.match(sections, /onclick=\\"toggleStorefrontTheme\(\)\\"/, 'theme toggle 
 assert.match(sections, /id=\\"storefrontThemeIcon\\"[\s\S]*fa-moon/, 'theme button should start with a moon icon')
 assert.match(
   sections,
-  /id=\\"storefrontThemeToggle\\"[\s\S]{0,700}id=\\"userAvatarBtn\\"/,
-  'theme toggle should sit next to the user icon in the top-right controls'
+  /onclick=\\"toggleMobileMenu\(\)\\"[\s\S]{0,300}id=\\"storefrontThemeToggle\\"/,
+  'theme toggle should be the rightmost control in the top-right navbar'
 )
 
 assert.match(script, /const STOREFRONT_THEME_KEY = 'qhclothes_storefront_theme'/, 'script should persist storefront theme in localStorage')
