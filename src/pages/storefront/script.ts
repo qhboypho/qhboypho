@@ -1790,15 +1790,20 @@ function updateUserUI() {
     walletNav.classList.remove('flex')
     if (userOrdersBtn) userOrdersBtn.classList.add('hidden')
   } else if (currentUser) {
-    defaultAvatar.classList.add('hidden')
-    imgAvatar.src = currentUser.avatar || ''
-    imgAvatar.classList.remove('hidden')
+    if (currentUser.avatar) {
+      defaultAvatar.classList.add('hidden')
+      imgAvatar.src = currentUser.avatar
+      imgAvatar.classList.remove('hidden')
+    } else {
+      defaultAvatar.classList.remove('hidden')
+      imgAvatar.classList.add('hidden')
+    }
     guestSection.classList.add('hidden')
     loggedInSection.classList.remove('hidden')
     logoutArea.classList.remove('hidden')
-    document.getElementById('userMenuAvatar').src = currentUser.avatar || ''
-    document.getElementById('userMenuName').textContent = currentUser.name || ''
-    document.getElementById('userMenuEmail').textContent = currentUser.email || ''
+    document.getElementById('userMenuAvatar').src = currentUser.avatar || '/qh-logo.png'
+    document.getElementById('userMenuName').textContent = getUserDisplayName(currentUser)
+    document.getElementById('userMenuEmail').textContent = getUserDisplayLine(currentUser)
     // Wallet
     walletNav.classList.remove('hidden')
     walletNav.classList.add('flex')
@@ -1828,7 +1833,8 @@ function openUserMenu() {
   panel.classList.remove('closing')
   overlay.classList.remove('hidden')
   document.body.style.overflow = 'hidden'
-  document.getElementById('userMenuContent').innerHTML = ''
+  if (currentUser) document.getElementById('userMenuContent').innerHTML = ''
+  else renderUserAuthForm('login')
 }
 function closeUserMenu() {
   const overlay = document.getElementById('userMenuOverlay')
@@ -1839,6 +1845,137 @@ function closeUserMenu() {
 function handleUserMenuOverlayClick(e) { if (e.target.id === 'userMenuOverlay') closeUserMenu() }
 
 function loginWithGoogle() { window.location.href = '/api/auth/google' }
+
+function getUserDisplayName(user) {
+  if (!user) return ''
+  return String(user.name || user.username || '').trim() || String(user.email || '').split('@')[0] || 'Tài khoản'
+}
+
+function getUserDisplayLine(user) {
+  if (!user) return ''
+  const username = String(user.username || '').trim()
+  if (username) return '@' + username
+  return String(user.email || '').trim()
+}
+
+function renderUserAuthForm(mode = 'login') {
+  const content = document.getElementById('userMenuContent')
+  if (!content || currentUser) return
+  const isRegister = mode === 'register'
+  const submitFn = isRegister ? 'submitUserRegister(event)' : 'submitUserLogin(event)'
+  const title = isRegister ? 'Tạo tài khoản nhanh' : 'Đăng nhập tài khoản'
+  const action = isRegister ? 'Đăng ký' : 'Đăng nhập'
+  const switchText = isRegister ? 'Đã có tài khoản?' : 'Chưa có tài khoản?'
+  const switchLabel = isRegister ? 'Đăng nhập' : 'Đăng ký nhanh'
+  const switchMode = isRegister ? 'login' : 'register'
+  const phoneField = isRegister
+    ? '<label class="block text-sm font-semibold text-gray-700 mb-1.5" for="authPhone">Số điện thoại <span class="text-gray-400 font-normal">(tuỳ chọn)</span></label>'
+      + '<input id="authPhone" type="tel" autocomplete="tel" inputmode="tel" maxlength="20" placeholder="VD: 09xxxxxxxx" class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition">'
+    : ''
+  content.innerHTML = '<div id="userAuthShell" class="space-y-4">'
+    + '<div class="flex items-center gap-3 text-gray-400 text-sm font-semibold"><span class="h-px flex-1 bg-gray-200"></span><span>Hoặc dùng tài khoản riêng</span><span class="h-px flex-1 bg-gray-200"></span></div>'
+    + '<form class="space-y-3" onsubmit="' + submitFn + '">'
+    + '<h3 class="font-display text-xl font-bold text-gray-900">' + title + '</h3>'
+    + '<div><label class="block text-sm font-semibold text-gray-700 mb-1.5" for="authUsername">Username</label>'
+    + '<input id="authUsername" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="32" placeholder="username" class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition"></div>'
+    + '<div><div class="flex items-center justify-between mb-1.5"><label class="block text-sm font-semibold text-gray-700" for="authPassword">Mật khẩu</label></div>'
+    + '<div class="relative"><input id="authPassword" type="password" autocomplete="' + (isRegister ? 'new-password' : 'current-password') + '" maxlength="64" placeholder="Tối thiểu 6 ký tự" class="w-full border border-gray-200 rounded-xl px-4 py-3 pr-11 text-sm outline-none focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition">'
+    + '<button type="button" onclick="toggleAuthPasswordVisibility()" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-pink-500" aria-label="Ẩn hiện mật khẩu"><i id="authPasswordEye" class="fas fa-eye"></i></button></div></div>'
+    + (phoneField ? '<div>' + phoneField + '</div>' : '')
+    + '<p id="userAuthError" class="hidden text-sm font-semibold text-red-500"></p>'
+    + '<button id="userAuthSubmitBtn" type="submit" class="w-full btn-primary text-white py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2"><i class="fas fa-shield-alt"></i>' + action + '</button>'
+    + '</form>'
+    + '<button type="button" onclick="renderUserAuthForm(\\'' + switchMode + '\\')" class="w-full text-center text-sm text-gray-500 hover:text-pink-600 font-semibold transition">' + switchText + ' <span class="text-pink-500">' + switchLabel + '</span></button>'
+    + '</div>'
+}
+
+function setUserAuthError(message) {
+  const el = document.getElementById('userAuthError')
+  if (!el) return
+  el.textContent = message || ''
+  el.classList.toggle('hidden', !message)
+}
+
+function setUserAuthBusy(isBusy) {
+  const btn = document.getElementById('userAuthSubmitBtn')
+  if (!btn) return
+  btn.disabled = !!isBusy
+  btn.classList.toggle('opacity-60', !!isBusy)
+  btn.classList.toggle('cursor-not-allowed', !!isBusy)
+}
+
+function getUserAuthPayload(includePhone) {
+  const username = String(document.getElementById('authUsername')?.value || '').trim().toLowerCase()
+  const password = String(document.getElementById('authPassword')?.value || '')
+  const phone = String(document.getElementById('authPhone')?.value || '').trim()
+  if (!/^[a-z0-9._-]{3,32}$/.test(username)) {
+    setUserAuthError('Username chỉ dùng chữ thường, số, dấu chấm, gạch dưới hoặc gạch ngang, từ 3-32 ký tự.')
+    return null
+  }
+  if (password.length < 6 || password.length > 64) {
+    setUserAuthError('Mật khẩu cần từ 6 đến 64 ký tự.')
+    return null
+  }
+  if (includePhone && phone && !/^\\+?[0-9 .()-]{7,20}$/.test(phone)) {
+    setUserAuthError('Số điện thoại không hợp lệ.')
+    return null
+  }
+  setUserAuthError('')
+  return includePhone ? { username, password, phone } : { username, password }
+}
+
+function applyAuthenticatedUser(user) {
+  currentUser = user
+  isAdminUser = false
+  syncCartScope(true)
+  updateUserUI()
+  document.getElementById('userMenuContent').innerHTML = ''
+}
+
+async function submitUserLogin(event) {
+  event.preventDefault()
+  const payload = getUserAuthPayload(false)
+  if (!payload) return
+  setUserAuthBusy(true)
+  try {
+    const res = await axios.post('/api/auth/login', payload)
+    applyAuthenticatedUser(res.data.data)
+    showToast('Đăng nhập thành công', 'success', 2500)
+  } catch (err) {
+    setUserAuthError('Sai username hoặc mật khẩu.')
+  } finally {
+    setUserAuthBusy(false)
+  }
+}
+
+async function submitUserRegister(event) {
+  event.preventDefault()
+  const payload = getUserAuthPayload(true)
+  if (!payload) return
+  setUserAuthBusy(true)
+  try {
+    const res = await axios.post('/api/auth/register', payload)
+    applyAuthenticatedUser(res.data.data)
+    showToast('Đăng ký tài khoản thành công', 'success', 2500)
+  } catch (err) {
+    const code = err.response?.data?.error
+    if (code === 'USERNAME_TAKEN') setUserAuthError('Username này đã được dùng.')
+    else if (code === 'PASSWORD_LENGTH_INVALID') setUserAuthError('Mật khẩu cần từ 6 đến 64 ký tự.')
+    else if (code === 'INVALID_PHONE') setUserAuthError('Số điện thoại không hợp lệ.')
+    else setUserAuthError('Không thể đăng ký. Vui lòng thử lại.')
+  } finally {
+    setUserAuthBusy(false)
+  }
+}
+
+function toggleAuthPasswordVisibility() {
+  const input = document.getElementById('authPassword')
+  const icon = document.getElementById('authPasswordEye')
+  if (!input) return
+  const nextType = input.type === 'password' ? 'text' : 'password'
+  input.type = nextType
+  if (icon) icon.className = nextType === 'password' ? 'fas fa-eye' : 'fas fa-eye-slash'
+}
 
 async function logoutUser() {
   try { await axios.post('/api/auth/logout') } catch {}
@@ -1858,9 +1995,11 @@ function showUserAccount() {
   }
   content.innerHTML = '<div class="bg-white rounded-2xl border p-4 space-y-3">'
     + '<h3 class="font-semibold text-gray-800 mb-3"><i class="fas fa-user-circle text-pink-400 mr-2"></i>Thông tin tài khoản</h3>'
-    + '<div class="flex items-center gap-4"><img src="' + (currentUser.avatar||'') + '" class="w-16 h-16 rounded-full object-cover border-2 border-pink-200"><div>'
-    + '<p class="font-bold text-gray-900">' + (currentUser.name||'') + '</p>'
-    + '<p class="text-sm text-gray-500">' + (currentUser.email||'') + '</p></div></div></div>'
+    + '<div class="flex items-center gap-4"><img src="' + (currentUser.avatar || '/qh-logo.png') + '" class="w-16 h-16 rounded-full object-cover border-2 border-pink-200"><div>'
+    + '<p class="font-bold text-gray-900">' + escapeHtml(getUserDisplayName(currentUser)) + '</p>'
+    + '<p class="text-sm text-gray-500">' + escapeHtml(getUserDisplayLine(currentUser)) + '</p>'
+    + (currentUser.phone ? '<p class="text-sm text-gray-500"><i class="fas fa-phone text-pink-300 mr-1"></i>' + escapeHtml(currentUser.phone) + '</p>' : '')
+    + '</div></div></div>'
 }
 
 function escapeHtml(value) {

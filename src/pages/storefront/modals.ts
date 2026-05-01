@@ -544,7 +544,7 @@ export function storefrontModalsSection(): string {
           <span id="walletBalanceMenu" class="ml-auto text-xs bg-green-50 text-green-600 px-2 py-0.5 rounded-full font-semibold">0đ</span>
         </button>
       </nav>
-      <div id="userMenuContent" class="mt-4"></div>
+      <div id="userMenuContent" class="mt-4"><div id="userAuthShell"></div></div>
     </div>
 
     <div id="userMenuLogoutArea" class="hidden flex-shrink-0 border-t px-5 py-4">

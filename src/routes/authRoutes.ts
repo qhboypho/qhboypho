@@ -24,6 +24,31 @@ function isGoogleOAuthClientId(clientId: string) {
   return /^[0-9A-Za-z_-]+\.apps\.googleusercontent\.com$/.test(String(clientId || '').trim())
 }
 
+function normalizeStorefrontUsername(raw: unknown) {
+  return String(raw || '').trim().toLowerCase()
+}
+
+function isValidStorefrontUsername(username: string) {
+  return /^[a-z0-9._-]{3,32}$/.test(username) && !['admin', 'root', 'support'].includes(username)
+}
+
+function normalizeStorefrontPhone(raw: unknown) {
+  return String(raw || '').trim().replace(/\s+/g, ' ')
+}
+
+function isValidOptionalPhone(phone: string) {
+  return !phone || /^\+?[0-9 .()-]{7,20}$/.test(phone)
+}
+
+function buildLocalUserEmail(username: string) {
+  return `${username}@user.qhclothes.local`
+}
+
+function clearAdminSessionCookies(c: any) {
+  deleteCookie(c, 'admin_token', { path: '/' })
+  deleteCookie(c, 'admin_user_key', { path: '/' })
+}
+
 function getGoogleRedirectUri(c: any) {
   const configured = String(c.env.GOOGLE_REDIRECT_URI || '').trim()
   if (configured) return configured
@@ -151,7 +176,7 @@ export function registerAuthRoutes(app: Hono<{ Bindings: AppBindings }>, deps: A
     } else if (userToken) {
       try {
         const parsedId = parseInt(userToken, 10)
-        const user = await c.env.DB.prepare("SELECT id as userId, email, name, avatar, balance, is_admin FROM users WHERE id=?").bind(parsedId).first()
+        const user = await c.env.DB.prepare("SELECT id as userId, email, username, phone, name, avatar, balance, is_admin FROM users WHERE id=?").bind(parsedId).first()
         if (user) currentUser = user
       } catch (e: any) {
         console.error('[auth] resolve current user failed', e)
@@ -172,6 +197,87 @@ export function registerAuthRoutes(app: Hono<{ Bindings: AppBindings }>, deps: A
     deleteCookie(c, 'admin_user_key', { path: '/' })
     clearUserSessionCookie(c)
     return c.json({ success: true })
+  })
+
+  app.post('/api/auth/register', async (c) => {
+    await deps.initDB(c.env.DB)
+    const body: any = await c.req.json().catch(() => ({}))
+    const username = normalizeStorefrontUsername(body.username)
+    const password = String(body.password || '')
+    const phone = normalizeStorefrontPhone(body.phone)
+
+    if (!isValidStorefrontUsername(username)) {
+      return c.json({ success: false, error: 'INVALID_USERNAME' }, 400)
+    }
+    if (password.length < 6 || password.length > 64) {
+      return c.json({ success: false, error: 'PASSWORD_LENGTH_INVALID' }, 400)
+    }
+    if (!isValidOptionalPhone(phone)) {
+      return c.json({ success: false, error: 'INVALID_PHONE' }, 400)
+    }
+
+    const existing = await c.env.DB.prepare("SELECT id FROM users WHERE username=? LIMIT 1").bind(username).first()
+    if (existing) {
+      return c.json({ success: false, error: 'USERNAME_TAKEN' }, 409)
+    }
+
+    const passwordHash = await hashPassword(password)
+    const localEmail = buildLocalUserEmail(username)
+    const result = await c.env.DB.prepare(`
+      INSERT INTO users (email, username, name, phone, password_hash, balance, is_admin)
+      VALUES (?, ?, ?, ?, ?, 0, 0)
+    `).bind(localEmail, username, username, phone || null, passwordHash).run()
+    const user = {
+      id: result.meta.last_row_id,
+      userId: result.meta.last_row_id,
+      email: localEmail,
+      username,
+      name: username,
+      phone,
+      avatar: '',
+      balance: 0,
+      is_admin: 0
+    }
+    clearAdminSessionCookies(c)
+    await setUserSessionCookie(c, user.id)
+    return c.json({ success: true, data: user })
+  })
+
+  app.post('/api/auth/login', async (c) => {
+    await deps.initDB(c.env.DB)
+    const body: any = await c.req.json().catch(() => ({}))
+    const username = normalizeStorefrontUsername(body.username)
+    const password = String(body.password || '')
+    if (!isValidStorefrontUsername(username) || !password) {
+      return c.json({ success: false, error: 'INVALID_CREDENTIALS' }, 401)
+    }
+
+    const user = await c.env.DB.prepare(`
+      SELECT id, email, username, name, avatar, phone, balance, is_admin, password_hash
+      FROM users
+      WHERE username=?
+      LIMIT 1
+    `).bind(username).first() as any
+    const isMatch = user && await verifyPassword(password, String(user.password_hash || ''))
+    if (!isMatch) {
+      return c.json({ success: false, error: 'INVALID_CREDENTIALS' }, 401)
+    }
+
+    clearAdminSessionCookies(c)
+    await setUserSessionCookie(c, user.id)
+    return c.json({
+      success: true,
+      data: {
+        userId: Number(user.id),
+        email: String(user.email || ''),
+        username: String(user.username || ''),
+        name: String(user.name || user.username || ''),
+        avatar: String(user.avatar || ''),
+        phone: String(user.phone || ''),
+        balance: Number(user.balance || 0),
+        is_admin: Number(user.is_admin || 0)
+      }
+    })
   })
 
   app.get('/api/auth/google', (c) => {
