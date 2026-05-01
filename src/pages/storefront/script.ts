@@ -1781,10 +1781,12 @@ function updateUserUI() {
   if (currentUser && isAdminUser) {
     defaultAvatar.classList.remove('hidden')
     imgAvatar.classList.add('hidden')
+    defaultAvatar.innerHTML = '<i class="fas fa-user text-sm"></i>'
+    defaultAvatar.style.background = ''
     guestSection.classList.add('hidden')
     loggedInSection.classList.remove('hidden')
     logoutArea.classList.remove('hidden')
-    document.getElementById('userMenuAvatar').src = '/qh-logo.png'
+    document.getElementById('userMenuAvatarSlot').innerHTML = renderAdminAvatarHtml('w-12 h-12', 'border-2 border-pink-400')
     document.getElementById('userMenuName').textContent = 'Admin'
     document.getElementById('userMenuEmail').textContent = 'Quyen quan tri'
     walletNav.classList.add('hidden')
@@ -1799,11 +1801,13 @@ function updateUserUI() {
     } else {
       defaultAvatar.classList.remove('hidden')
       imgAvatar.classList.add('hidden')
+      defaultAvatar.innerHTML = escapeHtml(getUserAvatarInitial(currentUser))
+      defaultAvatar.style.background = getUserAvatarStyle(currentUser)
     }
     guestSection.classList.add('hidden')
     loggedInSection.classList.remove('hidden')
     logoutArea.classList.remove('hidden')
-    document.getElementById('userMenuAvatar').src = currentUser.avatar || '/qh-logo.png'
+    document.getElementById('userMenuAvatarSlot').innerHTML = renderUserAvatarHtml(currentUser, 'w-12 h-12', 'text-xl', 'border-2 border-pink-400')
     document.getElementById('userMenuName').textContent = getUserDisplayName(currentUser)
     document.getElementById('userMenuEmail').textContent = getUserDisplayLine(currentUser)
     // Wallet
@@ -1817,6 +1821,8 @@ function updateUserUI() {
   } else {
     defaultAvatar.classList.remove('hidden')
     imgAvatar.classList.add('hidden')
+    defaultAvatar.innerHTML = '<i class="fas fa-user text-sm"></i>'
+    defaultAvatar.style.background = ''
     guestSection.classList.remove('hidden')
     loggedInSection.classList.add('hidden')
     logoutArea.classList.add('hidden')
@@ -1860,6 +1866,39 @@ function getUserDisplayLine(user) {
   const username = String(user.username || '').trim()
   if (username) return '@' + username
   return String(user.email || '').trim()
+}
+
+function getUserAvatarInitial(user) {
+  const label = getUserDisplayName(user)
+  const chars = Array.from(String(label || '').trim())
+  return (chars[0] || 'U').toUpperCase()
+}
+
+function getUserAvatarStyle(user) {
+  const key = String(user?.username || user?.name || user?.email || 'user')
+  const palettes = [
+    'linear-gradient(135deg,#f43f5e,#fb7185)',
+    'linear-gradient(135deg,#8b5cf6,#c084fc)',
+    'linear-gradient(135deg,#06b6d4,#22d3ee)',
+    'linear-gradient(135deg,#10b981,#34d399)',
+    'linear-gradient(135deg,#f59e0b,#fbbf24)',
+    'linear-gradient(135deg,#6366f1,#818cf8)',
+    'linear-gradient(135deg,#ec4899,#f472b6)'
+  ]
+  let hash = 0
+  for (let i = 0; i < key.length; i++) hash = ((hash << 5) - hash + key.charCodeAt(i)) | 0
+  return palettes[Math.abs(hash) % palettes.length]
+}
+
+function renderAdminAvatarHtml(sizeClass, borderClass) {
+  return '<img src="/qh-logo.png" class="' + sizeClass + ' rounded-full object-cover ' + borderClass + '" alt="">'
+}
+
+function renderUserAvatarHtml(user, sizeClass, textClass, borderClass) {
+  if (user?.avatar) {
+    return '<img src="' + escapeHtml(user.avatar) + '" class="' + sizeClass + ' rounded-full object-cover ' + borderClass + '" alt="">'
+  }
+  return '<div class="' + sizeClass + ' rounded-full flex items-center justify-center text-white font-bold ' + textClass + ' ' + borderClass + ' shadow-sm" style="background:' + getUserAvatarStyle(user) + '">' + escapeHtml(getUserAvatarInitial(user)) + '</div>'
 }
 
 function renderUserAuthForm(mode = 'login') {
@@ -1999,7 +2038,7 @@ function showUserAccount() {
   }
   content.innerHTML = '<div class="bg-white rounded-2xl border p-4 space-y-3">'
     + '<h3 class="font-semibold text-gray-800 mb-3"><i class="fas fa-user-circle text-pink-400 mr-2"></i>Thông tin tài khoản</h3>'
-    + '<div class="flex items-center gap-4"><img src="' + (currentUser.avatar || '/qh-logo.png') + '" class="w-16 h-16 rounded-full object-cover border-2 border-pink-200"><div>'
+    + '<div class="flex items-center gap-4">' + renderUserAvatarHtml(currentUser, 'w-16 h-16', 'text-2xl', 'border-2 border-pink-200') + '<div>'
     + '<p class="font-bold text-gray-900">' + escapeHtml(getUserDisplayName(currentUser)) + '</p>'
     + '<p class="text-sm text-gray-500">' + escapeHtml(getUserDisplayLine(currentUser)) + '</p>'
     + (currentUser.phone ? '<p class="text-sm text-gray-500"><i class="fas fa-phone text-pink-300 mr-1"></i>' + escapeHtml(currentUser.phone) + '</p>' : '')

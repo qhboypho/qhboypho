@@ -522,7 +522,7 @@ export function storefrontModalsSection(): string {
       </div>
       <div id="userMenuLoggedIn" class="hidden">
         <div class="flex items-center gap-3">
-          <img id="userMenuAvatar" src="" class="w-12 h-12 rounded-full object-cover border-2 border-pink-400">
+          <div id="userMenuAvatarSlot" class="w-12 h-12 flex-shrink-0"></div>
           <div>
             <p id="userMenuName" class="font-semibold"></p>
             <p id="userMenuEmail" class="text-gray-400 text-xs"></p>

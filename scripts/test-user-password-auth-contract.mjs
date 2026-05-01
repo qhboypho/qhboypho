@@ -59,5 +59,14 @@ assert.match(
   /<button type="button" onclick="renderUserAuthForm/,
   'only the auth switch action label should be clickable'
 )
+assert.match(storefrontScript, /function getUserAvatarInitial\(/, 'local users without an avatar should get an initial avatar')
+assert.match(storefrontScript, /function getUserAvatarStyle\(/, 'initial avatars should get a deterministic colored background')
+assert.match(storefrontScript, /function renderUserAvatarHtml\(/, 'storefront should render reusable user avatar HTML')
+assert.match(storefrontModals, /id="userMenuAvatarSlot"/, 'account header should render avatar content in a slot')
+assert.doesNotMatch(
+  storefrontScript,
+  /currentUser\.avatar \|\| '\/qh-logo\.png'/,
+  'normal users without an avatar must not fall back to the shop logo'
+)
 
 console.log('user password auth contract ok')
