@@ -2320,6 +2320,8 @@ function handleAuthReturnFlow() {
     showToast('Đăng nhập Google thành công', 'success', 3000)
   } else if (error === 'GOOGLE_AUTH_NOT_CONFIGURED' || step === 'google_config_missing') {
     showToast('Đăng nhập Google chưa được cấu hình. Cần thêm GOOGLE_CLIENT_ID và GOOGLE_CLIENT_SECRET.', 'error', 5000)
+  } else if (error === 'GOOGLE_AUTH_CLIENT_ID_INVALID' || step === 'google_client_id_invalid') {
+    showToast('OAuth Client ID Google không hợp lệ. Cần dùng Client ID dạng .apps.googleusercontent.com.', 'error', 6000)
   } else {
     showToast('Đăng nhập Google thất bại. Vui lòng thử lại.', 'error', 4000)
   }

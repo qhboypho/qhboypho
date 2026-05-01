@@ -12,12 +12,16 @@ type AuthRouteDeps = {
   upsertAppSettings: (db: D1Database, entries: Array<{ key: string, value: string }>) => Promise<void>
 }
 
-function buildGoogleAuthErrorRedirect(requestUrl: string, step = 'google_config_missing') {
+function buildGoogleAuthErrorRedirect(requestUrl: string, step = 'google_config_missing', error = 'GOOGLE_AUTH_NOT_CONFIGURED') {
   const url = new URL('/', requestUrl)
   url.searchParams.set('login', 'error')
   url.searchParams.set('step', step)
-  url.searchParams.set('error', 'GOOGLE_AUTH_NOT_CONFIGURED')
+  url.searchParams.set('error', error)
   return url.toString()
+}
+
+function isGoogleOAuthClientId(clientId: string) {
+  return /^[0-9A-Za-z_-]+\.apps\.googleusercontent\.com$/.test(String(clientId || '').trim())
 }
 
 function getGoogleRedirectUri(c: any) {
@@ -171,11 +175,15 @@ export function registerAuthRoutes(app: Hono<{ Bindings: AppBindings }>, deps: A
   })
 
   app.get('/api/auth/google', (c) => {
-    const clientId = c.env.GOOGLE_CLIENT_ID
-    const clientSecret = c.env.GOOGLE_CLIENT_SECRET
+    const clientId = String(c.env.GOOGLE_CLIENT_ID || '').trim()
+    const clientSecret = String(c.env.GOOGLE_CLIENT_SECRET || '').trim()
     if (!clientId || !clientSecret) {
       console.error('[auth] google oauth config missing')
       return c.redirect(buildGoogleAuthErrorRedirect(c.req.url))
+    }
+    if (!isGoogleOAuthClientId(clientId)) {
+      console.error('[auth] google oauth client id invalid')
+      return c.redirect(buildGoogleAuthErrorRedirect(c.req.url, 'google_client_id_invalid', 'GOOGLE_AUTH_CLIENT_ID_INVALID'))
     }
     const redirectUri = getGoogleRedirectUri(c)
     const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=openid%20email%20profile&prompt=select_account`
@@ -186,14 +194,18 @@ export function registerAuthRoutes(app: Hono<{ Bindings: AppBindings }>, deps: A
     const code = c.req.query('code')
     if (!code) return c.redirect('/?login=error&step=google_callback_missing_code&error=AUTH_CALLBACK_FAILED')
 
-    const clientId = c.env.GOOGLE_CLIENT_ID
-    const clientSecret = c.env.GOOGLE_CLIENT_SECRET
+    const clientId = String(c.env.GOOGLE_CLIENT_ID || '').trim()
+    const clientSecret = String(c.env.GOOGLE_CLIENT_SECRET || '').trim()
 
     await deps.initDB(c.env.DB)
 
     if (!clientId || !clientSecret) {
       console.error('[auth] google oauth config missing')
       return c.redirect(buildGoogleAuthErrorRedirect(c.req.url))
+    }
+    if (!isGoogleOAuthClientId(clientId)) {
+      console.error('[auth] google oauth client id invalid')
+      return c.redirect(buildGoogleAuthErrorRedirect(c.req.url, 'google_client_id_invalid', 'GOOGLE_AUTH_CLIENT_ID_INVALID'))
     }
 
     const redirectUri = getGoogleRedirectUri(c)
