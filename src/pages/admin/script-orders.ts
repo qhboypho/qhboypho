@@ -1,5 +1,11 @@
 export function adminOrdersScript(): string {
-  return `async function loadAdminOrders() {
+  return `function escapeHtml(text) {
+  const div = document.createElement('div')
+  div.textContent = text
+  return div.innerHTML
+}
+
+async function loadAdminOrders() {
   document.getElementById('ordersTable').innerHTML = '<tr><td colspan="7" class="text-center py-12 text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></td></tr>'
   document.getElementById('ordersMobileList').innerHTML = '<div class="py-12 text-center text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></div>'
   try {
@@ -190,7 +196,7 @@ function renderOrdersTable(orders) {
               title="Bấm để copy mã đơn hàng"
               class="font-mono text-[11px] text-blue-600 font-semibold hover:text-blue-700 transition">
               Mã ĐH: \${o.order_code}
-            </button>
+            </button>\${o.user_name ? '<span class="font-mono text-[11px] text-gray-900 font-semibold ml-1">• ' + escapeHtml(o.user_name) + '</span>' : ''}
           </div>
           <p class="text-sm text-gray-800 font-semibold truncate max-w-[290px]">\${o.product_name}</p>
           <div class="text-xs text-gray-500 flex items-center gap-1.5 flex-wrap">
@@ -259,7 +265,7 @@ function renderOrdersMobileList(orders) {
                 <div class="flex items-start justify-between gap-2">
                   <button type="button"
                     onclick="copyOrderCode(decodeURIComponent('\${encodeURIComponent(String(o.order_code || '').trim())}')); return false;"
-                    class="font-mono text-[11px] text-blue-600 font-semibold truncate max-w-[150px] text-left">Mã ĐH: \${o.order_code}</button>
+                    class="font-mono text-[11px] text-blue-600 font-semibold truncate max-w-[150px] text-left">Mã ĐH: \${o.order_code}</button>\${o.user_name ? '<span class="font-mono text-[11px] text-gray-900 font-semibold ml-1">• ' + escapeHtml(o.user_name) + '</span>' : ''}
                 </div>
                 <div class="mobile-order-title-row mt-1 flex items-start justify-between gap-2 min-w-0">
                   <p class="min-w-0 flex-1 text-sm font-semibold text-gray-900 leading-5 truncate">\${o.product_name}</p>

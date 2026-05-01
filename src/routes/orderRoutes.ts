@@ -151,9 +151,11 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
       let query = `
         SELECT o.*,
                p.thumbnail AS product_thumbnail,
+               u.name AS user_name,
                CASE WHEN LOWER(COALESCE(o.payment_status, ''))='paid' THEN 0 ELSE o.total_price END AS amount_due
         FROM orders o
         LEFT JOIN products p ON p.id = o.product_id
+        LEFT JOIN users u ON u.id = o.user_id
         WHERE ${internalFilterSql}
         ${shippingQueueSql}
         ORDER BY o.created_at DESC
@@ -162,9 +164,11 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
         query = `
           SELECT o.*,
                  p.thumbnail AS product_thumbnail,
+                 u.name AS user_name,
                  CASE WHEN LOWER(COALESCE(o.payment_status, ''))='paid' THEN 0 ELSE o.total_price END AS amount_due
           FROM orders o
           LEFT JOIN products p ON p.id = o.product_id
+          LEFT JOIN users u ON u.id = o.user_id
           WHERE o.status=? AND ${internalFilterSql}
           ${shippingQueueSql}
           ORDER BY o.created_at DESC
