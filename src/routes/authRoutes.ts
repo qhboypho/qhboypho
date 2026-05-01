@@ -20,6 +20,12 @@ function buildGoogleAuthErrorRedirect(requestUrl: string, step = 'google_config_
   return url.toString()
 }
 
+function getGoogleRedirectUri(c: any) {
+  const configured = String(c.env.GOOGLE_REDIRECT_URI || '').trim()
+  if (configured) return configured
+  return new URL('/api/auth/callback', c.req.url).toString()
+}
+
 export function registerAuthRoutes(app: Hono<{ Bindings: AppBindings }>, deps: AuthRouteDeps) {
   app.get('/api/admin/profile', async (c) => {
     try {
@@ -171,7 +177,7 @@ export function registerAuthRoutes(app: Hono<{ Bindings: AppBindings }>, deps: A
       console.error('[auth] google oauth config missing')
       return c.redirect(buildGoogleAuthErrorRedirect(c.req.url))
     }
-    const redirectUri = new URL('/api/auth/callback', c.req.url).toString()
+    const redirectUri = getGoogleRedirectUri(c)
     const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=openid%20email%20profile&prompt=select_account`
     return c.redirect(url)
   })
@@ -190,7 +196,7 @@ export function registerAuthRoutes(app: Hono<{ Bindings: AppBindings }>, deps: A
       return c.redirect(buildGoogleAuthErrorRedirect(c.req.url))
     }
 
-    const redirectUri = new URL('/api/auth/callback', c.req.url).toString()
+    const redirectUri = getGoogleRedirectUri(c)
 
     try {
       const tokenRes = await fetch('https://oauth2.googleapis.com/token', {

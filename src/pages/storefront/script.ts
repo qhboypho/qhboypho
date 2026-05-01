@@ -1722,6 +1722,7 @@ loadFooterSocialLinks()
 loadCart()
 loadProducts()
 checkUserAuth()
+handleAuthReturnFlow()
 handlePaymentReturnFlow()
 ensureAddressKitReady().catch(() => {
   showToast('Không tải được danh mục tỉnh/phường. Bạn có thể thử lại sau.', 'error', 4500)
@@ -2295,6 +2296,34 @@ function cleanPaymentQueryParams() {
   url.searchParams.delete('closeTab')
   const next = url.pathname + (url.searchParams.toString() ? '?' + url.searchParams.toString() : '') + url.hash
   window.history.replaceState({}, '', next)
+}
+
+function cleanAuthQueryParams() {
+  const url = new URL(window.location.href)
+  if (!url.searchParams.has('login')) return
+  url.searchParams.delete('login')
+  url.searchParams.delete('step')
+  url.searchParams.delete('error')
+  url.searchParams.delete('msg')
+  const next = url.pathname + (url.searchParams.toString() ? '?' + url.searchParams.toString() : '') + url.hash
+  window.history.replaceState({}, '', next)
+}
+
+function handleAuthReturnFlow() {
+  const params = new URLSearchParams(window.location.search)
+  const loginState = String(params.get('login') || '').toLowerCase()
+  if (!loginState) return
+  const step = String(params.get('step') || '').trim()
+  const error = String(params.get('error') || '').trim()
+
+  if (loginState === 'success') {
+    showToast('Đăng nhập Google thành công', 'success', 3000)
+  } else if (error === 'GOOGLE_AUTH_NOT_CONFIGURED' || step === 'google_config_missing') {
+    showToast('Đăng nhập Google chưa được cấu hình. Cần thêm GOOGLE_CLIENT_ID và GOOGLE_CLIENT_SECRET.', 'error', 5000)
+  } else {
+    showToast('Đăng nhập Google thất bại. Vui lòng thử lại.', 'error', 4000)
+  }
+  cleanAuthQueryParams()
 }
 
 function handlePaymentReturnFlow() {
