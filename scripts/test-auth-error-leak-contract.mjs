@@ -10,8 +10,10 @@ function assert(condition, message) {
 }
 
 assert(!source.includes('stack: err.stack'), 'Expected authRoutes to stop returning stack traces to clients')
-assert(!source.includes('msg: err.message'), 'Expected authRoutes to stop returning raw auth error messages to clients in mock callback fallback')
-assert(source.includes("console.error('[auth] mock callback failed'"), 'Expected authRoutes to keep server-side logging for mock auth callback failures')
-assert(source.includes("error: 'AUTH_CALLBACK_FAILED'"), 'Expected authRoutes to return a generic auth callback failure code to clients')
+assert(!source.includes('msg: err.message'), 'Expected authRoutes to stop returning raw auth error messages to clients')
+assert(!source.includes("console.error('[auth] mock callback failed'"), 'Expected authRoutes to remove mock auth callback fallback')
+assert(source.includes("console.error('[auth] google oauth config missing'"), 'Expected authRoutes to keep server-side logging for missing Google OAuth config')
+assert(source.includes("error', 'GOOGLE_AUTH_NOT_CONFIGURED'"), 'Expected authRoutes to return a generic Google OAuth config error code to clients')
+assert(source.includes('AUTH_CALLBACK_FAILED'), 'Expected authRoutes to return a generic auth callback failure code to clients')
 
 console.log('auth error leak contract ok')

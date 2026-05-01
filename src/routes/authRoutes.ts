@@ -12,6 +12,14 @@ type AuthRouteDeps = {
   upsertAppSettings: (db: D1Database, entries: Array<{ key: string, value: string }>) => Promise<void>
 }
 
+function buildGoogleAuthErrorRedirect(requestUrl: string, step = 'google_config_missing') {
+  const url = new URL('/', requestUrl)
+  url.searchParams.set('login', 'error')
+  url.searchParams.set('step', step)
+  url.searchParams.set('error', 'GOOGLE_AUTH_NOT_CONFIGURED')
+  return url.toString()
+}
+
 export function registerAuthRoutes(app: Hono<{ Bindings: AppBindings }>, deps: AuthRouteDeps) {
   app.get('/api/admin/profile', async (c) => {
     try {
@@ -158,9 +166,10 @@ export function registerAuthRoutes(app: Hono<{ Bindings: AppBindings }>, deps: A
 
   app.get('/api/auth/google', (c) => {
     const clientId = c.env.GOOGLE_CLIENT_ID
-    if (!clientId) {
-      const redirectUri = c.req.url.replace('/api/auth/google', '/api/auth/callback')
-      return c.redirect(redirectUri + '?code=mock_google_code')
+    const clientSecret = c.env.GOOGLE_CLIENT_SECRET
+    if (!clientId || !clientSecret) {
+      console.error('[auth] google oauth config missing')
+      return c.redirect(buildGoogleAuthErrorRedirect(c.req.url))
     }
     const redirectUri = new URL('/api/auth/callback', c.req.url).toString()
     const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=openid%20email%20profile&prompt=select_account`
@@ -169,30 +178,16 @@ export function registerAuthRoutes(app: Hono<{ Bindings: AppBindings }>, deps: A
 
   app.get('/api/auth/callback', async (c) => {
     const code = c.req.query('code')
-    if (!code) return c.json({ error: 'No code provided' }, 400)
+    if (!code) return c.redirect('/?login=error&step=google_callback_missing_code&error=AUTH_CALLBACK_FAILED')
 
     const clientId = c.env.GOOGLE_CLIENT_ID
     const clientSecret = c.env.GOOGLE_CLIENT_SECRET
 
     await deps.initDB(c.env.DB)
 
-    if (!clientId || !clientSecret || code === 'mock_google_code') {
-      try {
-        const mockEmail = 'user@example.com'
-        const mockName = 'Nguyen Van A (Mock)'
-        const mockAvatar = 'https://ui-avatars.com/api/?name=Nguyen+Van+A&background=random'
-
-        let user = await c.env.DB.prepare("SELECT id FROM users WHERE email=?").bind(mockEmail).first() as any
-        if (!user) {
-          const res = await c.env.DB.prepare("INSERT INTO users (email, name, avatar, balance) VALUES (?, ?, ?, 0)").bind(mockEmail, mockName, mockAvatar).run()
-          user = { id: res.meta.last_row_id }
-        }
-        await setUserSessionCookie(c, user.id)
-        return c.redirect('/')
-      } catch (err: any) {
-        console.error('[auth] mock callback failed', err)
-        return c.json({ success: false, error: 'AUTH_CALLBACK_FAILED' }, 500)
-      }
+    if (!clientId || !clientSecret) {
+      console.error('[auth] google oauth config missing')
+      return c.redirect(buildGoogleAuthErrorRedirect(c.req.url))
     }
 
     const redirectUri = new URL('/api/auth/callback', c.req.url).toString()
