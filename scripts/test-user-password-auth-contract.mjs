@@ -43,6 +43,7 @@ assert.match(storefrontScript, /\/api\/auth\/register/, 'storefront register for
 assert.match(storefrontScript, /authPhone/, 'register form should include an optional phone input')
 assert.match(storefrontScript, /user\.username/, 'logged-in UI should display username-backed accounts cleanly')
 assert.match(storefrontModals, /id="userMenuAuthedNav"/, 'guest account panel should wrap authenticated-only actions')
+assert.match(storefrontModals, /id="userWalletBtn"/, 'wallet menu action should be individually toggleable')
 assert.match(storefrontScript, /userMenuAuthedNav/, 'storefront should toggle authenticated-only account actions')
 assert.match(
   storefrontScript,
@@ -67,6 +68,26 @@ assert.doesNotMatch(
   storefrontScript,
   /currentUser\.avatar \|\| '\/qh-logo\.png'/,
   'normal users without an avatar must not fall back to the shop logo'
+)
+assert.match(
+  storefrontScript,
+  /clearAuthFormContent[\s\S]{0,220}querySelector\('#userAuthShell'\)/,
+  'authenticated state should clear stale login/register form content'
+)
+assert.match(
+  storefrontScript,
+  /if \(userWalletBtn\) userWalletBtn\.classList\.add\('hidden'\)/,
+  'admin and guest account menus should hide the wallet action'
+)
+assert.match(
+  storefrontScript,
+  /if \(userWalletBtn\) userWalletBtn\.classList\.remove\('hidden'\)/,
+  'normal logged-in users should still see the wallet action'
+)
+assert.match(
+  storefrontScript,
+  /if \(isAdminUser\)[\s\S]{0,500}Thông tin quản trị/,
+  'admin account details should render as an admin-only panel instead of customer profile fields'
 )
 
 console.log('user password auth contract ok')

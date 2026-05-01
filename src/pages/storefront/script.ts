@@ -1775,10 +1775,16 @@ function updateUserUI() {
   const walletNav = document.getElementById('walletNavBtn')
   const adminLink = document.getElementById('adminNavLink')
   const userOrdersBtn = document.getElementById('userOrdersBtn')
+  const userWalletBtn = document.getElementById('userWalletBtn')
   const authedNav = document.getElementById('userMenuAuthedNav')
+  const clearAuthFormContent = () => {
+    const content = document.getElementById('userMenuContent')
+    if (content && content.querySelector('#userAuthShell')) content.innerHTML = ''
+  }
   // Admin icon
   if (isAdminUser) { adminLink.classList.remove('hidden') } else { adminLink.classList.add('hidden') }
   if (currentUser && isAdminUser) {
+    clearAuthFormContent()
     defaultAvatar.classList.remove('hidden')
     imgAvatar.classList.add('hidden')
     defaultAvatar.innerHTML = '<i class="fas fa-user text-sm"></i>'
@@ -1788,12 +1794,14 @@ function updateUserUI() {
     logoutArea.classList.remove('hidden')
     document.getElementById('userMenuAvatarSlot').innerHTML = renderAdminAvatarHtml('w-12 h-12', 'border-2 border-pink-400')
     document.getElementById('userMenuName').textContent = 'Admin'
-    document.getElementById('userMenuEmail').textContent = 'Quyen quan tri'
+    document.getElementById('userMenuEmail').textContent = 'Quyền quản trị'
     walletNav.classList.add('hidden')
     walletNav.classList.remove('flex')
     if (authedNav) authedNav.classList.remove('hidden')
     if (userOrdersBtn) userOrdersBtn.classList.add('hidden')
+    if (userWalletBtn) userWalletBtn.classList.add('hidden')
   } else if (currentUser) {
+    clearAuthFormContent()
     if (currentUser.avatar) {
       defaultAvatar.classList.add('hidden')
       imgAvatar.src = currentUser.avatar
@@ -1818,6 +1826,7 @@ function updateUserUI() {
     document.getElementById('walletBalanceMenu').textContent = bal
     if (authedNav) authedNav.classList.remove('hidden')
     if (userOrdersBtn) userOrdersBtn.classList.remove('hidden')
+    if (userWalletBtn) userWalletBtn.classList.remove('hidden')
   } else {
     defaultAvatar.classList.remove('hidden')
     imgAvatar.classList.add('hidden')
@@ -1830,6 +1839,7 @@ function updateUserUI() {
     walletNav.classList.remove('flex')
     if (authedNav) authedNav.classList.add('hidden')
     if (userOrdersBtn) userOrdersBtn.classList.add('hidden')
+    if (userWalletBtn) userWalletBtn.classList.add('hidden')
   }
 }
 
@@ -2034,6 +2044,16 @@ function showUserAccount() {
   const content = document.getElementById('userMenuContent')
   if (!currentUser) {
     content.innerHTML = '<div class="text-center py-8 text-gray-400"><i class="fas fa-lock text-3xl mb-3"></i><p>Vui lòng đăng nhập để xem thông tin</p></div>'
+    return
+  }
+  if (isAdminUser) {
+    content.innerHTML = '<div class="bg-white rounded-2xl border p-4 space-y-3">'
+      + '<h3 class="font-semibold text-gray-800 mb-3"><i class="fas fa-user-shield text-pink-400 mr-2"></i>Thông tin quản trị</h3>'
+      + '<div class="flex items-center gap-4">' + renderAdminAvatarHtml('w-16 h-16', 'border-2 border-pink-200') + '<div>'
+      + '<p class="font-bold text-gray-900">Admin</p>'
+      + '<p class="text-sm text-gray-500">Quyền quản trị</p>'
+      + '<a href="/admin/dashboard" class="inline-flex items-center gap-2 mt-3 text-sm font-semibold text-pink-500 hover:text-pink-600">Vào trang quản trị <i class="fas fa-arrow-right text-xs"></i></a>'
+      + '</div></div></div>'
     return
   }
   content.innerHTML = '<div class="bg-white rounded-2xl border p-4 space-y-3">'

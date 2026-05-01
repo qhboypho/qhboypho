@@ -539,7 +539,7 @@ export function storefrontModalsSection(): string {
         <button onclick="showUserOrders()" id="userOrdersBtn" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-pink-50 hover:text-pink-600 transition text-sm font-medium text-left">
           <i class="fas fa-clipboard-list w-5 text-pink-400"></i>Lịch sử mua hàng
         </button>
-        <button onclick="showWalletInMenu()" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-pink-50 hover:text-pink-600 transition text-sm font-medium text-left">
+        <button onclick="showWalletInMenu()" id="userWalletBtn" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-pink-50 hover:text-pink-600 transition text-sm font-medium text-left">
           <i class="fas fa-wallet w-5 text-pink-400"></i>Nạp tiền vào ví
           <span id="walletBalanceMenu" class="ml-auto text-xs bg-green-50 text-green-600 px-2 py-0.5 rounded-full font-semibold">0đ</span>
         </button>
