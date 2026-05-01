@@ -532,7 +532,7 @@ export function storefrontModalsSection(): string {
     </div>
 
     <div class="flex-1 overflow-y-auto px-4 py-4">
-      <nav class="space-y-1">
+      <nav id="userMenuAuthedNav" class="space-y-1 hidden">
         <button onclick="showUserAccount()" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-pink-50 hover:text-pink-600 transition text-sm font-medium text-left">
           <i class="fas fa-user-circle w-5 text-pink-400"></i>Quản lý tài khoản
         </button>

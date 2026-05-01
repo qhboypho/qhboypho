@@ -1775,6 +1775,7 @@ function updateUserUI() {
   const walletNav = document.getElementById('walletNavBtn')
   const adminLink = document.getElementById('adminNavLink')
   const userOrdersBtn = document.getElementById('userOrdersBtn')
+  const authedNav = document.getElementById('userMenuAuthedNav')
   // Admin icon
   if (isAdminUser) { adminLink.classList.remove('hidden') } else { adminLink.classList.add('hidden') }
   if (currentUser && isAdminUser) {
@@ -1788,6 +1789,7 @@ function updateUserUI() {
     document.getElementById('userMenuEmail').textContent = 'Quyen quan tri'
     walletNav.classList.add('hidden')
     walletNav.classList.remove('flex')
+    if (authedNav) authedNav.classList.remove('hidden')
     if (userOrdersBtn) userOrdersBtn.classList.add('hidden')
   } else if (currentUser) {
     if (currentUser.avatar) {
@@ -1810,6 +1812,7 @@ function updateUserUI() {
     const bal = fmtBalance(currentUser.balance)
     document.getElementById('walletBalanceNav').textContent = bal
     document.getElementById('walletBalanceMenu').textContent = bal
+    if (authedNav) authedNav.classList.remove('hidden')
     if (userOrdersBtn) userOrdersBtn.classList.remove('hidden')
   } else {
     defaultAvatar.classList.remove('hidden')
@@ -1819,7 +1822,8 @@ function updateUserUI() {
     logoutArea.classList.add('hidden')
     walletNav.classList.add('hidden')
     walletNav.classList.remove('flex')
-    if (userOrdersBtn) userOrdersBtn.classList.remove('hidden')
+    if (authedNav) authedNav.classList.add('hidden')
+    if (userOrdersBtn) userOrdersBtn.classList.add('hidden')
   }
 }
 

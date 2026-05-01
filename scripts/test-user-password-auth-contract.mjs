@@ -42,5 +42,12 @@ assert.match(storefrontScript, /\/api\/auth\/login/, 'storefront login form shou
 assert.match(storefrontScript, /\/api\/auth\/register/, 'storefront register form should call the local register API')
 assert.match(storefrontScript, /authPhone/, 'register form should include an optional phone input')
 assert.match(storefrontScript, /user\.username/, 'logged-in UI should display username-backed accounts cleanly')
+assert.match(storefrontModals, /id="userMenuAuthedNav"/, 'guest account panel should wrap authenticated-only actions')
+assert.match(storefrontScript, /userMenuAuthedNav/, 'storefront should toggle authenticated-only account actions')
+assert.match(
+  storefrontScript,
+  /authedNav\.classList\.add\('hidden'\)/,
+  'guest users should not see account, order history, or wallet actions before login'
+)
 
 console.log('user password auth contract ok')
