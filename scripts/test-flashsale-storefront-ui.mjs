@@ -11,6 +11,7 @@ const source = [
 ].map((filePath) => fs.readFileSync(filePath, 'utf8')).join('\n')
 
 assert.match(source, /id=(?:\\"|")flashSaleShopSection(?:\\"|")/, 'flash sale storefront section should exist')
+assert.doesNotMatch(source, /id=(?:\\"|")flashSaleShopCountdown(?:\\"|")/, 'flash sale shop header should not show a separate top-right countdown pill')
 assert.match(source, /async function loadFlashSaleShop\(/, 'flash sale storefront loader should exist')
 assert.match(source, /\/api\/flash-sales\/active-products/, 'flash sale storefront loader should fetch active products')
 assert.match(source, /flash-sale-badge/, 'flash sale badge style should exist in storefront render')
@@ -30,8 +31,23 @@ const flashSaleShopLoader = source.match(/async function loadFlashSaleShop\([\s\
 assert.ok(flashSaleShopLoader, 'flash sale shop loader should be present')
 assert.doesNotMatch(
   flashSaleShopLoader[0],
+  /flashSaleShopCountdown|countdown\.setAttribute|countdown\.textContent/,
+  'flash sale shop loader should not manage a separate section-level countdown'
+)
+assert.doesNotMatch(
+  flashSaleShopLoader[0],
   /absolute left-3 top-3[\s\S]*flash-sale-badge[\s\S]*flash-sale-countdown/,
   'flash sale shop cards should not overlay badge and countdown on product images'
+)
+assert.match(
+  source,
+  /id=(?:\\"|")flashSaleShopGrid(?:\\"|")[^>]+flash-sale-shop-track[^>]+overflow-x-auto[^>]+snap-x/,
+  'flash sale shop product row should be a horizontal slider when many products are active'
+)
+assert.doesNotMatch(
+  source,
+  /id=(?:\\"|")flashSaleShopGrid(?:\\"|")[^>]+md:grid/,
+  'flash sale shop product row should not switch to a fixed desktop grid'
 )
 assert.match(
   flashSaleShopLoader[0],

@@ -857,8 +857,7 @@ async function startFlashSaleCountdownTicker() {
 async function loadFlashSaleShop() {
   const section = document.getElementById('flashSaleShopSection')
   const grid = document.getElementById('flashSaleShopGrid')
-  const countdown = document.getElementById('flashSaleShopCountdown')
-  if (!section || !grid || !countdown) return
+  if (!section || !grid) return
   try {
     const res = await axios.get('/api/flash-sales/active-products')
     const products = Array.isArray(res.data?.data) ? res.data.data : []
@@ -867,15 +866,12 @@ async function loadFlashSaleShop() {
       return
     }
     section.classList.remove('hidden')
-    const firstActive = products.find((product) => product?.flash_sale?.campaign?.end_at || product?.flash_sale?.end_at)
-    countdown.setAttribute('data-flash-sale-ends-at', firstActive?.flash_sale?.campaign?.end_at || firstActive?.flash_sale?.end_at || '')
-    countdown.textContent = formatFlashSaleCountdown(firstActive?.flash_sale?.campaign?.end_at || firstActive?.flash_sale?.end_at || '')
-    grid.innerHTML = products.slice(0, 8).map((product) => {
+    grid.innerHTML = products.map((product) => {
       const meta = getFlashSaleMeta(product)
       const price = meta?.salePrice || Number(product.display_price ?? product.price ?? 0)
       const original = meta?.basePrice || Number(product.display_original_price ?? product.original_price ?? price)
       return \`
-        <div class="flash-sale-shop-card shrink-0 basis-[78%] cursor-pointer md:basis-auto" onclick="showDetail(\${product.id})">
+        <div class="flash-sale-shop-card shrink-0 snap-start basis-[78%] cursor-pointer sm:basis-[46%] lg:basis-[30%] xl:basis-[23%]" onclick="showDetail(\${product.id})">
           <div class="relative aspect-square overflow-hidden bg-slate-100">
             <img src="\${product.thumbnail || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'}" alt="\${product.name}" class="h-full w-full object-cover" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'">
           </div>
