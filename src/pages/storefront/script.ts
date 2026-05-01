@@ -1889,7 +1889,7 @@ function renderUserAuthForm(mode = 'login') {
     + '<p id="userAuthError" class="hidden text-sm font-semibold text-red-500"></p>'
     + '<button id="userAuthSubmitBtn" type="submit" class="w-full btn-primary text-white py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2"><i class="fas fa-shield-alt"></i>' + action + '</button>'
     + '</form>'
-    + '<button type="button" onclick="renderUserAuthForm(\\'' + switchMode + '\\')" class="w-full text-center text-sm text-gray-500 hover:text-pink-600 font-semibold transition">' + switchText + ' <span class="text-pink-500">' + switchLabel + '</span></button>'
+    + '<div class="w-full text-center text-sm font-semibold"><span class="text-gray-500">' + switchText + '</span> <button type="button" onclick="renderUserAuthForm(\\'' + switchMode + '\\')" class="text-pink-500 hover:text-pink-600 transition">' + switchLabel + '</button></div>'
     + '</div>'
 }
 

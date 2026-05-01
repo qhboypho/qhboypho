@@ -49,5 +49,15 @@ assert.match(
   /authedNav\.classList\.add\('hidden'\)/,
   'guest users should not see account, order history, or wallet actions before login'
 )
+assert.match(
+  storefrontScript,
+  /<span class="text-gray-500">'\s*\+\s*switchText\s*\+\s*'<\/span>/,
+  'auth switch prompt should render as static text'
+)
+assert.match(
+  storefrontScript,
+  /<button type="button" onclick="renderUserAuthForm/,
+  'only the auth switch action label should be clickable'
+)
 
 console.log('user password auth contract ok')
