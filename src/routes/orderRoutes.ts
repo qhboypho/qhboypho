@@ -31,6 +31,58 @@ async function generateUniqueOrderCode(db: D1Database) {
   return 'QH' + fallback
 }
 
+async function checkAndAutoBlockCustomer(db: D1Database, userId: number | null, customerPhone: string | null) {
+  if (!userId && !customerPhone) return
+  
+  // Count cancelled orders
+  let query = 'SELECT COUNT(*) as cancelled_count FROM orders WHERE status = ? AND ('
+  const params: any[] = ['cancelled']
+  
+  if (userId) {
+    query += 'user_id = ?'
+    params.push(userId)
+  }
+  
+  if (customerPhone) {
+    if (userId) query += ' OR '
+    query += 'customer_phone = ?'
+    params.push(customerPhone)
+  }
+  
+  query += ')'
+  
+  const result = await db.prepare(query).bind(...params).first() as any
+  const cancelledCount = Number(result?.cancelled_count || 0)
+  
+  if (cancelledCount >= 3) {
+    // Auto-block this customer
+    const reason = `Tự động chặn: Đã hủy ${cancelledCount} đơn hàng`
+    
+    if (userId) {
+      await db.prepare(`
+        UPDATE users 
+        SET is_blocked = 1, 
+            blocked_reason = ?,
+            blocked_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).bind(reason, userId).run()
+    }
+    
+    await db.prepare(`
+      INSERT INTO blocked_customers (user_id, customer_phone, blocked_reason, blocked_by, is_active)
+      VALUES (?, ?, ?, 'system', 1)
+      ON CONFLICT(user_id, customer_phone) DO UPDATE SET
+        is_active = 1,
+        blocked_reason = excluded.blocked_reason,
+        blocked_by = 'system',
+        blocked_at = CURRENT_TIMESTAMP,
+        unblocked_at = NULL
+    `).bind(userId, customerPhone, reason).run()
+    
+    console.log(`Auto-blocked customer: userId=${userId}, phone=${customerPhone}, cancelled=${cancelledCount}`)
+  }
+}
+
 export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: OrderRouteDeps) {
   app.get('/api/user/orders', async (c) => {
     await deps.initDB(c.env.DB)
@@ -70,6 +122,55 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
         return c.json({ success: false, error: 'Missing required fields' }, 400)
       }
 
+      // Check if customer is blocked
+      const userId = await getUserSessionUserId(c)
+      let isBlocked = false
+      let blockReason = ''
+      
+      if (userId) {
+        const user = await c.env.DB.prepare(
+          'SELECT is_blocked, blocked_reason FROM users WHERE id = ?'
+        ).bind(userId).first() as any
+        
+        if (user && user.is_blocked === 1) {
+          isBlocked = true
+          blockReason = user.blocked_reason || 'Bạn đã bị cấm mua hàng tạm thời'
+        }
+      }
+      
+      if (!isBlocked) {
+        let query = 'SELECT blocked_reason FROM blocked_customers WHERE is_active = 1 AND ('
+        const params: any[] = []
+        
+        if (userId) {
+          query += 'user_id = ?'
+          params.push(userId)
+        }
+        
+        if (customer_phone) {
+          if (userId) query += ' OR '
+          query += 'customer_phone = ?'
+          params.push(customer_phone)
+        }
+        
+        query += ')'
+        
+        const block = await c.env.DB.prepare(query).bind(...params).first() as any
+        
+        if (block) {
+          isBlocked = true
+          blockReason = block.blocked_reason || 'Bạn đã bị cấm mua hàng tạm thời'
+        }
+      }
+      
+      if (isBlocked) {
+        return c.json({ 
+          success: false, 
+          error: 'CUSTOMER_BLOCKED',
+          reason: blockReason
+        }, 403)
+      }
+
       const product = await c.env.DB.prepare(`SELECT * FROM products WHERE id=? AND is_active=1`).bind(product_id).first() as any
       if (!product) return c.json({ success: false, error: 'Product not found' }, 404)
 
@@ -107,7 +208,7 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
           (user_id, order_code, customer_name, customer_phone, customer_address, product_id, product_name, product_price, color, selected_color_image, size, quantity, total_price, voucher_code, discount_amount, note, payment_method)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).bind(
-        await getUserSessionUserId(c),
+        userId,
         orderCode,
         customer_name,
         customer_phone,
@@ -239,12 +340,28 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
               updated_at = CURRENT_TIMESTAMP 
           WHERE id = ?
         `).bind(nextStatus, id).run()
+        
+        // Check for auto-block after cancellation
+        const order = await c.env.DB.prepare('SELECT user_id, customer_phone FROM orders WHERE id = ?').bind(id).first() as any
+        if (order) {
+          await checkAndAutoBlockCustomer(c.env.DB, order.user_id, order.customer_phone)
+        }
+        
         return c.json({ success: true, status: nextStatus, cancelled_by: 'shop' })
       }
 
       await c.env.DB.prepare(`
         UPDATE orders SET status=?, updated_at=CURRENT_TIMESTAMP WHERE id=?
       `).bind(nextStatus, id).run()
+      
+      // Check for auto-block after any status change to cancelled
+      if (nextStatus === 'cancelled') {
+        const order = await c.env.DB.prepare('SELECT user_id, customer_phone FROM orders WHERE id = ?').bind(id).first() as any
+        if (order) {
+          await checkAndAutoBlockCustomer(c.env.DB, order.user_id, order.customer_phone)
+        }
+      }
+      
       return c.json({ success: true, status: nextStatus })
     } catch (e: any) {
       return c.json({ success: false, error: e.message }, 500)

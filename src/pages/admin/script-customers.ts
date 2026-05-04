@@ -132,7 +132,7 @@ function renderCustomersTable() {
   }
 
   if (customersLoadError) {
-    if (tbody) tbody.innerHTML = '<tr><td colspan="4" class="px-4 py-16 text-center text-red-500"><i class="fas fa-triangle-exclamation text-3xl mb-3"></i><p class="font-semibold">' + escapeHtml(customersLoadError) + '</p><button type="button" onclick="loadCustomers()" class="mt-3 rounded-xl bg-red-50 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-100">Tải lại</button></td></tr>'
+    if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-16 text-center text-red-500"><i class="fas fa-triangle-exclamation text-3xl mb-3"></i><p class="font-semibold">' + escapeHtml(customersLoadError) + '</p><button type="button" onclick="loadCustomers()" class="mt-3 rounded-xl bg-red-50 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-100">Tải lại</button></td></tr>'
     if (mobileList) mobileList.innerHTML = '<div class="p-6 text-center text-red-500"><i class="fas fa-triangle-exclamation text-3xl mb-3"></i><p class="font-semibold">' + escapeHtml(customersLoadError) + '</p><button type="button" onclick="loadCustomers()" class="mt-3 rounded-xl bg-red-50 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-100">Tải lại</button></div>'
     if (empty) empty.classList.add('hidden')
     return
@@ -141,7 +141,7 @@ function renderCustomersTable() {
   if (!totalCustomers) {
     const hasSearch = !!String(document.getElementById('customersSearch')?.value || '').trim()
     const message = hasSearch ? 'Không tìm thấy khách hàng phù hợp' : 'Chưa có khách hàng nào'
-    if (tbody) tbody.innerHTML = '<tr><td colspan="4" class="px-4 py-16 text-center text-gray-400"><i class="fas fa-users text-4xl mb-3"></i><p>' + message + '</p></td></tr>'
+    if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="px-4 py-16 text-center text-gray-400"><i class="fas fa-users text-4xl mb-3"></i><p>' + message + '</p></td></tr>'
     if (mobileList) mobileList.innerHTML = ''
     if (empty) empty.classList.toggle('hidden', hasSearch)
     return
@@ -156,7 +156,11 @@ function renderCustomersTable() {
       const customerPhone = escapeHtml(customer.customer_phone || 'Chưa có SĐT')
       const customerAddress = escapeHtml(customer.customer_address || 'Chưa có địa chỉ')
       const orderCount = Number(customer.order_count || 0)
+      const cancelledCount = Number(customer.cancelled_count || 0)
       const totalSpent = formatCustomerMoney(customer.total_spent || 0)
+      const isBlocked = Number(customer.is_blocked || 0) === 1
+      const userId = customer.user_id || null
+      const phone = customer.customer_phone || null
 
       return '<tr class="border-b last:border-b-0 hover:bg-pink-50/40 transition">'
         + '<td class="px-4 py-4 align-top">'
@@ -167,7 +171,9 @@ function renderCustomersTable() {
         + (userName ? '<p class="mt-0.5 text-xs text-gray-500">@' + userName + '</p>' : '')
         + '<div class="mt-2 flex flex-wrap items-center gap-2">'
         + '<span class="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-600">' + orderCount + ' đơn</span>'
+        + (cancelledCount > 0 ? '<span class="rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-600">' + cancelledCount + ' hủy</span>' : '')
         + '<span class="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">' + totalSpent + '</span>'
+        + (isBlocked ? '<span class="rounded-full bg-red-100 px-2 py-0.5 text-xs font-bold text-red-700"><i class="fas fa-ban mr-1"></i>Đã chặn</span>' : '')
         + '</div>'
         + '</div>'
         + '</div>'
@@ -176,6 +182,12 @@ function renderCustomersTable() {
         + '<td class="px-4 py-4 align-top text-sm text-gray-600 max-w-[360px]"><p class="line-clamp-2">' + customerAddress + '</p></td>'
         + '<td class="px-4 py-4 align-top">'
         + '<div class="space-y-3">' + customerProductSnippet(customer) + customerHistoryButton(customer, false) + '</div>'
+        + '</td>'
+        + '<td class="px-4 py-4 align-top text-center">'
+        + (isBlocked 
+          ? '<button type="button" onclick="unblockCustomer(' + (userId || 'null') + ', \'' + escapeHtml(phone || '') + '\')" class="inline-flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition"><i class="fas fa-check-circle"></i>Bỏ chặn</button>'
+          : '<button type="button" onclick="blockCustomer(' + (userId || 'null') + ', \'' + escapeHtml(phone || '') + '\')" class="inline-flex items-center gap-2 rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-700 hover:bg-red-100 transition"><i class="fas fa-ban"></i>Chặn</button>'
+        )
         + '</td>'
         + '</tr>'
     }).join('')
@@ -188,7 +200,11 @@ function renderCustomersTable() {
       const customerPhone = escapeHtml(customer.customer_phone || 'Chưa có SĐT')
       const customerAddress = escapeHtml(customer.customer_address || 'Chưa có địa chỉ')
       const orderCount = Number(customer.order_count || 0)
+      const cancelledCount = Number(customer.cancelled_count || 0)
       const totalSpent = formatCustomerMoney(customer.total_spent || 0)
+      const isBlocked = Number(customer.is_blocked || 0) === 1
+      const userId = customer.user_id || null
+      const phone = customer.customer_phone || null
 
       return '<article class="customer-mobile-card p-4">'
         + '<div class="flex items-start gap-3">'
@@ -198,6 +214,8 @@ function renderCustomersTable() {
         + '<div class="min-w-0"><p class="font-bold text-gray-900 break-words">' + customerName + '</p>' + (userName ? '<p class="text-xs text-gray-500">@' + userName + '</p>' : '') + '</div>'
         + '<span class="shrink-0 rounded-full bg-pink-50 px-2 py-1 text-xs font-bold text-pink-700">' + orderCount + ' đơn</span>'
         + '</div>'
+        + (isBlocked ? '<div class="mt-2"><span class="inline-block rounded-full bg-red-100 px-2 py-1 text-xs font-bold text-red-700"><i class="fas fa-ban mr-1"></i>Đã chặn</span></div>' : '')
+        + (cancelledCount > 0 ? '<div class="mt-2"><span class="inline-block rounded-full bg-red-50 px-2 py-1 text-xs font-semibold text-red-600">' + cancelledCount + ' đơn hủy</span></div>' : '')
         + '<div class="mt-2 space-y-1 text-sm text-gray-600">'
         + '<p><i class="fas fa-phone mr-2 text-gray-400"></i>' + customerPhone + '</p>'
         + '<p class="line-clamp-2"><i class="fas fa-location-dot mr-2 text-gray-400"></i>' + customerAddress + '</p>'
@@ -205,7 +223,13 @@ function renderCustomersTable() {
         + '<div class="mt-3 rounded-2xl bg-gray-50 p-3">' + customerProductSnippet(customer) + '</div>'
         + '<div class="mt-3 flex items-center justify-between gap-3">'
         + '<span class="text-sm font-extrabold text-gray-900">' + totalSpent + '</span>'
+        + '<div class="flex items-center gap-2">'
         + customerHistoryButton(customer, true)
+        + (isBlocked 
+          ? '<button type="button" onclick="unblockCustomer(' + (userId || 'null') + ', \'' + escapeHtml(phone || '') + '\')" class="inline-flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition"><i class="fas fa-check-circle"></i>Bỏ chặn</button>'
+          : '<button type="button" onclick="blockCustomer(' + (userId || 'null') + ', \'' + escapeHtml(phone || '') + '\')" class="inline-flex items-center gap-2 rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-700 hover:bg-red-100 transition"><i class="fas fa-ban"></i>Chặn</button>'
+        )
+        + '</div>'
         + '</div>'
         + '</div>'
         + '</div>'
@@ -297,6 +321,49 @@ function escapeHtml(text) {
   const div = document.createElement('div')
   div.textContent = text == null ? '' : String(text)
   return div.innerHTML
+}
+
+async function blockCustomer(userId, phone) {
+  if (!confirm('Bạn có chắc muốn chặn khách hàng này? Họ sẽ không thể đặt hàng.')) return
+  
+  try {
+    const res = await axios.post('/api/admin/customers/block', {
+      user_id: userId,
+      customer_phone: phone,
+      reason: 'Bị chặn bởi quản trị viên'
+    })
+    
+    if (res.data?.success) {
+      showAdminToast('Đã chặn khách hàng', 'success')
+      loadCustomers()
+    } else {
+      showAdminToast(res.data?.error || 'Không thể chặn khách hàng', 'error')
+    }
+  } catch (e) {
+    showAdminToast(e?.response?.data?.error || 'Lỗi khi chặn khách hàng', 'error')
+    console.error('Block customer error:', e)
+  }
+}
+
+async function unblockCustomer(userId, phone) {
+  if (!confirm('Bạn có chắc muốn bỏ chặn khách hàng này?')) return
+  
+  try {
+    const res = await axios.post('/api/admin/customers/unblock', {
+      user_id: userId,
+      customer_phone: phone
+    })
+    
+    if (res.data?.success) {
+      showAdminToast('Đã bỏ chặn khách hàng', 'success')
+      loadCustomers()
+    } else {
+      showAdminToast(res.data?.error || 'Không thể bỏ chặn khách hàng', 'error')
+    }
+  } catch (e) {
+    showAdminToast(e?.response?.data?.error || 'Lỗi khi bỏ chặn khách hàng', 'error')
+    console.error('Unblock customer error:', e)
+  }
 }
 `
 }

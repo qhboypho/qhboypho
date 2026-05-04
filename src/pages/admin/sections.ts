@@ -272,11 +272,12 @@ export function adminCustomersPage(): string {
               <th class="px-4 py-3 text-left font-semibold text-gray-600">Số điện thoại</th>
               <th class="px-4 py-3 text-left font-semibold text-gray-600">Địa chỉ</th>
               <th class="px-4 py-3 text-left font-semibold text-gray-600">Sản phẩm đã mua</th>
+              <th class="px-4 py-3 text-center font-semibold text-gray-600">Hành động</th>
             </tr>
           </thead>
           <tbody id="customersTableBody">
             <tr>
-              <td colspan="4" class="px-4 py-16 text-center text-gray-400">
+              <td colspan="5" class="px-4 py-16 text-center text-gray-400">
                 <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
                 <p>Đang tải dữ liệu...</p>
               </td>

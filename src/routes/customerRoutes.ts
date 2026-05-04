@@ -33,11 +33,13 @@ export function registerCustomerRoutes(app: Hono<{ Bindings: AppBindings }>, dep
             o.customer_address,
             o.user_id,
             u.name AS user_name,
+            u.is_blocked,
             o.product_name,
             NULLIF(TRIM(p.thumbnail), '') AS product_thumbnail,
             o.total_price,
             o.created_at,
-            o.id AS order_id
+            o.id AS order_id,
+            o.status
           FROM orders o
           LEFT JOIN users u ON u.id = o.user_id
           LEFT JOIN products p ON p.id = o.product_id
@@ -71,7 +73,9 @@ export function registerCustomerRoutes(app: Hono<{ Bindings: AppBindings }>, dep
           ) AS customer_address,
           MAX(user_id) AS user_id,
           COALESCE(MAX(user_name), '') AS user_name,
+          COALESCE(MAX(is_blocked), 0) AS is_blocked,
           COUNT(*) AS order_count,
+          SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) AS cancelled_count,
           COALESCE(SUM(COALESCE(total_price, 0)), 0) AS total_spent,
           COALESCE(
             MAX(CASE WHEN rn = 1 THEN product_name END),

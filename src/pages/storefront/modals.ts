@@ -598,5 +598,36 @@ export function storefrontModalsSection(): string {
   </div>
 </div>
 
+<!-- Blocked Customer Modal -->
+<div id="blockedCustomerModal" class="fixed inset-0 overlay z-50 hidden flex items-center justify-center p-4" onclick="if(event.target===this) closeBlockedCustomerModal()">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden" onclick="event.stopPropagation()">
+    <div class="bg-gradient-to-r from-red-500 to-red-600 px-6 py-5 text-white">
+      <div class="flex items-center gap-3">
+        <div class="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center">
+          <i class="fas fa-ban text-2xl"></i>
+        </div>
+        <div>
+          <h3 class="font-bold text-lg">Không thể đặt hàng</h3>
+          <p class="text-sm text-red-100">Tài khoản bị hạn chế</p>
+        </div>
+      </div>
+    </div>
+    <div class="p-6">
+      <div class="bg-red-50 border border-red-200 rounded-xl p-4 mb-4">
+        <p id="blockedCustomerReason" class="text-sm text-red-800 font-medium text-center">
+          Bạn đã bị cấm mua hàng tạm thời
+        </p>
+      </div>
+      <p class="text-sm text-gray-600 text-center mb-6">
+        Vui lòng liên hệ với chúng tôi để được hỗ trợ và giải quyết vấn đề này.
+      </p>
+      <button type="button" onclick="closeBlockedCustomerModal()" 
+        class="w-full bg-gray-900 hover:bg-gray-800 text-white py-3 rounded-xl font-bold text-sm transition">
+        <i class="fas fa-times mr-2"></i>Đóng
+      </button>
+    </div>
+  </div>
+</div>
+
 <div id="toastContainer" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2 pointer-events-none"></div>`
 }

@@ -398,6 +398,42 @@ function clearFieldError(fieldId) {
   document.getElementById(fieldId)?.classList.remove('field-error')
 }
 
+// ── CUSTOMER BLOCK CHECK ──────────────────────────
+async function checkCustomerBlockStatus(phone) {
+  try {
+    const userId = currentUser?.userId || currentUser?.id || null
+    let url = '/api/customers/block-status?'
+    if (userId) url += 'user_id=' + userId + '&'
+    if (phone) url += 'phone=' + encodeURIComponent(phone)
+    
+    const res = await axios.get(url)
+    return res.data?.data || { is_blocked: false, reason: '' }
+  } catch (e) {
+    console.error('Check block status error:', e)
+    return { is_blocked: false, reason: '' }
+  }
+}
+
+function showBlockedCustomerModal(reason) {
+  const modal = document.getElementById('blockedCustomerModal')
+  const reasonEl = document.getElementById('blockedCustomerReason')
+  if (reasonEl) reasonEl.textContent = reason || 'Bạn đã bị cấm mua hàng tạm thời'
+  if (modal) {
+    modal.classList.remove('hidden')
+    modal.classList.add('flex')
+    document.body.style.overflow = 'hidden'
+  }
+}
+
+function closeBlockedCustomerModal() {
+  const modal = document.getElementById('blockedCustomerModal')
+  if (modal) {
+    modal.classList.add('hidden')
+    modal.classList.remove('flex')
+    document.body.style.overflow = ''
+  }
+}
+
 async function continueOrderPaymentFlow({ orderCode, orderId, orderTotal, paymentMethod, payTabRef }) {
   if (paymentMethod === 'BANK_TRANSFER') {
     let payosData = null
@@ -508,6 +544,14 @@ async function submitOrder() {
     requirePayment: true
   })
   if (!payload) return
+  
+  // Check if customer is blocked
+  const blockCheck = await checkCustomerBlockStatus(payload.phone)
+  if (blockCheck.is_blocked) {
+    showBlockedCustomerModal(blockCheck.reason)
+    return
+  }
+  
   const paymentMethod = getCheckoutSelectedPaymentMethod('order')
   if (paymentMethod === 'ZALOPAY') {
     const check = await ensureZaloPayConfigReady(true)
@@ -550,7 +594,9 @@ async function submitOrder() {
   } catch(e) {
     try { if (payTabRef && !payTabRef.closed) payTabRef.close() } catch (_) { }
     const errCode = e.response?.data?.error
-    if (errCode === 'INVALID_VOUCHER' || errCode === 'VOUCHER_LIMIT') {
+    if (errCode === 'CUSTOMER_BLOCKED') {
+      showBlockedCustomerModal(e.response?.data?.reason || 'Bạn đã bị cấm mua hàng tạm thời')
+    } else if (errCode === 'INVALID_VOUCHER' || errCode === 'VOUCHER_LIMIT') {
       showToast('Voucher không còn hiệu lực, vui lòng thử lại', 'error')
       appliedVoucher = null
       updateOrderTotal()
