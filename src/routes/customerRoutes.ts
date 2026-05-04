@@ -11,55 +11,59 @@ export function registerCustomerRoutes(app: Hono<{ Bindings: AppBindings }>, dep
     try {
       await deps.initDB(c.env.DB)
       
-      // Query to get unique customers with their order count and first product
+      // Simplified query - get all orders with customer info
       const query = `
-        WITH customer_orders AS (
-          SELECT 
-            o.customer_name,
-            o.customer_phone,
-            o.customer_address,
-            o.user_id,
-            u.name AS user_name,
-            COUNT(DISTINCT o.id) AS order_count,
-            MIN(o.id) AS first_order_id,
-            MIN(o.created_at) AS first_order_date
-          FROM orders o
-          LEFT JOIN users u ON u.id = o.user_id
-          GROUP BY 
-            CASE 
-              WHEN o.user_id IS NOT NULL THEN 'user_' || o.user_id
-              ELSE 'phone_' || o.customer_phone
-            END,
-            o.customer_name,
-            o.customer_phone,
-            o.customer_address,
-            o.user_id,
-            u.name
-        ),
-        first_products AS (
-          SELECT 
-            co.customer_phone,
-            co.user_id,
-            o.product_name,
-            p.thumbnail AS product_thumbnail
-          FROM customer_orders co
-          INNER JOIN orders o ON o.id = co.first_order_id
-          LEFT JOIN products p ON p.id = o.product_id
-        )
         SELECT 
-          co.*,
-          fp.product_name AS first_product_name,
-          fp.product_thumbnail AS first_product_thumbnail
-        FROM customer_orders co
-        LEFT JOIN first_products fp ON 
-          (co.user_id IS NOT NULL AND fp.user_id = co.user_id) OR
-          (co.user_id IS NULL AND fp.customer_phone = co.customer_phone)
-        ORDER BY co.first_order_date DESC
+          o.customer_name,
+          o.customer_phone,
+          o.customer_address,
+          o.user_id,
+          u.name AS user_name,
+          o.product_name,
+          p.thumbnail AS product_thumbnail,
+          o.created_at,
+          o.id AS order_id
+        FROM orders o
+        LEFT JOIN users u ON u.id = o.user_id
+        LEFT JOIN products p ON p.id = o.product_id
+        ORDER BY o.created_at DESC
       `
       
       const result = await c.env.DB.prepare(query).all()
-      return c.json({ success: true, data: result.results || [] })
+      const orders = result.results || []
+      
+      // Group by customer (user_id or phone)
+      const customerMap = new Map()
+      
+      for (const order of orders) {
+        const key = order.user_id ? `user_${order.user_id}` : `phone_${order.customer_phone}`
+        
+        if (!customerMap.has(key)) {
+          customerMap.set(key, {
+            customer_name: order.customer_name,
+            customer_phone: order.customer_phone,
+            customer_address: order.customer_address,
+            user_id: order.user_id,
+            user_name: order.user_name,
+            order_count: 0,
+            first_product_name: order.product_name,
+            first_product_thumbnail: order.product_thumbnail,
+            first_order_date: order.created_at
+          })
+        }
+        
+        const customer = customerMap.get(key)
+        customer.order_count++
+      }
+      
+      // Convert map to array and sort by first order date
+      const customers = Array.from(customerMap.values()).sort((a, b) => {
+        return new Date(b.first_order_date).getTime() - new Date(a.first_order_date).getTime()
+      })
+      
+      return c.json({ success: true, data: customers })
     } catch (e: any) {
+      console.error('Customer API error:', e)
       return c.json({ success: false, error: e.message }, 500)
     }
   })
