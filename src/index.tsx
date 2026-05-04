@@ -7,6 +7,7 @@ import { registerAuthRoutes } from './routes/authRoutes'
 import { registerProductRoutes } from './routes/productRoutes'
 import { registerOrderRoutes } from './routes/orderRoutes'
 import { registerReturnsRoutes } from './routes/returnsRoutes'
+import { registerCustomerRoutes } from './routes/customerRoutes'
 import { registerPaymentRoutes } from './routes/paymentRoutes'
 import { registerVoucherStatsRoutes } from './routes/voucherStatsRoutes'
 import { registerAdminUtilityRoutes } from './routes/adminUtilityRoutes'
@@ -97,6 +98,10 @@ registerOrderRoutes(app, {
 })
 
 registerReturnsRoutes(app, {
+  initDB
+})
+
+registerCustomerRoutes(app, {
   initDB
 })
 

@@ -11,7 +11,7 @@ export function adminSidebarOverlay(): string {
 }
 
 export function adminSidebarSection(): string {
-  return "<!-- SIDEBAR -->\n<aside id=\"sidebar\" data-sidebar-state=\"expanded\" class=\"sidebar w-64 min-h-screen fixed left-0 top-0 z-40 transform -translate-x-full md:translate-x-0 transition-transform duration-300 flex flex-col\">\n  <div class=\"p-6 border-b border-white/10\">\n    <div class=\"flex items-center gap-3 sidebar-brand-shell\">\n      <span class=\"inline-flex items-center justify-center sidebar-brand-logo\"><img src=\"/qh-logo.png\" alt=\"QH\" class=\"rounded-full w-9 h-9 object-cover bg-white\"></span>\n      <div class=\"sidebar-brand-copy\">\n        <p class=\"text-white font-bold text-lg leading-tight\">QH<span class=\"text-pink-400\">Clothes</span></p>\n        <p class=\"text-gray-400 text-xs\">Admin Panel</p>\n      </div>\n    </div>\n  </div>\n  \n  <nav class=\"p-4 flex-1 space-y-1\">\n    <button class=\"nav-item active w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium\" data-page=\"dashboard\" onclick=\"showPage('dashboard')\">\n      <i class=\"fas fa-chart-pie w-5\"></i><span class=\"sidebar-label\">Dashboard</span>\n    </button>\n    <button class=\"nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium\" data-page=\"products\" onclick=\"showPage('products')\">\n      <i class=\"fas fa-tshirt w-5\"></i><span class=\"sidebar-label\">Sản phẩm</span>\n    </button>\n    <button class=\"nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium\" data-page=\"orders\" onclick=\"showPage('orders')\">\n      <i class=\"fas fa-clipboard-list w-5\"></i><span class=\"sidebar-label\">Đơn hàng</span>\n      <span id=\"pendingBadge\" class=\"sidebar-badge ml-auto bg-pink-500 text-white text-xs rounded-full px-2 py-0.5 hidden\"></span>\n    </button>\n    <button class=\"nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium\" data-page=\"returns\" onclick=\"showPage('returns')\">\n      <i class=\"fas fa-undo w-5\"></i><span class=\"sidebar-label\">Quản lý hoàn trả</span>\n    </button>\n    <button class=\"nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium\" data-page=\"vouchers\" onclick=\"showPage('vouchers')\">\n      <i class=\"fas fa-ticket-alt w-5\"></i><span class=\"sidebar-label\">Voucher</span>\n    </button>\n    <button class=\"nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium\" data-page=\"featured\" onclick=\"showPage('featured')\">\n      <i class=\"fas fa-star w-5\"></i><span class=\"sidebar-label\">Sản phẩm Nổi Bật</span>\n    </button>\n    <button id=\"marketingMenuBtn\" class=\"nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium\" onclick=\"toggleMarketingMenu()\">\n      <i class=\"fas fa-bullhorn w-5\"></i>\n      <span class=\"sidebar-label\">Marketing</span>\n      <i id=\"marketingMenuChevron\" class=\"sidebar-chevron fas fa-chevron-down ml-auto text-xs transition-transform\"></i>\n    </button>\n    <div id=\"marketingSubmenu\" class=\"hidden ml-5 mt-1 space-y-1\">\n      <button class=\"nav-sub-item w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg text-gray-400 text-sm font-medium\" data-sub-page=\"flashsale\" onclick=\"openFlashSaleAdmin()\">\n        <i class=\"fas fa-bolt w-4\"></i><span class=\"sidebar-sub-label\">Flashsale</span>\n      </button>\n    </div>\n    <button class=\"nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium\" data-page=\"reviews\" onclick=\"showPage('reviews')\">\n      <i class=\"fas fa-star-half-stroke w-5\"></i><span class=\"sidebar-label\">Đánh giá</span>\n    </button>\n    <button id=\"settingsMenuBtn\" class=\"nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium\" onclick=\"toggleSettingsMenu()\">\n      <i class=\"fas fa-gear w-5\"></i>\n      <span class=\"sidebar-label\">Setting</span>\n      <i id=\"settingsMenuChevron\" class=\"sidebar-chevron fas fa-chevron-down ml-auto text-xs transition-transform\"></i>\n    </button>\n    <div id=\"settingsSubmenu\" class=\"hidden ml-5 mt-1 space-y-1\">\n      <button class=\"nav-sub-item w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg text-gray-400 text-sm font-medium\" data-sub-page=\"settings-social\" onclick=\"openSettingsSocial()\">\n        <i class=\"fas fa-hashtag w-4\"></i><span class=\"sidebar-sub-label\">MXH</span>\n      </button>\n      <button class=\"nav-sub-item w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg text-gray-400 text-sm font-medium\" data-sub-page=\"settings-warehouse\" onclick=\"openSettingsWarehouse()\">\n        <i class=\"fas fa-warehouse w-4\"></i><span class=\"sidebar-sub-label\">Kho hàng</span>\n      </button>\n    </div>\n  </nav>\n  \n  <div class=\"p-4 border-t border-white/10\">\n    <a href=\"/\" target=\"_blank\" class=\"flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 text-sm hover:text-pink-400 transition\">\n      <i class=\"fas fa-external-link-alt w-5\"></i><span class=\"sidebar-label\">Xem trang chủ</span>\n    </a>\n  </div>\n</aside>"
+  return "<!-- SIDEBAR -->\n<aside id=\"sidebar\" data-sidebar-state=\"expanded\" class=\"sidebar w-64 min-h-screen fixed left-0 top-0 z-40 transform -translate-x-full md:translate-x-0 transition-transform duration-300 flex flex-col\">\n  <div class=\"p-6 border-b border-white/10\">\n    <div class=\"flex items-center gap-3 sidebar-brand-shell\">\n      <span class=\"inline-flex items-center justify-center sidebar-brand-logo\"><img src=\"/qh-logo.png\" alt=\"QH\" class=\"rounded-full w-9 h-9 object-cover bg-white\"></span>\n      <div class=\"sidebar-brand-copy\">\n        <p class=\"text-white font-bold text-lg leading-tight\">QH<span class=\"text-pink-400\">Clothes</span></p>\n        <p class=\"text-gray-400 text-xs\">Admin Panel</p>\n      </div>\n    </div>\n  </div>\n  \n  <nav class=\"p-4 flex-1 space-y-1\">\n    <button class=\"nav-item active w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium\" data-page=\"dashboard\" onclick=\"showPage('dashboard')\">\n      <i class=\"fas fa-chart-pie w-5\"></i><span class=\"sidebar-label\">Dashboard</span>\n    </button>\n    <button class=\"nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium\" data-page=\"products\" onclick=\"showPage('products')\">\n      <i class=\"fas fa-tshirt w-5\"></i><span class=\"sidebar-label\">Sản phẩm</span>\n    </button>\n    <button class=\"nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium\" data-page=\"orders\" onclick=\"showPage('orders')\">\n      <i class=\"fas fa-clipboard-list w-5\"></i><span class=\"sidebar-label\">Đơn hàng</span>\n      <span id=\"pendingBadge\" class=\"sidebar-badge ml-auto bg-pink-500 text-white text-xs rounded-full px-2 py-0.5 hidden\"></span>\n    </button>\n    <button class=\"nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium\" data-page=\"returns\" onclick=\"showPage('returns')\">\n      <i class=\"fas fa-undo w-5\"></i><span class=\"sidebar-label\">Quản lý hoàn trả</span>\n    </button>\n    <button class=\"nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium\" data-page=\"customers\" onclick=\"showPage('customers')\">\n      <i class=\"fas fa-users w-5\"></i><span class=\"sidebar-label\">Khách hàng</span>\n    </button>\n    <button class=\"nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium\" data-page=\"vouchers\" onclick=\"showPage('vouchers')\">\n      <i class=\"fas fa-ticket-alt w-5\"></i><span class=\"sidebar-label\">Voucher</span>\n    </button>\n    <button class=\"nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium\" data-page=\"featured\" onclick=\"showPage('featured')\">\n      <i class=\"fas fa-star w-5\"></i><span class=\"sidebar-label\">Sản phẩm Nổi Bật</span>\n    </button>\n    <button id=\"marketingMenuBtn\" class=\"nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium\" onclick=\"toggleMarketingMenu()\">\n      <i class=\"fas fa-bullhorn w-5\"></i>\n      <span class=\"sidebar-label\">Marketing</span>\n      <i id=\"marketingMenuChevron\" class=\"sidebar-chevron fas fa-chevron-down ml-auto text-xs transition-transform\"></i>\n    </button>\n    <div id=\"marketingSubmenu\" class=\"hidden ml-5 mt-1 space-y-1\">\n      <button class=\"nav-sub-item w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg text-gray-400 text-sm font-medium\" data-sub-page=\"flashsale\" onclick=\"openFlashSaleAdmin()\">\n        <i class=\"fas fa-bolt w-4\"></i><span class=\"sidebar-sub-label\">Flashsale</span>\n      </button>\n    </div>\n    <button class=\"nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium\" data-page=\"reviews\" onclick=\"showPage('reviews')\">\n      <i class=\"fas fa-star-half-stroke w-5\"></i><span class=\"sidebar-label\">Đánh giá</span>\n    </button>\n    <button id=\"settingsMenuBtn\" class=\"nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium\" onclick=\"toggleSettingsMenu()\">\n      <i class=\"fas fa-gear w-5\"></i>\n      <span class=\"sidebar-label\">Setting</span>\n      <i id=\"settingsMenuChevron\" class=\"sidebar-chevron fas fa-chevron-down ml-auto text-xs transition-transform\"></i>\n    </button>\n    <div id=\"settingsSubmenu\" class=\"hidden ml-5 mt-1 space-y-1\">\n      <button class=\"nav-sub-item w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg text-gray-400 text-sm font-medium\" data-sub-page=\"settings-social\" onclick=\"openSettingsSocial()\">\n        <i class=\"fas fa-hashtag w-4\"></i><span class=\"sidebar-sub-label\">MXH</span>\n      </button>\n      <button class=\"nav-sub-item w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg text-gray-400 text-sm font-medium\" data-sub-page=\"settings-warehouse\" onclick=\"openSettingsWarehouse()\">\n        <i class=\"fas fa-warehouse w-4\"></i><span class=\"sidebar-sub-label\">Kho hàng</span>\n      </button>\n    </div>\n  </nav>\n  \n  <div class=\"p-4 border-t border-white/10\">\n    <a href=\"/\" target=\"_blank\" class=\"flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 text-sm hover:text-pink-400 transition\">\n      <i class=\"fas fa-external-link-alt w-5\"></i><span class=\"sidebar-label\">Xem trang chủ</span>\n    </a>\n  </div>\n</aside>"
 }
 
 export function adminMainContentStart(): string {
@@ -248,6 +248,76 @@ export function adminReturnsPage(): string {
     </div>
   </div>`
 }
+export function adminCustomersPage(): string {
+  return `<!-- CUSTOMERS PAGE -->
+  <div id="page-customers" class="p-3 md:p-6 hidden">
+    <!-- Filters & Actions -->
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+      <div class="flex gap-2 flex-wrap items-center">
+        <input type="text" id="customersSearch" placeholder="Tìm tên/SĐT/username..." oninput="filterCustomers()" 
+          class="border rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-pink-400 w-64">
+      </div>
+      <div class="flex items-center gap-2">
+        <span id="customersCount" class="text-sm text-gray-600 font-medium">0 khách hàng</span>
+      </div>
+    </div>
+
+    <!-- Customers Table -->
+    <div class="bg-white rounded-2xl shadow-sm border overflow-hidden">
+      <div class="hidden md:block overflow-x-auto scrollbar-thin">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="bg-gray-50 border-b">
+              <th class="px-4 py-3 text-left font-semibold text-gray-600">Khách hàng</th>
+              <th class="px-4 py-3 text-left font-semibold text-gray-600">Số điện thoại</th>
+              <th class="px-4 py-3 text-left font-semibold text-gray-600">Địa chỉ</th>
+              <th class="px-4 py-3 text-left font-semibold text-gray-600">Sản phẩm đã mua</th>
+            </tr>
+          </thead>
+          <tbody id="customersTableBody">
+            <tr>
+              <td colspan="4" class="px-4 py-16 text-center text-gray-400">
+                <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                <p>Đang tải dữ liệu...</p>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div id="customersMobileList" class="md:hidden"></div>
+      <div id="customersEmpty" class="hidden text-center py-16 text-gray-400">
+        <i class="fas fa-users text-4xl mb-3"></i>
+        <p>Chưa có khách hàng nào</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Customer Order History Modal -->
+  <div id="customerOrderHistoryModal" class="modal-overlay hidden fixed inset-0 z-[90] items-center justify-center px-4 py-6" style="display:none;pointer-events:none" onclick="closeCustomerOrderHistoryModal(event)">
+    <div class="modal-card w-full max-w-4xl max-h-[88vh] overflow-hidden rounded-3xl bg-white shadow-2xl border border-pink-100 flex flex-col" onclick="event.stopPropagation()">
+      <div class="flex items-start justify-between gap-4 border-b border-gray-100 px-6 py-5 bg-gradient-to-r from-pink-50 via-white to-orange-50">
+        <div>
+          <h3 class="text-2xl font-extrabold text-gray-900 tracking-tight">Lịch sử đơn hàng</h3>
+          <p id="customerOrderHistorySubtitle" class="text-sm text-gray-500 mt-1">Khách hàng: <span id="customerOrderHistoryName" class="font-semibold text-gray-700"></span></p>
+        </div>
+        <button type="button" onclick="closeCustomerOrderHistoryModal()" class="w-10 h-10 rounded-full bg-white border border-gray-200 text-gray-500 hover:text-gray-900 hover:border-pink-200 transition shadow-sm">
+          <i class="fas fa-xmark"></i>
+        </button>
+      </div>
+      <div class="flex-1 overflow-y-auto scrollbar-thin bg-gray-50/60 px-6 py-5">
+        <div id="customerOrderHistoryContent" class="space-y-3">
+          <div class="text-center py-8 text-gray-400">
+            <i class="fas fa-spinner fa-spin text-2xl"></i>
+          </div>
+        </div>
+      </div>
+      <div class="border-t border-gray-100 bg-white px-6 py-4 flex items-center justify-end gap-3">
+        <button type="button" onclick="closeCustomerOrderHistoryModal()" class="px-4 py-2 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition">Đóng</button>
+      </div>
+    </div>
+  </div>`
+}
+
 export function adminBodyClose(): string {
   return "</body>"
 }
