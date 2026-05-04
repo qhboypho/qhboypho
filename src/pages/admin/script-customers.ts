@@ -51,6 +51,7 @@ function filterCustomers() {
       customer.first_product_name
     ].some(value => normalizeCustomerSearch(value).includes(search))
   })
+  renderCustomersTable()
 }
 
 function customerInitials(customer) {
