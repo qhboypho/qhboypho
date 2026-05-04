@@ -8469,7 +8469,7 @@ let desktopSidebarCollapsed = false
 let selectedColorImage = ''
 let adminOverlaySafetyScheduled = false
 const MAX_PRODUCT_PAYLOAD_SIZE = 1200000
-const ADMIN_OVERLAY_IDS = ['productModal', 'orderDetailModal', 'arrangeSuccessModal', 'createFlashSaleModal', 'flashSaleProductPickerModal', 'adminChangePasswordModal', 'reviewAdminModal', 'dashboardCustomerModal']
+const ADMIN_OVERLAY_IDS = ['productModal', 'orderDetailModal', 'arrangeSuccessModal', 'createFlashSaleModal', 'flashSaleProductPickerModal', 'adminChangePasswordModal', 'reviewAdminModal', 'dashboardCustomerModal', 'customerOrderHistoryModal']
 
 function forceHideAdminOverlay(el) {
   if (!el) return
@@ -8478,6 +8478,7 @@ function forceHideAdminOverlay(el) {
   if (el.classList.contains('flex')) el.classList.remove('flex')
   if (el.style.display !== 'none') el.style.display = 'none'
   if (el.style.pointerEvents !== 'none') el.style.pointerEvents = 'none'
+  queueAdminOverlaySafetySync()
 }
 
 function showAdminOverlay(el, displayMode = 'flex') {
@@ -8487,6 +8488,7 @@ function showAdminOverlay(el, displayMode = 'flex') {
   el.style.pointerEvents = ''
   el.classList.remove('hidden')
   if (displayMode === 'flex') el.classList.add('flex')
+  document.body.style.overflow = 'hidden'
   queueAdminOverlaySafetySync()
 }
 
@@ -24166,7 +24168,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env2, _ctx, middlewareCtx
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// ../.wrangler/tmp/bundle-AI4GrX/middleware-insertion-facade.js
+// ../.wrangler/tmp/bundle-MHT3aR/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -24198,7 +24200,7 @@ function __facade_invoke__(request, env2, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// ../.wrangler/tmp/bundle-AI4GrX/middleware-loader.entry.ts
+// ../.wrangler/tmp/bundle-MHT3aR/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;

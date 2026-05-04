@@ -8806,7 +8806,7 @@ let desktopSidebarCollapsed = false
 let selectedColorImage = ''
 let adminOverlaySafetyScheduled = false
 const MAX_PRODUCT_PAYLOAD_SIZE = 1200000
-const ADMIN_OVERLAY_IDS = ['productModal', 'orderDetailModal', 'arrangeSuccessModal', 'createFlashSaleModal', 'flashSaleProductPickerModal', 'adminChangePasswordModal', 'reviewAdminModal', 'dashboardCustomerModal']
+const ADMIN_OVERLAY_IDS = ['productModal', 'orderDetailModal', 'arrangeSuccessModal', 'createFlashSaleModal', 'flashSaleProductPickerModal', 'adminChangePasswordModal', 'reviewAdminModal', 'dashboardCustomerModal', 'customerOrderHistoryModal']
 
 function forceHideAdminOverlay(el) {
   if (!el) return
@@ -8815,6 +8815,7 @@ function forceHideAdminOverlay(el) {
   if (el.classList.contains('flex')) el.classList.remove('flex')
   if (el.style.display !== 'none') el.style.display = 'none'
   if (el.style.pointerEvents !== 'none') el.style.pointerEvents = 'none'
+  queueAdminOverlaySafetySync()
 }
 
 function showAdminOverlay(el, displayMode = 'flex') {
@@ -8824,6 +8825,7 @@ function showAdminOverlay(el, displayMode = 'flex') {
   el.style.pointerEvents = ''
   el.classList.remove('hidden')
   if (displayMode === 'flex') el.classList.add('flex')
+  document.body.style.overflow = 'hidden'
   queueAdminOverlaySafetySync()
 }
 
