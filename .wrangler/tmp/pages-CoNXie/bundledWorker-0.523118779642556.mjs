@@ -13144,8 +13144,8 @@ function xp() {
   <div class="login-shell fade-up w-full max-w-md">
     <!-- Logo -->
     <div class="text-center mb-8">
-      <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-pink-500 to-red-500 flex items-center justify-center mx-auto mb-4 shadow-xl">
-        <i class="fas fa-tshirt text-white text-2xl"></i>
+      <div class="w-16 h-16 rounded-full bg-white flex items-center justify-center mx-auto mb-4 shadow-xl overflow-hidden">
+        <img src="/qh-logo.png" alt="QH" class="w-full h-full object-cover">
       </div>
       <h1 class="font-display text-3xl font-bold text-white">QH<span class="text-pink-400">Clothes</span></h1>
       <p class="text-gray-400 mt-2 text-sm">Admin Panel</p>
@@ -24168,7 +24168,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env2, _ctx, middlewareCtx
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// ../.wrangler/tmp/bundle-DYmdAg/middleware-insertion-facade.js
+// ../.wrangler/tmp/bundle-5pENyX/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -24200,7 +24200,7 @@ function __facade_invoke__(request, env2, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// ../.wrangler/tmp/bundle-DYmdAg/middleware-loader.entry.ts
+// ../.wrangler/tmp/bundle-5pENyX/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class ___Facade_ScheduledController__ {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;
