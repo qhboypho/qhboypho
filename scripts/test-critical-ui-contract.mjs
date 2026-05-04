@@ -11,6 +11,8 @@ const adminSectionsSource = await readFile(new URL('../src/pages/admin/sections.
 const adminStylesSource = await readFile(new URL('../src/pages/admin/styles.ts', import.meta.url), 'utf8')
 const adminScriptSource = await readFile(new URL('../src/pages/admin/script.ts', import.meta.url), 'utf8')
 const adminSettingsScriptSource = await readFile(new URL('../src/pages/admin/script-featured-settings.ts', import.meta.url), 'utf8')
+const adminCustomersScriptSource = await readFile(new URL('../src/pages/admin/script-customers.ts', import.meta.url), 'utf8')
+const customerRoutesSource = await readFile(new URL('../src/routes/customerRoutes.ts', import.meta.url), 'utf8')
 const adminUtilityRoutesSource = await readFile(new URL('../src/routes/adminUtilityRoutes.ts', import.meta.url), 'utf8')
 const voucherStatsRoutesSource = await readFile(new URL('../src/routes/voucherStatsRoutes.ts', import.meta.url), 'utf8')
 const mobileOrderCardSource = ordersSource.slice(
@@ -43,6 +45,41 @@ assert.match(
   ordersSource,
   /Hành động này không thể hoàn tác/,
   'bulk delete should warn that deleting selected orders cannot be undone',
+)
+assert.match(
+  adminCustomersScriptSource,
+  /function encodeCustomerHistoryPayload[\s\S]*encodeURIComponent\(JSON\.stringify/,
+  'admin customers should encode history modal payloads instead of concatenating quoted onclick arguments',
+)
+assert.doesNotMatch(
+  adminCustomersScriptSource,
+  /openCustomerOrderHistory\(\\'/,
+  'admin customers should not use template-string escaped single quotes that collapse into invalid inline JavaScript',
+)
+assert.match(
+  adminCustomersScriptSource,
+  /customersTableBody[\s\S]*finally[\s\S]*renderCustomersTable/,
+  'admin customers loading state should always settle through renderCustomersTable, even on request failure',
+)
+assert.match(
+  customerRoutesSource,
+  /WITH[\s\S]*ranked_orders[\s\S]*ROW_NUMBER\(\) OVER[\s\S]*GROUP BY customer_key/,
+  'admin customers API should aggregate customers in SQL instead of fetching every order and grouping in JS',
+)
+assert.doesNotMatch(
+  customerRoutesSource,
+  /new Map\(\)[\s\S]*customerMap/,
+  'admin customers API should not group all orders in memory for the customer list',
+)
+assert.match(
+  customerRoutesSource,
+  /normalizeCustomerListThumbnail[\s\S]*\^data:/,
+  'admin customers API should strip large inline data thumbnails from the list payload',
+)
+assert.doesNotMatch(
+  customerRoutesSource,
+  /selected_color_image[\s\S]*AS product_thumbnail/,
+  'admin customers list API should not fallback to selected_color_image because it can make the list payload megabytes',
 )
 assert.match(
   mobileOrderCardSource,

@@ -2,32 +2,117 @@ export function adminCustomersScript(): string {
   return `// CUSTOMERS MANAGEMENT
 let customersData = []
 let filteredCustomersData = []
+let customersLoadError = ''
 
-async function loadCustomers() {
-  try {
-    const res = await axios.get('/api/admin/customers')
-    customersData = res.data?.data || []
-    filterCustomers()
-  } catch (e) {
-    showAdminToast('Không thể tải dữ liệu khách hàng', 'error')
-    console.error(e)
+function setCustomersLoadingState() {
+  const tbody = document.getElementById('customersTableBody')
+  const mobileList = document.getElementById('customersMobileList')
+  const empty = document.getElementById('customersEmpty')
+  const countEl = document.getElementById('customersCount')
+  if (countEl) countEl.textContent = 'Đang tải...'
+  if (empty) empty.classList.add('hidden')
+  if (mobileList) mobileList.innerHTML = '<div class="py-12 text-center text-gray-400"><i class="fas fa-spinner fa-spin text-2xl mb-2"></i><p>Đang tải dữ liệu...</p></div>'
+  if (tbody) {
+    tbody.innerHTML = '<tr><td colspan="4" class="px-4 py-16 text-center text-gray-400"><i class="fas fa-spinner fa-spin text-2xl mb-2"></i><p>Đang tải dữ liệu...</p></td></tr>'
   }
 }
 
+async function loadCustomers() {
+  customersLoadError = ''
+  setCustomersLoadingState()
+  try {
+    const res = await axios.get('/api/admin/customers')
+    if (!res.data?.success) throw new Error(res.data?.error || 'Không thể tải dữ liệu khách hàng')
+    customersData = Array.isArray(res.data?.data) ? res.data.data : []
+  } catch (e) {
+    customersData = []
+    customersLoadError = e?.response?.data?.error || e?.message || 'Không thể tải dữ liệu khách hàng'
+    showAdminToast(customersLoadError, 'error')
+    console.error('loadCustomers error:', e)
+  } finally {
+    filterCustomers()
+    renderCustomersTable()
+  }
+}
+
+function normalizeCustomerSearch(value) {
+  return String(value || '').toLowerCase().trim()
+}
+
 function filterCustomers() {
-  const search = String(document.getElementById('customersSearch')?.value || '').toLowerCase().trim()
-  
+  const search = normalizeCustomerSearch(document.getElementById('customersSearch')?.value)
   filteredCustomersData = customersData.filter(customer => {
     if (!search) return true
-    
-    const customerName = String(customer.customer_name || '').toLowerCase()
-    const customerPhone = String(customer.customer_phone || '').toLowerCase()
-    const userName = String(customer.user_name || '').toLowerCase()
-    
-    return customerName.includes(search) || customerPhone.includes(search) || userName.includes(search)
+    return [
+      customer.customer_name,
+      customer.customer_phone,
+      customer.customer_address,
+      customer.user_name,
+      customer.first_product_name
+    ].some(value => normalizeCustomerSearch(value).includes(search))
   })
-  
-  renderCustomersTable()
+}
+
+function customerInitials(customer) {
+  const raw = String(customer?.customer_name || customer?.user_name || 'KH').trim()
+  const parts = raw.split(/\s+/).filter(Boolean)
+  if (!parts.length) return 'KH'
+  return parts.slice(-2).map(part => part.charAt(0).toUpperCase()).join('') || 'KH'
+}
+
+function formatCustomerMoney(value) {
+  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(value || 0))
+}
+
+function formatCustomerDate(value) {
+  if (!value) return 'Chưa có'
+  const parsed = new Date(String(value).trim().replace(' ', 'T'))
+  if (!Number.isFinite(parsed.getTime())) return String(value)
+  return parsed.toLocaleDateString('vi-VN')
+}
+
+function encodeCustomerHistoryPayload(customer) {
+  const identifier = customer?.user_id ? String(customer.user_id) : String(customer?.customer_phone || '')
+  return encodeURIComponent(JSON.stringify({
+    identifier,
+    type: customer?.user_id ? 'user_id' : 'phone',
+    name: String(customer?.customer_name || customer?.user_name || 'Khách hàng')
+  }))
+}
+
+function openCustomerOrderHistoryFromPayload(payload) {
+  try {
+    const data = JSON.parse(decodeURIComponent(String(payload || '')))
+    if (!data.identifier) return
+    openCustomerOrderHistory(data.identifier, data.type === 'user_id' ? 'user_id' : 'phone', data.name || 'Khách hàng')
+  } catch (e) {
+    showAdminToast('Không mở được lịch sử khách hàng', 'error')
+    console.error('openCustomerOrderHistoryFromPayload error:', e)
+  }
+}
+
+function customerHistoryButton(customer, compact = false) {
+  const orderCount = Number(customer?.order_count || 0)
+  if (orderCount < 1) return ''
+  const payload = escapeHtml(encodeCustomerHistoryPayload(customer))
+  const label = orderCount > 1 ? ('Xem ' + orderCount + ' đơn') : 'Xem đơn hàng'
+  const className = compact
+    ? 'mt-3 inline-flex items-center justify-center gap-2 rounded-xl bg-pink-50 px-3 py-2 text-xs font-bold text-pink-700 hover:bg-pink-100 transition'
+    : 'inline-flex items-center gap-2 rounded-xl bg-pink-50 px-3 py-2 text-xs font-bold text-pink-700 hover:bg-pink-100 transition'
+  return '<button type="button" data-history-payload="' + payload + '" onclick="openCustomerOrderHistoryFromPayload(this.dataset.historyPayload)" class="' + className + '"><i class="fas fa-receipt"></i>' + label + '</button>'
+}
+
+function customerProductSnippet(customer) {
+  const firstProductName = escapeHtml(customer?.first_product_name || 'Chưa có sản phẩm')
+  const thumbnail = escapeHtml(customer?.first_product_thumbnail || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=80')
+  const latestDate = escapeHtml(formatCustomerDate(customer?.latest_order_date || customer?.first_order_date))
+  return '<div class="flex items-center gap-3 min-w-0">'
+    + '<img src="' + thumbnail + '" alt="" loading="lazy" class="h-11 w-11 shrink-0 rounded-xl border border-gray-200 bg-gray-100 object-cover">'
+    + '<div class="min-w-0">'
+    + '<p class="truncate text-sm font-semibold text-gray-800">' + firstProductName + '</p>'
+    + '<p class="mt-0.5 text-xs text-gray-400">Mua gần nhất: ' + latestDate + '</p>'
+    + '</div>'
+    + '</div>'
 }
 
 function renderCustomersTable() {
@@ -35,93 +120,96 @@ function renderCustomersTable() {
   const mobileList = document.getElementById('customersMobileList')
   const empty = document.getElementById('customersEmpty')
   const countEl = document.getElementById('customersCount')
-  
-  if (countEl) countEl.textContent = filteredCustomersData.length + ' khách hàng'
-  
-  if (!filteredCustomersData.length) {
-    if (tbody) tbody.innerHTML = '<tr><td colspan="4" class="px-4 py-16 text-center text-gray-400"><i class="fas fa-inbox text-4xl mb-3"></i><p>Không có dữ liệu</p></td></tr>'
-    if (mobileList) mobileList.innerHTML = ''
-    if (empty) empty.classList.remove('hidden')
+  const totalCustomers = filteredCustomersData.length
+  const totalOrders = filteredCustomersData.reduce((sum, customer) => sum + Number(customer.order_count || 0), 0)
+  const totalSpent = filteredCustomersData.reduce((sum, customer) => sum + Number(customer.total_spent || 0), 0)
+
+  if (countEl) {
+    countEl.textContent = customersLoadError
+      ? 'Lỗi tải dữ liệu'
+      : totalCustomers + ' khách hàng • ' + totalOrders + ' đơn • ' + formatCustomerMoney(totalSpent)
+  }
+
+  if (customersLoadError) {
+    if (tbody) tbody.innerHTML = '<tr><td colspan="4" class="px-4 py-16 text-center text-red-500"><i class="fas fa-triangle-exclamation text-3xl mb-3"></i><p class="font-semibold">' + escapeHtml(customersLoadError) + '</p><button type="button" onclick="loadCustomers()" class="mt-3 rounded-xl bg-red-50 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-100">Tải lại</button></td></tr>'
+    if (mobileList) mobileList.innerHTML = '<div class="p-6 text-center text-red-500"><i class="fas fa-triangle-exclamation text-3xl mb-3"></i><p class="font-semibold">' + escapeHtml(customersLoadError) + '</p><button type="button" onclick="loadCustomers()" class="mt-3 rounded-xl bg-red-50 px-4 py-2 text-sm font-semibold text-red-600 hover:bg-red-100">Tải lại</button></div>'
+    if (empty) empty.classList.add('hidden')
     return
   }
-  
+
+  if (!totalCustomers) {
+    const hasSearch = !!String(document.getElementById('customersSearch')?.value || '').trim()
+    const message = hasSearch ? 'Không tìm thấy khách hàng phù hợp' : 'Chưa có khách hàng nào'
+    if (tbody) tbody.innerHTML = '<tr><td colspan="4" class="px-4 py-16 text-center text-gray-400"><i class="fas fa-users text-4xl mb-3"></i><p>' + message + '</p></td></tr>'
+    if (mobileList) mobileList.innerHTML = ''
+    if (empty) empty.classList.toggle('hidden', hasSearch)
+    return
+  }
+
   if (empty) empty.classList.add('hidden')
-  
-  // Desktop table
+
   if (tbody) {
     tbody.innerHTML = filteredCustomersData.map(customer => {
-      const customerName = escapeHtml(customer.customer_name || '')
+      const customerName = escapeHtml(customer.customer_name || 'Khách hàng')
       const userName = escapeHtml(customer.user_name || '')
-      const customerPhone = escapeHtml(customer.customer_phone || '')
+      const customerPhone = escapeHtml(customer.customer_phone || 'Chưa có SĐT')
       const customerAddress = escapeHtml(customer.customer_address || 'Chưa có địa chỉ')
       const orderCount = Number(customer.order_count || 0)
-      const firstProductName = escapeHtml(customer.first_product_name || 'Sản phẩm')
-      const firstProductThumbnail = escapeHtml(customer.first_product_thumbnail || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=80')
-      
-      // Determine identifier for order history
-      const identifier = customer.user_id ? customer.user_id : customer.customer_phone
-      const identifierType = customer.user_id ? 'user_id' : 'phone'
-      
-      let row = '<tr class="border-b hover:bg-gray-50">' +
-        '<td class="px-4 py-3">' +
-          '<div class="text-sm font-semibold text-gray-900">' + customerName + '</div>'
-      
-      if (userName) {
-        row += '<div class="text-xs text-gray-500 mt-0.5">@' + userName + '</div>'
-      }
-      
-      row += '</td>' +
-        '<td class="px-4 py-3 text-sm text-gray-700">' + customerPhone + '</td>' +
-        '<td class="px-4 py-3 text-sm text-gray-700">' + customerAddress + '</td>' +
-        '<td class="px-4 py-3">' +
-          '<div class="flex items-center gap-3">' +
-            '<img src="' + firstProductThumbnail + '" alt="Product" class="w-10 h-10 rounded-lg object-cover border border-gray-200">' +
-            '<div class="flex-1 min-w-0">' +
-              '<div class="text-sm text-gray-700 truncate">' + firstProductName + '</div>'
-      
-      if (orderCount > 1) {
-        row += '<button onclick="openCustomerOrderHistory(\'' + identifier + '\', \'' + identifierType + '\', \'' + escapeHtml(customerName) + '\')" class="text-xs text-pink-600 hover:text-pink-700 font-medium mt-0.5">Xem thêm (' + orderCount + ' đơn)</button>'
-      }
-      
-      row += '</div>' +
-          '</div>' +
-        '</td>' +
-        '</tr>'
-      
-      return row
+      const totalSpent = formatCustomerMoney(customer.total_spent || 0)
+
+      return '<tr class="border-b last:border-b-0 hover:bg-pink-50/40 transition">'
+        + '<td class="px-4 py-4 align-top">'
+        + '<div class="flex items-start gap-3 min-w-0">'
+        + '<div class="h-10 w-10 shrink-0 rounded-2xl bg-gradient-to-br from-pink-500 to-orange-400 text-white flex items-center justify-center text-xs font-black shadow-sm">' + escapeHtml(customerInitials(customer)) + '</div>'
+        + '<div class="min-w-0">'
+        + '<p class="font-bold text-gray-900 break-words">' + customerName + '</p>'
+        + (userName ? '<p class="mt-0.5 text-xs text-gray-500">@' + userName + '</p>' : '')
+        + '<div class="mt-2 flex flex-wrap items-center gap-2">'
+        + '<span class="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-600">' + orderCount + ' đơn</span>'
+        + '<span class="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">' + totalSpent + '</span>'
+        + '</div>'
+        + '</div>'
+        + '</div>'
+        + '</td>'
+        + '<td class="px-4 py-4 align-top text-sm font-semibold text-gray-700 whitespace-nowrap">' + customerPhone + '</td>'
+        + '<td class="px-4 py-4 align-top text-sm text-gray-600 max-w-[360px]"><p class="line-clamp-2">' + customerAddress + '</p></td>'
+        + '<td class="px-4 py-4 align-top">'
+        + '<div class="space-y-3">' + customerProductSnippet(customer) + customerHistoryButton(customer, false) + '</div>'
+        + '</td>'
+        + '</tr>'
     }).join('')
   }
-  
-  // Mobile list
+
   if (mobileList) {
-    mobileList.innerHTML = filteredCustomersData.map(customer => {
-      const customerName = escapeHtml(customer.customer_name || '')
+    mobileList.innerHTML = '<div class="customers-mobile-stack divide-y divide-gray-100">' + filteredCustomersData.map(customer => {
+      const customerName = escapeHtml(customer.customer_name || 'Khách hàng')
       const userName = escapeHtml(customer.user_name || '')
-      const customerPhone = escapeHtml(customer.customer_phone || '')
+      const customerPhone = escapeHtml(customer.customer_phone || 'Chưa có SĐT')
+      const customerAddress = escapeHtml(customer.customer_address || 'Chưa có địa chỉ')
       const orderCount = Number(customer.order_count || 0)
-      const firstProductName = escapeHtml(customer.first_product_name || 'Sản phẩm')
-      
-      const identifier = customer.user_id ? customer.user_id : customer.customer_phone
-      const identifierType = customer.user_id ? 'user_id' : 'phone'
-      
-      let card = '<div class="p-4 border-b">' +
-        '<div class="text-sm font-semibold text-gray-900 mb-1">' + customerName + '</div>'
-      
-      if (userName) {
-        card += '<div class="text-xs text-gray-500 mb-2">@' + userName + '</div>'
-      }
-      
-      card += '<div class="text-sm text-gray-700 mb-2">' + customerPhone + '</div>' +
-        '<div class="text-sm text-gray-700 mb-2">' + firstProductName + '</div>'
-      
-      if (orderCount > 1) {
-        card += '<button onclick="openCustomerOrderHistory(\'' + identifier + '\', \'' + identifierType + '\', \'' + escapeHtml(customerName) + '\')" class="text-xs text-pink-600 hover:text-pink-700 font-medium">Xem thêm (' + orderCount + ' đơn)</button>'
-      }
-      
-      card += '</div>'
-      
-      return card
-    }).join('')
+      const totalSpent = formatCustomerMoney(customer.total_spent || 0)
+
+      return '<article class="customer-mobile-card p-4">'
+        + '<div class="flex items-start gap-3">'
+        + '<div class="h-11 w-11 shrink-0 rounded-2xl bg-gradient-to-br from-pink-500 to-orange-400 text-white flex items-center justify-center text-xs font-black shadow-sm">' + escapeHtml(customerInitials(customer)) + '</div>'
+        + '<div class="min-w-0 flex-1">'
+        + '<div class="flex items-start justify-between gap-2">'
+        + '<div class="min-w-0"><p class="font-bold text-gray-900 break-words">' + customerName + '</p>' + (userName ? '<p class="text-xs text-gray-500">@' + userName + '</p>' : '') + '</div>'
+        + '<span class="shrink-0 rounded-full bg-pink-50 px-2 py-1 text-xs font-bold text-pink-700">' + orderCount + ' đơn</span>'
+        + '</div>'
+        + '<div class="mt-2 space-y-1 text-sm text-gray-600">'
+        + '<p><i class="fas fa-phone mr-2 text-gray-400"></i>' + customerPhone + '</p>'
+        + '<p class="line-clamp-2"><i class="fas fa-location-dot mr-2 text-gray-400"></i>' + customerAddress + '</p>'
+        + '</div>'
+        + '<div class="mt-3 rounded-2xl bg-gray-50 p-3">' + customerProductSnippet(customer) + '</div>'
+        + '<div class="mt-3 flex items-center justify-between gap-3">'
+        + '<span class="text-sm font-extrabold text-gray-900">' + totalSpent + '</span>'
+        + customerHistoryButton(customer, true)
+        + '</div>'
+        + '</div>'
+        + '</div>'
+        + '</article>'
+    }).join('') + '</div>'
   }
 }
 
@@ -129,64 +217,62 @@ async function openCustomerOrderHistory(identifier, type, customerName) {
   const modal = document.getElementById('customerOrderHistoryModal')
   const nameEl = document.getElementById('customerOrderHistoryName')
   const contentEl = document.getElementById('customerOrderHistoryContent')
-  
+
   if (nameEl) nameEl.textContent = customerName
   if (contentEl) contentEl.innerHTML = '<div class="text-center py-8 text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></div>'
-  
+
   showAdminOverlay(modal)
-  
+
   try {
-    const res = await axios.get('/api/admin/customers/' + encodeURIComponent(identifier) + '/orders?type=' + type)
-    const orders = res.data?.data || []
-    
+    const res = await axios.get('/api/admin/customers/' + encodeURIComponent(identifier) + '/orders?type=' + encodeURIComponent(type || 'phone'))
+    const orders = Array.isArray(res.data?.data) ? res.data.data : []
+
     if (!orders.length) {
       if (contentEl) contentEl.innerHTML = '<div class="text-center py-8 text-gray-400"><i class="fas fa-inbox text-4xl mb-3"></i><p>Chưa có đơn hàng nào</p></div>'
       return
     }
-    
-    // Render order history using similar UI to frontend order history
+
     if (contentEl) {
       contentEl.innerHTML = orders.map(order => {
         const orderCode = escapeHtml(order.order_code || '')
-        const productName = escapeHtml(order.product_name || '')
+        const productName = escapeHtml(order.product_name || 'Sản phẩm')
         const productThumbnail = escapeHtml(order.product_thumbnail || order.thumbnail || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=80')
         const quantity = Number(order.quantity || 0)
-        const totalPrice = Number(order.total_price || 0).toLocaleString('vi-VN')
+        const totalPrice = formatCustomerMoney(order.total_price || 0)
         const status = String(order.status || 'pending')
         const createdAt = formatDate(order.created_at)
-        
+
         const statusMap = {
-          'pending': { label: 'Chờ xử lý', class: 'bg-yellow-50 text-yellow-700 border-yellow-200' },
-          'confirmed': { label: 'Đã xác nhận', class: 'bg-blue-50 text-blue-700 border-blue-200' },
-          'shipping': { label: 'Đang giao', class: 'bg-purple-50 text-purple-700 border-purple-200' },
-          'done': { label: 'Hoàn thành', class: 'bg-green-50 text-green-700 border-green-200' },
-          'cancelled': { label: 'Đã hủy', class: 'bg-red-50 text-red-700 border-red-200' }
+          pending: { label: 'Chờ xử lý', className: 'bg-yellow-50 text-yellow-700 border-yellow-200' },
+          confirmed: { label: 'Đã xác nhận', className: 'bg-blue-50 text-blue-700 border-blue-200' },
+          shipping: { label: 'Đang giao', className: 'bg-purple-50 text-purple-700 border-purple-200' },
+          done: { label: 'Hoàn thành', className: 'bg-green-50 text-green-700 border-green-200' },
+          cancelled: { label: 'Đã hủy', className: 'bg-red-50 text-red-700 border-red-200' }
         }
-        
-        const statusInfo = statusMap[status] || statusMap['pending']
-        
-        return '<div class="bg-white rounded-2xl border border-gray-200 p-4 hover:shadow-md transition">' +
-          '<div class="flex items-start gap-3 mb-3">' +
-            '<img src="' + productThumbnail + '" alt="Product" class="w-16 h-16 rounded-lg object-cover border border-gray-200">' +
-            '<div class="flex-1 min-w-0">' +
-              '<div class="flex items-start justify-between gap-2 mb-1">' +
-                '<div class="text-sm font-semibold text-gray-900">' + productName + '</div>' +
-                '<span class="inline-block px-2 py-1 rounded-lg text-xs font-semibold border ' + statusInfo.class + '">' + statusInfo.label + '</span>' +
-              '</div>' +
-              '<div class="text-xs text-gray-500">Mã: ' + orderCode + '</div>' +
-              '<div class="text-xs text-gray-500 mt-1">Số lượng: ' + quantity + '</div>' +
-            '</div>' +
-          '</div>' +
-          '<div class="flex items-center justify-between pt-3 border-t border-gray-100">' +
-            '<div class="text-xs text-gray-500">' + createdAt + '</div>' +
-            '<div class="text-sm font-bold text-gray-900">' + totalPrice + 'đ</div>' +
-          '</div>' +
-        '</div>'
+        const statusInfo = statusMap[status] || statusMap.pending
+
+        return '<div class="bg-white rounded-2xl border border-gray-200 p-4 hover:shadow-md transition">'
+          + '<div class="flex items-start gap-3 mb-3">'
+          + '<img src="' + productThumbnail + '" alt="" loading="lazy" class="w-16 h-16 rounded-xl object-cover border border-gray-200 bg-gray-100">'
+          + '<div class="flex-1 min-w-0">'
+          + '<div class="flex items-start justify-between gap-2 mb-1">'
+          + '<div class="text-sm font-semibold text-gray-900 break-words">' + productName + '</div>'
+          + '<span class="inline-block px-2 py-1 rounded-lg text-xs font-semibold border shrink-0 ' + statusInfo.className + '">' + statusInfo.label + '</span>'
+          + '</div>'
+          + '<div class="text-xs text-gray-500">Mã: ' + orderCode + '</div>'
+          + '<div class="text-xs text-gray-500 mt-1">Số lượng: ' + quantity + '</div>'
+          + '</div>'
+          + '</div>'
+          + '<div class="flex items-center justify-between pt-3 border-t border-gray-100">'
+          + '<div class="text-xs text-gray-500">' + createdAt + '</div>'
+          + '<div class="text-sm font-bold text-gray-900">' + totalPrice + '</div>'
+          + '</div>'
+          + '</div>'
       }).join('')
     }
   } catch (e) {
     if (contentEl) contentEl.innerHTML = '<div class="text-center py-8 text-red-400"><i class="fas fa-exclamation-circle text-4xl mb-3"></i><p>Không thể tải lịch sử đơn hàng</p></div>'
-    console.error(e)
+    console.error('openCustomerOrderHistory error:', e)
   }
 }
 
@@ -199,8 +285,8 @@ function closeCustomerOrderHistoryModal(event) {
 function formatDate(dateStr) {
   if (!dateStr) return 'N/A'
   try {
-    const d = new Date(dateStr)
-    return d.toLocaleDateString('vi-VN') + ' ' + d.toLocaleTimeString('vi-VN', {hour: '2-digit', minute: '2-digit'})
+    const d = new Date(String(dateStr).trim().replace(' ', 'T'))
+    return d.toLocaleDateString('vi-VN') + ' ' + d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
   } catch {
     return 'N/A'
   }
@@ -208,7 +294,7 @@ function formatDate(dateStr) {
 
 function escapeHtml(text) {
   const div = document.createElement('div')
-  div.textContent = text
+  div.textContent = text == null ? '' : String(text)
   return div.innerHTML
 }
 `
