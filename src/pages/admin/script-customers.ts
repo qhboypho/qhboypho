@@ -81,6 +81,13 @@ function encodeCustomerHistoryPayload(customer) {
   }))
 }
 
+function encodeCustomerBlockPayload(customer) {
+  return encodeURIComponent(JSON.stringify({
+    userId: customer?.user_id ? Number(customer.user_id) : null,
+    phone: String(customer?.customer_phone || '')
+  }))
+}
+
 function openCustomerOrderHistoryFromPayload(payload) {
   try {
     const data = JSON.parse(decodeURIComponent(String(payload || '')))
@@ -89,6 +96,19 @@ function openCustomerOrderHistoryFromPayload(payload) {
   } catch (e) {
     showAdminToast('Không mở được lịch sử khách hàng', 'error')
     console.error('openCustomerOrderHistoryFromPayload error:', e)
+  }
+}
+
+function toggleCustomerBlockFromPayload(payload, action) {
+  try {
+    const data = JSON.parse(decodeURIComponent(String(payload || '')))
+    const userId = data.userId ? Number(data.userId) : null
+    const phone = data.phone ? String(data.phone) : null
+    if (action === 'unblock') unblockCustomer(userId, phone)
+    else blockCustomer(userId, phone)
+  } catch (e) {
+    showAdminToast('Không xử lý được trạng thái chặn khách hàng', 'error')
+    console.error('toggleCustomerBlockFromPayload error:', e)
   }
 }
 
@@ -101,6 +121,18 @@ function customerHistoryButton(customer, compact = false) {
     ? 'mt-3 inline-flex items-center justify-center gap-2 rounded-xl bg-pink-50 px-3 py-2 text-xs font-bold text-pink-700 hover:bg-pink-100 transition'
     : 'inline-flex items-center gap-2 rounded-xl bg-pink-50 px-3 py-2 text-xs font-bold text-pink-700 hover:bg-pink-100 transition'
   return '<button type="button" data-history-payload="' + payload + '" onclick="openCustomerOrderHistoryFromPayload(this.dataset.historyPayload)" class="' + className + '"><i class="fas fa-receipt"></i>' + label + '</button>'
+}
+
+function customerBlockButton(customer) {
+  const isBlocked = Number(customer?.is_blocked || 0) === 1
+  const payload = escapeHtml(encodeCustomerBlockPayload(customer))
+  const action = isBlocked ? 'unblock' : 'block'
+  const label = isBlocked ? 'Bỏ chặn' : 'Chặn'
+  const icon = isBlocked ? 'fa-check-circle' : 'fa-ban'
+  const className = isBlocked
+    ? 'inline-flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition'
+    : 'inline-flex items-center gap-2 rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-700 hover:bg-red-100 transition'
+  return '<button type="button" data-block-payload="' + payload + '" data-block-action="' + action + '" onclick="toggleCustomerBlockFromPayload(this.dataset.blockPayload, this.dataset.blockAction)" class="' + className + '"><i class="fas ' + icon + '"></i>' + label + '</button>'
 }
 
 function customerProductSnippet(customer) {
@@ -159,8 +191,6 @@ function renderCustomersTable() {
       const cancelledCount = Number(customer.cancelled_count || 0)
       const totalSpent = formatCustomerMoney(customer.total_spent || 0)
       const isBlocked = Number(customer.is_blocked || 0) === 1
-      const userId = customer.user_id || null
-      const phone = customer.customer_phone || null
 
       return '<tr class="border-b last:border-b-0 hover:bg-pink-50/40 transition">'
         + '<td class="px-4 py-4 align-top">'
@@ -184,10 +214,7 @@ function renderCustomersTable() {
         + '<div class="space-y-3">' + customerProductSnippet(customer) + customerHistoryButton(customer, false) + '</div>'
         + '</td>'
         + '<td class="px-4 py-4 align-top text-center">'
-        + (isBlocked 
-          ? '<button type="button" onclick="unblockCustomer(' + (userId || 'null') + ', \'' + escapeHtml(phone || '') + '\')" class="inline-flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition"><i class="fas fa-check-circle"></i>Bỏ chặn</button>'
-          : '<button type="button" onclick="blockCustomer(' + (userId || 'null') + ', \'' + escapeHtml(phone || '') + '\')" class="inline-flex items-center gap-2 rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-700 hover:bg-red-100 transition"><i class="fas fa-ban"></i>Chặn</button>'
-        )
+        + customerBlockButton(customer)
         + '</td>'
         + '</tr>'
     }).join('')
@@ -203,8 +230,6 @@ function renderCustomersTable() {
       const cancelledCount = Number(customer.cancelled_count || 0)
       const totalSpent = formatCustomerMoney(customer.total_spent || 0)
       const isBlocked = Number(customer.is_blocked || 0) === 1
-      const userId = customer.user_id || null
-      const phone = customer.customer_phone || null
 
       return '<article class="customer-mobile-card p-4">'
         + '<div class="flex items-start gap-3">'
@@ -225,10 +250,7 @@ function renderCustomersTable() {
         + '<span class="text-sm font-extrabold text-gray-900">' + totalSpent + '</span>'
         + '<div class="flex items-center gap-2">'
         + customerHistoryButton(customer, true)
-        + (isBlocked 
-          ? '<button type="button" onclick="unblockCustomer(' + (userId || 'null') + ', \'' + escapeHtml(phone || '') + '\')" class="inline-flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition"><i class="fas fa-check-circle"></i>Bỏ chặn</button>'
-          : '<button type="button" onclick="blockCustomer(' + (userId || 'null') + ', \'' + escapeHtml(phone || '') + '\')" class="inline-flex items-center gap-2 rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-700 hover:bg-red-100 transition"><i class="fas fa-ban"></i>Chặn</button>'
-        )
+        + customerBlockButton(customer)
         + '</div>'
         + '</div>'
         + '</div>'

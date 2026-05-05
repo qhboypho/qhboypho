@@ -58,6 +58,16 @@ assert.doesNotMatch(
 )
 assert.match(
   adminCustomersScriptSource,
+  /function encodeCustomerBlockPayload[\s\S]*encodeURIComponent\(JSON\.stringify/,
+  'admin customers should encode block/unblock payloads instead of concatenating quoted onclick arguments',
+)
+assert.doesNotMatch(
+  adminCustomersScriptSource,
+  /onclick="(?:un)?blockCustomer\(/,
+  'admin customers should not wire block/unblock buttons through inline quoted function arguments',
+)
+assert.match(
+  adminCustomersScriptSource,
   /customersTableBody[\s\S]*finally[\s\S]*renderCustomersTable/,
   'admin customers loading state should always settle through renderCustomersTable, even on request failure',
 )
