@@ -98,16 +98,42 @@ export function registerBlockRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
       }
       
       // Insert/update blocked_customers table
-      await c.env.DB.prepare(`
-        INSERT INTO blocked_customers (user_id, customer_phone, blocked_reason, blocked_by, is_active)
-        VALUES (?, ?, ?, 'admin', 1)
-        ON CONFLICT(user_id, customer_phone) DO UPDATE SET
-          is_active = 1,
-          blocked_reason = excluded.blocked_reason,
-          blocked_by = 'admin',
-          blocked_at = CURRENT_TIMESTAMP,
-          unblocked_at = NULL
-      `).bind(userId, phone, reason).run()
+      // For users with user_id, use user_id as key
+      // For guest checkout, use phone as key
+      if (userId) {
+        await c.env.DB.prepare(`
+          INSERT INTO blocked_customers (user_id, customer_phone, blocked_reason, blocked_by, is_active)
+          VALUES (?, ?, ?, 'admin', 1)
+          ON CONFLICT(user_id, customer_phone) DO UPDATE SET
+            is_active = 1,
+            blocked_reason = excluded.blocked_reason,
+            blocked_by = 'admin',
+            blocked_at = CURRENT_TIMESTAMP,
+            unblocked_at = NULL
+        `).bind(userId, phone, reason).run()
+      } else if (phone) {
+        // Guest checkout - check if already exists
+        const existing = await c.env.DB.prepare(
+          'SELECT id FROM blocked_customers WHERE customer_phone = ? AND user_id IS NULL'
+        ).bind(phone).first()
+        
+        if (existing) {
+          await c.env.DB.prepare(`
+            UPDATE blocked_customers 
+            SET is_active = 1,
+                blocked_reason = ?,
+                blocked_by = 'admin',
+                blocked_at = CURRENT_TIMESTAMP,
+                unblocked_at = NULL
+            WHERE customer_phone = ? AND user_id IS NULL
+          `).bind(reason, phone).run()
+        } else {
+          await c.env.DB.prepare(`
+            INSERT INTO blocked_customers (user_id, customer_phone, blocked_reason, blocked_by, is_active)
+            VALUES (NULL, ?, ?, 'admin', 1)
+          `).bind(phone, reason).run()
+        }
+      }
       
       return c.json({ success: true, message: 'Đã chặn khách hàng' })
     } catch (e: any) {
@@ -141,21 +167,19 @@ export function registerBlockRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
       }
       
       // Update blocked_customers table
-      let query = 'UPDATE blocked_customers SET is_active = 0, unblocked_at = CURRENT_TIMESTAMP WHERE '
-      const params: any[] = []
-      
-      if (userId) {
-        query += 'user_id = ?'
-        params.push(userId)
+      if (userId && phone) {
+        await c.env.DB.prepare(
+          'UPDATE blocked_customers SET is_active = 0, unblocked_at = CURRENT_TIMESTAMP WHERE user_id = ? OR customer_phone = ?'
+        ).bind(userId, phone).run()
+      } else if (userId) {
+        await c.env.DB.prepare(
+          'UPDATE blocked_customers SET is_active = 0, unblocked_at = CURRENT_TIMESTAMP WHERE user_id = ?'
+        ).bind(userId).run()
+      } else if (phone) {
+        await c.env.DB.prepare(
+          'UPDATE blocked_customers SET is_active = 0, unblocked_at = CURRENT_TIMESTAMP WHERE customer_phone = ?'
+        ).bind(phone).run()
       }
-      
-      if (phone) {
-        if (userId) query += ' OR '
-        query += 'customer_phone = ?'
-        params.push(phone)
-      }
-      
-      await c.env.DB.prepare(query).bind(...params).run()
       
       return c.json({ success: true, message: 'Đã bỏ chặn khách hàng' })
     } catch (e: any) {

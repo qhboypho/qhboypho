@@ -68,16 +68,41 @@ async function checkAndAutoBlockCustomer(db: D1Database, userId: number | null, 
       `).bind(reason, userId).run()
     }
     
-    await db.prepare(`
-      INSERT INTO blocked_customers (user_id, customer_phone, blocked_reason, blocked_by, is_active)
-      VALUES (?, ?, ?, 'system', 1)
-      ON CONFLICT(user_id, customer_phone) DO UPDATE SET
-        is_active = 1,
-        blocked_reason = excluded.blocked_reason,
-        blocked_by = 'system',
-        blocked_at = CURRENT_TIMESTAMP,
-        unblocked_at = NULL
-    `).bind(userId, customerPhone, reason).run()
+    // Insert/update blocked_customers table
+    if (userId) {
+      await db.prepare(`
+        INSERT INTO blocked_customers (user_id, customer_phone, blocked_reason, blocked_by, is_active)
+        VALUES (?, ?, ?, 'system', 1)
+        ON CONFLICT(user_id, customer_phone) DO UPDATE SET
+          is_active = 1,
+          blocked_reason = excluded.blocked_reason,
+          blocked_by = 'system',
+          blocked_at = CURRENT_TIMESTAMP,
+          unblocked_at = NULL
+      `).bind(userId, customerPhone, reason).run()
+    } else if (customerPhone) {
+      // Guest checkout - check if already exists
+      const existing = await db.prepare(
+        'SELECT id FROM blocked_customers WHERE customer_phone = ? AND user_id IS NULL'
+      ).bind(customerPhone).first()
+      
+      if (existing) {
+        await db.prepare(`
+          UPDATE blocked_customers 
+          SET is_active = 1,
+              blocked_reason = ?,
+              blocked_by = 'system',
+              blocked_at = CURRENT_TIMESTAMP,
+              unblocked_at = NULL
+          WHERE customer_phone = ? AND user_id IS NULL
+        `).bind(reason, customerPhone).run()
+      } else {
+        await db.prepare(`
+          INSERT INTO blocked_customers (user_id, customer_phone, blocked_reason, blocked_by, is_active)
+          VALUES (NULL, ?, ?, 'system', 1)
+        `).bind(customerPhone, reason).run()
+      }
+    }
     
     console.log(`Auto-blocked customer: userId=${userId}, phone=${customerPhone}, cancelled=${cancelledCount}`)
   }
