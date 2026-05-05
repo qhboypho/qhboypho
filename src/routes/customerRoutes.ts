@@ -21,6 +21,17 @@ export function registerCustomerRoutes(app: Hono<{ Bindings: AppBindings }>, dep
     try {
       await deps.initDB(c.env.DB)
 
+      // Check if is_blocked column exists
+      let hasBlockedColumn = false
+      try {
+        await c.env.DB.prepare('SELECT is_blocked FROM users LIMIT 1').all()
+        hasBlockedColumn = true
+      } catch (e) {
+        hasBlockedColumn = false
+      }
+
+      const isBlockedSelect = hasBlockedColumn ? 'u.is_blocked' : '0 AS is_blocked'
+
       const query = `
         WITH normalized_orders AS (
           SELECT
@@ -33,7 +44,7 @@ export function registerCustomerRoutes(app: Hono<{ Bindings: AppBindings }>, dep
             o.customer_address,
             o.user_id,
             u.name AS user_name,
-            u.is_blocked,
+            ${isBlockedSelect},
             o.product_name,
             NULLIF(TRIM(p.thumbnail), '') AS product_thumbnail,
             o.total_price,
