@@ -137,6 +137,11 @@ assert.match(
   /Không thể đặt hàng/,
   'blocked storefront modal should use the new purchase-blocked wording',
 )
+assert.match(
+  storefrontModalsSource,
+  /blockedCustomerModal[\s\S]*z-index:1002/,
+  'blocked storefront modal should render above the product detail overlay',
+)
 assert.doesNotMatch(
   storefrontModalsSource,
   /Tài khoản bị hạn chế|Bạn đã bị cấm mua hàng tạm thời/,

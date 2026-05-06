@@ -599,7 +599,7 @@ export function storefrontModalsSection(): string {
 </div>
 
 <!-- Blocked Customer Modal -->
-<div id="blockedCustomerModal" class="fixed inset-0 overlay z-50 hidden flex items-center justify-center p-4" onclick="if(event.target===this) closeBlockedCustomerModal()">
+<div id="blockedCustomerModal" class="fixed inset-0 overlay hidden flex items-center justify-center p-4" style="z-index:1002;" onclick="if(event.target===this) closeBlockedCustomerModal()">
   <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden" onclick="event.stopPropagation()">
     <div class="bg-gradient-to-r from-red-500 to-red-600 px-6 py-5 text-white">
       <div class="flex items-center gap-3">
