@@ -1055,7 +1055,7 @@ function isBlockedFlag(value) {
 }
 
 function getCurrentUserBlockReason() {
-  return String(currentUser?.blocked_reason || 'Bạn đã bị cấm mua hàng tạm thời').trim()
+  return String(currentUser?.blocked_reason || 'Không thể đặt hàng').trim()
 }
 
 function isCurrentUserBlocked() {
@@ -1070,12 +1070,12 @@ function assertCustomerCanShop() {
 
 function renderBlockedPurchaseActions(extraClass) {
   const cls = extraClass || 'w-full rounded-2xl py-3 text-sm font-semibold'
-  return '<button type="button" onclick="event.stopPropagation();showBlockedCustomerModal(getCurrentUserBlockReason())" class="' + cls + ' bg-red-50 text-red-600 border border-red-100 cursor-not-allowed"><i class="fas fa-ban mr-1"></i>Đã bị chặn mua hàng</button>'
+  return '<button type="button" onclick="event.stopPropagation();showBlockedCustomerModal(getCurrentUserBlockReason())" class="' + cls + ' bg-red-50 text-red-600 border border-red-100 cursor-not-allowed"><i class="fas fa-ban mr-1"></i>Không thể đặt hàng</button>'
 }
 
 function renderProductCardActions(productId) {
   if (isCurrentUserBlocked()) {
-    return '<div class="flex gap-2">' + renderBlockedPurchaseActions('flex-1 py-2 rounded-xl text-sm font-semibold') + '<button type="button" onclick="event.stopPropagation();showBlockedCustomerModal(getCurrentUserBlockReason())" title="Không thể thêm vào giỏ" class="w-10 h-9 flex items-center justify-center rounded-xl bg-red-50 text-red-500 border border-red-100 cursor-not-allowed"><i class="fas fa-ban text-sm"></i></button></div>'
+    return '<div class="flex gap-2">' + renderBlockedPurchaseActions('flex-1 py-2 rounded-xl text-sm font-semibold') + '<button type="button" onclick="event.stopPropagation();showBlockedCustomerModal(getCurrentUserBlockReason())" title="Không thể đặt hàng" class="w-10 h-9 flex items-center justify-center rounded-xl bg-red-50 text-red-500 border border-red-100 cursor-not-allowed"><i class="fas fa-ban text-sm"></i></button></div>'
   }
   return '<div class="flex gap-2">'
     + '<button onclick="event.stopPropagation();openOrder(' + productId + ')" title="Mua ngay" class="btn-primary flex-1 text-white py-2 rounded-xl text-sm font-semibold"><i class="fas fa-bolt mr-1"></i>Mua ngay</button>'
@@ -1411,7 +1411,7 @@ async function checkCustomerBlockStatus(phone) {
 function showBlockedCustomerModal(reason) {
   const modal = document.getElementById('blockedCustomerModal')
   const reasonEl = document.getElementById('blockedCustomerReason')
-  if (reasonEl) reasonEl.textContent = reason || 'Bạn đã bị cấm mua hàng tạm thời'
+  if (reasonEl) reasonEl.textContent = reason || 'Không thể đặt hàng'
   if (modal) {
     modal.classList.remove('hidden')
     modal.classList.add('flex')
@@ -1491,7 +1491,7 @@ async function submitCartOrder() {
     try { if (payTabRef && !payTabRef.closed) payTabRef.close() } catch (_) { }
     const errCode = e.response?.data?.error
     if (errCode === 'CUSTOMER_BLOCKED') {
-      showBlockedCustomerModal(e.response?.data?.reason || 'Bạn đã bị cấm mua hàng tạm thời')
+      showBlockedCustomerModal(e.response?.data?.reason || 'Không thể đặt hàng')
     } else if (errCode==='INVALID_VOUCHER'||errCode==='VOUCHER_LIMIT') {
       showToast('Voucher không còn hiệu lực','error')
       ckAppliedVoucher=null; updateCkTotal()

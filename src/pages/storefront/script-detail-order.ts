@@ -423,7 +423,7 @@ async function checkCustomerBlockStatus(phone) {
 function showBlockedCustomerModal(reason) {
   const modal = document.getElementById('blockedCustomerModal')
   const reasonEl = document.getElementById('blockedCustomerReason')
-  if (reasonEl) reasonEl.textContent = reason || 'Bạn đã bị cấm mua hàng tạm thời'
+  if (reasonEl) reasonEl.textContent = reason || 'Không thể đặt hàng'
   if (modal) {
     modal.classList.remove('hidden')
     modal.classList.add('flex')
@@ -601,7 +601,7 @@ async function submitOrder() {
     try { if (payTabRef && !payTabRef.closed) payTabRef.close() } catch (_) { }
     const errCode = e.response?.data?.error
     if (errCode === 'CUSTOMER_BLOCKED') {
-      showBlockedCustomerModal(e.response?.data?.reason || 'Bạn đã bị cấm mua hàng tạm thời')
+      showBlockedCustomerModal(e.response?.data?.reason || 'Không thể đặt hàng')
     } else if (errCode === 'INVALID_VOUCHER' || errCode === 'VOUCHER_LIMIT') {
       showToast('Voucher không còn hiệu lực, vui lòng thử lại', 'error')
       appliedVoucher = null

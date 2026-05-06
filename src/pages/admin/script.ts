@@ -29,7 +29,7 @@ let desktopSidebarCollapsed = false
 let selectedColorImage = ''
 let adminOverlaySafetyScheduled = false
 const MAX_PRODUCT_PAYLOAD_SIZE = 1200000
-const ADMIN_OVERLAY_IDS = ['productModal', 'orderDetailModal', 'arrangeSuccessModal', 'createFlashSaleModal', 'flashSaleProductPickerModal', 'adminChangePasswordModal', 'reviewAdminModal', 'dashboardCustomerModal', 'customerOrderHistoryModal']
+const ADMIN_OVERLAY_IDS = ['productModal', 'orderDetailModal', 'arrangeSuccessModal', 'createFlashSaleModal', 'flashSaleProductPickerModal', 'adminChangePasswordModal', 'reviewAdminModal', 'dashboardCustomerModal', 'customerOrderHistoryModal', 'customerActionConfirmModal']
 
 function forceHideAdminOverlay(el) {
   if (!el) return

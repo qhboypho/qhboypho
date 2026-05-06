@@ -7,7 +7,9 @@ const storefrontModalsSource = await readFile(new URL('../src/pages/storefront/m
 const storefrontSectionsSource = await readFile(new URL('../src/pages/storefront/sections.ts', import.meta.url), 'utf8')
 const storefrontStylesSource = await readFile(new URL('../src/pages/storefront/styles.ts', import.meta.url), 'utf8')
 const storefrontScriptSource = await readFile(new URL('../src/pages/storefront/script.ts', import.meta.url), 'utf8')
+const storefrontDetailOrderScriptSource = await readFile(new URL('../src/pages/storefront/script-detail-order.ts', import.meta.url), 'utf8')
 const adminSectionsSource = await readFile(new URL('../src/pages/admin/sections.ts', import.meta.url), 'utf8')
+const adminModalsSource = await readFile(new URL('../src/pages/admin/modals.ts', import.meta.url), 'utf8')
 const adminStylesSource = await readFile(new URL('../src/pages/admin/styles.ts', import.meta.url), 'utf8')
 const adminScriptSource = await readFile(new URL('../src/pages/admin/script.ts', import.meta.url), 'utf8')
 const adminSettingsScriptSource = await readFile(new URL('../src/pages/admin/script-featured-settings.ts', import.meta.url), 'utf8')
@@ -130,6 +132,16 @@ assert.match(
   /ckFieldPaymentMethod/,
   'cart checkout step should render a payment method selector field',
 )
+assert.match(
+  storefrontModalsSource,
+  /Không thể đặt hàng/,
+  'blocked storefront modal should use the new purchase-blocked wording',
+)
+assert.doesNotMatch(
+  storefrontModalsSource,
+  /Tài khoản bị hạn chế|Bạn đã bị cấm mua hàng tạm thời/,
+  'blocked storefront modal should not keep the old blocked-purchase copy',
+)
 
 assert.doesNotMatch(
   storefrontSectionsSource,
@@ -151,6 +163,26 @@ assert.doesNotMatch(
   storefrontStylesSource,
   /border-left:4px solid #6366f1|rgba\(99,102,241,0\.08\)/i,
   'shared purchase toast styles should not keep the indigo brand mismatch',
+)
+assert.match(
+  storefrontScriptSource,
+  /Không thể đặt hàng/,
+  'storefront blocked purchase buttons should use the new wording',
+)
+assert.doesNotMatch(
+  storefrontScriptSource,
+  /Đã bị chặn mua hàng|Không thể thêm vào giỏ|Bạn đã bị cấm mua hàng tạm thời/,
+  'storefront blocked purchase controls should not keep the old copy',
+)
+assert.match(
+  storefrontDetailOrderScriptSource,
+  /Không thể đặt hàng/,
+  'detail order storefront script should use the new blocked-purchase fallback text',
+)
+assert.doesNotMatch(
+  storefrontDetailOrderScriptSource,
+  /Bạn đã bị cấm mua hàng tạm thời/,
+  'detail order storefront script should not keep the old blocked-purchase fallback text',
 )
 
 assert.doesNotMatch(
@@ -233,6 +265,11 @@ assert.match(
   /Setting<\/span>|>Setting</,
   'admin sidebar should expose the Setting group label',
 )
+assert.match(
+  adminModalsSource,
+  /customerActionConfirmModal/,
+  'admin pages should ship a reusable customer action confirm modal',
+)
 assert.ok(
   adminSectionsSource.indexOf('id=\\"marketingMenuBtn\\"') < adminSectionsSource.indexOf('data-page=\\"reviews\\"')
     && adminSectionsSource.indexOf('data-page=\\"reviews\\"') < adminSectionsSource.indexOf('id=\\"settingsMenuBtn\\"')
@@ -253,6 +290,16 @@ assert.match(
   adminSettingsScriptSource,
   /loadSocialSettings|saveSocialSettings|previewSocialUrl|socialTiktokHandle|socialShopeeHandle|socialFacebookHandle|socialThreadsHandle/,
   'admin settings script should load and save MXH handles with link previews',
+)
+assert.match(
+  adminCustomersScriptSource,
+  /openCustomerActionConfirmModal[\s\S]*closeCustomerActionConfirmModal/,
+  'admin customers should use the UI confirm modal instead of browser confirm dialogs',
+)
+assert.doesNotMatch(
+  adminCustomersScriptSource,
+  /confirm\('/,
+  'admin customers should not use native confirm dialogs for block/unblock actions',
 )
 assert.match(
   adminUtilityRoutesSource,

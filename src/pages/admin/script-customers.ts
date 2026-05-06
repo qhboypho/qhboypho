@@ -345,8 +345,47 @@ function escapeHtml(text) {
   return div.innerHTML
 }
 
+let customerActionConfirmResolve = null
+
+function openCustomerActionConfirmModal(config = {}) {
+  return new Promise((resolve) => {
+    const modal = document.getElementById('customerActionConfirmModal')
+    if (!modal) {
+      resolve(false)
+      return
+    }
+    customerActionConfirmResolve = resolve
+    const titleEl = document.getElementById('customerActionConfirmTitle')
+    const messageEl = document.getElementById('customerActionConfirmMessage')
+    const buttonEl = document.getElementById('customerActionConfirmButton')
+    if (titleEl) titleEl.textContent = String(config.title || 'Xác nhận')
+    if (messageEl) messageEl.textContent = String(config.message || '')
+    if (buttonEl) {
+      buttonEl.textContent = String(config.confirmLabel || 'Xác nhận')
+      buttonEl.className = String(config.confirmClass || 'px-4 py-2.5 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition')
+    }
+    showAdminOverlay(modal)
+  })
+}
+
+function closeCustomerActionConfirmModal(result = false) {
+  const modal = document.getElementById('customerActionConfirmModal')
+  forceHideAdminOverlay(modal)
+  if (typeof customerActionConfirmResolve === 'function') {
+    const resolve = customerActionConfirmResolve
+    customerActionConfirmResolve = null
+    resolve(result)
+  }
+}
+
 async function blockCustomer(userId, phone) {
-  if (!confirm('Bạn có chắc muốn chặn khách hàng này? Họ sẽ không thể đặt hàng.')) return
+  const confirmed = await openCustomerActionConfirmModal({
+    title: 'Xác nhận chặn khách hàng',
+    message: 'Khách hàng này sẽ không thể đặt hàng.',
+    confirmLabel: 'Chặn',
+    confirmClass: 'px-4 py-2.5 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition'
+  })
+  if (!confirmed) return
   
   try {
     const res = await axios.post('/api/admin/customers/block', {
@@ -368,7 +407,13 @@ async function blockCustomer(userId, phone) {
 }
 
 async function unblockCustomer(userId, phone) {
-  if (!confirm('Bạn có chắc muốn bỏ chặn khách hàng này?')) return
+  const confirmed = await openCustomerActionConfirmModal({
+    title: 'Xác nhận bỏ chặn',
+    message: 'Khách hàng này sẽ đặt hàng lại được.',
+    confirmLabel: 'Bỏ chặn',
+    confirmClass: 'px-4 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition'
+  })
+  if (!confirmed) return
   
   try {
     const res = await axios.post('/api/admin/customers/unblock', {

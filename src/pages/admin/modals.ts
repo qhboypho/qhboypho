@@ -294,6 +294,33 @@ export function adminModalsSection(): string {
   </div>
 </div>
 
+<!-- CUSTOMER ACTION CONFIRM MODAL -->
+<div id="customerActionConfirmModal" class="fixed inset-0 modal-overlay z-[90] hidden items-center justify-center p-4" onclick="if(event.target===this) closeCustomerActionConfirmModal(false)">
+  <div class="modal-card bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden" onclick="event.stopPropagation()">
+    <div class="border-b px-6 py-4 flex items-center justify-between gap-3">
+      <div class="flex items-center gap-3 min-w-0">
+        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-50 text-red-600">
+          <i class="fas fa-triangle-exclamation"></i>
+        </div>
+        <div class="min-w-0">
+          <h2 id="customerActionConfirmTitle" class="font-bold text-lg text-gray-900">Xác nhận</h2>
+          <p class="text-xs text-gray-500">Hành động này sẽ áp dụng ngay lập tức</p>
+        </div>
+      </div>
+      <button type="button" onclick="closeCustomerActionConfirmModal(false)" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition">
+        <i class="fas fa-times text-gray-600"></i>
+      </button>
+    </div>
+    <div class="px-6 py-5">
+      <p id="customerActionConfirmMessage" class="text-sm leading-6 text-gray-600"></p>
+    </div>
+    <div class="border-t px-6 py-4 flex items-center justify-end gap-3">
+      <button type="button" onclick="closeCustomerActionConfirmModal(false)" class="px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition">Hủy</button>
+      <button type="button" id="customerActionConfirmButton" onclick="closeCustomerActionConfirmModal(true)" class="px-4 py-2.5 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 transition">Xác nhận</button>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div id="adminToast" class="fixed top-6 right-6 z-50 flex flex-col gap-2 pointer-events-none"></div>`
 }

@@ -608,14 +608,14 @@ export function storefrontModalsSection(): string {
         </div>
         <div>
           <h3 class="font-bold text-lg">Không thể đặt hàng</h3>
-          <p class="text-sm text-red-100">Tài khoản bị hạn chế</p>
+          <p class="text-sm text-red-100">Không thể đặt hàng</p>
         </div>
       </div>
     </div>
     <div class="p-6">
       <div class="bg-red-50 border border-red-200 rounded-xl p-4 mb-4">
         <p id="blockedCustomerReason" class="text-sm text-red-800 font-medium text-center">
-          Bạn đã bị cấm mua hàng tạm thời
+          Không thể đặt hàng
         </p>
       </div>
       <p class="text-sm text-gray-600 text-center mb-6">
