@@ -552,6 +552,7 @@ function updateCartBadge() {
 function genCartId() { return Date.now().toString(36)+Math.random().toString(36).slice(2,7) }
 
 function addToCart(product, color, size, qty) {
+  if (!assertCustomerCanShop()) return false
   // check duplicate: same productId + color + size
   const exist = cart.find(i=>i.productId===product.id && i.color===color && i.size===size)
   if (exist) {
@@ -571,6 +572,7 @@ function addToCart(product, color, size, qty) {
     })
   }
   saveCart()
+  return true
 }
 
 // ── INIT ──────────────────────────────────────────
@@ -789,9 +791,7 @@ async function loadBestSellers() {
           <div class="flex items-center gap-1.5">
             <span class="bs-sold-chip"><i class="fas fa-fire-flame-curved"></i> \${fmtSold(soldCount)} đã bán</span>
           </div>
-          <button onclick="event.stopPropagation();openOrder(\${p.id})" class="btn-primary w-full mt-2.5 py-2 text-xs font-bold text-white rounded-xl">
-            <i class="fas fa-bolt mr-1"></i>Mua ngay
-          </button>
+          \${isCurrentUserBlocked() ? renderBlockedPurchaseActions('w-full mt-2.5 py-2 text-xs font-bold rounded-xl') : \`<button onclick="event.stopPropagation();openOrder(\${p.id})" class="btn-primary w-full mt-2.5 py-2 text-xs font-bold text-white rounded-xl"><i class="fas fa-bolt mr-1"></i>Mua ngay</button>\`}
         </div>
       </div>\`
     }).join('')
@@ -882,9 +882,7 @@ async function loadFlashSaleShop() {
               \${original > price ? \`<span class="pb-0.5 text-sm text-slate-400 line-through">\${fmtPrice(original)}</span>\` : ''}
             </div>
             \${renderFlashSaleMiniStrip(meta)}
-            <button onclick="event.stopPropagation();openOrder(\${product.id})" class="btn-primary w-full rounded-2xl py-3 text-sm font-semibold text-white">
-              <i class="fas fa-bolt mr-1"></i>Mua ngay
-            </button>
+            \${isCurrentUserBlocked() ? renderBlockedPurchaseActions('w-full rounded-2xl py-3 text-sm font-semibold') : \`<button onclick="event.stopPropagation();openOrder(\${product.id})" class="btn-primary w-full rounded-2xl py-3 text-sm font-semibold text-white"><i class="fas fa-bolt mr-1"></i>Mua ngay</button>\`}
           </div>
         </div>
       \`
@@ -935,16 +933,7 @@ function renderProducts(products) {
           \${colors.slice(0,4).map(c => \`<span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">\${c}</span>\`).join('')}
           \${colors.length > 4 ? \`<span class="text-xs text-gray-400">+\${colors.length-4}</span>\` : ''}
         </div>\` : ''}
-        <div class="flex gap-2">
-          <button onclick="event.stopPropagation();openOrder(\${p.id})" title="Mua ngay"
-            class="btn-primary flex-1 text-white py-2 rounded-xl text-sm font-semibold">
-            <i class="fas fa-bolt mr-1"></i>Mua ngay
-          </button>
-          <button onclick="event.stopPropagation();addToCartFromCard(event, \${p.id})" title="Thêm vào giỏ hàng"
-            class="add-to-cart-btn w-10 h-9 flex items-center justify-center text-white rounded-xl transition group relative">
-            <i class="fas fa-shopping-bag text-sm"></i>
-          </button>
-        </div>
+        \${renderProductCardActions(p.id)}
       </div>
     </div>\`
   }).join('')
@@ -1055,6 +1044,49 @@ function showToast(msg, type='success', duration=3000) {
   t.textContent = msg
   c.appendChild(t)
   setTimeout(() => t.remove(), duration)
+}
+
+function normalizeCustomerPhone(value) {
+  return String(value || '').trim().replace(/\\s+/g, '')
+}
+
+function isBlockedFlag(value) {
+  return Number(value || 0) === 1 || value === true || String(value || '').toLowerCase() === 'true'
+}
+
+function getCurrentUserBlockReason() {
+  return String(currentUser?.blocked_reason || 'Bạn đã bị cấm mua hàng tạm thời').trim()
+}
+
+function isCurrentUserBlocked() {
+  return !!currentUser && isBlockedFlag(currentUser.is_blocked)
+}
+
+function assertCustomerCanShop() {
+  if (!isCurrentUserBlocked()) return true
+  showBlockedCustomerModal(getCurrentUserBlockReason())
+  return false
+}
+
+function renderBlockedPurchaseActions(extraClass) {
+  const cls = extraClass || 'w-full rounded-2xl py-3 text-sm font-semibold'
+  return '<button type="button" onclick="event.stopPropagation();showBlockedCustomerModal(getCurrentUserBlockReason())" class="' + cls + ' bg-red-50 text-red-600 border border-red-100 cursor-not-allowed"><i class="fas fa-ban mr-1"></i>Đã bị chặn mua hàng</button>'
+}
+
+function renderProductCardActions(productId) {
+  if (isCurrentUserBlocked()) {
+    return '<div class="flex gap-2">' + renderBlockedPurchaseActions('flex-1 py-2 rounded-xl text-sm font-semibold') + '<button type="button" onclick="event.stopPropagation();showBlockedCustomerModal(getCurrentUserBlockReason())" title="Không thể thêm vào giỏ" class="w-10 h-9 flex items-center justify-center rounded-xl bg-red-50 text-red-500 border border-red-100 cursor-not-allowed"><i class="fas fa-ban text-sm"></i></button></div>'
+  }
+  return '<div class="flex gap-2">'
+    + '<button onclick="event.stopPropagation();openOrder(' + productId + ')" title="Mua ngay" class="btn-primary flex-1 text-white py-2 rounded-xl text-sm font-semibold"><i class="fas fa-bolt mr-1"></i>Mua ngay</button>'
+    + '<button onclick="event.stopPropagation();addToCartFromCard(event, ' + productId + ')" title="Thêm vào giỏ hàng" class="add-to-cart-btn w-10 h-9 flex items-center justify-center text-white rounded-xl transition group relative"><i class="fas fa-shopping-bag text-sm"></i></button>'
+    + '</div>'
+}
+
+function refreshStorefrontPurchaseControls() {
+  if (Array.isArray(filteredProducts) && filteredProducts.length) renderProducts(filteredProducts)
+  loadBestSellers()
+  loadFlashSaleShop()
 }
 
 function toggleMobileMenu() {
@@ -1254,6 +1286,7 @@ function setupSwipeToDelete() {
 async function proceedToCheckout() {
   const checked = cart.filter(i=>i.checked)
   if (checked.length === 0) { showToast('Vui lòng chọn ít nhất 1 sản phẩm','error'); return }
+  if (!assertCustomerCanShop()) return
   try {
     await ensureAddressKitReady()
   } catch (_) {
@@ -1357,10 +1390,15 @@ function clearCheckoutError(fieldId) {
 // ── CUSTOMER BLOCK CHECK ──────────────────────────
 async function checkCustomerBlockStatus(phone) {
   try {
+    if (isCurrentUserBlocked()) {
+      return { is_blocked: true, reason: getCurrentUserBlockReason() }
+    }
     const userId = currentUser?.userId || currentUser?.id || null
+    const normalizedPhone = normalizeCustomerPhone(phone)
+    if (!userId && !normalizedPhone) return { is_blocked: false, reason: '' }
     let url = '/api/customers/block-status?'
     if (userId) url += 'user_id=' + userId + '&'
-    if (phone) url += 'phone=' + encodeURIComponent(phone)
+    if (normalizedPhone) url += 'phone=' + encodeURIComponent(normalizedPhone)
     
     const res = await axios.get(url)
     return res.data?.data || { is_blocked: false, reason: '' }
@@ -1787,6 +1825,10 @@ async function checkUserAuth() {
   try {
     const res = await axios.get('/api/auth/me')
     currentUser = res.data.data
+    if (currentUser) {
+      currentUser.is_blocked = isBlockedFlag(currentUser.is_blocked) ? 1 : 0
+      currentUser.blocked_reason = String(currentUser.blocked_reason || '')
+    }
     isAdminUser = !!res.data.isAdmin
     syncCartScope()
     ensureAddressKitReady()
@@ -1796,6 +1838,7 @@ async function checkUserAuth() {
       })
       .catch(() => { })
     updateUserUI()
+    refreshStorefrontPurchaseControls()
   } catch {
     currentUser = null
     isAdminUser = false
@@ -1807,6 +1850,7 @@ async function checkUserAuth() {
       })
       .catch(() => { })
     updateUserUI()
+    refreshStorefrontPurchaseControls()
   }
 }
 

@@ -21,6 +21,14 @@ function generateNumericOrderSuffix6() {
   return num.toString().padStart(6, '0')
 }
 
+function isBlockedValue(value: unknown) {
+  return Number(value || 0) === 1
+}
+
+function normalizeOrderPhone(value: unknown) {
+  return String(value || '').trim().replace(/\s+/g, '')
+}
+
 async function generateUniqueOrderCode(db: D1Database) {
   for (let i = 0; i < 12; i++) {
     const code = 'QH' + generateNumericOrderSuffix6()
@@ -143,7 +151,9 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
         product_id, color, selected_color_image, size, quantity, note, voucher_code, payment_method
       } = body
 
-      if (!customer_name || !customer_phone || !customer_address || !product_id) {
+      const normalizedCustomerPhone = normalizeOrderPhone(customer_phone)
+
+      if (!customer_name || !normalizedCustomerPhone || !customer_address || !product_id) {
         return c.json({ success: false, error: 'Missing required fields' }, 400)
       }
 
@@ -157,7 +167,7 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
           'SELECT is_blocked, blocked_reason FROM users WHERE id = ?'
         ).bind(userId).first() as any
         
-        if (user && user.is_blocked === 1) {
+        if (user && isBlockedValue(user.is_blocked)) {
           isBlocked = true
           blockReason = user.blocked_reason || 'Bạn đã bị cấm mua hàng tạm thời'
         }
@@ -172,10 +182,10 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
           params.push(userId)
         }
         
-        if (customer_phone) {
+        if (normalizedCustomerPhone) {
           if (userId) query += ' OR '
           query += 'customer_phone = ?'
-          params.push(customer_phone)
+          params.push(normalizedCustomerPhone)
         }
         
         query += ')'
@@ -236,7 +246,7 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
         userId,
         orderCode,
         customer_name,
-        customer_phone,
+        normalizedCustomerPhone,
         customer_address,
         product_id,
         product.name,

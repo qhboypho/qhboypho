@@ -15,6 +15,9 @@ const adminCustomersScriptSource = await readFile(new URL('../src/pages/admin/sc
 const customerRoutesSource = await readFile(new URL('../src/routes/customerRoutes.ts', import.meta.url), 'utf8')
 const adminUtilityRoutesSource = await readFile(new URL('../src/routes/adminUtilityRoutes.ts', import.meta.url), 'utf8')
 const voucherStatsRoutesSource = await readFile(new URL('../src/routes/voucherStatsRoutes.ts', import.meta.url), 'utf8')
+const authRoutesSource = await readFile(new URL('../src/routes/authRoutes.ts', import.meta.url), 'utf8')
+const orderRoutesSource = await readFile(new URL('../src/routes/orderRoutes.ts', import.meta.url), 'utf8')
+const blockRoutesSource = await readFile(new URL('../src/routes/blockRoutes.ts', import.meta.url), 'utf8')
 const mobileOrderCardSource = ordersSource.slice(
   ordersSource.indexOf('function renderOrdersMobileList'),
   ordersSource.indexOf('function toggleOrderSelection'),
@@ -390,6 +393,27 @@ assert.match(
   voucherStatsRoutesSource,
   /recentInternalFilterSql[\s\S]*LOWER\(COALESCE\(o\.status, ''\)\) != 'cancelled'/,
   'admin stats recent orders should exclude cancelled orders at the data source',
+)
+
+assert.match(
+  authRoutesSource,
+  /SELECT id as userId[\s\S]*is_blocked[\s\S]*blocked_reason[\s\S]*FROM users/,
+  'auth me should expose customer block status so storefront can disable purchase controls after login',
+)
+assert.match(
+  orderRoutesSource,
+  /function normalizeOrderPhone[\s\S]*replace\(\/\\s\+\/g, ''\)[\s\S]*isBlockedValue\(user\.is_blocked\)/,
+  'order creation should normalize phones and use numeric block checks instead of strict value equality',
+)
+assert.match(
+  blockRoutesSource,
+  /function normalizeBlockPhone[\s\S]*replace\(\/\\s\+\/g, ''\)[\s\S]*isBlockedValue\(user\.is_blocked\)/,
+  'block status routes should normalize phone input and handle D1 numeric/string block flags',
+)
+assert.match(
+  storefrontScriptSource,
+  /normalizeCustomerPhone[\s\S]*assertCustomerCanShop[\s\S]*renderProductCardActions[\s\S]*checkCustomerBlockStatus/,
+  'storefront should hide or block purchase controls for blocked logged-in customers',
 )
 
 console.log('Critical UI contract passed.')

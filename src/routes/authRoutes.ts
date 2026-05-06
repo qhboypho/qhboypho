@@ -40,6 +40,10 @@ function isValidOptionalPhone(phone: string) {
   return !phone || /^\+?[0-9 .()-]{7,20}$/.test(phone)
 }
 
+function isBlockedValue(value: unknown) {
+  return Number(value || 0) === 1
+}
+
 function buildLocalUserEmail(username: string) {
   return `${username}@user.qhclothes.local`
 }
@@ -176,8 +180,18 @@ export function registerAuthRoutes(app: Hono<{ Bindings: AppBindings }>, deps: A
     } else if (userToken) {
       try {
         const parsedId = parseInt(userToken, 10)
-        const user = await c.env.DB.prepare("SELECT id as userId, email, username, phone, name, avatar, balance, is_admin FROM users WHERE id=?").bind(parsedId).first()
-        if (user) currentUser = user
+        const user = await c.env.DB.prepare(`
+          SELECT id as userId, email, username, phone, name, avatar, balance, is_admin, is_blocked, blocked_reason
+          FROM users
+          WHERE id=?
+        `).bind(parsedId).first() as any
+        if (user) {
+          currentUser = {
+            ...user,
+            is_blocked: isBlockedValue(user.is_blocked) ? 1 : 0,
+            blocked_reason: String(user.blocked_reason || '')
+          }
+        }
       } catch (e: any) {
         console.error('[auth] resolve current user failed', e)
       }

@@ -5,6 +5,14 @@ type BlockRouteDeps = {
   initDB: (db: D1Database) => Promise<void>
 }
 
+function isBlockedValue(value: unknown) {
+  return Number(value || 0) === 1
+}
+
+function normalizeBlockPhone(value: unknown) {
+  return String(value || '').trim().replace(/\s+/g, '')
+}
+
 export function registerBlockRoutes(app: Hono<{ Bindings: AppBindings }>, deps: BlockRouteDeps) {
   // Check if customer is blocked (for frontend checkout validation)
   app.get('/api/customers/block-status', async (c) => {
@@ -12,7 +20,7 @@ export function registerBlockRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
       await deps.initDB(c.env.DB)
       
       const userId = c.req.query('user_id')
-      const phone = c.req.query('phone')
+      const phone = normalizeBlockPhone(c.req.query('phone'))
       
       if (!userId && !phone) {
         return c.json({ success: false, error: 'user_id or phone required' }, 400)
@@ -27,7 +35,7 @@ export function registerBlockRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
           'SELECT is_blocked, blocked_reason FROM users WHERE id = ?'
         ).bind(userId).first() as any
         
-        if (user && user.is_blocked === 1) {
+        if (user && isBlockedValue(user.is_blocked)) {
           isBlocked = true
           reason = user.blocked_reason || 'Bạn đã bị cấm mua hàng tạm thời'
         }
@@ -79,7 +87,7 @@ export function registerBlockRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
       
       const body = await c.req.json()
       const userId = body.user_id ? Number(body.user_id) : null
-      const phone = body.customer_phone ? String(body.customer_phone).trim() : null
+      const phone = body.customer_phone ? normalizeBlockPhone(body.customer_phone) : null
       const reason = body.reason || 'Bị chặn bởi quản trị viên'
       
       if (!userId && !phone) {
@@ -149,7 +157,7 @@ export function registerBlockRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
       
       const body = await c.req.json()
       const userId = body.user_id ? Number(body.user_id) : null
-      const phone = body.customer_phone ? String(body.customer_phone).trim() : null
+      const phone = body.customer_phone ? normalizeBlockPhone(body.customer_phone) : null
       
       if (!userId && !phone) {
         return c.json({ success: false, error: 'user_id or customer_phone required' }, 400)
@@ -195,7 +203,7 @@ export function registerBlockRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
       
       const body = await c.req.json()
       const userId = body.user_id ? Number(body.user_id) : null
-      const phone = body.customer_phone ? String(body.customer_phone).trim() : null
+      const phone = body.customer_phone ? normalizeBlockPhone(body.customer_phone) : null
       
       if (!userId && !phone) {
         return c.json({ success: false, error: 'user_id or customer_phone required' }, 400)

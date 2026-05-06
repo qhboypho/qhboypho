@@ -66,9 +66,7 @@ export function storefrontDetailOrderScript(): string {
             \${sizes.map(s => \`<button class="size-btn w-12 h-10 border rounded-lg text-sm font-medium hover:border-pink-400 transition" onclick="selectDetailSize('\${s}',this)">\${s}</button>\`).join('')}
           </div>
         </div>\` : ''}
-        <button onclick="closeDetail();collapseBanners();openOrder(\${p.id})" class="btn-primary w-full text-white py-3.5 rounded-xl font-bold text-base">
-          <i class="fas fa-shopping-cart mr-2"></i>Đặt hàng ngay
-        </button>
+        \${isCurrentUserBlocked() ? renderBlockedPurchaseActions('w-full py-3.5 rounded-xl font-bold text-base') : \`<button onclick="closeDetail();collapseBanners();openOrder(\${p.id})" class="btn-primary w-full text-white py-3.5 rounded-xl font-bold text-base"><i class="fas fa-shopping-cart mr-2"></i>Đặt hàng ngay</button>\`}
       </div>
     </div>\`
     document.getElementById('detailOverlay').classList.remove('hidden')
@@ -115,6 +113,7 @@ function closeDetail() {
 // ── ORDER POPUP ────────────────────────────────────
 async function openOrder(id) {
   try {
+    if (!assertCustomerCanShop()) return
     await ensureAddressKitReady()
     const res = await axios.get('/api/products/' + id)
     currentProduct = res.data.data
@@ -326,6 +325,7 @@ function animateFlyToCart(imgUrl, sourceEl) {
 // Add to cart from product card – always add directly, pick first color/size as default
 async function addToCartFromCard(evt, id) {
   try {
+    if (!assertCustomerCanShop()) return
     const res = await axios.get('/api/products/' + id)
     const p = res.data.data
     const colors = getProductColorOptions(p).map((c) => c.name)
@@ -333,8 +333,9 @@ async function addToCartFromCard(evt, id) {
     const color = colors.length > 0 ? colors[0] : ''
     const size = sizes.length > 0 ? sizes[0] : ''
     animateFlyToCart(resolveFlyImage(p), evt?.currentTarget || evt?.target || null)
-    addToCart(p, color, size, 1)
-    showToast('Đã thêm "' + p.name + '" vào giỏ hàng!', 'success', 2500)
+    if (addToCart(p, color, size, 1)) {
+      showToast('Đã thêm "' + p.name + '" vào giỏ hàng!', 'success', 2500)
+    }
   } catch(e) { showToast('Lỗi khi thêm vào giỏ', 'error') }
 }
 
@@ -401,10 +402,15 @@ function clearFieldError(fieldId) {
 // ── CUSTOMER BLOCK CHECK ──────────────────────────
 async function checkCustomerBlockStatus(phone) {
   try {
+    if (isCurrentUserBlocked()) {
+      return { is_blocked: true, reason: getCurrentUserBlockReason() }
+    }
     const userId = currentUser?.userId || currentUser?.id || null
+    const normalizedPhone = normalizeCustomerPhone(phone)
+    if (!userId && !normalizedPhone) return { is_blocked: false, reason: '' }
     let url = '/api/customers/block-status?'
     if (userId) url += 'user_id=' + userId + '&'
-    if (phone) url += 'phone=' + encodeURIComponent(phone)
+    if (normalizedPhone) url += 'phone=' + encodeURIComponent(normalizedPhone)
     
     const res = await axios.get(url)
     return res.data?.data || { is_blocked: false, reason: '' }
@@ -618,10 +624,12 @@ async function submitOrder() {
 // Add current product from order popup to cart
 function addCurrentToCart() {
   if (!currentProduct) return
+  if (!assertCustomerCanShop()) return
   animateFlyToCart(resolveFlyImage(currentProduct), document.getElementById('addToCartBtn'))
-  addToCart(currentProduct, selectedColor, selectedSize, orderQty)
-  closeOrder()
-  showToast('Da them "' + currentProduct.name + '" vao gio hang!', 'success', 2500)
+  if (addToCart(currentProduct, selectedColor, selectedSize, orderQty)) {
+    closeOrder()
+    showToast('Da them "' + currentProduct.name + '" vao gio hang!', 'success', 2500)
+  }
 }
 
 // ── UTILS ──────────────────────────────────────────
