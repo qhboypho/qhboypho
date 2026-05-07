@@ -63,6 +63,34 @@ function toggleStorefrontTheme() {
   applyStorefrontTheme(theme)
 }
 
+function initHeroTypedText() {
+  const el = document.getElementById('heroTypedText')
+  if (!el) return
+  const text = el.getAttribute('data-typed-text') || 'Thời Trang Nam Nữ'
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    el.textContent = text
+    return
+  }
+  let index = 0
+  const typingDelay = 85
+  const restartDelay = 1800
+  function typeNext() {
+    el.textContent = text.slice(0, index)
+    if (index <= text.length) {
+      index += 1
+      window.setTimeout(typeNext, typingDelay)
+      return
+    }
+    window.setTimeout(() => {
+      index = 0
+      el.textContent = ''
+      typeNext()
+    }, restartDelay)
+  }
+  el.textContent = ''
+  typeNext()
+}
+
 function getAddressScopeElements(scope) {
   const isCart = scope === 'ck'
   return {
@@ -1800,6 +1828,7 @@ window.addEventListener('resize', () => {
 
 // Init
 applyStorefrontTheme(loadStorefrontThemePreference())
+initHeroTypedText()
 bindAddressSearchableDropdowns()
 loadSettings()
 loadFooterSocialLinks()

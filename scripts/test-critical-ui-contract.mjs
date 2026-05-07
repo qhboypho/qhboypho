@@ -222,6 +222,26 @@ assert.match(
   /top-20/,
   'storefront filter bar should offset for the taller navbar',
 )
+assert.match(
+  storefrontSectionsSource,
+  /Thời Trang Boypho[\s\S]*heroTypedText[\s\S]*data-typed-text=\\"Thời Trang Nam Nữ\\"/,
+  'storefront hero should show Thời Trang Boypho as the static title and attach typed copy metadata',
+)
+assert.doesNotMatch(
+  storefrontSectionsSource,
+  /Phong Cách|Không Giới Hạn/,
+  'storefront hero should not keep the old headline copy',
+)
+assert.match(
+  storefrontScriptSource,
+  /function initHeroTypedText[\s\S]*Thời Trang Nam Nữ[\s\S]*prefers-reduced-motion/,
+  'storefront hero should initialize the local typing effect with a reduced-motion fallback',
+)
+assert.match(
+  storefrontStylesSource,
+  /\.hero-typed-cursor[\s\S]*heroTypedCursorBlink/,
+  'storefront hero should style the typing cursor animation',
+)
 
 assert.doesNotMatch(
   storefrontSectionsSource,
