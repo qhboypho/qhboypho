@@ -153,14 +153,34 @@ assert.match(
   'storefront navbar should render the marquee announcement bar',
 )
 assert.match(
+  storefrontSectionsSource,
+  /storefront-marquee-group/,
+  'storefront marquee should duplicate the message for a seamless loop',
+)
+assert.match(
+  storefrontSectionsSource,
+  /fa-bullhorn/,
+  'storefront marquee should show the announcement icon',
+)
+assert.match(
   storefrontStylesSource,
   /\.storefront-marquee-bar \{/,
   'storefront styles should define the marquee bar layout',
 )
 assert.match(
   storefrontStylesSource,
+  /\.storefront-marquee-icon \{/,
+  'storefront styles should define the marquee icon styling',
+)
+assert.match(
+  storefrontStylesSource,
   /@keyframes storefrontMarquee/,
   'storefront styles should animate the marquee text',
+)
+assert.match(
+  storefrontStylesSource,
+  /font-size: 16px;/,
+  'storefront marquee text should use the requested 16px font size',
 )
 assert.match(
   storefrontSectionsSource,
