@@ -66,18 +66,24 @@ function toggleStorefrontTheme() {
 function initHeroTypedText() {
   const el = document.getElementById('heroTypedText')
   if (!el) return
-  const text = el.getAttribute('data-typed-text') || 'Thời Trang Nam Nữ'
+  const texts = String(el.getAttribute('data-typed-text') || 'Phong cách Boypho|Sang Trọng Và Cá Tính')
+    .split('|')
+    .map((item) => item.trim())
+    .filter(Boolean)
+  if (!texts.length) return
   if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    el.textContent = text
+    el.textContent = texts[0]
     return
   }
   let index = 0
+  let textIndex = 0
   let deleting = false
   const typingDelay = 95
   const deletingDelay = 45
   const holdDelay = 1400
   const restartDelay = 450
   function typeNext() {
+    const text = texts[textIndex] || ''
     el.textContent = text.slice(0, index)
     if (!deleting && index < text.length) {
       index += 1
@@ -95,6 +101,7 @@ function initHeroTypedText() {
       return
     }
     deleting = false
+    textIndex = (textIndex + 1) % texts.length
     window.setTimeout(typeNext, restartDelay)
   }
   el.textContent = ''

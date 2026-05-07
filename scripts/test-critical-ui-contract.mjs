@@ -224,18 +224,18 @@ assert.match(
 )
 assert.match(
   storefrontSectionsSource,
-  /Thời Trang Boypho[\s\S]*heroTypedText[\s\S]*data-typed-text=\\"Thời Trang Nam Nữ\\"[\s\S]*aria-label=\\"Thời Trang Nam Nữ\\"/,
-  'storefront hero should show Thời Trang Boypho as the static title and attach typed copy metadata without pre-filling the animated span',
+  /Thời Trang Giới Trẻ[\s\S]*heroTypedText[\s\S]*data-typed-text=\\"Phong cách Boypho\|Sang Trọng Và Cá Tính\\"[\s\S]*aria-label=\\"Phong cách Boypho Sang Trọng Và Cá Tính\\"/,
+  'storefront hero should show Thời Trang Giới Trẻ as the static title and attach the two typed phrases without pre-filling the animated span',
 )
 assert.doesNotMatch(
   storefrontSectionsSource,
-  /Phong Cách|Không Giới Hạn/,
+  /Phong Cách|Không Giới Hạn|Thời Trang Boypho|Thời Trang Nam Nữ/,
   'storefront hero should not keep the old headline copy',
 )
 assert.match(
   storefrontScriptSource,
-  /function initHeroTypedText[\s\S]*Thời Trang Nam Nữ[\s\S]*prefers-reduced-motion[\s\S]*deletingDelay/,
-  'storefront hero should initialize the local type-and-delete effect with a reduced-motion fallback',
+  /function initHeroTypedText[\s\S]*Phong cách Boypho\|Sang Trọng Và Cá Tính[\s\S]*split\('\|'\)[\s\S]*prefers-reduced-motion[\s\S]*textIndex[\s\S]*deletingDelay/,
+  'storefront hero should initialize the local type-and-delete effect across both typed phrases with a reduced-motion fallback',
 )
 assert.match(
   storefrontStylesSource,
