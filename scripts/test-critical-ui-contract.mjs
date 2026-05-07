@@ -154,7 +154,7 @@ assert.match(
 )
 assert.match(
   storefrontSectionsSource,
-  /storefront-marquee-link[\s\S]*QH Boypho[\s\S]*http:\/\/m\.me\/qhboypho/,
+  /storefront-marquee-link[\s\S]*http:\/\/m\.me\/qhboypho[\s\S]*QH Boypho/,
   'storefront marquee should link QH Boypho to Messenger',
 )
 assert.doesNotMatch(
@@ -165,7 +165,12 @@ assert.doesNotMatch(
 assert.match(
   storefrontSectionsSource,
   /storefront-marquee-group/,
-  'storefront marquee should duplicate the message for a seamless loop',
+  'storefront marquee should render a single sweeping message',
+)
+assert.doesNotMatch(
+  storefrontSectionsSource,
+  /storefront-marquee-group" aria-hidden="true"/,
+  'storefront marquee should not keep the duplicated second copy',
 )
 assert.match(
   storefrontSectionsSource,
@@ -194,8 +199,13 @@ assert.match(
 )
 assert.match(
   storefrontStylesSource,
-  /@keyframes storefrontMarquee/,
-  'storefront styles should animate the marquee text',
+  /@keyframes storefrontMarquee[\s\S]*translateX\(100%\)[\s\S]*translateX\(-100%\)/,
+  'storefront styles should animate the marquee text from right to left and reset outside the viewport',
+)
+assert.doesNotMatch(
+  storefrontStylesSource,
+  /translateX\(-50%\)/,
+  'storefront marquee should not keep the seamless duplicate-loop transform',
 )
 assert.match(
   storefrontStylesSource,
