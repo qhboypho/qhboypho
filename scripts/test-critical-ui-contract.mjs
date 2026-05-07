@@ -224,8 +224,8 @@ assert.match(
 )
 assert.match(
   storefrontSectionsSource,
-  /Thời Trang Boypho[\s\S]*heroTypedText[\s\S]*data-typed-text=\\"Thời Trang Nam Nữ\\"/,
-  'storefront hero should show Thời Trang Boypho as the static title and attach typed copy metadata',
+  /Thời Trang Boypho[\s\S]*heroTypedText[\s\S]*data-typed-text=\\"Thời Trang Nam Nữ\\"[\s\S]*aria-label=\\"Thời Trang Nam Nữ\\"/,
+  'storefront hero should show Thời Trang Boypho as the static title and attach typed copy metadata without pre-filling the animated span',
 )
 assert.doesNotMatch(
   storefrontSectionsSource,
@@ -234,8 +234,8 @@ assert.doesNotMatch(
 )
 assert.match(
   storefrontScriptSource,
-  /function initHeroTypedText[\s\S]*Thời Trang Nam Nữ[\s\S]*prefers-reduced-motion/,
-  'storefront hero should initialize the local typing effect with a reduced-motion fallback',
+  /function initHeroTypedText[\s\S]*Thời Trang Nam Nữ[\s\S]*prefers-reduced-motion[\s\S]*deletingDelay/,
+  'storefront hero should initialize the local type-and-delete effect with a reduced-motion fallback',
 )
 assert.match(
   storefrontStylesSource,

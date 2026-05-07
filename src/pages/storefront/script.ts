@@ -72,20 +72,30 @@ function initHeroTypedText() {
     return
   }
   let index = 0
-  const typingDelay = 85
-  const restartDelay = 1800
+  let deleting = false
+  const typingDelay = 95
+  const deletingDelay = 45
+  const holdDelay = 1400
+  const restartDelay = 450
   function typeNext() {
     el.textContent = text.slice(0, index)
-    if (index <= text.length) {
+    if (!deleting && index < text.length) {
       index += 1
       window.setTimeout(typeNext, typingDelay)
       return
     }
-    window.setTimeout(() => {
-      index = 0
-      el.textContent = ''
-      typeNext()
-    }, restartDelay)
+    if (!deleting) {
+      deleting = true
+      window.setTimeout(typeNext, holdDelay)
+      return
+    }
+    if (index > 0) {
+      index -= 1
+      window.setTimeout(typeNext, deletingDelay)
+      return
+    }
+    deleting = false
+    window.setTimeout(typeNext, restartDelay)
   }
   el.textContent = ''
   typeNext()
