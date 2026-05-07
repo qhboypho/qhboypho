@@ -71,8 +71,17 @@ function initHeroTypedText() {
     .map((item) => item.trim())
     .filter(Boolean)
   if (!texts.length) return
-  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    el.textContent = texts[0]
+  if (window.Typed) {
+    if (el._heroTypedInstance) el._heroTypedInstance.destroy()
+    el._heroTypedInstance = new window.Typed(el, {
+      strings: texts,
+      typeSpeed: 70,
+      backSpeed: 35,
+      backDelay: 1300,
+      startDelay: 150,
+      loop: true,
+      showCursor: false
+    })
     return
   }
   let index = 0

@@ -6,6 +6,7 @@ const ordersSource = await readFile(new URL('../src/pages/admin/script-orders.ts
 const storefrontModalsSource = await readFile(new URL('../src/pages/storefront/modals.ts', import.meta.url), 'utf8')
 const storefrontSectionsSource = await readFile(new URL('../src/pages/storefront/sections.ts', import.meta.url), 'utf8')
 const storefrontStylesSource = await readFile(new URL('../src/pages/storefront/styles.ts', import.meta.url), 'utf8')
+const storefrontPageSource = await readFile(new URL('../src/pages/storefrontPage.ts', import.meta.url), 'utf8')
 const storefrontScriptSource = await readFile(new URL('../src/pages/storefront/script.ts', import.meta.url), 'utf8')
 const storefrontDetailOrderScriptSource = await readFile(new URL('../src/pages/storefront/script-detail-order.ts', import.meta.url), 'utf8')
 const adminSectionsSource = await readFile(new URL('../src/pages/admin/sections.ts', import.meta.url), 'utf8')
@@ -234,8 +235,13 @@ assert.doesNotMatch(
 )
 assert.match(
   storefrontScriptSource,
-  /function initHeroTypedText[\s\S]*Phong cách Boypho\|Sang Trọng Và Cá Tính[\s\S]*split\('\|'\)[\s\S]*prefers-reduced-motion[\s\S]*textIndex[\s\S]*deletingDelay/,
-  'storefront hero should initialize the local type-and-delete effect across both typed phrases with a reduced-motion fallback',
+  /function initHeroTypedText[\s\S]*window\.Typed[\s\S]*new window\.Typed[\s\S]*strings: texts[\s\S]*loop: true[\s\S]*textIndex[\s\S]*deletingDelay/,
+  'storefront hero should initialize Typed.js for both phrases and keep the local fallback',
+)
+assert.match(
+  storefrontPageSource,
+  /typed\.js@3\.0\.0\/dist\/typed\.umd\.js/,
+  'storefront page should load the pinned Typed.js browser bundle before the inline storefront script',
 )
 assert.match(
   storefrontStylesSource,
