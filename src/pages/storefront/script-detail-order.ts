@@ -628,7 +628,7 @@ function addCurrentToCart() {
   animateFlyToCart(resolveFlyImage(currentProduct), document.getElementById('addToCartBtn'))
   if (addToCart(currentProduct, selectedColor, selectedSize, orderQty)) {
     closeOrder()
-    showToast('Da them "' + currentProduct.name + '" vao gio hang!', 'success', 2500)
+    showToast('Đã thêm "' + currentProduct.name + '" vào giỏ hàng!', 'success', 2500)
   }
 }
 

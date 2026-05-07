@@ -1185,7 +1185,7 @@ function renderCartStep1() {
   if (cart.length === 0) {
     checkAllBar.classList.add('hidden')
     footer.classList.add('hidden')
-    listEl.innerHTML = '<div class="flex flex-col items-center justify-center py-20 text-center"><div class="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center mb-4"><i class="fas fa-shopping-bag text-4xl text-gray-300"></i></div><p class="text-gray-500 font-medium text-lg mb-1">Chua co san pham nao</p><p class="text-gray-400 text-sm">Hay them san pham vao gio hang</p><button onclick="closeCart()" class="mt-6 btn-primary text-white px-6 py-2.5 rounded-full font-semibold text-sm"><i class="fas fa-arrow-left mr-2"></i>Tiep tuc mua sam</button></div>'
+    listEl.innerHTML = '<div class="flex flex-col items-center justify-center py-20 text-center"><div class="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center mb-4"><i class="fas fa-shopping-bag text-4xl text-gray-300"></i></div><p class="text-gray-500 font-medium text-lg mb-1">Chưa có sản phẩm nào</p><p class="text-gray-400 text-sm">Hãy thêm sản phẩm vào giỏ hàng</p><button onclick="closeCart()" class="mt-6 btn-primary text-white px-6 py-2.5 rounded-full font-semibold text-sm"><i class="fas fa-arrow-left mr-2"></i>Tiếp tục mua sắm</button></div>'
     updateCartHeaderSubtitle()
     return
   }
@@ -1243,7 +1243,7 @@ function renderCartStep1() {
 
 function updateCartHeaderSubtitle() {
   const total = cart.reduce(function(s,i){return s+i.qty},0)
-  document.getElementById('cartSubtitle').textContent = total > 0 ? (total + ' san pham trong gio') : 'Chua co san pham nao'
+  document.getElementById('cartSubtitle').textContent = total > 0 ? (total + ' sản phẩm trong giỏ') : 'Chưa có sản phẩm nào'
 }
 
 function toggleCheckAll(cb) {
