@@ -147,6 +147,31 @@ assert.doesNotMatch(
   /Tài khoản bị hạn chế|Bạn đã bị cấm mua hàng tạm thời/,
   'blocked storefront modal should not keep the old blocked-purchase copy',
 )
+assert.match(
+  storefrontSectionsSource,
+  /storefront-marquee-bar[\s\S]*Mua hàng trực tiếp từ shop không qua sàn TMĐT/,
+  'storefront navbar should render the marquee announcement bar',
+)
+assert.match(
+  storefrontStylesSource,
+  /\.storefront-marquee-bar \{/,
+  'storefront styles should define the marquee bar layout',
+)
+assert.match(
+  storefrontStylesSource,
+  /@keyframes storefrontMarquee/,
+  'storefront styles should animate the marquee text',
+)
+assert.match(
+  storefrontSectionsSource,
+  /pt-20/,
+  'storefront hero should offset for the taller navbar',
+)
+assert.match(
+  storefrontSectionsSource,
+  /top-20/,
+  'storefront filter bar should offset for the taller navbar',
+)
 
 assert.doesNotMatch(
   storefrontSectionsSource,
