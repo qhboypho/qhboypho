@@ -149,8 +149,18 @@ assert.doesNotMatch(
 )
 assert.match(
   storefrontSectionsSource,
-  /storefront-marquee-bar[\s\S]*Mua hàng trực tiếp từ shop không qua sàn TMĐT/,
-  'storefront navbar should render the marquee announcement bar',
+  /storefront-marquee-bar[\s\S]*Mua hàng tại đây không qua sàn thương mại/,
+  'storefront navbar should render the updated marquee announcement bar',
+)
+assert.match(
+  storefrontSectionsSource,
+  /storefront-marquee-link[\s\S]*QH Boypho[\s\S]*http:\/\/m\.me\/qhboypho/,
+  'storefront marquee should link QH Boypho to Messenger',
+)
+assert.doesNotMatch(
+  storefrontSectionsSource,
+  /Mua hàng trực tiếp từ shop không qua sàn TMĐT/,
+  'storefront marquee should not keep the old promotional copy',
 )
 assert.match(
   storefrontSectionsSource,
@@ -171,6 +181,16 @@ assert.match(
   storefrontStylesSource,
   /\.storefront-marquee-icon \{/,
   'storefront styles should define the marquee icon styling',
+)
+assert.match(
+  storefrontStylesSource,
+  /\.storefront-marquee-link \{/,
+  'storefront styles should define the marquee link styling',
+)
+assert.match(
+  storefrontStylesSource,
+  /\.storefront-marquee-bar:hover \.storefront-marquee-track \{[\s\S]*animation-play-state: paused;/,
+  'storefront marquee should pause when hovered',
 )
 assert.match(
   storefrontStylesSource,
