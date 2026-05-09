@@ -207,11 +207,16 @@ export function registerVoucherStatsRoutes(app: Hono<{ Bindings: AppBindings }>,
       const sidebarUndeliveredOrders = await c.env.DB.prepare(`
         SELECT COUNT(*) as count
         FROM orders
-        WHERE (
-          LOWER(COALESCE(status, '')) = 'shipping'
-          OR shipping_arranged = 1
-        )
-      `).first() as any
+        WHERE ${allOrderFilter.sql}
+          AND LOWER(COALESCE(status, '')) NOT IN ('shipping', 'done', 'cancelled')
+          AND (
+            UPPER(COALESCE(payment_method, '')) = 'COD'
+            OR (
+              UPPER(COALESCE(payment_method, '')) IN ('BANK_TRANSFER', 'ZALOPAY')
+              AND LOWER(COALESCE(payment_status, '')) = 'paid'
+            )
+          )
+      `).bind(...allOrderFilter.params).first() as any
       const shippingQueueOrders = await c.env.DB.prepare(`
         SELECT COUNT(*) as count
         FROM orders
