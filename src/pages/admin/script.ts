@@ -21,6 +21,8 @@ let gallerySlotClickBound = false
 let ghtkPickupAddresses = []
 let adminProfile = null
 let adminAvatarMenuOpen = false
+let dashboardFilterMode = 'month'
+let dashboardFilterInitialized = false
 let settingsSubmenuOpen = false
 let settingsActiveSubPage = ''
 let marketingSubmenuOpen = false
@@ -544,6 +546,85 @@ function closeOrdersHeaderSearch() {
   ordersSearchExpanded = false
   syncOrdersHeaderSearchUI()
 }
+
+function getLocalDateInputValue(date = new Date()) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return year + '-' + month + '-' + day
+}
+
+function getLocalMonthInputValue(date = new Date()) {
+  return getLocalDateInputValue(date).slice(0, 7)
+}
+
+function ensureDashboardDateFilter() {
+  if (document.getElementById('dashboardDateFilter')) return
+  const avatarRoot = document.getElementById('adminAvatarMenuRoot')
+  if (!avatarRoot || !avatarRoot.parentElement) return
+
+  const filter = document.createElement('div')
+  filter.id = 'dashboardDateFilter'
+  filter.className = 'hidden items-center gap-2 rounded-full border border-gray-200 bg-white px-2 py-1 shadow-sm'
+  filter.innerHTML =
+    '<select id="dashboardFilterMode" onchange="onDashboardFilterModeChange()" class="h-9 rounded-full border-0 bg-gray-50 px-3 text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-pink-100">' +
+      '<option value="month">Theo tháng</option>' +
+      '<option value="day">Theo ngày</option>' +
+      '<option value="all">Tất cả</option>' +
+    '</select>' +
+    '<input type="month" id="dashboardMonthInput" onchange="onDashboardFilterValueChange()" class="h-9 rounded-full border border-gray-200 px-3 text-xs font-semibold text-gray-700 focus:outline-none focus:border-pink-300">' +
+    '<input type="date" id="dashboardDateInput" onchange="onDashboardFilterValueChange()" class="hidden h-9 rounded-full border border-gray-200 px-3 text-xs font-semibold text-gray-700 focus:outline-none focus:border-pink-300">'
+  avatarRoot.parentElement.insertBefore(filter, avatarRoot)
+}
+
+function initDashboardDateFilterDefaults() {
+  ensureDashboardDateFilter()
+  if (dashboardFilterInitialized) return
+  dashboardFilterInitialized = true
+  const mode = document.getElementById('dashboardFilterMode')
+  const dateInput = document.getElementById('dashboardDateInput')
+  const monthInput = document.getElementById('dashboardMonthInput')
+  if (mode) mode.value = dashboardFilterMode
+  if (dateInput && !dateInput.value) dateInput.value = getLocalDateInputValue()
+  if (monthInput && !monthInput.value) monthInput.value = getLocalMonthInputValue()
+}
+
+function syncDashboardDateFilterUI() {
+  initDashboardDateFilterDefaults()
+  const filter = document.getElementById('dashboardDateFilter')
+  const mode = document.getElementById('dashboardFilterMode')
+  const dateInput = document.getElementById('dashboardDateInput')
+  const monthInput = document.getElementById('dashboardMonthInput')
+  if (!filter || !mode || !dateInput || !monthInput) return
+
+  const isDashboard = document.body.dataset.adminPage === 'dashboard'
+  filter.classList.toggle('hidden', !isDashboard)
+  filter.classList.toggle('flex', isDashboard)
+
+  dashboardFilterMode = String(mode.value || 'month')
+  dateInput.classList.toggle('hidden', dashboardFilterMode !== 'day')
+  monthInput.classList.toggle('hidden', dashboardFilterMode !== 'month')
+}
+
+function onDashboardFilterModeChange() {
+  syncDashboardDateFilterUI()
+  if (document.body.dataset.adminPage === 'dashboard') loadDashboard()
+}
+
+function onDashboardFilterValueChange() {
+  syncDashboardDateFilterUI()
+  if (document.body.dataset.adminPage === 'dashboard') loadDashboard()
+}
+
+function getDashboardStatsParams() {
+  initDashboardDateFilterDefaults()
+  const mode = String(document.getElementById('dashboardFilterMode')?.value || dashboardFilterMode || 'month')
+  const params = { mode }
+  if (mode === 'day') params.date = String(document.getElementById('dashboardDateInput')?.value || getLocalDateInputValue())
+  if (mode === 'month') params.month = String(document.getElementById('dashboardMonthInput')?.value || getLocalMonthInputValue())
+  return params
+}
+
 function showPage(name) {
   ['dashboard','products','orders','returns','customers','reviews','vouchers','featured','settings','settings-social','settings-warehouse','flashsale'].forEach(p => {
     const section = document.getElementById('page-'+p)
@@ -599,6 +680,7 @@ function showPage(name) {
   else if (name === 'flashsale') loadFlashSaleAdmin()
 
   syncOrdersHeaderSearchUI()
+  syncDashboardDateFilterUI()
 
   if (name !== 'orders') {
     const bulkBar = document.getElementById('ordersBulkActionBar')
@@ -898,9 +980,95 @@ function fitDashboardStatValues() {
   })
 }
 
+function getDashboardRangeLabel(range) {
+  const mode = String(range?.mode || 'all')
+  const label = String(range?.label || '').trim()
+  if (mode === 'day') return 'Ngày ' + formatDashboardDateLabel(label)
+  if (mode === 'month') return 'Tháng ' + formatDashboardMonthLabel(label)
+  if (mode === 'custom') return label
+  return 'Tất cả thời gian'
+}
+
+function formatDashboardDateLabel(value) {
+  if (!value) return '-'
+  const parts = String(value).split('-')
+  if (parts.length !== 3) return value
+  return parts[2] + '/' + parts[1] + '/' + parts[0]
+}
+
+function formatDashboardMonthLabel(value) {
+  if (!value) return '-'
+  const parts = String(value).split('-')
+  if (parts.length !== 2) return value
+  return parts[1] + '/' + parts[0]
+}
+
+function renderDashboardInsights(d) {
+  const rangeLabel = document.getElementById('dashboardRangeLabel')
+  const grid = document.getElementById('dashboardInsightGrid')
+  if (rangeLabel) rangeLabel.textContent = getDashboardRangeLabel(d.range)
+  if (!grid) return
+
+  const items = [
+    { label: 'Đã hoàn tất', value: Number(d.completedOrders || 0).toLocaleString('vi-VN'), tone: 'text-emerald-700 bg-emerald-50' },
+    { label: 'Sẵn sàng giao', value: Number(d.shippingQueueOrders || 0).toLocaleString('vi-VN'), tone: 'text-sky-700 bg-sky-50' },
+    { label: 'Chưa thanh toán', value: Number(d.unpaidOrders || 0).toLocaleString('vi-VN'), tone: 'text-amber-700 bg-amber-50' },
+    { label: 'Giá trị TB', value: fmtPrice(d.avgOrderValue || 0), tone: 'text-gray-800 bg-gray-50' },
+  ]
+
+  grid.innerHTML = items.map((item) => (
+    '<div class="rounded-xl border border-gray-100 ' + item.tone + ' p-3 min-w-0">' +
+      '<p class="text-xs font-semibold opacity-75">' + escapeDashboardHtml(item.label) + '</p>' +
+      '<p class="mt-1 text-lg font-bold truncate">' + escapeDashboardHtml(item.value) + '</p>' +
+    '</div>'
+  )).join('')
+}
+
+function renderDashboardStatusBreakdown(rows, totalOrders) {
+  const wrap = document.getElementById('dashboardStatusBreakdown')
+  if (!wrap) return
+  const normalized = Array.isArray(rows) ? rows : []
+  const order = ['pending', 'confirmed', 'shipping', 'done', 'cancelled']
+  const map = normalized.reduce((acc, row) => {
+    acc[String(row.status || 'pending').toLowerCase()] = Number(row.count || 0)
+    return acc
+  }, {})
+  const total = Math.max(1, normalized.reduce((sum, row) => sum + Number(row.count || 0), 0), Number(totalOrders || 0))
+
+  if (!normalized.length) {
+    wrap.innerHTML = '<div class="text-sm text-gray-400">Không có đơn trong khoảng này</div>'
+    return
+  }
+
+  wrap.innerHTML = order.map((status) => {
+    const count = Number(map[status] || 0)
+    const percent = Math.round((count / total) * 100)
+    return '<div>' +
+      '<div class="mb-1 flex items-center justify-between gap-3 text-xs">' +
+        '<span class="font-semibold text-gray-600">' + escapeDashboardHtml(statusLabel(status)) + '</span>' +
+        '<span class="font-bold text-gray-900">' + count.toLocaleString('vi-VN') + '</span>' +
+      '</div>' +
+      '<div class="h-2 overflow-hidden rounded-full bg-gray-100">' +
+        '<div class="' + dashboardStatusBarClass(status) + ' h-full rounded-full" style="width:' + percent + '%"></div>' +
+      '</div>' +
+    '</div>'
+  }).join('')
+}
+
+function dashboardStatusBarClass(status) {
+  const key = dashboardStatusClass(status)
+  if (key === 'pending') return 'bg-amber-400'
+  if (key === 'confirmed') return 'bg-blue-500'
+  if (key === 'shipping') return 'bg-violet-500'
+  if (key === 'done') return 'bg-emerald-500'
+  if (key === 'cancelled') return 'bg-red-400'
+  return 'bg-gray-400'
+}
+
 async function loadDashboard() {
   try {
-    const res = await axios.get('/api/admin/stats')
+    syncDashboardDateFilterUI()
+    const res = await axios.get('/api/admin/stats', { params: getDashboardStatsParams() })
     const d = res.data?.data || {}
     const statProductsEl = document.getElementById('statProducts')
     const statOrdersEl = document.getElementById('statOrders')
@@ -912,6 +1080,8 @@ async function loadDashboard() {
     if (statRevenueEl) statRevenueEl.textContent = fmtPrice(d.revenue || 0)
     fitDashboardStatValues()
     requestAnimationFrame(fitDashboardStatValues)
+    renderDashboardInsights(d)
+    renderDashboardStatusBreakdown(d.statusBreakdown || [], d.totalOrders || 0)
 
     const shippingQueueOrders = Number(d.shippingQueueOrders || 0)
     if (shippingQueueOrders > 0) {
@@ -2031,9 +2201,11 @@ document.addEventListener('keydown', function(e) {
 
 document.addEventListener('DOMContentLoaded', function() {
   setDesktopSidebarCollapsed(false)
+  initDashboardDateFilterDefaults()
   bindAdminOverlaySafetyObserver()
   resetAdminTransientSurface('dom-ready-reset')
   syncOrdersHeaderSearchUI()
+  syncDashboardDateFilterUI()
   window.addEventListener('resize', syncSidebarOverlay)
   window.addEventListener('resize', syncOrdersHeaderSearchUI)
   window.addEventListener('resize', positionAdminAvatarMenu)

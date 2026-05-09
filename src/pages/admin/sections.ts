@@ -47,6 +47,33 @@ export function adminDashboardPage(): string {
         </div>
       </div>
     </div>
+
+    <div class="grid grid-cols-1 xl:grid-cols-[1.15fr_0.85fr] gap-4 md:gap-6 mb-6">
+      <section class="bg-white rounded-2xl shadow-sm border p-4 md:p-6 overflow-hidden">
+        <div class="flex items-start justify-between gap-3 mb-4">
+          <div>
+            <h2 class="font-bold text-gray-800">Tổng quan theo bộ lọc</h2>
+            <p id="dashboardRangeLabel" class="text-xs text-gray-400 mt-1">Đang tải dữ liệu...</p>
+          </div>
+          <span class="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600"><i class="fas fa-chart-line"></i></span>
+        </div>
+        <div id="dashboardInsightGrid" class="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div class="rounded-xl border border-gray-100 bg-gray-50 p-3"><p class="text-xs text-gray-500">Đang tải</p><p class="mt-1 text-lg font-bold text-gray-800">—</p></div>
+        </div>
+      </section>
+      <section class="bg-white rounded-2xl shadow-sm border p-4 md:p-6 overflow-hidden">
+        <div class="flex items-start justify-between gap-3 mb-4">
+          <div>
+            <h2 class="font-bold text-gray-800">Trạng thái đơn hàng</h2>
+            <p class="text-xs text-gray-400 mt-1">Tính theo thời gian đang chọn</p>
+          </div>
+          <span class="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-pink-50 text-pink-600"><i class="fas fa-bars-progress"></i></span>
+        </div>
+        <div id="dashboardStatusBreakdown" class="space-y-3">
+          <div class="text-sm text-gray-400">Đang tải dữ liệu...</div>
+        </div>
+      </section>
+    </div>
     
     <div class="dashboard-recent-orders-panel bg-white rounded-2xl shadow-sm border p-4 md:p-6 overflow-hidden">
       <div class="flex items-center justify-between gap-3 mb-4">
