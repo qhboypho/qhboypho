@@ -207,9 +207,8 @@ export function registerVoucherStatsRoutes(app: Hono<{ Bindings: AppBindings }>,
       const sidebarUndeliveredOrders = await c.env.DB.prepare(`
         SELECT COUNT(*) as count
         FROM orders
-        WHERE ${allOrderFilter.sql}
-          AND LOWER(COALESCE(status, '')) IN ('waiting-pickup', 'shipping')
-      `).bind(...allOrderFilter.params).first() as any
+        WHERE LOWER(COALESCE(status, '')) IN ('waiting-pickup', 'shipping')
+      `).first() as any
       const shippingQueueOrders = await c.env.DB.prepare(`
         SELECT COUNT(*) as count
         FROM orders
