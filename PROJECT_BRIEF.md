@@ -24,3 +24,4 @@ QH Clothes storefront and admin panel built on Hono, Vite, Cloudflare Pages/Work
 - `/api/admin/stats` supports dashboard date filters via `mode=month&month=YYYY-MM`, `mode=day&date=YYYY-MM-DD`, or `mode=all`.
 - Dashboard revenue counts paid non-cancelled orders plus completed COD orders, not every non-cancelled order.
 - Dashboard date/month filter is injected next to the admin avatar and is only visible on the dashboard page.
+- The sidebar `Đơn hàng` badge uses `sidebarUndeliveredOrders`: all non-internal orders whose status is not `done` or `cancelled`, independent of the dashboard date filter.

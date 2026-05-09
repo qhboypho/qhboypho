@@ -1065,6 +1065,19 @@ function dashboardStatusBarClass(status) {
   return 'bg-gray-400'
 }
 
+function updateOrdersSidebarBadge(count) {
+  const pendingBadge = document.getElementById('pendingBadge')
+  if (!pendingBadge) return
+  const value = Number(count || 0)
+  if (value > 0) {
+    pendingBadge.textContent = value.toLocaleString('vi-VN')
+    pendingBadge.classList.remove('hidden')
+    return
+  }
+  pendingBadge.textContent = ''
+  pendingBadge.classList.add('hidden')
+}
+
 async function loadDashboard() {
   try {
     syncDashboardDateFilterUI()
@@ -1083,14 +1096,7 @@ async function loadDashboard() {
     renderDashboardInsights(d)
     renderDashboardStatusBreakdown(d.statusBreakdown || [], d.totalOrders || 0)
 
-    const shippingQueueOrders = Number(d.shippingQueueOrders || 0)
-    if (shippingQueueOrders > 0) {
-      const pendingBadge = document.getElementById('pendingBadge')
-      if (pendingBadge) {
-        pendingBadge.textContent = shippingQueueOrders
-        pendingBadge.classList.remove('hidden')
-      }
-    }
+    updateOrdersSidebarBadge(d.sidebarUndeliveredOrders ?? d.undeliveredOrders ?? d.shippingQueueOrders ?? 0)
 
     const recent = (d.recentOrders || []).filter(o => !isInternalTestOrder(o))
     const recentOrdersTable = document.getElementById('recentOrdersTable')

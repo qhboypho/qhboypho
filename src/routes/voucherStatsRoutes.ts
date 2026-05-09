@@ -196,11 +196,20 @@ export function registerVoucherStatsRoutes(app: Hono<{ Bindings: AppBindings }>,
       const range = resolveDashboardStatsRange((name) => c.req.query(name))
       const orderFilter = buildDashboardOrderWhereSql(deps, range, includeInternal)
       const orderFilterAlias = buildDashboardOrderWhereSql(deps, range, includeInternal, 'o')
+      const allOrderFilter = buildDashboardOrderWhereSql(deps, { mode: 'all', label: 'Tất cả thời gian' }, includeInternal)
       const activeOrderFilterSql = `${orderFilter.sql} AND LOWER(COALESCE(status, '')) != 'cancelled'`
+      const undeliveredOrderFilterSql = `${orderFilter.sql} AND LOWER(COALESCE(status, '')) NOT IN ('done', 'cancelled')`
       const recentOrderFilterSql = `${orderFilterAlias.sql} AND LOWER(COALESCE(o.status, '')) != 'cancelled'`
       const totalProducts = await c.env.DB.prepare(`SELECT COUNT(*) as count FROM products WHERE is_active=1`).first() as any
       const totalOrders = await c.env.DB.prepare(`SELECT COUNT(*) as count FROM orders WHERE ${activeOrderFilterSql}`).bind(...orderFilter.params).first() as any
       const pendingOrders = await c.env.DB.prepare(`SELECT COUNT(*) as count FROM orders WHERE status='pending' AND ${activeOrderFilterSql}`).bind(...orderFilter.params).first() as any
+      const undeliveredOrders = await c.env.DB.prepare(`SELECT COUNT(*) as count FROM orders WHERE ${undeliveredOrderFilterSql}`).bind(...orderFilter.params).first() as any
+      const sidebarUndeliveredOrders = await c.env.DB.prepare(`
+        SELECT COUNT(*) as count
+        FROM orders
+        WHERE ${allOrderFilter.sql}
+          AND LOWER(COALESCE(status, '')) NOT IN ('done', 'cancelled')
+      `).bind(...allOrderFilter.params).first() as any
       const shippingQueueOrders = await c.env.DB.prepare(`
         SELECT COUNT(*) as count
         FROM orders
@@ -260,6 +269,8 @@ export function registerVoucherStatsRoutes(app: Hono<{ Bindings: AppBindings }>,
           totalProducts: totalProducts?.count || 0,
           totalOrders: totalOrders?.count || 0,
           pendingOrders: pendingOrders?.count || 0,
+          undeliveredOrders: undeliveredOrders?.count || 0,
+          sidebarUndeliveredOrders: sidebarUndeliveredOrders?.count || 0,
           shippingQueueOrders: shippingQueueOrders?.count || 0,
           completedOrders: completedOrders?.count || 0,
           unpaidOrders: unpaidOrders?.count || 0,
