@@ -1037,6 +1037,137 @@ function formatDashboardMonthLabel(value) {
   return parts[1] + '/' + parts[0]
 }
 
+function formatDashboardExportDateTime(value) {
+  const raw = String(value || '').trim()
+  if (!raw) return ''
+  const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2})(?::\d{2})?)?/)
+  if (match) {
+    const [, year, month, day, hour = '00', minute = '00'] = match
+    return day + '/' + month + '/' + year + ' ' + hour + ':' + minute
+  }
+  const date = new Date(raw)
+  if (Number.isNaN(date.getTime())) return raw
+  return date.toLocaleString('vi-VN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+function formatDashboardRatePercent(value) {
+  return (Number(value || 0) * 100).toLocaleString('vi-VN', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 1,
+  }) + '%'
+}
+
+function getDashboardTaxReportFileName(range) {
+  const mode = String(range?.mode || '')
+  if (mode === 'month') return 'BaoCaoThue_QHClothes_' + String(range?.label || getLocalMonthInputValue()) + '.xlsx'
+  if (mode === 'day') return 'BaoCaoThue_QHClothes_' + String(range?.label || getLocalDateInputValue()) + '.xlsx'
+  return 'BaoCaoThue_QHClothes_AllTime.xlsx'
+}
+
+async function downloadDashboardTaxReport() {
+  const button = document.getElementById('dashboardTaxReportButton')
+  const originalHtml = button ? button.innerHTML : ''
+  if (button) {
+    button.disabled = true
+    button.innerHTML = '<i class="fas fa-spinner fa-spin text-sm"></i><span class="hidden sm:inline">Đang tải...</span>'
+  }
+  try {
+    if (!window.XLSX) throw new Error('MISSING_XLSX')
+    const res = await axios.get('/api/admin/stats/tax-report', { params: getDashboardStatsParams() })
+    const payload = res.data?.data || {}
+    const range = payload.range || {}
+    const rows = Array.isArray(payload.rows) ? payload.rows : []
+    const totals = payload.totals || {}
+    const taxProfile = payload.taxProfile || {}
+
+    const summaryRows = [
+      ['BÁO CÁO DOANH THU TÍNH THUẾ'],
+      ['Khoảng thời gian', getDashboardRangeLabel(range)],
+      ['Nhóm ngành áp dụng', String(taxProfile.category || 'Phân phối, cung cấp hàng hóa')],
+      ['Tỷ lệ VAT', formatDashboardRatePercent(taxProfile.vatRate)],
+      ['Tỷ lệ TNCN', formatDashboardRatePercent(taxProfile.pitRate)],
+      ['Tổng tỷ lệ thuế', formatDashboardRatePercent(taxProfile.totalRate)],
+      ['Số đơn giao thành công', Number(totals.deliveredOrders || 0)],
+      ['Doanh thu tính thuế', Number(totals.revenue || 0)],
+      ['Thuế VAT', Number(totals.vatTax || 0)],
+      ['Thuế TNCN', Number(totals.pitTax || 0)],
+      ['Tổng thuế phải nộp', Number(totals.totalTax || 0)],
+      ['Ghi chú', 'Chỉ tính các đơn hoàn thành / khách nhận thành công, không gồm đơn hoàn, hủy, giao thất bại.'],
+    ]
+
+    const detailRows = rows.map((row) => ({
+      'STT': Number(row.stt || 0),
+      'Mã đơn hàng': String(row.orderCode || ''),
+      'Mã vận đơn': String(row.trackingCode || ''),
+      'Ngày phát sinh đơn hàng': formatDashboardExportDateTime(row.createdAt),
+      'Ngày khách nhận hàng': formatDashboardExportDateTime(row.deliveredAt),
+      'Giá trị đơn hàng': Number(row.orderValue || 0),
+      'VAT (%)': formatDashboardRatePercent(row.vatRate),
+      'Thuế VAT': Number(row.vatTax || 0),
+      'TNCN (%)': formatDashboardRatePercent(row.pitRate),
+      'Thuế TNCN': Number(row.pitTax || 0),
+      'Tổng thuế': Number(row.totalTax || 0),
+    }))
+
+    if (!detailRows.length) {
+      detailRows.push({
+        'STT': '',
+        'Mã đơn hàng': '',
+        'Mã vận đơn': '',
+        'Ngày phát sinh đơn hàng': '',
+        'Ngày khách nhận hàng': '',
+        'Giá trị đơn hàng': 0,
+        'VAT (%)': formatDashboardRatePercent(taxProfile.vatRate),
+        'Thuế VAT': 0,
+        'TNCN (%)': formatDashboardRatePercent(taxProfile.pitRate),
+        'Thuế TNCN': 0,
+        'Tổng thuế': 0,
+      })
+    }
+
+    const summarySheet = XLSX.utils.aoa_to_sheet(summaryRows)
+    summarySheet['!cols'] = [{ wch: 28 }, { wch: 32 }]
+
+    const detailsSheet = XLSX.utils.json_to_sheet(detailRows)
+    detailsSheet['!cols'] = [
+      { wch: 6 },
+      { wch: 16 },
+      { wch: 18 },
+      { wch: 22 },
+      { wch: 22 },
+      { wch: 16 },
+      { wch: 10 },
+      { wch: 14 },
+      { wch: 10 },
+      { wch: 14 },
+      { wch: 14 },
+    ]
+
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, summarySheet, 'TongHop')
+    XLSX.utils.book_append_sheet(workbook, detailsSheet, 'DonGiaoThanhCong')
+    XLSX.writeFile(workbook, getDashboardTaxReportFileName(range))
+    showAdminToast('Đã tải báo cáo thuế theo dữ liệu đang lọc', 'success')
+  } catch (error) {
+    console.error(error)
+    const message = error?.message === 'MISSING_XLSX'
+      ? 'Thiếu thư viện Excel trên trang admin'
+      : (error?.response?.data?.error || 'Tải báo cáo thuế thất bại')
+    showAdminToast(message, 'error')
+  } finally {
+    if (button) {
+      button.disabled = false
+      button.innerHTML = originalHtml
+    }
+  }
+}
+
 function renderDashboardInsights(d) {
   const rangeLabel = document.getElementById('dashboardRangeLabel')
   const grid = document.getElementById('dashboardInsightGrid')

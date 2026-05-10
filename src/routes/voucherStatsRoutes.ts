@@ -149,6 +149,30 @@ function buildDashboardOrderWhereSql(
   return { sql: clauses.join(' AND '), params }
 }
 
+function buildDashboardDeliveredWhereSql(
+  deps: VoucherStatsRouteDeps,
+  range: DashboardStatsRange,
+  includeInternal: boolean,
+  alias = ''
+): { sql: string; params: string[] } {
+  const prefix = alias ? `${alias}.` : ''
+  const dateExpr = `datetime(COALESCE(${prefix}delivered_at, ${prefix}updated_at))`
+  const clauses = [
+    includeInternal ? '1=1' : `NOT ${deps.buildInternalTestOrderWhereSql(alias || undefined)}`,
+    `LOWER(COALESCE(${prefix}status, '')) = 'done'`,
+    `LOWER(COALESCE(${prefix}return_status, '')) NOT IN ('returned', 'cancelled', 'delivery_failed')`,
+  ]
+  const params: string[] = []
+
+  if (range.from && range.to) {
+    clauses.push(`${dateExpr} >= datetime(?)`)
+    clauses.push(`${dateExpr} < datetime(?)`)
+    params.push(range.from, range.to)
+  }
+
+  return { sql: clauses.join(' AND '), params }
+}
+
 export function registerVoucherStatsRoutes(app: Hono<{ Bindings: AppBindings }>, deps: VoucherStatsRouteDeps) {
   app.post('/api/vouchers/validate', async (c) => {
     try {
@@ -241,12 +265,10 @@ export function registerVoucherStatsRoutes(app: Hono<{ Bindings: AppBindings }>,
       const range = resolveDashboardStatsRange((name) => c.req.query(name))
       const orderFilter = buildDashboardOrderWhereSql(deps, range, includeInternal)
       const orderFilterAlias = buildDashboardOrderWhereSql(deps, range, includeInternal, 'o')
+      const deliveredFilter = buildDashboardDeliveredWhereSql(deps, range, includeInternal)
       const allOrderFilter = buildDashboardOrderWhereSql(deps, { mode: 'all', label: 'Tất cả thời gian' }, includeInternal)
       const activeOrderFilterSql = `${orderFilter.sql} AND LOWER(COALESCE(status, '')) != 'cancelled'`
       const undeliveredOrderFilterSql = `${orderFilter.sql} AND LOWER(COALESCE(status, '')) NOT IN ('done', 'cancelled')`
-      const deliveredOrderFilterSql = `${orderFilter.sql}
-        AND LOWER(COALESCE(status, '')) = 'done'
-        AND LOWER(COALESCE(return_status, '')) NOT IN ('returned', 'cancelled', 'delivery_failed')`
       const returnedOrderFilterSql = `${orderFilter.sql} AND LOWER(COALESCE(return_status, '')) = 'returned'`
       const cancelledOrFailedFilterSql = `${orderFilter.sql}
         AND (
@@ -289,13 +311,13 @@ export function registerVoucherStatsRoutes(app: Hono<{ Bindings: AppBindings }>,
       const revenue = await c.env.DB.prepare(`
         SELECT SUM(COALESCE(total_price, 0)) as total
         FROM orders
-        WHERE ${deliveredOrderFilterSql}
-      `).bind(...orderFilter.params).first() as any
+        WHERE ${deliveredFilter.sql}
+      `).bind(...deliveredFilter.params).first() as any
       const deliveredOrders = await c.env.DB.prepare(`
         SELECT COUNT(*) as count
         FROM orders
-        WHERE ${deliveredOrderFilterSql}
-      `).bind(...orderFilter.params).first() as any
+        WHERE ${deliveredFilter.sql}
+      `).bind(...deliveredFilter.params).first() as any
       const returnedOrders = await c.env.DB.prepare(`
         SELECT COUNT(*) as count
         FROM orders
@@ -376,6 +398,83 @@ export function registerVoucherStatsRoutes(app: Hono<{ Bindings: AppBindings }>,
           },
           recentOrders: recentOrders.results || []
         }
+      })
+    } catch (e: any) {
+      return c.json({ success: false, error: e.message }, 500)
+    }
+  })
+
+  app.get('/api/admin/stats/tax-report', async (c) => {
+    try {
+      await deps.initDB(c.env.DB)
+      const includeInternal = c.req.query('include_internal') === '1'
+      const range = resolveDashboardStatsRange((name) => c.req.query(name))
+      const deliveredFilter = buildDashboardDeliveredWhereSql(deps, range, includeInternal, 'o')
+      const goodsVatRate = 0.01
+      const goodsPitRate = 0.005
+      const goodsTotalRate = goodsVatRate + goodsPitRate
+
+      const rowsRes = await c.env.DB.prepare(`
+        SELECT
+          o.id,
+          o.order_code,
+          o.shipping_tracking_code,
+          o.created_at,
+          COALESCE(o.delivered_at, o.updated_at) AS delivered_at,
+          o.total_price
+        FROM orders o
+        WHERE ${deliveredFilter.sql}
+        ORDER BY datetime(COALESCE(o.delivered_at, o.updated_at)) ASC, o.id ASC
+      `).bind(...deliveredFilter.params).all()
+
+      const rows = (rowsRes.results || []).map((row: any, index: number) => {
+        const orderValue = Number(row.total_price || 0)
+        const vatTax = Math.round(orderValue * goodsVatRate)
+        const pitTax = Math.round(orderValue * goodsPitRate)
+        const totalTax = vatTax + pitTax
+        return {
+          stt: index + 1,
+          orderId: row.id,
+          orderCode: row.order_code || '',
+          trackingCode: row.shipping_tracking_code || '',
+          createdAt: row.created_at || '',
+          deliveredAt: row.delivered_at || '',
+          orderValue,
+          vatRate: goodsVatRate,
+          vatTax,
+          pitRate: goodsPitRate,
+          pitTax,
+          totalTax,
+        }
+      })
+
+      const totals = rows.reduce((acc, row) => {
+        acc.orderValue += Number(row.orderValue || 0)
+        acc.vatTax += Number(row.vatTax || 0)
+        acc.pitTax += Number(row.pitTax || 0)
+        acc.totalTax += Number(row.totalTax || 0)
+        return acc
+      }, { orderValue: 0, vatTax: 0, pitTax: 0, totalTax: 0 })
+
+      return c.json({
+        success: true,
+        data: {
+          range,
+          taxProfile: {
+            category: 'Phân phối, cung cấp hàng hóa',
+            vatRate: goodsVatRate,
+            pitRate: goodsPitRate,
+            totalRate: goodsTotalRate,
+          },
+          totals: {
+            deliveredOrders: rows.length,
+            revenue: totals.orderValue,
+            vatTax: totals.vatTax,
+            pitTax: totals.pitTax,
+            totalTax: totals.totalTax,
+          },
+          rows,
+        },
       })
     } catch (e: any) {
       return c.json({ success: false, error: e.message }, 500)

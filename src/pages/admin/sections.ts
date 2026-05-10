@@ -73,7 +73,19 @@ export function adminDashboardPage(): string {
             <h2 class="font-bold text-gray-800">Tổng quan tài chính tháng</h2>
             <p id="dashboardRangeLabel" class="text-xs text-gray-400 mt-1">Đang tải dữ liệu...</p>
           </div>
-          <span class="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600"><i class="fas fa-chart-line"></i></span>
+          <div class="flex items-center gap-2 shrink-0">
+            <button
+              id="dashboardTaxReportButton"
+              type="button"
+              onclick="downloadDashboardTaxReport()"
+              class="inline-flex items-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-700 shadow-sm transition hover:border-emerald-200 hover:bg-emerald-100"
+              title="Tải báo cáo doanh thu tính thuế"
+            >
+              <i class="fas fa-file-excel text-sm"></i>
+              <span class="hidden sm:inline">Tải báo cáo</span>
+            </button>
+            <span class="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600"><i class="fas fa-chart-line"></i></span>
+          </div>
         </div>
         <div id="dashboardInsightGrid" class="space-y-3">
           <div class="rounded-2xl border border-gray-100 bg-gray-50 p-4">

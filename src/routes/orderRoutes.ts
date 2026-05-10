@@ -385,9 +385,19 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
         return c.json({ success: true, status: nextStatus, cancelled_by: 'shop' })
       }
 
-      await c.env.DB.prepare(`
-        UPDATE orders SET status=?, updated_at=CURRENT_TIMESTAMP WHERE id=?
-      `).bind(nextStatus, id).run()
+      if (nextStatus === 'done') {
+        await c.env.DB.prepare(`
+          UPDATE orders
+          SET status=?,
+              delivered_at=COALESCE(delivered_at, CURRENT_TIMESTAMP),
+              updated_at=CURRENT_TIMESTAMP
+          WHERE id=?
+        `).bind(nextStatus, id).run()
+      } else {
+        await c.env.DB.prepare(`
+          UPDATE orders SET status=?, updated_at=CURRENT_TIMESTAMP WHERE id=?
+        `).bind(nextStatus, id).run()
+      }
       
       // Check for auto-block after any status change to cancelled
       if (nextStatus === 'cancelled') {

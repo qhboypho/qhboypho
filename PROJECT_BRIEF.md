@@ -28,4 +28,6 @@ QH Clothes storefront and admin panel built on Hono, Vite, Cloudflare Pages/Work
 - On mobile, the dashboard date filter sits under the top bar and above the stat cards, so long month/day text never overflows horizontally.
 - On mobile, dashboard stat cards use tighter labels and smaller values so the metric text stays inside the cards.
 - Dashboard financial overview now uses only delivered revenue from orders in `done` status that do not have `return_status` of `returned`, `cancelled`, or `delivery_failed`; tax estimates use the household goods-selling rates `VAT 1%` and `TNCN 0.5%`.
+- Completed orders now persist `delivered_at`; dashboard financial totals and the admin tax-report export use that delivery-complete timestamp instead of order creation time.
+- The dashboard financial panel now exposes an Excel export button that downloads the currently filtered successful-order tax evidence, including order code, tracking code, order date, delivered date, order value, per-order VAT/TNCN, and total tax.
 - The sidebar `Đơn hàng` badge uses the all-time shipping-queue total for non-internal orders, matching the `Sắp xếp vận chuyển` + `Đang chờ vận chuyển` split on the orders page.
