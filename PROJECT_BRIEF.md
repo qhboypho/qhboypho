@@ -24,4 +24,8 @@ QH Clothes storefront and admin panel built on Hono, Vite, Cloudflare Pages/Work
 - `/api/admin/stats` supports dashboard date filters via `mode=month&month=YYYY-MM`, `mode=day&date=YYYY-MM-DD`, or `mode=all`.
 - Dashboard revenue counts paid non-cancelled orders plus completed COD orders, not every non-cancelled order.
 - Dashboard date/month filter is injected next to the admin avatar and is only visible on the dashboard page.
+- Dashboard now includes `Người xem sản phẩm`, counted from unique human browser visits to storefront product-list/detail endpoints and deduped by signed visitor cookie per local day.
+- On mobile, the dashboard date filter sits under the top bar and above the stat cards, so long month/day text never overflows horizontally.
+- On mobile, dashboard stat cards use tighter labels and smaller values so the metric text stays inside the cards.
+- Dashboard financial overview now uses only delivered revenue from orders in `done` status that do not have `return_status` of `returned`, `cancelled`, or `delivery_failed`; tax estimates use the household goods-selling rates `VAT 1%` and `TNCN 0.5%`.
 - The sidebar `Đơn hàng` badge uses the all-time shipping-queue total for non-internal orders, matching the `Sắp xếp vận chuyển` + `Đang chờ vận chuyển` split on the orders page.

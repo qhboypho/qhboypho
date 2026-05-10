@@ -10,6 +10,8 @@ type DashboardStatsRange = {
   mode: 'all' | 'day' | 'month' | 'custom'
   from?: string
   to?: string
+  fromDate?: string
+  toDate?: string
   label: string
 }
 
@@ -27,6 +29,14 @@ function toSqlDateTime(value: Date): string {
   return value.toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, '')
 }
 
+function toVietnamDateKey(value: Date): string {
+  const shifted = new Date(value.getTime() + (7 * 60 * 60 * 1000))
+  const year = shifted.getUTCFullYear()
+  const month = String(shifted.getUTCMonth() + 1).padStart(2, '0')
+  const day = String(shifted.getUTCDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 function parseVietnamDateStart(date: string): Date {
   return new Date(`${date}T00:00:00${VIETNAM_TZ_OFFSET}`)
 }
@@ -37,10 +47,22 @@ function addDays(value: Date, days: number): Date {
   return next
 }
 
-function addMonths(value: Date, months: number): Date {
-  const next = new Date(value)
-  next.setUTCMonth(next.getUTCMonth() + months)
-  return next
+function getNextMonthStartDateKey(month: string): string {
+  const [yearRaw, monthRaw] = month.split('-')
+  const year = Number(yearRaw)
+  const monthIndex = Number(monthRaw)
+  if (!Number.isFinite(year) || !Number.isFinite(monthIndex)) return `${month}-01`
+  const nextYear = monthIndex >= 12 ? year + 1 : year
+  const nextMonth = monthIndex >= 12 ? 1 : monthIndex + 1
+  return `${String(nextYear).padStart(4, '0')}-${String(nextMonth).padStart(2, '0')}-01`
+}
+
+function getMonthEndDateKey(month: string): string {
+  const [yearRaw, monthRaw] = month.split('-')
+  const year = Number(yearRaw)
+  const monthIndex = Number(monthRaw)
+  if (!Number.isFinite(year) || !Number.isFinite(monthIndex)) return `${month}-01`
+  return toVietnamDateKey(new Date(Date.UTC(year, monthIndex, 0)))
 }
 
 function resolveDashboardStatsRange(query: (name: string) => string | undefined): DashboardStatsRange {
@@ -56,16 +78,21 @@ function resolveDashboardStatsRange(query: (name: string) => string | undefined)
       mode: 'day',
       from: toSqlDateTime(start),
       to: toSqlDateTime(addDays(start, 1)),
+      fromDate: date,
+      toDate: date,
       label: date,
     }
   }
 
   if (mode === 'month' && isMonthOnly(month)) {
     const start = parseVietnamDateStart(`${month}-01`)
+    const nextMonthStart = parseVietnamDateStart(getNextMonthStartDateKey(month))
     return {
       mode: 'month',
       from: toSqlDateTime(start),
-      to: toSqlDateTime(addMonths(start, 1)),
+      to: toSqlDateTime(nextMonthStart),
+      fromDate: `${month}-01`,
+      toDate: getMonthEndDateKey(month),
       label: month,
     }
   }
@@ -76,11 +103,29 @@ function resolveDashboardStatsRange(query: (name: string) => string | undefined)
       mode: 'custom',
       from: toSqlDateTime(start),
       to: toSqlDateTime(addDays(parseVietnamDateStart(to), 1)),
+      fromDate: from,
+      toDate: to,
       label: `${from} - ${to}`,
     }
   }
 
   return { mode: 'all', label: 'Tất cả thời gian' }
+}
+
+function buildDashboardVisitorWhereSql(range: DashboardStatsRange): { sql: string; params: string[] } {
+  const clauses: string[] = []
+  const params: string[] = []
+
+  if (range.fromDate && range.toDate) {
+    clauses.push('visit_date >= ?')
+    clauses.push('visit_date <= ?')
+    params.push(range.fromDate, range.toDate)
+  }
+
+  return {
+    sql: clauses.length ? clauses.join(' AND ') : '1=1',
+    params,
+  }
 }
 
 function buildDashboardOrderWhereSql(
@@ -199,7 +244,18 @@ export function registerVoucherStatsRoutes(app: Hono<{ Bindings: AppBindings }>,
       const allOrderFilter = buildDashboardOrderWhereSql(deps, { mode: 'all', label: 'Tất cả thời gian' }, includeInternal)
       const activeOrderFilterSql = `${orderFilter.sql} AND LOWER(COALESCE(status, '')) != 'cancelled'`
       const undeliveredOrderFilterSql = `${orderFilter.sql} AND LOWER(COALESCE(status, '')) NOT IN ('done', 'cancelled')`
+      const deliveredOrderFilterSql = `${orderFilter.sql}
+        AND LOWER(COALESCE(status, '')) = 'done'
+        AND LOWER(COALESCE(return_status, '')) NOT IN ('returned', 'cancelled', 'delivery_failed')`
+      const returnedOrderFilterSql = `${orderFilter.sql} AND LOWER(COALESCE(return_status, '')) = 'returned'`
+      const cancelledOrFailedFilterSql = `${orderFilter.sql}
+        AND (
+          LOWER(COALESCE(status, '')) = 'cancelled'
+          OR LOWER(COALESCE(return_status, '')) IN ('cancelled', 'delivery_failed')
+        )`
       const recentOrderFilterSql = `${orderFilterAlias.sql} AND LOWER(COALESCE(o.status, '')) != 'cancelled'`
+      const goodsVatRate = 0.01
+      const goodsPitRate = 0.005
       const totalProducts = await c.env.DB.prepare(`SELECT COUNT(*) as count FROM products WHERE is_active=1`).first() as any
       const totalOrders = await c.env.DB.prepare(`SELECT COUNT(*) as count FROM orders WHERE ${activeOrderFilterSql}`).bind(...orderFilter.params).first() as any
       const pendingOrders = await c.env.DB.prepare(`SELECT COUNT(*) as count FROM orders WHERE status='pending' AND ${activeOrderFilterSql}`).bind(...orderFilter.params).first() as any
@@ -231,17 +287,31 @@ export function registerVoucherStatsRoutes(app: Hono<{ Bindings: AppBindings }>,
           )
       `).bind(...orderFilter.params).first() as any
       const revenue = await c.env.DB.prepare(`
-        SELECT SUM(
-          CASE
-            WHEN LOWER(COALESCE(status, '')) = 'cancelled' THEN 0
-            WHEN LOWER(COALESCE(payment_status, '')) = 'paid' THEN total_price
-            WHEN UPPER(COALESCE(payment_method, '')) = 'COD' AND LOWER(COALESCE(status, '')) = 'done' THEN total_price
-            ELSE 0
-          END
-        ) as total
+        SELECT SUM(COALESCE(total_price, 0)) as total
         FROM orders
-        WHERE ${orderFilter.sql}
+        WHERE ${deliveredOrderFilterSql}
       `).bind(...orderFilter.params).first() as any
+      const deliveredOrders = await c.env.DB.prepare(`
+        SELECT COUNT(*) as count
+        FROM orders
+        WHERE ${deliveredOrderFilterSql}
+      `).bind(...orderFilter.params).first() as any
+      const returnedOrders = await c.env.DB.prepare(`
+        SELECT COUNT(*) as count
+        FROM orders
+        WHERE ${returnedOrderFilterSql}
+      `).bind(...orderFilter.params).first() as any
+      const cancelledOrFailedOrders = await c.env.DB.prepare(`
+        SELECT COUNT(*) as count
+        FROM orders
+        WHERE ${cancelledOrFailedFilterSql}
+      `).bind(...orderFilter.params).first() as any
+      const frontendVisitorFilter = buildDashboardVisitorWhereSql(range)
+      const frontendVisitors = await c.env.DB.prepare(`
+        SELECT COUNT(DISTINCT visitor_id) as count
+        FROM frontend_product_visits
+        WHERE ${frontendVisitorFilter.sql}
+      `).bind(...frontendVisitorFilter.params).first() as any
       const completedOrders = await c.env.DB.prepare(`SELECT COUNT(*) as count FROM orders WHERE status='done' AND ${orderFilter.sql}`).bind(...orderFilter.params).first() as any
       const unpaidOrders = await c.env.DB.prepare(`
         SELECT COUNT(*) as count
@@ -268,6 +338,11 @@ export function registerVoucherStatsRoutes(app: Hono<{ Bindings: AppBindings }>,
         LIMIT 5
       `).bind(...orderFilterAlias.params).all()
       const recentOrders = recentOrdersRes
+      const deliveredRevenue = Number(revenue?.total || 0)
+      const vatTax = Math.round(deliveredRevenue * goodsVatRate)
+      const pitTax = Math.round(deliveredRevenue * goodsPitRate)
+      const totalTax = vatTax + pitTax
+      const netRevenue = Math.max(0, deliveredRevenue - totalTax)
 
       return c.json({
         success: true,
@@ -280,10 +355,25 @@ export function registerVoucherStatsRoutes(app: Hono<{ Bindings: AppBindings }>,
           sidebarUndeliveredOrders: sidebarUndeliveredOrders?.count || 0,
           shippingQueueOrders: shippingQueueOrders?.count || 0,
           completedOrders: completedOrders?.count || 0,
+          deliveredOrders: deliveredOrders?.count || 0,
+          returnedOrders: returnedOrders?.count || 0,
+          cancelledOrFailedOrders: cancelledOrFailedOrders?.count || 0,
           unpaidOrders: unpaidOrders?.count || 0,
-          avgOrderValue: Number(totalOrders?.count || 0) > 0 ? Number(revenue?.total || 0) / Number(totalOrders?.count || 1) : 0,
+          frontendVisitors: frontendVisitors?.count || 0,
+          avgOrderValue: Number(deliveredOrders?.count || 0) > 0 ? deliveredRevenue / Number(deliveredOrders?.count || 1) : 0,
           statusBreakdown: statusBreakdownRes.results || [],
-          revenue: revenue?.total || 0,
+          revenue: deliveredRevenue,
+          vatTax,
+          pitTax,
+          totalTax,
+          netRevenue,
+          taxBaseRevenue: deliveredRevenue,
+          taxProfile: {
+            category: 'Phân phối, cung cấp hàng hóa',
+            vatRate: goodsVatRate,
+            pitRate: goodsPitRate,
+            totalRate: goodsVatRate + goodsPitRate,
+          },
           recentOrders: recentOrders.results || []
         }
       })

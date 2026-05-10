@@ -21,29 +21,47 @@ export function adminMainContentStart(): string {
 export function adminDashboardPage(): string {
   return `<!-- DASHBOARD PAGE -->
   <div id="page-dashboard" class="p-3 md:p-6">
-    <div class="dashboard-stat-grid grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-6 md:mb-8">
+    <div class="dashboard-stat-grid grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 md:gap-4 mb-6 md:mb-8">
       <div class="dashboard-stat-card stat-card rounded-2xl p-4 md:p-5 text-white overflow-hidden" style="--from:#e84393;--to:#c0392b">
         <div class="flex justify-between items-start gap-3 min-w-0">
-          <div class="min-w-0"><p class="dashboard-stat-label text-white/80 text-sm">Sản phẩm</p><p id="statProducts" class="dashboard-stat-value text-3xl font-bold mt-1">—</p></div>
+          <div class="min-w-0"><p class="dashboard-stat-label text-white/80 text-xs sm:text-sm leading-tight">Sản phẩm</p><p id="statProducts" class="dashboard-stat-value text-2xl md:text-3xl font-bold mt-1">—</p></div>
           <div class="dashboard-stat-icon w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0"><i class="fas fa-tshirt"></i></div>
         </div>
       </div>
       <div class="dashboard-stat-card stat-card rounded-2xl p-4 md:p-5 text-white overflow-hidden" style="--from:#667eea;--to:#764ba2">
         <div class="flex justify-between items-start gap-3 min-w-0">
-          <div class="min-w-0"><p class="dashboard-stat-label text-white/80 text-sm">Đơn hàng</p><p id="statOrders" class="dashboard-stat-value text-3xl font-bold mt-1">—</p></div>
+          <div class="min-w-0"><p class="dashboard-stat-label text-white/80 text-xs sm:text-sm leading-tight">Đơn hàng</p><p id="statOrders" class="dashboard-stat-value text-2xl md:text-3xl font-bold mt-1">—</p></div>
           <div class="dashboard-stat-icon w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0"><i class="fas fa-shopping-bag"></i></div>
         </div>
       </div>
       <div class="dashboard-stat-card stat-card rounded-2xl p-4 md:p-5 text-white overflow-hidden" style="--from:#f093fb;--to:#f5576c">
         <div class="flex justify-between items-start gap-3 min-w-0">
-          <div class="min-w-0"><p class="dashboard-stat-label text-white/80 text-sm">Chờ xử lý</p><p id="statPending" class="dashboard-stat-value text-3xl font-bold mt-1">—</p></div>
+          <div class="min-w-0"><p class="dashboard-stat-label text-white/80 text-xs sm:text-sm leading-tight">Chờ xử lý</p><p id="statPending" class="dashboard-stat-value text-2xl md:text-3xl font-bold mt-1">—</p></div>
           <div class="dashboard-stat-icon w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0"><i class="fas fa-clock"></i></div>
         </div>
       </div>
       <div class="dashboard-stat-card stat-card rounded-2xl p-4 md:p-5 text-white overflow-hidden" style="--from:#43e97b;--to:#38f9d7">
         <div class="flex justify-between items-start gap-3 min-w-0">
-          <div class="min-w-0"><p class="dashboard-stat-label text-white/80 text-sm">Doanh thu</p><p id="statRevenue" class="dashboard-stat-value dashboard-stat-value-revenue text-2xl font-bold mt-1">—</p></div>
+          <div class="min-w-0"><p class="dashboard-stat-label text-white/80 text-xs sm:text-sm leading-tight">Doanh thu tháng</p><p id="statRevenue" class="dashboard-stat-value dashboard-stat-value-revenue text-xl md:text-2xl font-bold mt-1">—</p></div>
           <div class="dashboard-stat-icon w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0"><i class="fas fa-coins"></i></div>
+        </div>
+      </div>
+      <div class="dashboard-stat-card stat-card rounded-2xl p-4 md:p-5 text-white overflow-hidden" style="--from:#ffb347;--to:#ff9800">
+        <div class="flex justify-between items-start gap-3 min-w-0">
+          <div class="min-w-0"><p class="dashboard-stat-label text-white/85 text-xs sm:text-sm leading-tight">Thuế phải nộp</p><p id="statTaxDue" class="dashboard-stat-value dashboard-stat-value-revenue text-xl md:text-2xl font-bold mt-1">—</p></div>
+          <div class="dashboard-stat-icon w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0"><i class="fas fa-file-invoice-dollar"></i></div>
+        </div>
+      </div>
+      <div class="dashboard-stat-card stat-card rounded-2xl p-4 md:p-5 text-white overflow-hidden" style="--from:#00c6ff;--to:#0072ff">
+        <div class="flex justify-between items-start gap-3 min-w-0">
+          <div class="min-w-0">
+            <p class="dashboard-stat-label text-white/80 text-xs sm:text-sm leading-tight">
+              <span class="hidden sm:inline">Người xem sản phẩm</span>
+              <span class="sm:hidden">Lượt xem SP</span>
+            </p>
+            <p id="statFrontendVisitors" class="dashboard-stat-value text-2xl md:text-3xl font-bold mt-1">—</p>
+          </div>
+          <div class="dashboard-stat-icon w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center shrink-0"><i class="fas fa-eye"></i></div>
         </div>
       </div>
     </div>
@@ -52,13 +70,16 @@ export function adminDashboardPage(): string {
       <section class="bg-white rounded-2xl shadow-sm border p-4 md:p-6 overflow-hidden">
         <div class="flex items-start justify-between gap-3 mb-4">
           <div>
-            <h2 class="font-bold text-gray-800">Tổng quan theo bộ lọc</h2>
+            <h2 class="font-bold text-gray-800">Tổng quan tài chính tháng</h2>
             <p id="dashboardRangeLabel" class="text-xs text-gray-400 mt-1">Đang tải dữ liệu...</p>
           </div>
           <span class="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600"><i class="fas fa-chart-line"></i></span>
         </div>
-        <div id="dashboardInsightGrid" class="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div class="rounded-xl border border-gray-100 bg-gray-50 p-3"><p class="text-xs text-gray-500">Đang tải</p><p class="mt-1 text-lg font-bold text-gray-800">—</p></div>
+        <div id="dashboardInsightGrid" class="space-y-3">
+          <div class="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+            <p class="text-xs text-gray-500">Đang tải dữ liệu tài chính...</p>
+            <p class="mt-2 text-2xl font-bold text-gray-800">—</p>
+          </div>
         </div>
       </section>
       <section class="bg-white rounded-2xl shadow-sm border p-4 md:p-6 overflow-hidden">

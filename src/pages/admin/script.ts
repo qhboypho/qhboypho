@@ -595,15 +595,49 @@ function syncDashboardDateFilterUI() {
   const mode = document.getElementById('dashboardFilterMode')
   const dateInput = document.getElementById('dashboardDateInput')
   const monthInput = document.getElementById('dashboardMonthInput')
+  const avatarRoot = document.getElementById('adminAvatarMenuRoot')
+  const header = document.querySelector('#adminMainContent > header')
+  const headerActions = header?.lastElementChild instanceof HTMLElement ? header.lastElementChild : null
+  const dashboardRoot = document.getElementById('page-dashboard')
+  const statGrid = dashboardRoot?.querySelector('.dashboard-stat-grid')
   if (!filter || !mode || !dateInput || !monthInput) return
 
   const isDashboard = document.body.dataset.adminPage === 'dashboard'
+  const isMobileDashboard = isDashboard && window.innerWidth < 768
   filter.classList.toggle('hidden', !isDashboard)
   filter.classList.toggle('flex', isDashboard)
 
   dashboardFilterMode = String(mode.value || 'month')
   dateInput.classList.toggle('hidden', dashboardFilterMode !== 'day')
   monthInput.classList.toggle('hidden', dashboardFilterMode !== 'month')
+
+  if (isDashboard && isMobileDashboard) {
+    if (dashboardRoot && statGrid && filter.parentElement !== dashboardRoot) {
+      dashboardRoot.insertBefore(filter, statGrid)
+    } else if (dashboardRoot && !statGrid && filter.parentElement !== dashboardRoot) {
+      dashboardRoot.appendChild(filter)
+    }
+    filter.style.width = '100%'
+    filter.style.maxWidth = '100%'
+    filter.style.margin = '0.25rem 0 1rem'
+    filter.style.padding = '0.25rem'
+    filter.style.justifyContent = 'center'
+    filter.style.alignSelf = 'stretch'
+    filter.style.flexWrap = 'wrap'
+    filter.style.gap = '0.375rem'
+  } else if (isDashboard) {
+    if (headerActions && avatarRoot instanceof HTMLElement && filter.parentElement !== headerActions) {
+      headerActions.insertBefore(filter, avatarRoot)
+    }
+    filter.style.width = ''
+    filter.style.maxWidth = ''
+    filter.style.margin = ''
+    filter.style.padding = ''
+    filter.style.justifyContent = ''
+    filter.style.alignSelf = ''
+    filter.style.flexWrap = ''
+    filter.style.gap = ''
+  }
 }
 
 function onDashboardFilterModeChange() {
@@ -1008,20 +1042,93 @@ function renderDashboardInsights(d) {
   const grid = document.getElementById('dashboardInsightGrid')
   if (rangeLabel) rangeLabel.textContent = getDashboardRangeLabel(d.range)
   if (!grid) return
-
-  const items = [
-    { label: 'Đã hoàn tất', value: Number(d.completedOrders || 0).toLocaleString('vi-VN'), tone: 'text-emerald-700 bg-emerald-50' },
-    { label: 'Sẵn sàng giao', value: Number(d.shippingQueueOrders || 0).toLocaleString('vi-VN'), tone: 'text-sky-700 bg-sky-50' },
-    { label: 'Chưa thanh toán', value: Number(d.unpaidOrders || 0).toLocaleString('vi-VN'), tone: 'text-amber-700 bg-amber-50' },
-    { label: 'Giá trị TB', value: fmtPrice(d.avgOrderValue || 0), tone: 'text-gray-800 bg-gray-50' },
+  const deliveredRevenue = Number(d.taxBaseRevenue || d.revenue || 0)
+  const vatTax = Number(d.vatTax || 0)
+  const pitTax = Number(d.pitTax || 0)
+  const totalTax = Number(d.totalTax || 0)
+  const netRevenue = Number(d.netRevenue || 0)
+  const deliveredOrders = Number(d.deliveredOrders || 0)
+  const returnedOrders = Number(d.returnedOrders || 0)
+  const cancelledOrFailedOrders = Number(d.cancelledOrFailedOrders || 0)
+  const avgOrderValue = Number(d.avgOrderValue || 0)
+  const vatRate = Number(d.taxProfile?.vatRate || 0)
+  const pitRate = Number(d.taxProfile?.pitRate || 0)
+  const totalRate = Number(d.taxProfile?.totalRate || (vatRate + pitRate))
+  const formulaCards = [
+    {
+      label: 'Doanh thu đơn hoàn thành',
+      value: fmtPrice(deliveredRevenue),
+      icon: 'fa-chart-column',
+      tones: 'border-emerald-100 bg-gradient-to-br from-emerald-50 to-teal-50 text-emerald-700',
+    },
+    {
+      label: 'Thuế VAT (1%)',
+      value: fmtPrice(vatTax),
+      icon: 'fa-calculator',
+      tones: 'border-blue-100 bg-gradient-to-br from-blue-50 to-indigo-50 text-blue-700',
+    },
+    {
+      label: 'Thuế TNCN (0,5%)',
+      value: fmtPrice(pitTax),
+      icon: 'fa-arrow-right-arrow-left',
+      tones: 'border-violet-100 bg-gradient-to-br from-violet-50 to-fuchsia-50 text-violet-700',
+    },
+    {
+      label: 'Tổng thuế phải nộp',
+      value: fmtPrice(totalTax),
+      icon: 'fa-money-bill-transfer',
+      tones: 'border-amber-100 bg-gradient-to-br from-amber-50 to-orange-50 text-amber-700',
+    },
   ]
+  const operators = ['-', '+', '=']
+  const metrics = [
+    { label: 'Đơn nhận thành công', value: deliveredOrders.toLocaleString('vi-VN'), tone: 'border-emerald-100 bg-emerald-50 text-emerald-700' },
+    { label: 'Hoàn hàng', value: returnedOrders.toLocaleString('vi-VN'), tone: 'border-rose-100 bg-rose-50 text-rose-700' },
+    { label: 'Hủy / thất bại', value: cancelledOrFailedOrders.toLocaleString('vi-VN'), tone: 'border-amber-100 bg-amber-50 text-amber-700' },
+    { label: 'Giá trị đơn TB', value: fmtPrice(avgOrderValue), tone: 'border-slate-100 bg-slate-50 text-slate-700' },
+  ]
+  const formulaHtml = formulaCards.map((item, index) => {
+    const card =
+      '<div class="min-w-0 rounded-[24px] border px-4 py-4 shadow-sm ' + item.tones + '">' +
+        '<div class="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/70 bg-white/80 text-base shadow-sm">' +
+          '<i class="fas ' + item.icon + '"></i>' +
+        '</div>' +
+        '<p class="min-h-[2.5rem] text-sm font-semibold leading-5">' + escapeDashboardHtml(item.label) + '</p>' +
+        '<p class="mt-3 text-[1.8rem] font-black leading-none tracking-[-0.04em]">' + escapeDashboardHtml(item.value) + '</p>' +
+      '</div>'
+    if (index >= operators.length) return card
+    return card + '<div class="flex items-center justify-center text-2xl font-black text-slate-900 md:min-w-[24px]">' + operators[index] + '</div>'
+  }).join('')
 
-  grid.innerHTML = items.map((item) => (
-    '<div class="rounded-xl border border-gray-100 ' + item.tone + ' p-3 min-w-0">' +
-      '<p class="text-xs font-semibold opacity-75">' + escapeDashboardHtml(item.label) + '</p>' +
-      '<p class="mt-1 text-lg font-bold truncate">' + escapeDashboardHtml(item.value) + '</p>' +
+  grid.innerHTML =
+    '<div class="grid gap-4">' +
+      '<div class="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)] md:gap-4">' +
+        formulaHtml +
+      '</div>' +
+      '<div class="flex flex-col gap-3 rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50 to-slate-50 px-4 py-3 md:flex-row md:items-center md:justify-between">' +
+        '<div class="inline-flex items-center gap-3 text-blue-600">' +
+          '<span class="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-blue-200 bg-white shadow-sm"><i class="fas fa-badge-percent"></i></span>' +
+          '<div>' +
+            '<p class="text-sm font-black">Tỷ lệ thuế áp dụng: ' + escapeDashboardHtml((Math.round(totalRate * 1000) / 10).toLocaleString('vi-VN')) + '%</p>' +
+            '<p class="text-xs text-blue-500">VAT ' + escapeDashboardHtml((Math.round(vatRate * 1000) / 10).toLocaleString('vi-VN')) + '% + TNCN ' + escapeDashboardHtml((Math.round(pitRate * 1000) / 10).toLocaleString('vi-VN')) + '%</p>' +
+          '</div>' +
+        '</div>' +
+        '<div class="text-sm text-slate-500 md:max-w-sm">' +
+          'Chỉ tính trên các đơn giao thành công / hoàn thành trong khoảng thời gian đang chọn.' +
+        '</div>' +
+      '</div>' +
+      '<div class="grid grid-cols-2 xl:grid-cols-4 gap-3">' +
+        metrics.map((item) => (
+          '<div class="rounded-2xl border p-3 min-w-0 shadow-sm ' + item.tone + '">' +
+            '<p class="text-xs font-semibold opacity-80">' + escapeDashboardHtml(item.label) + '</p>' +
+            '<p class="mt-2 text-lg font-black leading-tight">' + escapeDashboardHtml(item.value) + '</p>' +
+          '</div>'
+        )).join('') +
+      '</div>' +
+      '<div class="rounded-2xl border border-slate-100 bg-slate-50/80 px-4 py-3 text-sm text-slate-500">' +
+        '<span class="font-semibold text-slate-700">Thực nhận tạm tính:</span> ' + escapeDashboardHtml(fmtPrice(netRevenue)) +
+      '</div>' +
     '</div>'
-  )).join('')
 }
 
 function renderDashboardStatusBreakdown(rows, totalOrders) {
@@ -1042,11 +1149,13 @@ function renderDashboardStatusBreakdown(rows, totalOrders) {
 
   wrap.innerHTML = order.map((status) => {
     const count = Number(map[status] || 0)
-    const percent = Math.round((count / total) * 100)
+    const percentRaw = (count / total) * 100
+    const percent = Math.max(0, Math.min(100, percentRaw))
+    const percentLabel = percentRaw.toLocaleString('vi-VN', { minimumFractionDigits: count > 0 ? 1 : 0, maximumFractionDigits: 1 })
     return '<div>' +
       '<div class="mb-1 flex items-center justify-between gap-3 text-xs">' +
         '<span class="font-semibold text-gray-600">' + escapeDashboardHtml(statusLabel(status)) + '</span>' +
-        '<span class="font-bold text-gray-900">' + count.toLocaleString('vi-VN') + '</span>' +
+        '<span class="font-bold text-gray-900">' + count.toLocaleString('vi-VN') + ' (' + percentLabel + '%)</span>' +
       '</div>' +
       '<div class="h-2 overflow-hidden rounded-full bg-gray-100">' +
         '<div class="' + dashboardStatusBarClass(status) + ' h-full rounded-full" style="width:' + percent + '%"></div>' +
@@ -1087,10 +1196,14 @@ async function loadDashboard() {
     const statOrdersEl = document.getElementById('statOrders')
     const statPendingEl = document.getElementById('statPending')
     const statRevenueEl = document.getElementById('statRevenue')
+    const statTaxDueEl = document.getElementById('statTaxDue')
+    const statFrontendVisitorsEl = document.getElementById('statFrontendVisitors')
     if (statProductsEl) statProductsEl.textContent = d.totalProducts ?? '0'
     if (statOrdersEl) statOrdersEl.textContent = d.totalOrders ?? '0'
     if (statPendingEl) statPendingEl.textContent = d.pendingOrders ?? '0'
     if (statRevenueEl) statRevenueEl.textContent = fmtPrice(d.revenue || 0)
+    if (statTaxDueEl) statTaxDueEl.textContent = fmtPrice(d.totalTax || 0)
+    if (statFrontendVisitorsEl) statFrontendVisitorsEl.textContent = Number(d.frontendVisitors || 0).toLocaleString('vi-VN')
     fitDashboardStatValues()
     requestAnimationFrame(fitDashboardStatValues)
     renderDashboardInsights(d)
@@ -2216,6 +2329,7 @@ document.addEventListener('DOMContentLoaded', function() {
   window.addEventListener('resize', syncOrdersHeaderSearchUI)
   window.addEventListener('resize', positionAdminAvatarMenu)
   window.addEventListener('resize', fitDashboardStatValues)
+  window.addEventListener('resize', syncDashboardDateFilterUI)
   window.addEventListener('scroll', () => {
     if (adminAvatarMenuOpen) positionAdminAvatarMenu()
   }, true)
