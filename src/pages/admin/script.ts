@@ -1431,11 +1431,11 @@ function renderAdminProducts(products) {
       const colors = getProductColorOptions(p).map((c) => c.name).filter(Boolean)
       const sizes = safeJson(p.sizes)
       return \`
-    <div class="bg-white rounded-2xl shadow-sm border overflow-hidden \${!p.is_active ? 'opacity-60' : ''}">
-      <div class="relative h-48 bg-gray-100 overflow-hidden">
+    <div class="admin-product-card bg-white rounded-2xl shadow-sm border overflow-hidden \${!p.is_active ? 'opacity-60' : ''}">
+      <div class="admin-product-thumb-shell relative bg-gray-100 overflow-hidden">
         <img src="\${thumbnail}" alt="\${name}" 
-          class="w-full h-full object-cover" onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'">
-        <div class="absolute top-2 left-2 flex gap-1">
+          class="admin-product-thumb w-full h-full object-cover" onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'">
+        <div class="absolute top-2 left-2 flex flex-wrap gap-1 pr-8">
           <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-white/90 text-gray-700">\${catLabel(p.category)}</span>
           \${p.is_featured ? '<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-400 text-white"><i class="fas fa-star mr-1"></i>Hot</span>' : ''}
           \${p.is_trending ? '<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-500 text-white"><i class="fas fa-fire mr-1"></i>Trend</span>' : ''}
@@ -1445,16 +1445,16 @@ function renderAdminProducts(products) {
           <span class="w-2.5 h-2.5 rounded-full inline-block \${p.is_active ? 'bg-green-400' : 'bg-gray-400'}"></span>
         </div>
       </div>
-      <div class="p-4">
+      <div class="admin-product-card-body p-3">
         \${brand ? \`<p class="text-xs text-pink-500 font-medium mb-1">\${brand}</p>\` : ''}
         <h3 class="font-semibold text-gray-900 text-sm mb-2 line-clamp-2 leading-tight">\${name}</h3>
-        <div class="flex items-center gap-2 mb-3">
+        <div class="flex flex-wrap items-center gap-x-2 gap-y-1 mb-2">
           <span class="font-bold text-pink-600">\${fmtPrice(p.price)}</span>
           \${p.original_price ? \`<span class="text-xs text-gray-400 line-through">\${fmtPrice(p.original_price)}</span>\` : ''}
         </div>
         \${colors.length ? \`<div class="flex flex-wrap gap-1 mb-2">\${colors.slice(0,3).map(c=>\`<span class="text-xs bg-pink-50 text-pink-600 px-2 py-0.5 rounded-full">\${c}</span>\`).join('')}\${colors.length>3?\`<span class="text-xs text-gray-400">+\${colors.length-3}</span>\`:''}</div>\` : ''}
-        \${sizes.length ? \`<div class="flex flex-wrap gap-1 mb-3">\${sizes.slice(0,4).map(s=>\`<span class="text-xs border text-gray-600 px-1.5 py-0.5 rounded">\${s}</span>\`).join('')}\${sizes.length>4?\`<span class="text-xs text-gray-400">+\${sizes.length-4}</span>\`:''}</div>\` : ''}
-        <p class="text-xs text-gray-400 mb-3">Tồn kho: <span class="font-semibold text-gray-700">\${p.stock || 0}</span></p>
+        \${sizes.length ? \`<div class="flex flex-wrap gap-1 mb-2">\${sizes.slice(0,4).map(s=>\`<span class="text-xs border text-gray-600 px-1.5 py-0.5 rounded">\${s}</span>\`).join('')}\${sizes.length>4?\`<span class="text-xs text-gray-400">+\${sizes.length-4}</span>\`:''}</div>\` : ''}
+        <p class="text-xs text-gray-400 mb-2">Tồn kho: <span class="font-semibold text-gray-700">\${p.stock || 0}</span></p>
         <div class="flex gap-2">
           <button onclick="openProductModal(\${p.id})" class="flex-1 py-2 border-2 border-pink-200 text-pink-600 rounded-xl text-xs font-semibold hover:bg-pink-50 transition">
             <i class="fas fa-edit mr-1"></i>Sửa
@@ -1476,19 +1476,19 @@ function renderAdminProducts(products) {
       const price = Number(p.price || 0)
       console.error('renderAdminProducts item error:', err, raw)
       return \`
-      <div class="bg-white rounded-2xl shadow-sm border overflow-hidden \${!isActive ? 'opacity-60' : ''}">
-        <div class="relative h-48 bg-gray-100 overflow-hidden">
-          <img src="\${thumbnail}" alt="\${name}" class="w-full h-full object-cover" onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'">
+      <div class="admin-product-card bg-white rounded-2xl shadow-sm border overflow-hidden \${!isActive ? 'opacity-60' : ''}">
+        <div class="admin-product-thumb-shell relative bg-gray-100 overflow-hidden">
+          <img src="\${thumbnail}" alt="\${name}" class="admin-product-thumb w-full h-full object-cover" onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'">
           <div class="absolute top-2 right-2">
             <span class="w-2.5 h-2.5 rounded-full inline-block \${isActive ? 'bg-green-400' : 'bg-gray-400'}"></span>
           </div>
         </div>
-        <div class="p-4">
+        <div class="admin-product-card-body p-3">
           <h3 class="font-semibold text-gray-900 text-sm mb-2 line-clamp-2 leading-tight">\${name}</h3>
-          <div class="flex items-center gap-2 mb-3">
+          <div class="flex flex-wrap items-center gap-x-2 gap-y-1 mb-2">
             <span class="font-bold text-pink-600">\${fmtPrice(price)}</span>
           </div>
-          <p class="text-xs text-gray-400 mb-3">Tồn kho: <span class="font-semibold text-gray-700">\${p.stock || 0}</span></p>
+          <p class="text-xs text-gray-400 mb-2">Tồn kho: <span class="font-semibold text-gray-700">\${p.stock || 0}</span></p>
           <div class="flex gap-2">
             <button onclick="openProductModal(\${p.id})" class="flex-1 py-2 border-2 border-pink-200 text-pink-600 rounded-xl text-xs font-semibold hover:bg-pink-50 transition">
               <i class="fas fa-edit mr-1"></i>Sửa
