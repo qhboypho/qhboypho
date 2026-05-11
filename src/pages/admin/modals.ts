@@ -85,20 +85,20 @@ export function adminModalsSection(): string {
           <label class="block text-sm font-semibold mb-1.5 text-gray-700">Mô tả</label>
           <textarea id="pDescription" rows="3" placeholder="Mô tả chi tiết về sản phẩm..." class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 resize-none"></textarea>
         </div>
-        <div>
-          <label class="block text-sm font-semibold mb-1.5 text-gray-700">Số lượng tồn kho</label>
-          <input type="number" id="pStock" placeholder="100" min="0" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
-        </div>
-        <div class="flex items-center gap-6 pt-4">
-          <label class="flex items-center gap-2 cursor-pointer">
+        <div class="md:col-span-2 grid grid-cols-[150px_120px_138px_170px_82px] items-center gap-x-3 gap-y-3 pt-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">Số lượng tồn kho</label>
+            <input type="number" id="pStock" placeholder="100" min="0" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
+          </div>
+          <label class="flex items-center gap-2 cursor-pointer whitespace-nowrap">
             <input type="checkbox" id="pFeatured" class="w-4 h-4 accent-pink-500">
             <span class="text-sm font-medium text-gray-700">Sản phẩm nổi bật</span>
           </label>
-          <label class="flex items-center gap-2 cursor-pointer">
+          <label class="flex items-center gap-2 cursor-pointer whitespace-nowrap">
             <input type="checkbox" id="pTrending" class="w-4 h-4 accent-pink-500">
             <span class="text-sm font-medium text-gray-700">Sản phẩm thịnh hành</span>
           </label>
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 whitespace-nowrap">
             <label for="pTrendingOrder" class="text-sm font-medium text-gray-700 whitespace-nowrap">Vị trí hiển thị</label>
             <select id="pTrendingOrder" class="border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-pink-400">
               <option value="0">Tự động</option>
@@ -116,7 +116,7 @@ export function adminModalsSection(): string {
               <option value="12">12</option>
             </select>
           </div>
-          <label class="flex items-center gap-2 cursor-pointer">
+          <label class="flex items-center gap-2 cursor-pointer whitespace-nowrap">
             <input type="checkbox" id="pActive" checked class="w-4 h-4 accent-pink-500">
             <span class="text-sm font-medium text-gray-700">Hiển thị</span>
           </label>

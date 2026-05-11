@@ -1630,7 +1630,7 @@ function resetProductForm() {
 async function saveProduct(e) {
   e.preventDefault()
   const btn = document.getElementById('saveBtn')
-  btn.textContent = 'Äang lÆ°u...'
+  btn.textContent = 'Đang lưu...'
   
   const imgList = galleryImages.filter(v => v && v.trim())
   const normalizedThumbnail = String(document.getElementById('pThumbnail').value || '').trim()
