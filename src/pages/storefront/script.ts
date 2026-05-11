@@ -2157,9 +2157,15 @@ async function submitUserRegister(event) {
     showToast('Đăng ký tài khoản thành công', 'success', 2500)
   } catch (err) {
     const code = err.response?.data?.error
+    const reason = err.response?.data?.reason
     if (code === 'USERNAME_TAKEN') setUserAuthError('Username này đã được dùng.')
     else if (code === 'PASSWORD_LENGTH_INVALID') setUserAuthError('Mật khẩu cần từ 6 đến 64 ký tự.')
     else if (code === 'INVALID_PHONE') setUserAuthError('Số điện thoại không hợp lệ.')
+    else if (code === 'BOM_HANG_BLOCKED') {
+      setUserAuthError('')
+      showBlockedCustomerModal(reason || 'Bạn không thể tạo tài khoản do bom hàng nhiều lần, liên hệ shop để được hỗ trợ nhanh.')
+    }
+    else if (code === 'ACCOUNT_LIMIT_REACHED') setUserAuthError(reason || 'Bạn chỉ có thể tạo tối đa 3 tài khoản. Liên hệ shop nếu cần hỗ trợ.')
     else setUserAuthError('Không thể đăng ký. Vui lòng thử lại.')
   } finally {
     setUserAuthBusy(false)

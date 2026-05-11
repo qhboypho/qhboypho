@@ -36,6 +36,10 @@ function normalizeStorefrontPhone(raw: unknown) {
   return String(raw || '').trim().replace(/\s+/g, ' ')
 }
 
+function normalizeIdentityPhone(raw: unknown) {
+  return String(raw || '').replace(/[^\d]/g, '')
+}
+
 function isValidOptionalPhone(phone: string) {
   return !phone || /^\+?[0-9 .()-]{7,20}$/.test(phone)
 }
@@ -46,6 +50,133 @@ function isBlockedValue(value: unknown) {
 
 function buildLocalUserEmail(username: string) {
   return `${username}@user.qhclothes.local`
+}
+
+function toHex(bytes: Uint8Array): string {
+  return Array.from(bytes).map((byte) => byte.toString(16).padStart(2, '0')).join('')
+}
+
+async function sha256Hex(value: string) {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value))
+  return toHex(new Uint8Array(digest))
+}
+
+function getClientIp(c: any) {
+  const cfIp = String(c.req.header('cf-connecting-ip') || '').trim()
+  if (cfIp) return cfIp
+  const realIp = String(c.req.header('x-real-ip') || '').trim()
+  if (realIp) return realIp
+  const forwarded = String(c.req.header('x-forwarded-for') || '').split(',')[0]?.trim()
+  return forwarded || ''
+}
+
+async function buildRegistrationIdentities(c: any, phone: string) {
+  const identities: Array<{ type: 'phone' | 'ip_hash', value: string }> = []
+  const identityPhone = normalizeIdentityPhone(phone)
+  if (identityPhone) {
+    identities.push({ type: 'phone', value: identityPhone })
+  }
+
+  const ip = getClientIp(c)
+  if (ip) {
+    identities.push({ type: 'ip_hash', value: await sha256Hex(`ip:${ip}`) })
+  }
+
+  return identities
+}
+
+async function findBlockedRegistrationIdentity(db: D1Database, identities: Array<{ type: string, value: string }>) {
+  for (const identity of identities) {
+    if (identity.type === 'phone') {
+      const blockedPhone = await db.prepare(`
+        SELECT blocked_reason
+        FROM blocked_customers
+        WHERE is_active = 1
+          AND customer_phone IS NOT NULL
+          AND REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(TRIM(customer_phone), ' ', ''), '-', ''), '.', ''), '(', ''), ')', ''), '+', '') = ?
+        LIMIT 1
+      `).bind(identity.value).first<{ blocked_reason?: string }>()
+      if (blockedPhone) return blockedPhone.blocked_reason || ''
+
+      const blockedUserPhone = await db.prepare(`
+        SELECT blocked_reason
+        FROM users
+        WHERE is_blocked = 1
+          AND phone IS NOT NULL
+          AND REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(TRIM(phone), ' ', ''), '-', ''), '.', ''), '(', ''), ')', ''), '+', '') = ?
+        LIMIT 1
+      `).bind(identity.value).first<{ blocked_reason?: string }>()
+      if (blockedUserPhone) return blockedUserPhone.blocked_reason || ''
+    }
+
+    const blockedIdentity = await db.prepare(`
+      SELECT COALESCE(u.blocked_reason, bc.blocked_reason, '') AS blocked_reason
+      FROM user_registration_identities uri
+      LEFT JOIN users u ON u.id = uri.user_id
+      LEFT JOIN blocked_customers bc ON bc.user_id = uri.user_id AND bc.is_active = 1
+      WHERE uri.identity_type = ?
+        AND uri.identity_value = ?
+        AND (COALESCE(u.is_blocked, 0) = 1 OR bc.id IS NOT NULL)
+      LIMIT 1
+    `).bind(identity.type, identity.value).first<{ blocked_reason?: string }>()
+    if (blockedIdentity) return blockedIdentity.blocked_reason || ''
+  }
+
+  return ''
+}
+
+async function countAccountsForIdentity(db: D1Database, identity: { type: string, value: string }) {
+  if (identity.type === 'phone') {
+    const byPhone = await db.prepare(`
+      SELECT COUNT(DISTINCT id) AS total
+      FROM users
+      WHERE phone IS NOT NULL
+        AND REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(TRIM(phone), ' ', ''), '-', ''), '.', ''), '(', ''), ')', ''), '+', '') = ?
+    `).bind(identity.value).first<{ total?: number }>()
+    const directCount = Number(byPhone?.total || 0)
+    if (directCount > 0) return directCount
+  }
+
+  const byIdentity = await db.prepare(`
+    SELECT COUNT(DISTINCT user_id) AS total
+    FROM user_registration_identities
+    WHERE identity_type = ?
+      AND identity_value = ?
+  `).bind(identity.type, identity.value).first<{ total?: number }>()
+  return Number(byIdentity?.total || 0)
+}
+
+async function enforceRegistrationGuard(db: D1Database, identities: Array<{ type: string, value: string }>) {
+  const blockedReason = await findBlockedRegistrationIdentity(db, identities)
+  if (blockedReason) {
+    return {
+      allowed: false,
+      error: 'BOM_HANG_BLOCKED',
+      reason: 'Bạn không thể tạo tài khoản do bom hàng nhiều lần, liên hệ shop để được hỗ trợ nhanh.'
+    }
+  }
+
+  for (const identity of identities) {
+    const existingAccounts = await countAccountsForIdentity(db, identity)
+    if (existingAccounts >= 3) {
+      return {
+        allowed: false,
+        error: 'ACCOUNT_LIMIT_REACHED',
+        reason: 'Bạn chỉ có thể tạo tối đa 3 tài khoản. Liên hệ shop nếu cần hỗ trợ.'
+      }
+    }
+  }
+
+  return { allowed: true, error: '', reason: '' }
+}
+
+async function saveRegistrationIdentities(db: D1Database, userId: number, identities: Array<{ type: string, value: string }>) {
+  for (const identity of identities) {
+    await db.prepare(`
+      INSERT OR IGNORE INTO user_registration_identities (user_id, identity_type, identity_value)
+      VALUES (?, ?, ?)
+    `).bind(userId, identity.type, identity.value).run()
+  }
 }
 
 function clearAdminSessionCookies(c: any) {
@@ -230,6 +361,12 @@ export function registerAuthRoutes(app: Hono<{ Bindings: AppBindings }>, deps: A
       return c.json({ success: false, error: 'INVALID_PHONE' }, 400)
     }
 
+    const identities = await buildRegistrationIdentities(c, phone)
+    const guard = await enforceRegistrationGuard(c.env.DB, identities)
+    if (!guard.allowed) {
+      return c.json({ success: false, error: guard.error, reason: guard.reason }, 403)
+    }
+
     const existing = await c.env.DB.prepare("SELECT id FROM users WHERE username=? LIMIT 1").bind(username).first()
     if (existing) {
       return c.json({ success: false, error: 'USERNAME_TAKEN' }, 409)
@@ -241,6 +378,7 @@ export function registerAuthRoutes(app: Hono<{ Bindings: AppBindings }>, deps: A
       INSERT INTO users (email, username, name, phone, password_hash, balance, is_admin)
       VALUES (?, ?, ?, ?, ?, 0, 0)
     `).bind(localEmail, username, username, phone || null, passwordHash).run()
+    await saveRegistrationIdentities(c.env.DB, Number(result.meta.last_row_id), identities)
     const user = {
       id: result.meta.last_row_id,
       userId: result.meta.last_row_id,
