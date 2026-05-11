@@ -1,5 +1,8 @@
+import { getCookie } from 'hono/cookie'
 import type { Hono } from 'hono'
 import type { AppBindings } from '../types/app'
+import { validateAdminSessionToken } from '../lib/adminHelpers'
+import { isLikelyHumanBrowser, recordFrontendProductVisit } from '../lib/frontendVisitorHelpers'
 import { getFlashSaleStatus } from '../lib/flashSaleHelpers.ts'
 import { attachSkuStateToProduct } from '../lib/productFlashSaleView.ts'
 import { loadActiveFlashSaleProductMap, shapeFlashSaleProduct } from '../lib/flashSaleHelpers.ts'
@@ -93,6 +96,24 @@ function normalizeCreateItems(items: FlashSaleCreateItemInput[] | undefined) {
       is_enabled: normalizeBooleanFlag(item.is_enabled)
     }))
     .filter((item) => item.product_sku_id !== null)
+}
+
+async function maybeTrackFrontendProductVisit(c: any) {
+  try {
+    const userAgent = c.req.header('user-agent')
+    if (!isLikelyHumanBrowser(userAgent)) return
+
+    const adminToken = String(getCookie(c, 'admin_token') || '')
+    if (adminToken) {
+      const adminUserKey = String(getCookie(c, 'admin_user_key') || 'admin').trim() || 'admin'
+      const isAdmin = await validateAdminSessionToken(c.env.DB, adminUserKey, adminToken)
+      if (isAdmin) return
+    }
+
+    await recordFrontendProductVisit(c, c.env.DB)
+  } catch (error) {
+    console.warn('[analytics] frontend product visit tracking skipped', error)
+  }
 }
 
 function validateFlashSalePayload(body: FlashSaleCreateBody): { ok: true; data: FlashSalePayload } | { ok: false; error: string } {
@@ -503,7 +524,9 @@ export function registerFlashSaleRoutes(app: Hono<{ Bindings: AppBindings }>, de
   app.get('/api/flash-sales/active-products', async (c) => {
     try {
       await deps.initDB(c.env.DB)
-      return c.json({ success: true, data: await buildActiveFlashSaleProducts(c.env.DB) })
+      const data = await buildActiveFlashSaleProducts(c.env.DB)
+      await maybeTrackFrontendProductVisit(c)
+      return c.json({ success: true, data })
     } catch (e: any) {
       return c.json({ success: false, error: e.message }, 500)
     }

@@ -1430,6 +1430,7 @@ function renderAdminProducts(products) {
       const thumbnail = String(p.thumbnail || '').trim() || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'
       const colors = getProductColorOptions(p).map((c) => c.name).filter(Boolean)
       const sizes = safeJson(p.sizes)
+      const viewCount = Number(p.view_count || 0)
       return \`
     <div class="admin-product-card bg-white rounded-2xl shadow-sm border overflow-hidden \${!p.is_active ? 'opacity-60' : ''}">
       <div class="admin-product-thumb-shell relative bg-gray-100 overflow-hidden">
@@ -1454,7 +1455,10 @@ function renderAdminProducts(products) {
         </div>
         \${colors.length ? \`<div class="flex flex-wrap gap-1 mb-2">\${colors.slice(0,3).map(c=>\`<span class="text-xs bg-pink-50 text-pink-600 px-2 py-0.5 rounded-full">\${c}</span>\`).join('')}\${colors.length>3?\`<span class="text-xs text-gray-400">+\${colors.length-3}</span>\`:''}</div>\` : ''}
         \${sizes.length ? \`<div class="flex flex-wrap gap-1 mb-2">\${sizes.slice(0,4).map(s=>\`<span class="text-xs border text-gray-600 px-1.5 py-0.5 rounded">\${s}</span>\`).join('')}\${sizes.length>4?\`<span class="text-xs text-gray-400">+\${sizes.length-4}</span>\`:''}</div>\` : ''}
-        <p class="text-xs text-gray-400 mb-2">Tồn kho: <span class="font-semibold text-gray-700">\${p.stock || 0}</span></p>
+        <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-400 mb-2">
+          <span>Tồn kho: <span class="font-semibold text-gray-700">\${p.stock || 0}</span></span>
+          <span class="inline-flex items-center gap-1"><i class="fas fa-eye text-sky-400"></i>Lượt xem: <span class="font-semibold text-gray-700">\${viewCount}</span></span>
+        </div>
         <div class="flex gap-2">
           <button onclick="openProductModal(\${p.id})" class="flex-1 py-2 border-2 border-pink-200 text-pink-600 rounded-xl text-xs font-semibold hover:bg-pink-50 transition">
             <i class="fas fa-edit mr-1"></i>Sửa
@@ -1474,6 +1478,7 @@ function renderAdminProducts(products) {
       const thumbnail = String(p.thumbnail || '').trim() || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'
       const isActive = !!p.is_active
       const price = Number(p.price || 0)
+      const viewCount = Number(p.view_count || 0)
       console.error('renderAdminProducts item error:', err, raw)
       return \`
       <div class="admin-product-card bg-white rounded-2xl shadow-sm border overflow-hidden \${!isActive ? 'opacity-60' : ''}">
@@ -1488,7 +1493,10 @@ function renderAdminProducts(products) {
           <div class="flex flex-wrap items-center gap-x-2 gap-y-1 mb-2">
             <span class="font-bold text-pink-600">\${fmtPrice(price)}</span>
           </div>
-          <p class="text-xs text-gray-400 mb-2">Tồn kho: <span class="font-semibold text-gray-700">\${p.stock || 0}</span></p>
+          <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-400 mb-2">
+            <span>Tồn kho: <span class="font-semibold text-gray-700">\${p.stock || 0}</span></span>
+            <span class="inline-flex items-center gap-1"><i class="fas fa-eye text-sky-400"></i>Lượt xem: <span class="font-semibold text-gray-700">\${viewCount}</span></span>
+          </div>
           <div class="flex gap-2">
             <button onclick="openProductModal(\${p.id})" class="flex-1 py-2 border-2 border-pink-200 text-pink-600 rounded-xl text-xs font-semibold hover:bg-pink-50 transition">
               <i class="fas fa-edit mr-1"></i>Sửa

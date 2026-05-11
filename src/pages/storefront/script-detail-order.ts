@@ -1,5 +1,11 @@
 export function storefrontDetailOrderScript(): string {
-  return `async function showDetail(id) {
+  return `function trackProductDetailView(id) {
+  const productId = Number(id || 0)
+  if (!Number.isFinite(productId) || productId <= 0) return
+  axios.post('/api/products/' + productId + '/view').catch(() => {})
+}
+
+async function showDetail(id) {
   try {
     const res = await axios.get('/api/products/' + id)
     const p = res.data.data
@@ -71,6 +77,7 @@ export function storefrontDetailOrderScript(): string {
     </div>\`
     document.getElementById('detailOverlay').classList.remove('hidden')
     document.body.style.overflow = 'hidden'
+    trackProductDetailView(p.id || id)
     startFlashSaleCountdownTicker()
     if (detailColorOptions.length) {
       const initialButton = document.querySelector('#detailColorGrid .detail-color-card')

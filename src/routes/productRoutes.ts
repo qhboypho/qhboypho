@@ -1,5 +1,8 @@
+import { getCookie } from 'hono/cookie'
 import type { Hono } from 'hono'
 import type { AppBindings } from '../types/app'
+import { validateAdminSessionToken } from '../lib/adminHelpers'
+import { ensureFrontendVisitorId, isLikelyHumanBrowser, recordFrontendProductVisit } from '../lib/frontendVisitorHelpers'
 import { shapeFlashSaleProduct, loadActiveFlashSaleProductMap } from '../lib/flashSaleHelpers.ts'
 import { attachSkuStateToProduct } from '../lib/productFlashSaleView.ts'
 import { loadProductSkusByProductIds, syncProductSkus } from '../lib/productSkuHelpers.ts'
@@ -75,6 +78,56 @@ async function buildProductsWithSkus(db: D1Database, rows: any[], options?: { in
   ))
 }
 
+async function maybeTrackFrontendProductVisit(c: any) {
+  try {
+    const userAgent = c.req.header('user-agent')
+    if (!isLikelyHumanBrowser(userAgent)) return
+
+    const adminToken = String(getCookie(c, 'admin_token') || '')
+    if (adminToken) {
+      const adminUserKey = String(getCookie(c, 'admin_user_key') || 'admin').trim() || 'admin'
+      const isAdmin = await validateAdminSessionToken(c.env.DB, adminUserKey, adminToken)
+      if (isAdmin) return
+    }
+
+    await recordFrontendProductVisit(c, c.env.DB)
+  } catch (error) {
+    console.warn('[analytics] frontend product visit tracking skipped', error)
+  }
+}
+
+async function isTrackableStorefrontVisitor(c: any): Promise<boolean> {
+  const userAgent = c.req.header('user-agent')
+  if (!isLikelyHumanBrowser(userAgent)) return false
+
+  const adminToken = String(getCookie(c, 'admin_token') || '')
+  if (!adminToken) return true
+
+  const adminUserKey = String(getCookie(c, 'admin_user_key') || 'admin').trim() || 'admin'
+  return !(await validateAdminSessionToken(c.env.DB, adminUserKey, adminToken))
+}
+
+async function recordProductDetailView(c: any, productId: number): Promise<boolean> {
+  if (!Number.isFinite(productId) || productId <= 0) return false
+  if (!(await isTrackableStorefrontVisitor(c))) return false
+
+  const row = await c.env.DB.prepare(`SELECT id FROM products WHERE id = ? AND is_active = 1`)
+    .bind(productId)
+    .first()
+  if (!row) return false
+
+  const visitorId = await ensureFrontendVisitorId(c)
+  await c.env.DB.prepare(`
+    INSERT INTO product_detail_views (product_id, visitor_id, user_agent, created_at)
+    VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+  `).bind(
+    productId,
+    visitorId,
+    String(c.req.header('user-agent') || '').slice(0, 300)
+  ).run()
+  return true
+}
+
 export function registerProductRoutes(app: Hono<{ Bindings: AppBindings }>, deps: ProductRouteDeps) {
   app.get('/api/products', async (c) => {
     try {
@@ -83,9 +136,11 @@ export function registerProductRoutes(app: Hono<{ Bindings: AppBindings }>, deps
         `SELECT * FROM products WHERE is_active = 1 ORDER BY created_at DESC`
       ).all()
       const rows = result.results || []
+      const data = await buildProductsWithSkus(c.env.DB, rows)
+      await maybeTrackFrontendProductVisit(c)
       return c.json({
         success: true,
-        data: await buildProductsWithSkus(c.env.DB, rows)
+        data
       })
     } catch (e: any) {
       return c.json({ success: false, error: e.message }, 500)
@@ -99,6 +154,9 @@ export function registerProductRoutes(app: Hono<{ Bindings: AppBindings }>, deps
       const row = await c.env.DB.prepare(`SELECT * FROM products WHERE id = ?`).bind(id).first()
       if (!row) return c.json({ success: false, error: 'Not found' }, 404)
       const [shaped] = await buildProductsWithSkus(c.env.DB, [row])
+      if (Number((row as any).is_active || 0) === 1) {
+        await maybeTrackFrontendProductVisit(c)
+      }
       return c.json({
         success: true,
         data: {
@@ -112,11 +170,33 @@ export function registerProductRoutes(app: Hono<{ Bindings: AppBindings }>, deps
     }
   })
 
+  app.post('/api/products/:id/view', async (c) => {
+    try {
+      await deps.initDB(c.env.DB)
+      const productId = Number(c.req.param('id'))
+      const counted = await recordProductDetailView(c, productId)
+      return c.json({ success: true, counted })
+    } catch (e: any) {
+      console.warn('[analytics] product detail view tracking skipped', e)
+      return c.json({ success: true, counted: false })
+    }
+  })
+
   app.get('/api/admin/products/:id', async (c) => {
     try {
       await deps.initDB(c.env.DB)
       const id = c.req.param('id')
-      const row = await c.env.DB.prepare(`SELECT * FROM products WHERE id = ?`).bind(id).first()
+      const row = await c.env.DB.prepare(`
+        SELECT p.*,
+               COALESCE(v.view_count, 0) AS view_count
+        FROM products p
+        LEFT JOIN (
+          SELECT product_id, COUNT(*) AS view_count
+          FROM product_detail_views
+          GROUP BY product_id
+        ) v ON v.product_id = p.id
+        WHERE p.id = ?
+      `).bind(id).first()
       if (!row) return c.json({ success: false, error: 'Không tìm thấy sản phẩm' }, 404)
       const skuMap = await loadProductSkusByProductIds(c.env.DB, [id], { includeInactive: true })
       const images = (() => {
@@ -156,8 +236,17 @@ export function registerProductRoutes(app: Hono<{ Bindings: AppBindings }>, deps
     try {
       await deps.initDB(c.env.DB)
       const result = await c.env.DB.prepare(
-        `SELECT id, name, description, price, original_price, category, brand, material, thumbnail, colors, sizes, stock, is_active, is_featured, is_trending, trending_order, created_at, updated_at, display_order
-         FROM products ORDER BY created_at DESC`
+        `SELECT p.id, p.name, p.description, p.price, p.original_price, p.category, p.brand, p.material,
+                p.thumbnail, p.colors, p.sizes, p.stock, p.is_active, p.is_featured, p.is_trending,
+                p.trending_order, p.created_at, p.updated_at, p.display_order,
+                COALESCE(v.view_count, 0) AS view_count
+         FROM products p
+         LEFT JOIN (
+           SELECT product_id, COUNT(*) AS view_count
+           FROM product_detail_views
+           GROUP BY product_id
+         ) v ON v.product_id = p.id
+         ORDER BY p.created_at DESC`
       ).all()
       const rows = result.results || []
       const skuMap = await loadProductSkusByProductIds(c.env.DB, rows.map((row: any) => row.id), { includeInactive: true })
@@ -330,7 +419,9 @@ export function registerProductRoutes(app: Hono<{ Bindings: AppBindings }>, deps
       const res = await c.env.DB.prepare(
         `SELECT * FROM products WHERE is_active=1 AND is_featured=1 ORDER BY display_order ASC, id DESC`
       ).all()
-      return c.json({ success: true, data: await buildProductsWithSkus(c.env.DB, res.results || []) })
+      const data = await buildProductsWithSkus(c.env.DB, res.results || [])
+      await maybeTrackFrontendProductVisit(c)
+      return c.json({ success: true, data })
     } catch (e: any) {
       return c.json({ success: false, error: e.message }, 500)
     }
@@ -347,7 +438,9 @@ export function registerProductRoutes(app: Hono<{ Bindings: AppBindings }>, deps
            datetime(updated_at) DESC,
            id DESC`
       ).all()
-      return c.json({ success: true, data: await buildProductsWithSkus(c.env.DB, res.results || []) })
+      const data = await buildProductsWithSkus(c.env.DB, res.results || [])
+      await maybeTrackFrontendProductVisit(c)
+      return c.json({ success: true, data })
     } catch (e: any) {
       return c.json({ success: false, error: e.message }, 500)
     }
@@ -378,6 +471,7 @@ export function registerProductRoutes(app: Hono<{ Bindings: AppBindings }>, deps
         ...item,
         total_sold: Number((rows[idx] as any).total_sold || 0)
       }))
+      await maybeTrackFrontendProductVisit(c)
       return c.json({ success: true, data: result })
     } catch (e: any) {
       return c.json({ success: false, error: e.message }, 500)
