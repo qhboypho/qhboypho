@@ -1,4 +1,6 @@
 export type AppBindings = CloudflareBindings & {
+  PRODUCT_IMAGES?: R2Bucket
+  PRODUCT_IMAGES_PUBLIC_BASE_URL?: string
   GOOGLE_CLIENT_ID?: string
   GOOGLE_CLIENT_SECRET?: string
   GOOGLE_REDIRECT_URI?: string

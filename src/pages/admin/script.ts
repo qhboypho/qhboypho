@@ -1821,15 +1821,15 @@ async function applyMultipleImagesFrom(files, targetType, startIndex = 0) {
   try {
     let fileIndex = 0
     if (targetType === 'thumbnail' && files[0]) {
-      const thumbDataUrl = await fileToOptimizedDataURL(files[0], 900, 0.85)
-      document.getElementById('pThumbnail').value = thumbDataUrl
-      previewThumbnail(thumbDataUrl)
+      const thumbUrl = await uploadProductImageFile(files[0], 900, 0.85, 'products')
+      document.getElementById('pThumbnail').value = thumbUrl
+      previewThumbnail(thumbUrl)
       fileIndex = 1
       startIndex = 0
     }
     for (let i = startIndex; i < 9 && fileIndex < files.length; i++) {
-      const dataUrl = await fileToOptimizedDataURL(files[fileIndex], 1200, 0.82)
-      setGallerySlot(i, dataUrl)
+      const imageUrl = await uploadProductImageFile(files[fileIndex], 1200, 0.82, 'product-gallery')
+      setGallerySlot(i, imageUrl)
       fileIndex++
     }
     if (fileIndex < files.length) {
@@ -1867,6 +1867,45 @@ async function handleThumbnailFile(input) {
   if (!files.length) return
   await applyMultipleImagesFrom(files, 'thumbnail', 0)
   input.value = ''
+}
+
+function fileToOptimizedBlob(file, maxWidth = 1200, quality = 0.82) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onerror = () => reject(new Error('read_failed'))
+    reader.onload = () => {
+      const img = new Image()
+      img.onerror = () => reject(new Error('decode_failed'))
+      img.onload = () => {
+        const scale = Math.min(1, maxWidth / img.width)
+        const width = Math.max(1, Math.round(img.width * scale))
+        const height = Math.max(1, Math.round(img.height * scale))
+        const canvas = document.createElement('canvas')
+        canvas.width = width
+        canvas.height = height
+        const ctx = canvas.getContext('2d')
+        if (!ctx) return reject(new Error('canvas_failed'))
+        ctx.drawImage(img, 0, 0, width, height)
+        canvas.toBlob((blob) => {
+          if (!blob) return reject(new Error('encode_failed'))
+          resolve(blob)
+        }, 'image/jpeg', quality)
+      }
+      img.src = reader.result
+    }
+    reader.readAsDataURL(file)
+  })
+}
+
+async function uploadProductImageFile(file, maxWidth = 1200, quality = 0.82, folder = 'products') {
+  const blob = await fileToOptimizedBlob(file, maxWidth, quality)
+  const form = new FormData()
+  form.append('folder', folder)
+  form.append('file', blob, 'image.jpg')
+  const res = await axios.post('/api/admin/assets/images', form)
+  const url = String(res.data?.url || '').trim()
+  if (!url) throw new Error('upload_failed')
+  return url
 }
 
 function fileToOptimizedDataURL(file, maxWidth = 1200, quality = 0.82) {
@@ -2000,7 +2039,7 @@ async function handleColorImageFile(idx, input) {
 async function applyColorImageFile(idx, file) {
   try {
     if (!colors[idx]) return
-    colors[idx].image = await fileToOptimizedDataURL(file, 500, 0.85)
+    colors[idx].image = await uploadProductImageFile(file, 500, 0.85, 'product-colors')
     renderColorOptionsEditor()
   } catch (_) {
     showAdminToast('Không thể xử lý ảnh màu', 'error')

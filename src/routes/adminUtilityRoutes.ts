@@ -32,6 +32,30 @@ type SocialSettingsInput = {
   threads_handle?: unknown
 }
 
+const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
+const MAX_R2_IMAGE_BYTES = 3 * 1024 * 1024
+
+function normalizeAssetFolder(value: unknown): string {
+  const folder = String(value || 'products').trim().toLowerCase()
+  if (folder === 'product-colors') return 'product-colors'
+  if (folder === 'product-gallery') return 'product-gallery'
+  if (folder === 'reviews') return 'reviews'
+  return 'products'
+}
+
+function extensionFromMime(type: string): string {
+  if (type === 'image/png') return 'png'
+  if (type === 'image/webp') return 'webp'
+  if (type === 'image/gif') return 'gif'
+  return 'jpg'
+}
+
+function buildPublicAssetUrl(c: any, key: string): string {
+  const base = String(c.env.PRODUCT_IMAGES_PUBLIC_BASE_URL || '').trim().replace(/\/+$/, '')
+  if (base) return `${base}/${key}`
+  return `/media/${key}`
+}
+
 type AdminUtilityRouteDeps = {
   initDB: (db: D1Database) => Promise<void>
   getGhtkPickupConfig: (db: D1Database, env: AppBindings) => Promise<GhtkPickupConfig>
@@ -89,6 +113,48 @@ function buildSocialLinks(handles: Record<string, string>) {
 }
 
 export function registerAdminUtilityRoutes(app: Hono<{ Bindings: AppBindings }>, deps: AdminUtilityRouteDeps) {
+  app.get('/media/*', async (c) => {
+    const bucket = c.env.PRODUCT_IMAGES
+    if (!bucket) return c.notFound()
+    const key = decodeURIComponent(c.req.path.replace(/^\/media\//, '')).replace(/^\/+/, '')
+    if (!key || key.includes('..')) return c.notFound()
+    const object = await bucket.get(key)
+    if (!object) return c.notFound()
+    const headers = new Headers()
+    object.writeHttpMetadata(headers)
+    headers.set('etag', object.httpEtag)
+    headers.set('cache-control', 'public, max-age=31536000, immutable')
+    return new Response(object.body, { headers })
+  })
+
+  app.post('/api/admin/assets/images', async (c) => {
+    const bucket = c.env.PRODUCT_IMAGES
+    if (!bucket) return c.json({ success: false, error: 'R2_NOT_CONFIGURED' }, 500)
+
+    const form = await c.req.raw.formData()
+    const file = form.get('file')
+    if (!(file instanceof File)) return c.json({ success: false, error: 'MISSING_FILE' }, 400)
+
+    const contentType = String(file.type || '').toLowerCase()
+    if (!ALLOWED_IMAGE_TYPES.has(contentType)) {
+      return c.json({ success: false, error: 'INVALID_IMAGE_TYPE' }, 400)
+    }
+    if (file.size <= 0 || file.size > MAX_R2_IMAGE_BYTES) {
+      return c.json({ success: false, error: 'IMAGE_TOO_LARGE' }, 400)
+    }
+
+    const folder = normalizeAssetFolder(form.get('folder'))
+    const ext = extensionFromMime(contentType)
+    const key = `${folder}/${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID()}.${ext}`
+    await bucket.put(key, file.stream(), {
+      httpMetadata: {
+        contentType,
+        cacheControl: 'public, max-age=31536000, immutable',
+      },
+    })
+    return c.json({ success: true, key, url: buildPublicAssetUrl(c, key) })
+  })
+
   app.get('/api/hero_banners', async (c) => {
     await deps.initDB(c.env.DB)
     const result = await c.env.DB.prepare("SELECT * FROM hero_banners WHERE is_active=1 ORDER BY display_order ASC").all()

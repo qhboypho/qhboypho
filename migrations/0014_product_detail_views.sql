@@ -1,4 +1,5 @@
--- Track every storefront product detail modal open.
+-- Legacy raw detail views table. New code writes aggregated counters in
+-- product_daily_views to avoid one row per click at scale.
 CREATE TABLE IF NOT EXISTS product_detail_views (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   product_id INTEGER NOT NULL,

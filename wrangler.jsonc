@@ -14,7 +14,15 @@
       "preview_database_id": "a1edf97a-0041-438e-84b9-e2ed9e4f6295"
     }
   ],
+  "r2_buckets": [
+    {
+      "binding": "PRODUCT_IMAGES",
+      "bucket_name": "qhclothes-product-images",
+      "preview_bucket_name": "qhclothes-product-images-preview"
+    }
+  ],
   "vars": {
+    "PRODUCT_IMAGES_PUBLIC_BASE_URL": "",
     "GOOGLE_CLIENT_ID": "",
     "GOOGLE_CLIENT_SECRET": "",
     "CASSO_SECURE_TOKEN": "",

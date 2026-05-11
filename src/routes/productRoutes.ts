@@ -2,7 +2,7 @@ import { getCookie } from 'hono/cookie'
 import type { Hono } from 'hono'
 import type { AppBindings } from '../types/app'
 import { validateAdminSessionToken } from '../lib/adminHelpers'
-import { ensureFrontendVisitorId, isLikelyHumanBrowser, recordFrontendProductVisit } from '../lib/frontendVisitorHelpers'
+import { getVietnamDateKey, isLikelyHumanBrowser, recordFrontendProductVisit } from '../lib/frontendVisitorHelpers'
 import { shapeFlashSaleProduct, loadActiveFlashSaleProductMap } from '../lib/flashSaleHelpers.ts'
 import { attachSkuStateToProduct } from '../lib/productFlashSaleView.ts'
 import { loadProductSkusByProductIds, syncProductSkus } from '../lib/productSkuHelpers.ts'
@@ -116,14 +116,15 @@ async function recordProductDetailView(c: any, productId: number): Promise<boole
     .first()
   if (!row) return false
 
-  const visitorId = await ensureFrontendVisitorId(c)
   await c.env.DB.prepare(`
-    INSERT INTO product_detail_views (product_id, visitor_id, user_agent, created_at)
-    VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+    INSERT INTO product_daily_views (product_id, view_date, view_count, updated_at)
+    VALUES (?, ?, 1, CURRENT_TIMESTAMP)
+    ON CONFLICT(product_id, view_date) DO UPDATE SET
+      view_count = view_count + 1,
+      updated_at = CURRENT_TIMESTAMP
   `).bind(
     productId,
-    visitorId,
-    String(c.req.header('user-agent') || '').slice(0, 300)
+    getVietnamDateKey()
   ).run()
   return true
 }
@@ -191,8 +192,8 @@ export function registerProductRoutes(app: Hono<{ Bindings: AppBindings }>, deps
                COALESCE(v.view_count, 0) AS view_count
         FROM products p
         LEFT JOIN (
-          SELECT product_id, COUNT(*) AS view_count
-          FROM product_detail_views
+          SELECT product_id, SUM(view_count) AS view_count
+          FROM product_daily_views
           GROUP BY product_id
         ) v ON v.product_id = p.id
         WHERE p.id = ?
@@ -242,8 +243,8 @@ export function registerProductRoutes(app: Hono<{ Bindings: AppBindings }>, deps
                 COALESCE(v.view_count, 0) AS view_count
          FROM products p
          LEFT JOIN (
-           SELECT product_id, COUNT(*) AS view_count
-           FROM product_detail_views
+           SELECT product_id, SUM(view_count) AS view_count
+           FROM product_daily_views
            GROUP BY product_id
          ) v ON v.product_id = p.id
          ORDER BY p.created_at DESC`
