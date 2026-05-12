@@ -1740,6 +1740,7 @@ function renderCollapsedBanners(banners) {
   const wrapper = document.getElementById('heroBannersWrapper')
   const mobileMode = isMobileHeroLayout()
   lastHeroMobileMode = mobileMode
+  if (wrapper) wrapper.style.justifyContent = mobileMode ? 'flex-start' : 'flex-end'
   if (!banners.length) {
     if (wrapper) wrapper.style.cursor = 'default'
     container.innerHTML = \`<div class="relative w-full h-full rounded-3xl bg-gradient-to-br from-white/5 via-white/[0.03] to-pink-500/10 flex items-center justify-center text-center px-6">
@@ -1754,6 +1755,8 @@ function renderCollapsedBanners(banners) {
     const shown = banners.slice(0, Math.max(3, Math.min(banners.length, 8)))
     const hasSettingBannerOnly = shown.length === 1 && shown[0]?.is_setting_banner
     if (wrapper) wrapper.style.cursor = hasSettingBannerOnly ? 'default' : 'pointer'
+    container.style.width = '100%'
+    container.style.height = 'auto'
     container.innerHTML = \`<div class="hero-mobile-slider">\${shown.map((b) => {
       const safeTitle = b.title || 'Sản phẩm'
       if (b.is_setting_banner) {
@@ -1788,7 +1791,10 @@ function renderCollapsedBanners(banners) {
   const shown = banners.slice(0, Math.min(len, 4)).reverse()
   const hasSettingBannerOnly = shown.length === 1 && shown[0]?.is_setting_banner
   if (wrapper) wrapper.style.cursor = hasSettingBannerOnly ? 'default' : 'pointer'
-  container.innerHTML = \`<div class="relative" style="width:300px;height:360px">
+  const desktopHeroSize = 360
+  container.style.width = \`\${desktopHeroSize}px\`
+  container.style.height = hasSettingBannerOnly ? \`\${desktopHeroSize}px\` : \`\${desktopHeroSize + 36}px\`
+  container.innerHTML = \`<div class="relative" style="width:\${desktopHeroSize}px;height:\${desktopHeroSize}px">
   \${shown.map((b, i) => {
     const rot = shown.length > 1 ? (i - Math.floor((shown.length - 1) / 2)) * 6 : 0
     const z = i * 10
