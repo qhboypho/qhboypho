@@ -280,86 +280,128 @@ export function adminNotificationSettingsPage(): string {
   return `<!-- SETTINGS NOTIFICATIONS PAGE -->
   <div id="page-settings-notifications" class="p-3 md:p-6 hidden">
     <style>
-      #page-settings-notifications .storefront-marquee-bar { height: 24px; background: rgba(18,18,30,0.98); border-bottom: 1px solid rgba(255,255,255,0.06); overflow: hidden; }
+      #page-settings-notifications .notification-hero { background: radial-gradient(circle at 88% 12%, rgba(236,72,153,.38), transparent 32%), radial-gradient(circle at 14% 100%, rgba(59,130,246,.18), transparent 34%), linear-gradient(135deg,#101827 0%,#172033 48%,#9f1239 100%); }
+      #page-settings-notifications .notification-card { box-shadow: 0 18px 44px -24px rgba(15,23,42,.28); }
+      #page-settings-notifications .storefront-marquee-bar { height: 34px; background: rgba(24,24,27,0.98); border-bottom: 1px solid rgba(255,255,255,0.06); overflow: hidden; }
       #page-settings-notifications .storefront-marquee-track { display: flex; align-items: center; width: max-content; height: 100%; animation: storefrontMarqueePreview var(--storefront-marquee-duration, 48s) linear infinite; animation-delay: 0s; will-change: transform; }
       #page-settings-notifications .storefront-marquee-group { display: inline-flex; align-items: center; flex: 0 0 auto; gap: 0.45rem; padding: 0 1.25rem; white-space: nowrap; }
       #page-settings-notifications .storefront-marquee-icon { flex: 0 0 auto; color: #facc15; font-size: 14px; line-height: 1; }
-      #page-settings-notifications .storefront-marquee-text { flex: 0 0 auto; color: rgba(255,255,255,0.88); font-size: 16px; font-weight: 500; line-height: 1; white-space: nowrap; letter-spacing: 0; }
+      #page-settings-notifications .storefront-marquee-text { flex: 0 0 auto; color: rgba(255,255,255,0.9); font-size: 14px; font-weight: 600; line-height: 1; white-space: nowrap; letter-spacing: 0; }
+      #page-settings-notifications input[type="range"] { accent-color: #ec4899; }
       @keyframes storefrontMarqueePreview { from { transform: translateX(0); } to { transform: translateX(-33.333%); } }
     </style>
-    <div class="mb-5 rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-950 via-slate-900 to-amber-900 p-5 md:p-6 text-white shadow-sm overflow-hidden relative">
-      <div class="absolute -right-14 -top-14 h-40 w-40 rounded-full bg-amber-400/20 blur-3xl"></div>
-      <div class="absolute -bottom-16 left-24 h-44 w-44 rounded-full bg-pink-500/15 blur-3xl"></div>
-      <div class="relative flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+    <div class="notification-hero mb-5 rounded-3xl border border-slate-200 p-5 md:p-7 text-white shadow-sm overflow-hidden relative">
+      <div class="relative flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5">
         <div>
-          <p class="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold text-amber-100">
-            <i class="fas fa-bullhorn"></i>Thông báo storefront
+          <p class="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold text-pink-100">
+            <i class="fas fa-bullhorn"></i>Setting / Thông báo
           </p>
-          <h2 class="mt-4 text-2xl md:text-3xl font-extrabold tracking-tight">Cài đặt thông báo</h2>
-          <p class="mt-2 max-w-2xl text-sm text-slate-300">Tuỳ chỉnh nội dung chữ chạy trên cùng trang chủ và tốc độ chạy marquee.</p>
+          <h2 class="mt-4 text-2xl md:text-4xl font-extrabold tracking-tight">Quản lý thông báo chạy trên storefront</h2>
+          <p class="mt-2 max-w-3xl text-sm md:text-base leading-relaxed text-slate-200">Tuỳ chỉnh nội dung marquee, tốc độ chạy và xem preview trực tiếp trước khi lưu. Marquee nên ngắn, rõ ưu đãi, không nhồi quá nhiều thông tin.</p>
         </div>
-        <button id="saveNotificationSettingsBtn" onclick="saveNotificationSettings()" class="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-bold text-slate-950 shadow-lg shadow-black/20 hover:bg-amber-50 transition">
-          <i class="fas fa-save text-amber-500"></i>Lưu thông báo
+        <button id="saveNotificationSettingsBtn" onclick="saveNotificationSettings()" class="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-bold text-rose-700 shadow-lg shadow-black/20 hover:bg-pink-50 transition">
+          <i class="fas fa-save text-pink-500"></i>Lưu thông báo
         </button>
       </div>
     </div>
 
-    <div class="grid gap-5 xl:grid-cols-[1fr_0.85fr]">
-      <section class="rounded-3xl border border-gray-200 bg-white p-5 md:p-6 shadow-sm">
-        <div class="mb-5">
-          <p class="text-xs font-bold uppercase tracking-[0.18em] text-amber-500">Marquee top bar</p>
-          <h3 class="mt-1 text-xl font-extrabold text-gray-900">Nội dung thông báo</h3>
-          <p class="mt-1 text-sm text-gray-500">Nội dung này sẽ hiển thị dạng chữ chạy ở thanh trên cùng frontend. Nhập text thường, hệ thống sẽ tự chống lỗi HTML.</p>
-        </div>
-        <div class="space-y-5">
-          <div>
-            <label class="block text-sm font-semibold text-gray-700 mb-1.5">Nội dung marquee</label>
-            <textarea id="marqueeNotificationText" rows="7" maxlength="600" oninput="previewNotificationSettings()" placeholder="Nhập nội dung thông báo chạy trên đầu trang..." class="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm leading-relaxed outline-none focus:border-amber-400 focus:ring-4 focus:ring-amber-100"></textarea>
-            <div class="mt-2 flex items-center justify-between gap-3 text-xs text-gray-500">
-              <span>Tối đa 600 ký tự. Để trống sẽ dùng thông báo mặc định.</span>
-              <span id="marqueeTextCounter">0/600</span>
-            </div>
-          </div>
-          <div class="grid gap-4 md:grid-cols-[180px_1fr]">
-            <div>
-              <label class="block text-sm font-semibold text-gray-700 mb-1.5">Tốc độ</label>
-              <div class="relative">
-                <input id="marqueeSpeedSeconds" type="number" min="8" max="120" step="1" value="48" oninput="previewNotificationSettings()" class="w-full rounded-2xl border border-gray-200 px-4 py-3 pr-12 text-sm outline-none focus:border-amber-400 focus:ring-4 focus:ring-amber-100">
-                <span class="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-semibold text-gray-400">giây</span>
+    <div class="grid gap-5 xl:grid-cols-[1.15fr_0.85fr]">
+      <div class="space-y-5">
+        <section class="notification-card rounded-3xl border border-gray-200 bg-white p-5 md:p-6 shadow-sm">
+          <div class="mb-5 flex items-start justify-between gap-4">
+            <div class="flex items-start gap-4">
+              <span class="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-pink-50 text-pink-600">
+                <i class="fas fa-a text-lg"></i>
+              </span>
+              <div>
+                <h3 class="text-xl font-extrabold text-gray-900">Nội dung marquee</h3>
+                <p class="mt-1 text-sm text-gray-500">Nội dung này hiển thị ngay khi storefront loading, không delay.</p>
               </div>
-              <p class="mt-2 text-xs text-gray-500">Số nhỏ chạy nhanh hơn.</p>
             </div>
-            <div class="rounded-2xl border border-amber-100 bg-amber-50 p-4">
-              <p class="text-sm font-bold text-amber-800"><i class="fas fa-gauge-high mr-1"></i>Gợi ý tốc độ</p>
-              <p class="mt-1 text-sm text-amber-700">Text ngắn dùng 24–36 giây. Text dài dùng 45–70 giây để khách đọc kịp.</p>
-            </div>
+            <span id="marqueeTextCounter" class="inline-flex shrink-0 items-center rounded-full bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-500">0/600</span>
           </div>
-        </div>
-      </section>
+          <textarea id="marqueeNotificationText" rows="5" maxlength="600" oninput="previewNotificationSettings()" placeholder="Nhập nội dung thông báo chạy trên đầu trang..." class="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-4 text-base font-medium leading-relaxed text-slate-900 outline-none transition focus:border-pink-300 focus:bg-white focus:ring-4 focus:ring-pink-100"></textarea>
+          <div class="mt-4 flex flex-wrap gap-2">
+            <button type="button" onclick="setNotificationQuickText('Miễn phí vận chuyển cho đơn từ 500K | Flashsale mỗi tối 20:00 | Hỗ trợ đổi size trong 7 ngày')" class="rounded-full border border-orange-100 bg-orange-50 px-3 py-2 text-xs font-bold text-orange-700 hover:bg-orange-100 transition">Ưu đãi</button>
+            <button type="button" onclick="setNotificationQuickText('Flashsale mỗi tối 20:00 | Số lượng có hạn | Chốt đơn sớm để giữ size đẹp')" class="rounded-full border border-orange-100 bg-orange-50 px-3 py-2 text-xs font-bold text-orange-700 hover:bg-orange-100 transition">Flashsale</button>
+            <button type="button" onclick="setNotificationQuickText('Hỗ trợ đổi size trong 7 ngày nếu sản phẩm còn nguyên tem mác')" class="rounded-full border border-orange-100 bg-orange-50 px-3 py-2 text-xs font-bold text-orange-700 hover:bg-orange-100 transition">Đổi trả</button>
+            <button type="button" onclick="setNotificationQuickText('Freeship cho đơn từ 500K | Giao hàng toàn quốc')" class="rounded-full border border-orange-100 bg-orange-50 px-3 py-2 text-xs font-bold text-orange-700 hover:bg-orange-100 transition">Freeship</button>
+            <button type="button" onclick="clearNotificationText()" class="rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 transition">Xoá nội dung</button>
+          </div>
+        </section>
 
-      <section class="rounded-3xl border border-gray-200 bg-white p-5 md:p-6 shadow-sm">
-        <div class="flex items-center gap-3 mb-4">
-          <span class="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-100 text-slate-600"><i class="fas fa-eye"></i></span>
-          <div>
-            <h3 class="font-extrabold text-gray-900">Xem trước</h3>
-            <p class="text-sm text-gray-500">Preview dùng cùng CSS với frontend.</p>
-          </div>
-        </div>
-        <div class="rounded-2xl overflow-hidden border border-slate-200 bg-slate-950">
-          <div class="storefront-marquee-bar">
-            <div id="adminMarqueePreviewTrack" class="storefront-marquee-track" style="--storefront-marquee-duration:48s">
-              <div class="storefront-marquee-group">
-                <i class="fas fa-bullhorn storefront-marquee-icon" aria-hidden="true"></i>
-                <span id="adminMarqueePreviewText" class="storefront-marquee-text">Đang tải thông báo...</span>
-              </div>
+        <section class="notification-card rounded-3xl border border-gray-200 bg-white p-5 md:p-6 shadow-sm">
+          <div class="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 class="text-lg font-extrabold text-gray-900">Tốc độ chạy</h3>
+              <p class="mt-1 text-sm text-gray-500">Số nhỏ chạy nhanh hơn, số lớn chạy chậm hơn.</p>
+            </div>
+            <div class="relative w-full sm:w-40">
+              <input id="marqueeSpeedSeconds" type="number" min="8" max="120" step="1" value="48" oninput="previewNotificationSettings()" class="w-full rounded-2xl border border-gray-200 px-4 py-3 pr-12 text-sm font-bold outline-none focus:border-pink-300 focus:ring-4 focus:ring-pink-100">
+              <span class="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-semibold text-gray-400">giây</span>
             </div>
           </div>
-        </div>
-        <div class="mt-4 rounded-2xl border border-slate-100 bg-slate-50 p-4 text-sm text-slate-600">
-          <p class="font-bold text-slate-800"><i class="fas fa-circle-info mr-1"></i>Hiển thị frontend</p>
-          <p class="mt-1">Khi khách vào trang, marquee được render ngay bằng text mặc định trước, sau đó tự cập nhật sang text đã lưu khi API trả về.</p>
-        </div>
-      </section>
+          <div class="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+            <input id="marqueeSpeedRange" type="range" min="8" max="120" step="1" value="48" oninput="syncMarqueeSpeedFromRange()" class="w-full">
+            <div class="mt-2 flex items-center justify-between text-xs font-semibold text-slate-500">
+              <span>Nhanh 8s</span>
+              <span id="marqueeSpeedLabel" class="rounded-full bg-blue-50 px-3 py-1 text-blue-700">48 giây / vòng</span>
+              <span>Chậm 120s</span>
+            </div>
+          </div>
+          <p class="mt-4 text-sm font-medium text-slate-500">Khuyến nghị 40-60 giây để người dùng đọc kịp mà vẫn có cảm giác chuyển động.</p>
+        </section>
+      </div>
+
+      <div class="space-y-5">
+        <section class="notification-card rounded-3xl border border-slate-900 bg-slate-950 p-5 md:p-6 text-white shadow-sm">
+          <h3 class="text-xl font-extrabold">Preview storefront</h3>
+          <p class="mt-1 text-sm text-slate-400">Mô phỏng thanh thông báo ở đầu trang.</p>
+          <div class="mt-5 overflow-hidden rounded-3xl border border-slate-700 bg-slate-950">
+            <div class="h-10 bg-slate-900 px-4 flex items-center gap-2">
+              <span class="h-2.5 w-2.5 rounded-full bg-red-500"></span>
+              <span class="h-2.5 w-2.5 rounded-full bg-amber-500"></span>
+              <span class="h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
+            </div>
+            <div class="storefront-marquee-bar">
+              <div id="adminMarqueePreviewTrack" class="storefront-marquee-track" style="--storefront-marquee-duration:48s">
+                <div class="storefront-marquee-group">
+                  <i class="fas fa-bullhorn storefront-marquee-icon" aria-hidden="true"></i>
+                  <span id="adminMarqueePreviewText" class="storefront-marquee-text">Đang tải thông báo...</span>
+                </div>
+              </div>
+            </div>
+            <div class="bg-gradient-to-br from-indigo-950 to-pink-900 p-5">
+              <p class="text-2xl font-extrabold">QH Clothes</p>
+              <p class="mt-2 text-sm font-medium text-pink-100">Thông báo chạy ngay khi trang được load.</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="notification-card rounded-3xl border border-gray-200 bg-white p-5 md:p-6 shadow-sm">
+          <h3 class="text-lg font-extrabold text-gray-900">Kiểm tra trước khi lưu</h3>
+          <div class="mt-5 space-y-4">
+            <div class="flex items-center gap-3 text-sm font-bold text-slate-700"><span class="h-2.5 w-2.5 rounded-full bg-emerald-500"></span>Độ dài phù hợp</div>
+            <div class="flex items-center gap-3 text-sm font-bold text-slate-700"><span class="h-2.5 w-2.5 rounded-full bg-emerald-500"></span>Không có mã HTML</div>
+            <div class="flex items-center gap-3 text-sm font-bold text-slate-700"><span class="h-2.5 w-2.5 rounded-full bg-blue-500"></span>Tốc độ trong khoảng an toàn</div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <div class="mt-5 grid gap-4 xl:grid-cols-3">
+      <div class="rounded-3xl border border-gray-200 bg-white p-4 shadow-sm">
+        <span class="inline-flex rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700">Ưu tiên rõ nội dung</span>
+        <p class="mt-3 text-sm font-medium leading-relaxed text-slate-600">Một dòng thông báo nên tập trung vào ưu đãi hoặc chính sách quan trọng nhất.</p>
+      </div>
+      <div class="rounded-3xl border border-gray-200 bg-white p-4 shadow-sm">
+        <span class="inline-flex rounded-full bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700">Không delay loading</span>
+        <p class="mt-3 text-sm font-medium leading-relaxed text-slate-600">Marquee chạy ngay khi trang mở, dữ liệu từ admin cập nhật lại sau khi API trả về.</p>
+      </div>
+      <div class="rounded-3xl border border-gray-200 bg-white p-4 shadow-sm">
+        <span class="inline-flex rounded-full bg-orange-50 px-3 py-1.5 text-xs font-bold text-orange-700">Có fallback an toàn</span>
+        <p class="mt-3 text-sm font-medium leading-relaxed text-slate-600">Nếu nội dung trống, hệ thống dùng thông báo mặc định để tránh thanh trống.</p>
+      </div>
     </div>
   </div>`
 }

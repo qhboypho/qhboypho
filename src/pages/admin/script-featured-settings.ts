@@ -368,9 +368,44 @@ function updateMarqueeCounter() {
   if (counter) counter.textContent = String(text.length) + '/600'
 }
 
+function updateMarqueeSpeedControls(speedValue) {
+  const speed = normalizeMarqueeSpeed(speedValue)
+  const numberInput = document.getElementById('marqueeSpeedSeconds')
+  const rangeInput = document.getElementById('marqueeSpeedRange')
+  const label = document.getElementById('marqueeSpeedLabel')
+  if (numberInput && String(numberInput.value) !== String(speed)) numberInput.value = String(speed)
+  if (rangeInput && String(rangeInput.value) !== String(speed)) rangeInput.value = String(speed)
+  if (label) label.textContent = String(speed) + ' giây / vòng'
+  return speed
+}
+
+function syncMarqueeSpeedFromRange() {
+  const range = document.getElementById('marqueeSpeedRange')
+  const speed = updateMarqueeSpeedControls(range?.value || 48)
+  const text = document.getElementById('marqueeNotificationText')?.value || ''
+  updateMarqueeCounter()
+  renderAdminMarqueePreview(text, speed)
+}
+
+function setNotificationQuickText(value) {
+  const text = document.getElementById('marqueeNotificationText')
+  if (!text) return
+  text.value = String(value || '').slice(0, 600)
+  previewNotificationSettings()
+  text.focus()
+}
+
+function clearNotificationText() {
+  const text = document.getElementById('marqueeNotificationText')
+  if (!text) return
+  text.value = ''
+  previewNotificationSettings()
+  text.focus()
+}
+
 function previewNotificationSettings() {
   const text = document.getElementById('marqueeNotificationText')?.value || ''
-  const speed = document.getElementById('marqueeSpeedSeconds')?.value || 48
+  const speed = updateMarqueeSpeedControls(document.getElementById('marqueeSpeedSeconds')?.value || 48)
   updateMarqueeCounter()
   renderAdminMarqueePreview(text, speed)
 }
@@ -380,6 +415,7 @@ function fillNotificationSettings(cfg) {
   const speed = document.getElementById('marqueeSpeedSeconds')
   if (text) text.value = cfg.marquee_text || DEFAULT_MARQUEE_NOTIFICATION_TEXT
   if (speed) speed.value = String(normalizeMarqueeSpeed(cfg.marquee_speed_seconds || 48))
+  updateMarqueeSpeedControls(cfg.marquee_speed_seconds || 48)
   previewNotificationSettings()
 }
 
