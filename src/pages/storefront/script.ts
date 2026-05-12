@@ -1650,6 +1650,26 @@ async function loadFooterSocialLinks() {
 
 async function loadSettings() {
   try {
+    const imageSettingsRes = await axios.get('/api/public/image-settings').catch(() => ({ data: { data: {} } }))
+    const imageSettings = (imageSettingsRes.data && imageSettingsRes.data.data) ? imageSettingsRes.data.data : {}
+    const configuredTrendingImage = String(imageSettings.home_trending_banner_image || '').trim()
+    if (configuredTrendingImage) {
+      heroBannersData = [{
+        image_url: configuredTrendingImage,
+        subtitle: 'QH Clothes · Dang thinh hanh',
+        title: 'Bộ sưu tập thịnh hành',
+        price: '',
+        product_id: null,
+        trending_order: 0,
+        updated_at: '',
+        created_at: ''
+      }]
+      renderCollapsedBanners(heroBannersData)
+      renderExpandedBanners(heroBannersData)
+      bindHeroBannersWheelScroll()
+      return
+    }
+
     const trendingRes = await axios.get('/api/trending-products').catch(() => ({ data: { data: [] } }))
     const trendingProducts = (trendingRes.data && trendingRes.data.data) ? trendingRes.data.data : []
     heroBannersData = sortHeroCards(mapTrendingProductsToHeroCards(trendingProducts))
@@ -1719,10 +1739,10 @@ function renderCollapsedBanners(banners) {
   const mobileMode = isMobileHeroLayout()
   lastHeroMobileMode = mobileMode
   if (!banners.length) {
-    container.innerHTML = \`<div class="relative w-full h-full rounded-3xl border border-white/20 bg-white/5 flex items-center justify-center text-center px-6">
+    container.innerHTML = \`<div class="relative w-full h-full rounded-3xl bg-gradient-to-br from-white/5 via-white/[0.03] to-pink-500/10 flex items-center justify-center text-center px-6">
       <div>
-        <i class="fas fa-fire text-2xl text-pink-300 mb-2"></i>
-        <p class="text-white/80 text-sm font-medium">Chưa có sản phẩm thịnh hành</p>
+        <i class="fas fa-sparkles text-2xl text-pink-300 mb-2"></i>
+        <p class="text-white/70 text-sm font-medium">Bộ sưu tập đang được cập nhật</p>
       </div>
     </div>\`
     return

@@ -660,7 +660,8 @@ function getDashboardStatsParams() {
 }
 
 function showPage(name) {
-  ['dashboard','products','orders','returns','customers','reviews','vouchers','featured','settings','settings-social','settings-warehouse','flashsale'].forEach(p => {
+  ensureSettingsImagesNavItem()
+  ['dashboard','products','orders','returns','customers','reviews','vouchers','featured','settings','settings-social','settings-images','settings-warehouse','flashsale'].forEach(p => {
     const section = document.getElementById('page-'+p)
     if (section) section.classList.toggle('hidden', p !== name)
   })
@@ -670,15 +671,16 @@ function showPage(name) {
   document.querySelectorAll('.nav-sub-item').forEach(b => {
     b.classList.toggle('active', b.dataset.subPage === settingsActiveSubPage || b.dataset.subPage === marketingActiveSubPage)
   })
-  if (name === 'settings' || name === 'settings-social' || name === 'settings-warehouse') {
+  if (name === 'settings' || name === 'settings-social' || name === 'settings-images' || name === 'settings-warehouse') {
     const settingsBtn = document.getElementById('settingsMenuBtn')
     if (settingsBtn) settingsBtn.classList.add('active')
     setSettingsSubmenuOpen(true)
     if (name === 'settings-social') settingsActiveSubPage = 'settings-social'
+    if (name === 'settings-images') settingsActiveSubPage = 'settings-images'
     if (name === 'settings-warehouse') settingsActiveSubPage = 'settings-warehouse'
   } else {
     setSettingsSubmenuOpen(false)
-    if (name !== 'settings-social' && name !== 'settings-warehouse') settingsActiveSubPage = ''
+    if (name !== 'settings-social' && name !== 'settings-images' && name !== 'settings-warehouse') settingsActiveSubPage = ''
   }
   if (name === 'flashsale') {
     const marketingBtn = document.getElementById('marketingMenuBtn')
@@ -696,7 +698,7 @@ function showPage(name) {
   if (marketingActiveSubPage) {
     document.querySelectorAll('.nav-sub-item[data-sub-page="' + marketingActiveSubPage + '"]').forEach(b => b.classList.add('active'))
   }
-  const titles = {dashboard:'Dashboard', products:'Quản lý Sản phẩm', orders:'Quản lý Đơn hàng', returns:'Quản lý hoàn trả', customers:'Quản lý Khách hàng', reviews:'Quản lý Đánh giá', vouchers:'Quản lý Voucher', featured:'Sản phẩm Nổi Bật', settings:'Setting', 'settings-social':'Cấu hình MXH', 'settings-warehouse':'Cài đặt kho hàng', flashsale:'Quản lý Flashsale'}
+  const titles = {dashboard:'Dashboard', products:'Quản lý Sản phẩm', orders:'Quản lý Đơn hàng', returns:'Quản lý hoàn trả', customers:'Quản lý Khách hàng', reviews:'Quản lý Đánh giá', vouchers:'Quản lý Voucher', featured:'Sản phẩm Nổi Bật', settings:'Setting', 'settings-social':'Cấu hình MXH', 'settings-images':'Cài đặt ảnh', 'settings-warehouse':'Cài đặt kho hàng', flashsale:'Quản lý Flashsale'}
   document.body.dataset.adminPage = name
   document.getElementById('pageTitle').textContent = titles[name] || name
 
@@ -710,6 +712,7 @@ function showPage(name) {
   else if (name === 'featured') loadFeaturedAdmin()
   else if (name === 'settings') loadSettingsAdmin()
   else if (name === 'settings-social') loadSocialSettings()
+  else if (name === 'settings-images') loadImageSettings()
   else if (name === 'settings-warehouse') loadSettingsWarehousePage()
   else if (name === 'flashsale') loadFlashSaleAdmin()
 
@@ -846,6 +849,27 @@ function setSettingsSubmenuOpen(open) {
 
 function toggleSettingsMenu() {
   setSettingsSubmenuOpen(!settingsSubmenuOpen)
+}
+
+function ensureSettingsImagesNavItem() {
+  const submenu = document.getElementById('settingsSubmenu')
+  if (!submenu || submenu.querySelector('[data-sub-page="settings-images"]')) return
+  const btn = document.createElement('button')
+  btn.type = 'button'
+  btn.className = 'nav-sub-item w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg text-gray-400 text-sm font-medium'
+  btn.dataset.subPage = 'settings-images'
+  btn.onclick = openSettingsImages
+  btn.innerHTML = '<i class="fas fa-image w-4"></i><span class="sidebar-sub-label">Hình ảnh</span>'
+  const warehouseBtn = submenu.querySelector('[data-sub-page="settings-warehouse"]')
+  submenu.insertBefore(btn, warehouseBtn || null)
+}
+
+function openSettingsImages() {
+  settingsActiveSubPage = 'settings-images'
+  marketingActiveSubPage = ''
+  setSettingsSubmenuOpen(true)
+  setMarketingSubmenuOpen(false)
+  showPage('settings-images')
 }
 
 function openSettingsWarehouse() {
@@ -2497,6 +2521,7 @@ document.addEventListener('keydown', function(e) {
 })
 
 document.addEventListener('DOMContentLoaded', function() {
+  ensureSettingsImagesNavItem()
   setDesktopSidebarCollapsed(false)
   initDashboardDateFilterDefaults()
   bindAdminOverlaySafetyObserver()

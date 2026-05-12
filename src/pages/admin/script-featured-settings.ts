@@ -332,6 +332,86 @@ async function saveSocialSettings() {
   }
 }
 
+function getImageSettingUrl(idBase) {
+  return String(document.getElementById(idBase + 'Url')?.value || '').trim()
+}
+
+function previewImageSetting(idBase) {
+  const url = getImageSettingUrl(idBase)
+  const img = document.getElementById(idBase + 'Preview')
+  const placeholder = document.getElementById(idBase + 'Placeholder')
+  if (!img || !placeholder) return
+  if (url) {
+    img.src = url
+    img.classList.remove('hidden')
+    placeholder.classList.add('hidden')
+  } else {
+    img.src = ''
+    img.classList.add('hidden')
+    placeholder.classList.remove('hidden')
+  }
+}
+
+function fillImageSettings(cfg) {
+  const input = document.getElementById('homeTrendingBannerImageUrl')
+  if (input) input.value = cfg.home_trending_banner_image || ''
+  previewImageSetting('homeTrendingBannerImage')
+}
+
+async function loadImageSettings() {
+  try {
+    const res = await axios.get('/api/admin/settings/images')
+    fillImageSettings(res.data.data || {})
+  } catch (e) {
+    showAdminToast('Lỗi tải cài đặt ảnh', 'error')
+  }
+}
+
+async function uploadHomeTrendingBannerImage(input) {
+  const file = Array.from(input.files || []).find(f => f.type && f.type.startsWith('image/'))
+  if (!file) return
+  const urlInput = document.getElementById('homeTrendingBannerImageUrl')
+  try {
+    const url = await uploadProductImageFile(file, 1400, 0.86, 'settings')
+    if (urlInput) urlInput.value = url
+    previewImageSetting('homeTrendingBannerImage')
+    showAdminToast('Đã upload ảnh cài đặt', 'success')
+  } catch (e) {
+    showAdminToast('Upload ảnh cài đặt thất bại', 'error')
+  } finally {
+    input.value = ''
+  }
+}
+
+function clearHomeTrendingBannerImage() {
+  const input = document.getElementById('homeTrendingBannerImageUrl')
+  if (input) input.value = ''
+  previewImageSetting('homeTrendingBannerImage')
+}
+
+async function saveImageSettings() {
+  const btn = document.getElementById('saveImageSettingsBtn')
+  const payload = {
+    home_trending_banner_image: getImageSettingUrl('homeTrendingBannerImage')
+  }
+  if (btn) {
+    btn.disabled = true
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin text-pink-500"></i>Đang lưu...'
+  }
+  try {
+    await axios.put('/api/admin/settings/images', payload)
+    showAdminToast('Đã lưu cài đặt ảnh', 'success')
+    await loadImageSettings()
+  } catch (e) {
+    showAdminToast('Lưu cài đặt ảnh thất bại', 'error')
+  } finally {
+    if (btn) {
+      btn.disabled = false
+      btn.innerHTML = '<i class="fas fa-save text-pink-500"></i>Lưu cài đặt ảnh'
+    }
+  }
+}
+
 
 // ── DASHBOARD ─────────────────────────────────────
 `

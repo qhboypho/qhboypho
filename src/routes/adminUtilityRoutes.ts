@@ -32,6 +32,10 @@ type SocialSettingsInput = {
   threads_handle?: unknown
 }
 
+type ImageSettingsInput = {
+  home_trending_banner_image?: unknown
+}
+
 const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
 const MAX_R2_IMAGE_BYTES = 3 * 1024 * 1024
 
@@ -40,6 +44,7 @@ function normalizeAssetFolder(value: unknown): string {
   if (folder === 'product-colors') return 'product-colors'
   if (folder === 'product-gallery') return 'product-gallery'
   if (folder === 'reviews') return 'reviews'
+  if (folder === 'settings') return 'settings'
   return 'products'
 }
 
@@ -68,6 +73,10 @@ const SOCIAL_SETTING_KEYS = [
   'social_shopee_handle',
   'social_facebook_handle',
   'social_threads_handle',
+] as const
+
+const IMAGE_SETTING_KEYS = [
+  'home_trending_banner_image',
 ] as const
 
 async function readSocialHandles(db: D1Database) {
@@ -109,6 +118,18 @@ function buildSocialLinks(handles: Record<string, string>) {
       handle: String(handles.threads_handle || '').trim().replace(/^@+/, ''),
       url: makeLink(handles.threads_handle, 'https://www.threads.net/', true),
     },
+  }
+}
+
+async function readImageSettings(db: D1Database) {
+  const query = `SELECT key, value FROM app_settings WHERE key IN (${IMAGE_SETTING_KEYS.map(() => '?').join(',')})`
+  const result = await db.prepare(query).bind(...IMAGE_SETTING_KEYS).all()
+  const map = new Map<string, string>()
+  for (const row of (result.results || []) as any[]) {
+    map.set(String(row.key || ''), String(row.value || '').trim())
+  }
+  return {
+    home_trending_banner_image: String(map.get('home_trending_banner_image') || '').trim(),
   }
 }
 
@@ -290,11 +311,48 @@ export function registerAdminUtilityRoutes(app: Hono<{ Bindings: AppBindings }>,
     }
   })
 
+  app.get('/api/admin/settings/images', async (c) => {
+    try {
+      await deps.initDB(c.env.DB)
+      const settings = await readImageSettings(c.env.DB)
+      return c.json({ success: true, data: settings })
+    } catch (e: any) {
+      return c.json({ success: false, error: e.message }, 500)
+    }
+  })
+
+  app.put('/api/admin/settings/images', async (c) => {
+    try {
+      await deps.initDB(c.env.DB)
+      const body: ImageSettingsInput = await c.req.json<ImageSettingsInput>().catch(() => ({} as ImageSettingsInput))
+      const sanitizeUrl = (value: unknown, max = 1000) => String(value || '').trim().slice(0, max)
+      const payload = {
+        home_trending_banner_image: sanitizeUrl(body.home_trending_banner_image),
+      }
+      await deps.upsertAppSettings(c.env.DB, [
+        { key: 'home_trending_banner_image', value: payload.home_trending_banner_image },
+      ])
+      return c.json({ success: true, data: payload })
+    } catch (e: any) {
+      return c.json({ success: false, error: e.message }, 500)
+    }
+  })
+
   app.get('/api/public/social-links', async (c) => {
     try {
       await deps.initDB(c.env.DB)
       const handles = await readSocialHandles(c.env.DB)
       return c.json({ success: true, data: buildSocialLinks(handles) })
+    } catch (e: any) {
+      return c.json({ success: false, error: e.message }, 500)
+    }
+  })
+
+  app.get('/api/public/image-settings', async (c) => {
+    try {
+      await deps.initDB(c.env.DB)
+      const settings = await readImageSettings(c.env.DB)
+      return c.json({ success: true, data: settings })
     } catch (e: any) {
       return c.json({ success: false, error: e.message }, 500)
     }

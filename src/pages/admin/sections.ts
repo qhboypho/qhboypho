@@ -173,6 +173,99 @@ export function adminSettingsPage(): string {
   return "<!-- SETTINGS SOCIAL PAGE -->\n  <div id=\"page-settings-social\" class=\"p-6 hidden\">\n    <div class=\"bg-white rounded-2xl shadow-sm border p-6\">\n      <div class=\"flex items-center justify-between gap-4 mb-6\">\n        <div>\n          <h2 class=\"text-xl font-extrabold text-gray-900 tracking-tight\">Cấu hình MXH</h2>\n          <p class=\"text-sm text-gray-500 mt-1\">Chỉ nhập ID hoặc handle. Link và icon ngoài frontend chỉ hiện sau khi đã lưu cấu hình.</p>\n        </div>\n      </div>\n      <div class=\"grid gap-4 md:grid-cols-2\">\n        <div class=\"rounded-2xl border border-gray-200 bg-gray-50 p-4\">\n          <label class=\"block text-sm font-semibold text-gray-700 mb-1.5\">TikTok handle</label>\n          <input type=\"text\" id=\"socialTiktokHandle\" placeholder=\"qhclothesvn\" oninput=\"previewSocialUrl('tiktok')\" class=\"w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400\">\n          <p class=\"text-xs text-gray-500 mt-2\">Preview: <a id=\"socialTiktokPreview\" href=\"#\" target=\"_blank\" class=\"text-pink-600 hover:underline\">Chưa cấu hình</a></p>\n        </div>\n        <div class=\"rounded-2xl border border-gray-200 bg-gray-50 p-4\">\n          <label class=\"block text-sm font-semibold text-gray-700 mb-1.5\">Shopee handle</label>\n          <input type=\"text\" id=\"socialShopeeHandle\" placeholder=\"qhclothes.vn\" oninput=\"previewSocialUrl('shopee')\" class=\"w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400\">\n          <p class=\"text-xs text-gray-500 mt-2\">Preview: <a id=\"socialShopeePreview\" href=\"#\" target=\"_blank\" class=\"text-pink-600 hover:underline\">Chưa cấu hình</a></p>\n        </div>\n        <div class=\"rounded-2xl border border-gray-200 bg-gray-50 p-4\">\n          <label class=\"block text-sm font-semibold text-gray-700 mb-1.5\">Facebook handle</label>\n          <input type=\"text\" id=\"socialFacebookHandle\" placeholder=\"qhclothes\" oninput=\"previewSocialUrl('facebook')\" class=\"w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400\">\n          <p class=\"text-xs text-gray-500 mt-2\">Preview: <a id=\"socialFacebookPreview\" href=\"#\" target=\"_blank\" class=\"text-pink-600 hover:underline\">Chưa cấu hình</a></p>\n        </div>\n        <div class=\"rounded-2xl border border-gray-200 bg-gray-50 p-4\">\n          <label class=\"block text-sm font-semibold text-gray-700 mb-1.5\">Threads handle</label>\n          <input type=\"text\" id=\"socialThreadsHandle\" placeholder=\"qhclothesvn\" oninput=\"previewSocialUrl('threads')\" class=\"w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400\">\n          <p class=\"text-xs text-gray-500 mt-2\">Preview: <a id=\"socialThreadsPreview\" href=\"#\" target=\"_blank\" class=\"text-pink-600 hover:underline\">Chưa cấu hình</a></p>\n        </div>\n      </div>\n      <div class=\"mt-6 flex justify-end\">\n        <button onclick=\"saveSocialSettings()\" id=\"saveSocialSettingsBtn\" class=\"btn-pink text-white px-5 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2\">\n          <i class=\"fas fa-save\"></i>Lưu cấu hình MXH\n        </button>\n      </div>\n    </div>\n  </div>\n\n  <!-- SETTINGS WAREHOUSE PAGE -->\n  <div id=\"page-settings-warehouse\" class=\"p-6 hidden\">\n    <div class=\"bg-white rounded-2xl shadow-sm border p-6\">\n      <div class=\"flex items-center justify-between gap-4 mb-4\">\n        <div>\n          <h2 class=\"text-xl font-extrabold text-gray-900 tracking-tight\">Cài đặt kho hàng</h2>\n          <p class=\"text-sm text-gray-500 mt-1\">Cấu hình địa chỉ lấy hàng và tài khoản GHTK cho hệ thống.</p>\n        </div>\n      </div>\n      <div id=\"settingsWarehouseContent\" class=\"rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-6 text-gray-500\">\n        <div class=\"flex items-center gap-3\">\n          <i class=\"fas fa-warehouse text-2xl text-emerald-500\"></i>\n          <div>\n            <p class=\"font-semibold text-gray-800\">Khu cài đặt kho hàng</p>\n            <p class=\"text-sm text-gray-500\">Phần này đã tồn tại trong hệ thống, chỉ đang được hiển thị tách ra để dễ mở rộng.</p>\n          </div>\n        </div>\n      </div>\n    </div>\n  </div>"
 }
 
+export function adminImageSettingsPage(): string {
+  return `<!-- SETTINGS IMAGES PAGE -->
+  <div id="page-settings-images" class="p-3 md:p-6 hidden">
+    <div class="mb-5 rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-950 via-slate-900 to-pink-950 p-5 md:p-6 text-white shadow-sm overflow-hidden relative">
+      <div class="absolute -right-16 -top-16 h-44 w-44 rounded-full bg-pink-500/20 blur-3xl"></div>
+      <div class="absolute -bottom-20 left-20 h-52 w-52 rounded-full bg-cyan-400/10 blur-3xl"></div>
+      <div class="relative flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+        <div>
+          <p class="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold text-pink-100">
+            <i class="fas fa-image"></i>Quản lý media storefront
+          </p>
+          <h2 class="mt-4 text-2xl md:text-3xl font-extrabold tracking-tight">Cài đặt ảnh</h2>
+          <p class="mt-2 max-w-2xl text-sm text-slate-300">Ưu tiên ảnh cấu hình trước dữ liệu sản phẩm. Sau này có thể thêm banner quảng cáo, banner mobile và ảnh theo từng vị trí tại đây.</p>
+        </div>
+        <button id="saveImageSettingsBtn" onclick="saveImageSettings()" class="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-bold text-slate-950 shadow-lg shadow-black/20 hover:bg-pink-50 transition">
+          <i class="fas fa-save text-pink-500"></i>Lưu cài đặt ảnh
+        </button>
+      </div>
+    </div>
+
+    <div class="grid gap-5 xl:grid-cols-[1.05fr_0.95fr]">
+      <section class="rounded-3xl border border-gray-200 bg-white p-5 md:p-6 shadow-sm">
+        <div class="flex items-start justify-between gap-3 mb-5">
+          <div>
+            <p class="text-xs font-bold uppercase tracking-[0.18em] text-pink-500">Trang chủ</p>
+            <h3 class="mt-1 text-xl font-extrabold text-gray-900">Hero / Sản phẩm thịnh hành</h3>
+            <p class="mt-1 text-sm text-gray-500">Nếu ảnh này được cấu hình, frontend sẽ dùng ảnh này trước. Nếu để trống, hệ thống fallback về sản phẩm đã tick “Thịnh hành”.</p>
+          </div>
+          <span class="hidden sm:inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-pink-50 text-pink-500">
+            <i class="fas fa-fire"></i>
+          </span>
+        </div>
+
+        <div class="grid gap-5 lg:grid-cols-[280px_1fr]">
+          <label for="homeTrendingBannerImageFile" class="group relative block aspect-[4/5] overflow-hidden rounded-3xl border-2 border-dashed border-gray-200 bg-gray-50 cursor-pointer hover:border-pink-300 hover:bg-pink-50/40 transition">
+            <img id="homeTrendingBannerImagePreview" src="" alt="" class="hidden h-full w-full object-cover">
+            <div id="homeTrendingBannerImagePlaceholder" class="absolute inset-0 flex flex-col items-center justify-center gap-3 p-6 text-center text-gray-400">
+              <span class="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-white text-pink-500 shadow-sm group-hover:scale-105 transition"><i class="fas fa-cloud-arrow-up text-xl"></i></span>
+              <span class="text-sm font-bold text-gray-700">Upload ảnh hero</span>
+              <span class="text-xs leading-relaxed">Khuyến nghị ảnh dọc hoặc vuông, tối thiểu 900px. File sẽ lưu qua R2.</span>
+            </div>
+            <input id="homeTrendingBannerImageFile" type="file" accept="image/*" class="hidden" onchange="uploadHomeTrendingBannerImage(this)">
+          </label>
+
+          <div class="space-y-4">
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-1.5">URL ảnh đang dùng</label>
+              <input id="homeTrendingBannerImageUrl" type="text" placeholder="/media/settings/..." oninput="previewImageSetting('homeTrendingBannerImage')" class="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-pink-400 focus:ring-4 focus:ring-pink-100">
+              <p class="mt-2 text-xs text-gray-500">Có thể upload ảnh hoặc dán URL ảnh thủ công. Xóa trống để quay lại dùng sản phẩm thịnh hành.</p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <button type="button" onclick="document.getElementById('homeTrendingBannerImageFile').click()" class="inline-flex items-center gap-2 rounded-xl bg-pink-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-pink-700 transition">
+                <i class="fas fa-upload"></i>Chọn ảnh
+              </button>
+              <button type="button" onclick="clearHomeTrendingBannerImage()" class="inline-flex items-center gap-2 rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition">
+                <i class="fas fa-trash"></i>Xóa ảnh
+              </button>
+            </div>
+            <div class="rounded-2xl border border-emerald-100 bg-emerald-50 p-4 text-sm text-emerald-800">
+              <p class="font-bold"><i class="fas fa-layer-group mr-1"></i>Thứ tự ưu tiên</p>
+              <p class="mt-1">Ảnh cài đặt này → sản phẩm tick thịnh hành → fallback rỗng gọn, không hiện card “chưa có sản phẩm” xấu.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="rounded-3xl border border-dashed border-gray-200 bg-white p-5 md:p-6 shadow-sm">
+        <div class="flex items-center gap-3 mb-4">
+          <span class="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-100 text-slate-600"><i class="fas fa-plus"></i></span>
+          <div>
+            <h3 class="font-extrabold text-gray-900">Vị trí ảnh sắp mở rộng</h3>
+            <p class="text-sm text-gray-500">UI đã chừa chỗ để thêm các banner khác.</p>
+          </div>
+        </div>
+        <div class="grid gap-3">
+          <div class="rounded-2xl border border-gray-100 bg-gray-50 p-4 text-sm text-gray-500">
+            <p class="font-semibold text-gray-800">Banner quảng cáo giữa trang</p>
+            <p class="mt-1">Có thể thêm field sau mà không đổi cấu trúc trang.</p>
+          </div>
+          <div class="rounded-2xl border border-gray-100 bg-gray-50 p-4 text-sm text-gray-500">
+            <p class="font-semibold text-gray-800">Banner mobile riêng</p>
+            <p class="mt-1">Dùng ảnh nhẹ hơn cho màn hình nhỏ.</p>
+          </div>
+          <div class="rounded-2xl border border-gray-100 bg-gray-50 p-4 text-sm text-gray-500">
+            <p class="font-semibold text-gray-800">Ảnh theo category</p>
+            <p class="mt-1">Nam, nữ, unisex hoặc các landing page riêng.</p>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>`
+}
+
 export function adminBannersPage(): string {
   return "<!-- BANNERS PAGE -->\n  <div id=\"page-settings\" class=\"p-6 hidden\">\n    <div class=\"bg-white rounded-2xl shadow-sm border p-4 mb-4\">\n      <div class=\"flex items-center gap-2\">\n        <button type=\"button\" class=\"inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200\">\n          <i class=\"fas fa-warehouse\"></i>Cài đặt kho hàng\n        </button>\n      </div>\n    </div>\n\n    <div class=\"bg-white rounded-2xl shadow-sm border p-6 mb-6\">\n      <div class=\"flex flex-wrap items-center justify-between gap-3 mb-5\">\n        <h2 class=\"font-bold text-gray-800 text-lg flex items-center gap-2\">\n          <i class=\"fas fa-warehouse text-emerald-500\"></i>Cài đặt kho lấy hàng GHTK\n        </h2>\n        <button onclick=\"syncGhtkPickupAddresses()\" id=\"syncGhtkPickupBtn\" class=\"bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm font-medium transition flex items-center gap-2\">\n          <i class=\"fas fa-rotate\"></i> Đồng bộ kho từ GHTK\n        </button>\n      </div>\n      <p class=\"text-sm text-gray-500 mb-4\">Chọn kho đã tạo trên GHTK để dùng mặc định khi bấm Sắp xếp vận chuyển.</p>\n      <div class=\"grid md:grid-cols-2 gap-4\">\n        <div class=\"md:col-span-2\">\n          <label class=\"block text-sm font-semibold text-gray-700 mb-1.5\">Kho lấy hàng từ GHTK</label>\n          <select id=\"ghtkPickupAddressId\" onchange=\"applySelectedGhtkWarehouse()\" class=\"w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-400\">\n            <option value=\"\">-- Chọn kho đồng bộ --</option>\n          </select>\n          <p id=\"ghtkPickupHint\" class=\"text-xs text-gray-500 mt-1.5\">Nếu chưa thấy kho, bấm \"Đồng bộ kho từ GHTK\".</p>\n        </div>\n        <div>\n          <label class=\"block text-sm font-semibold text-gray-700 mb-1.5\">Tên người lấy hàng</label>\n          <input type=\"text\" id=\"ghtkPickName\" class=\"w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-400\">\n        </div>\n        <div>\n          <label class=\"block text-sm font-semibold text-gray-700 mb-1.5\">Số điện thoại lấy hàng</label>\n          <input type=\"text\" id=\"ghtkPickTel\" class=\"w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-400\">\n        </div>\n        <div class=\"md:col-span-2\">\n          <label class=\"block text-sm font-semibold text-gray-700 mb-1.5\">Địa chỉ lấy hàng (chi tiết)</label>\n          <input type=\"text\" id=\"ghtkPickAddress\" class=\"w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-400\">\n        </div>\n        <div>\n          <label class=\"block text-sm font-semibold text-gray-700 mb-1.5\">Tỉnh/Thành</label>\n          <input type=\"text\" id=\"ghtkPickProvince\" class=\"w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-400\">\n        </div>\n        <div>\n          <label class=\"block text-sm font-semibold text-gray-700 mb-1.5\">Quận/Huyện</label>\n          <input type=\"text\" id=\"ghtkPickDistrict\" class=\"w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-400\">\n        </div>\n        <div>\n          <label class=\"block text-sm font-semibold text-gray-700 mb-1.5\">Phường/Xã</label>\n          <input type=\"text\" id=\"ghtkPickWard\" class=\"w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-400\">\n        </div>\n        <div class=\"md:col-span-2 flex justify-end\">\n          <button onclick=\"saveGhtkPickupConfig()\" id=\"saveGhtkPickupBtn\" class=\"bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2 transition\">\n            <i class=\"fas fa-save\"></i>Lưu cấu hình kho GHTK\n          </button>\n        </div>\n      </div>\n    </div>\n  </div>\n\n</main>"
 }
