@@ -34,6 +34,8 @@ type SocialSettingsInput = {
 
 type ImageSettingsInput = {
   home_trending_banner_image?: unknown
+  home_trending_banner_subtitle?: unknown
+  home_trending_banner_title?: unknown
 }
 
 const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
@@ -77,6 +79,8 @@ const SOCIAL_SETTING_KEYS = [
 
 const IMAGE_SETTING_KEYS = [
   'home_trending_banner_image',
+  'home_trending_banner_subtitle',
+  'home_trending_banner_title',
 ] as const
 
 async function readSocialHandles(db: D1Database) {
@@ -130,6 +134,8 @@ async function readImageSettings(db: D1Database) {
   }
   return {
     home_trending_banner_image: String(map.get('home_trending_banner_image') || '').trim(),
+    home_trending_banner_subtitle: String(map.get('home_trending_banner_subtitle') || '').trim(),
+    home_trending_banner_title: String(map.get('home_trending_banner_title') || '').trim(),
   }
 }
 
@@ -328,9 +334,13 @@ export function registerAdminUtilityRoutes(app: Hono<{ Bindings: AppBindings }>,
       const sanitizeUrl = (value: unknown, max = 1000) => String(value || '').trim().slice(0, max)
       const payload = {
         home_trending_banner_image: sanitizeUrl(body.home_trending_banner_image),
+        home_trending_banner_subtitle: sanitizeUrl(body.home_trending_banner_subtitle, 120),
+        home_trending_banner_title: sanitizeUrl(body.home_trending_banner_title, 160),
       }
       await deps.upsertAppSettings(c.env.DB, [
         { key: 'home_trending_banner_image', value: payload.home_trending_banner_image },
+        { key: 'home_trending_banner_subtitle', value: payload.home_trending_banner_subtitle },
+        { key: 'home_trending_banner_title', value: payload.home_trending_banner_title },
       ])
       return c.json({ success: true, data: payload })
     } catch (e: any) {

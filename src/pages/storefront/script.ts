@@ -1656,10 +1656,11 @@ async function loadSettings() {
     if (configuredTrendingImage) {
       heroBannersData = [{
         image_url: configuredTrendingImage,
-        subtitle: 'QH Clothes · Dang thinh hanh',
-        title: 'Bộ sưu tập thịnh hành',
+        subtitle: String(imageSettings.home_trending_banner_subtitle || '').trim() || 'QH CLOTHES · ĐANG THỊNH HÀNH',
+        title: String(imageSettings.home_trending_banner_title || '').trim() || 'Bộ sưu tập thịnh hành',
         price: '',
         product_id: null,
+        is_setting_banner: true,
         trending_order: 0,
         updated_at: '',
         created_at: ''
@@ -1749,8 +1750,17 @@ function renderCollapsedBanners(banners) {
   }
   if (mobileMode) {
     const shown = banners.slice(0, Math.max(3, Math.min(banners.length, 8)))
+    const hasSettingBannerOnly = shown.length === 1 && shown[0]?.is_setting_banner
     container.innerHTML = \`<div class="hero-mobile-slider">\${shown.map((b) => {
       const safeTitle = b.title || 'Sản phẩm'
+      if (b.is_setting_banner) {
+        return \`<div class="hero-mobile-card">
+          <div class="hero-mobile-card-thumb relative overflow-hidden">
+            <img src="\${b.image_url}" alt="\${safeTitle}" onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'">
+            \${renderHeroSettingCaption(b, 'mobile')}
+          </div>
+        </div>\`
+      }
       if (b.product_id) {
         return \`<button type="button" class="hero-mobile-card hero-mobile-card-button" onclick="showDetail(\${b.product_id})">
           <div class="hero-mobile-card-thumb">
@@ -1766,25 +1776,27 @@ function renderCollapsedBanners(banners) {
         <p class="hero-mobile-card-name">\${safeTitle}</p>
       </div>\`
     }).join('')}</div>
-    <div class="hero-mobile-swipe-hint"><i class="fas fa-arrows-left-right"></i><span>Vuốt ngang để xem thêm</span></div>\`
+    \${hasSettingBannerOnly ? '' : '<div class="hero-mobile-swipe-hint"><i class="fas fa-arrows-left-right"></i><span>Vuốt ngang để xem thêm</span></div>'}\`
     container.style.paddingBottom = '0'
     container.onclick = null
     return
   }
   const len = banners.length
   const shown = banners.slice(0, Math.min(len, 4)).reverse()
+  const hasSettingBannerOnly = shown.length === 1 && shown[0]?.is_setting_banner
   container.innerHTML = \`<div class="relative" style="width:300px;height:360px">
   \${shown.map((b, i) => {
     const rot = shown.length > 1 ? (i - Math.floor((shown.length - 1) / 2)) * 6 : 0
     const z = i * 10
     const isTop = i === shown.length - 1
-    const clickHandler = \`expandBanners()\`
-    const cursor = 'cursor-pointer'
-    return \`<div class="absolute inset-0 rounded-3xl overflow-hidden \${cursor}" onclick="\${clickHandler}" style="transform:rotate(\${rot}deg);z-index:\${z};transition:transform 0.5s ease,box-shadow 0.5s ease;box-shadow:0 12px 40px rgba(0,0,0,0.25);">
+    const clickHandler = b.is_setting_banner ? '' : \` onclick="expandBanners()"\`
+    const cursor = b.is_setting_banner ? 'cursor-default' : 'cursor-pointer'
+    return \`<div class="absolute inset-0 rounded-3xl overflow-hidden \${cursor}"\${clickHandler} style="transform:rotate(\${rot}deg);z-index:\${z};transition:transform 0.5s ease,box-shadow 0.5s ease;box-shadow:0 12px 40px rgba(0,0,0,0.25);">
       <div class="absolute inset-0 bg-gradient-to-br from-pink-500/15 to-purple-600/15 rounded-3xl pointer-events-none"></div>
       <img src="\${b.image_url}" alt="\${b.title || 'Banner'}" class="w-full h-full object-cover rounded-3xl pointer-events-none" onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'">
+      \${b.is_setting_banner ? renderHeroSettingCaption(b, 'desktop') : ''}
       \${isTop && (b.subtitle || b.title || b.price) ? \`
-        <div class="absolute left-0 right-0 bottom-0 px-4 pt-10 pb-4 pointer-events-none rounded-b-3xl"
+        <div class="absolute left-0 right-0 bottom-0 px-4 pt-14 pb-4 pointer-events-none rounded-b-3xl \${b.is_setting_banner ? 'hidden' : ''}"
           style="z-index:\${z+5};background:linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.6) 42%, rgba(0,0,0,0) 100%);">
           \${b.subtitle ? \`<p class="text-[10px] text-white/75 uppercase tracking-[2px] font-semibold mb-1">\${b.subtitle}</p>\` : ''}
           \${b.title ? \`<p class="font-bold text-white text-sm leading-tight overflow-hidden text-ellipsis whitespace-nowrap" style="max-width:100%;">\${b.title}</p>\` : ''}
@@ -1793,11 +1805,28 @@ function renderCollapsedBanners(banners) {
     </div>\`
   }).join('')}
   </div>
+  \${hasSettingBannerOnly ? '' : \`
   <div class="absolute flex items-center gap-1.5 bg-white/20 backdrop-blur-sm rounded-full px-3 py-1.5 text-white text-xs font-medium cursor-pointer hover:bg-white/30 transition whitespace-nowrap" style="bottom:-28px;left:50%;transform:translateX(-50%);z-index:5" onclick="expandBanners()">
     <i class="fas fa-expand-alt mr-1 text-pink-300"></i>Các mẫu thịnh hành
+  </div>\`}\`
+  container.style.paddingBottom = hasSettingBannerOnly ? '0' : '36px'
+  container.onclick = hasSettingBannerOnly ? null : () => { if (!heroBannersIsExpanded) expandBanners() }
+}
+
+function renderHeroSettingCaption(b, mode) {
+  const subtitle = String(b.subtitle || '').trim()
+  const title = String(b.title || '').trim()
+  if (!subtitle && !title) return ''
+  const safeSubtitle = escapeHtml(subtitle)
+  const safeTitle = escapeHtml(title)
+  const pad = mode === 'mobile' ? 'px-3 pt-12 pb-3' : 'px-4 pt-16 pb-4'
+  const subtitleCls = mode === 'mobile' ? 'text-[9px]' : 'text-[10px]'
+  const titleCls = mode === 'mobile' ? 'text-xs' : 'text-sm'
+  return \`<div class="absolute left-0 right-0 bottom-0 \${pad} pointer-events-none"
+    style="background:linear-gradient(to top, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.58) 48%, rgba(0,0,0,0) 100%);">
+    \${subtitle ? \`<p class="\${subtitleCls} text-white/85 uppercase tracking-[2px] font-bold mb-1 leading-tight">\${safeSubtitle}</p>\` : ''}
+    \${title ? \`<p class="\${titleCls} font-extrabold text-white leading-tight overflow-hidden text-ellipsis whitespace-nowrap">\${safeTitle}</p>\` : ''}
   </div>\`
-  container.style.paddingBottom = '36px'
-  container.onclick = () => { if (!heroBannersIsExpanded) expandBanners() }
 }
 
 function renderExpandedBanners(banners) {

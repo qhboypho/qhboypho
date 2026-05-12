@@ -223,6 +223,16 @@ export function adminImageSettingsPage(): string {
               <input id="homeTrendingBannerImageUrl" type="text" placeholder="/media/settings/..." oninput="previewImageSetting('homeTrendingBannerImage')" class="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-pink-400 focus:ring-4 focus:ring-pink-100">
               <p class="mt-2 text-xs text-gray-500">Có thể upload ảnh hoặc dán URL ảnh thủ công. Xóa trống để quay lại dùng sản phẩm thịnh hành.</p>
             </div>
+            <div class="grid gap-3 md:grid-cols-2">
+              <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">Caption nhỏ</label>
+                <input id="homeTrendingBannerSubtitle" type="text" maxlength="120" placeholder="QH CLOTHES · ĐANG THỊNH HÀNH" class="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-pink-400 focus:ring-4 focus:ring-pink-100">
+              </div>
+              <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">Tiêu đề chính</label>
+                <input id="homeTrendingBannerTitle" type="text" maxlength="160" placeholder="Bộ sưu tập thịnh hành" class="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-pink-400 focus:ring-4 focus:ring-pink-100">
+              </div>
+            </div>
             <div class="flex flex-wrap gap-2">
               <button type="button" onclick="document.getElementById('homeTrendingBannerImageFile').click()" class="inline-flex items-center gap-2 rounded-xl bg-pink-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-pink-700 transition">
                 <i class="fas fa-upload"></i>Chọn ảnh

@@ -355,6 +355,10 @@ function previewImageSetting(idBase) {
 function fillImageSettings(cfg) {
   const input = document.getElementById('homeTrendingBannerImageUrl')
   if (input) input.value = cfg.home_trending_banner_image || ''
+  const subtitle = document.getElementById('homeTrendingBannerSubtitle')
+  const title = document.getElementById('homeTrendingBannerTitle')
+  if (subtitle) subtitle.value = cfg.home_trending_banner_subtitle || ''
+  if (title) title.value = cfg.home_trending_banner_title || ''
   previewImageSetting('homeTrendingBannerImage')
 }
 
@@ -392,7 +396,9 @@ function clearHomeTrendingBannerImage() {
 async function saveImageSettings() {
   const btn = document.getElementById('saveImageSettingsBtn')
   const payload = {
-    home_trending_banner_image: getImageSettingUrl('homeTrendingBannerImage')
+    home_trending_banner_image: getImageSettingUrl('homeTrendingBannerImage'),
+    home_trending_banner_subtitle: String(document.getElementById('homeTrendingBannerSubtitle')?.value || '').trim(),
+    home_trending_banner_title: String(document.getElementById('homeTrendingBannerTitle')?.value || '').trim()
   }
   if (btn) {
     btn.disabled = true
