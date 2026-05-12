@@ -1650,6 +1650,7 @@ async function loadFooterSocialLinks() {
 
 async function loadSettings() {
   try {
+    prepareHeroBannerShell()
     const imageSettingsRes = await axios.get('/api/public/image-settings').catch(() => ({ data: { data: {} } }))
     const imageSettings = (imageSettingsRes.data && imageSettingsRes.data.data) ? imageSettingsRes.data.data : {}
     const configuredTrendingImage = String(imageSettings.home_trending_banner_image || '').trim()
@@ -1680,6 +1681,28 @@ async function loadSettings() {
   } catch (e) {
     console.error('Failed to load banners', e)
   }
+}
+
+function prepareHeroBannerShell() {
+  const wrapper = document.getElementById('heroBannersWrapper')
+  const container = document.getElementById('heroBannersCollapsed')
+  if (!container) return
+  const mobileMode = isMobileHeroLayout()
+  if (wrapper) {
+    wrapper.style.justifyContent = mobileMode ? 'flex-start' : 'flex-end'
+    wrapper.style.cursor = 'default'
+  }
+  if (mobileMode) {
+    container.style.width = '100%'
+    container.style.height = 'auto'
+    container.innerHTML = ''
+    return
+  }
+  container.style.width = '360px'
+  container.style.height = '360px'
+  container.style.paddingBottom = '0'
+  container.onclick = null
+  container.innerHTML = '<div class="relative rounded-3xl overflow-hidden bg-white/[0.03]" style="width:360px;height:360px"></div>'
 }
 
 function mapTrendingProductsToHeroCards(products) {
