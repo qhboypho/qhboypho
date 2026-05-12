@@ -226,7 +226,7 @@ export function adminImageSettingsPage(): string {
             <div class="grid gap-3 md:grid-cols-2">
               <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-1.5">Caption nhỏ</label>
-                <input id="homeTrendingBannerSubtitle" type="text" maxlength="120" placeholder="QH CLOTHES · ĐANG THỊNH HÀNH" class="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-pink-400 focus:ring-4 focus:ring-pink-100">
+                <input id="homeTrendingBannerSubtitle" type="text" maxlength="120" placeholder="QH Clothes · Đang thịnh hành" class="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-pink-400 focus:ring-4 focus:ring-pink-100">
               </div>
               <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-1.5">Tiêu đề chính</label>
