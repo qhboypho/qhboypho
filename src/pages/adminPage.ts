@@ -16,6 +16,7 @@ import {
   adminFlashSalePage,
   adminSettingsPage,
   adminImageSettingsPage,
+  adminNotificationSettingsPage,
   adminBannersPage,
   adminBodyClose,
 } from './admin/sections'
@@ -73,6 +74,8 @@ ${adminFlashSalePage()}
 ${adminSettingsPage()}
 
 ${adminImageSettingsPage()}
+
+${adminNotificationSettingsPage()}
 
 ${adminBannersPage()}
 

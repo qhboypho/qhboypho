@@ -332,6 +332,91 @@ async function saveSocialSettings() {
   }
 }
 
+const DEFAULT_MARQUEE_NOTIFICATION_TEXT = 'Mua hàng tại đây không qua sàn thương mại nên giá thành sản phẩm sẽ rẻ hơn rất nhiều và bảo hành hoàn trả trong vòng 7 ngày nếu sản phẩm bị lỗi nên quý khách yên tâm mua sắm nhé.Bảo hành đổi trả nhắn qua trang facebook : QH Boypho. Chúc quý khách có trải nghiệm mua sắm tốt tại QH Clothes'
+
+function normalizeMarqueeSpeed(value) {
+  const n = Number(value || 48)
+  if (!Number.isFinite(n)) return 48
+  return Math.min(120, Math.max(8, Math.round(n)))
+}
+
+function renderAdminMarqueePreview(text, speedSeconds) {
+  const track = document.getElementById('adminMarqueePreviewTrack')
+  if (!track) return
+  const safeText = String(text || DEFAULT_MARQUEE_NOTIFICATION_TEXT).trim() || DEFAULT_MARQUEE_NOTIFICATION_TEXT
+  const speed = normalizeMarqueeSpeed(speedSeconds)
+  track.innerHTML = ''
+  for (let i = 0; i < 3; i++) {
+    const group = document.createElement('div')
+    group.className = 'storefront-marquee-group'
+    const icon = document.createElement('i')
+    icon.className = 'fas fa-bullhorn storefront-marquee-icon'
+    icon.setAttribute('aria-hidden', 'true')
+    const span = document.createElement('span')
+    span.className = 'storefront-marquee-text'
+    span.textContent = safeText
+    group.appendChild(icon)
+    group.appendChild(span)
+    track.appendChild(group)
+  }
+  track.style.setProperty('--storefront-marquee-duration', speed + 's')
+}
+
+function updateMarqueeCounter() {
+  const text = document.getElementById('marqueeNotificationText')?.value || ''
+  const counter = document.getElementById('marqueeTextCounter')
+  if (counter) counter.textContent = String(text.length) + '/600'
+}
+
+function previewNotificationSettings() {
+  const text = document.getElementById('marqueeNotificationText')?.value || ''
+  const speed = document.getElementById('marqueeSpeedSeconds')?.value || 48
+  updateMarqueeCounter()
+  renderAdminMarqueePreview(text, speed)
+}
+
+function fillNotificationSettings(cfg) {
+  const text = document.getElementById('marqueeNotificationText')
+  const speed = document.getElementById('marqueeSpeedSeconds')
+  if (text) text.value = cfg.marquee_text || DEFAULT_MARQUEE_NOTIFICATION_TEXT
+  if (speed) speed.value = String(normalizeMarqueeSpeed(cfg.marquee_speed_seconds || 48))
+  previewNotificationSettings()
+}
+
+async function loadNotificationSettings() {
+  try {
+    const res = await axios.get('/api/admin/settings/notifications')
+    fillNotificationSettings(res.data.data || {})
+  } catch (e) {
+    fillNotificationSettings({})
+    showAdminToast('Lỗi tải cài đặt thông báo', 'error')
+  }
+}
+
+async function saveNotificationSettings() {
+  const btn = document.getElementById('saveNotificationSettingsBtn')
+  const payload = {
+    marquee_text: String(document.getElementById('marqueeNotificationText')?.value || '').trim(),
+    marquee_speed_seconds: normalizeMarqueeSpeed(document.getElementById('marqueeSpeedSeconds')?.value || 48)
+  }
+  if (btn) {
+    btn.disabled = true
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin text-amber-500"></i>Đang lưu...'
+  }
+  try {
+    await axios.put('/api/admin/settings/notifications', payload)
+    showAdminToast('Đã lưu cài đặt thông báo', 'success')
+    await loadNotificationSettings()
+  } catch (e) {
+    showAdminToast('Lưu cài đặt thông báo thất bại', 'error')
+  } finally {
+    if (btn) {
+      btn.disabled = false
+      btn.innerHTML = '<i class="fas fa-save text-amber-500"></i>Lưu thông báo'
+    }
+  }
+}
+
 function getImageSettingUrl(idBase) {
   return String(document.getElementById(idBase + 'Url')?.value || '').trim()
 }

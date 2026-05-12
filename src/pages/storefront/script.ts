@@ -1922,6 +1922,59 @@ function handleBannerOverlayClick(e) {
   if (e.target.id === 'heroBannersExpanded') collapseBanners()
 }
 
+const DEFAULT_MARQUEE_NOTIFICATION_TEXT = 'Mua hàng tại đây không qua sàn thương mại nên giá thành sản phẩm sẽ rẻ hơn rất nhiều và bảo hành hoàn trả trong vòng 7 ngày nếu sản phẩm bị lỗi nên quý khách yên tâm mua sắm nhé.Bảo hành đổi trả nhắn qua trang facebook : QH Boypho. Chúc quý khách có trải nghiệm mua sắm tốt tại QH Clothes'
+
+function normalizeStorefrontMarqueeSpeed(value) {
+  const n = Number(value || 48)
+  if (!Number.isFinite(n)) return 48
+  return Math.min(120, Math.max(8, Math.round(n)))
+}
+
+function ensureStorefrontMarqueeRuntimeStyle() {
+  if (document.getElementById('storefrontMarqueeRuntimeStyle')) return
+  const style = document.createElement('style')
+  style.id = 'storefrontMarqueeRuntimeStyle'
+  style.textContent = '.storefront-marquee-track{animation:storefrontMarqueeImmediate var(--storefront-marquee-duration,48s) linear infinite!important;animation-delay:0s!important;transform:translateX(0)}@keyframes storefrontMarqueeImmediate{from{transform:translateX(0)}to{transform:translateX(-33.333%)}}'
+  document.head.appendChild(style)
+}
+
+function renderStorefrontMarquee(text, speedSeconds) {
+  ensureStorefrontMarqueeRuntimeStyle()
+  const track = document.querySelector('.storefront-marquee-track')
+  if (!track) return
+  const safeText = String(text || DEFAULT_MARQUEE_NOTIFICATION_TEXT).trim() || DEFAULT_MARQUEE_NOTIFICATION_TEXT
+  const speed = normalizeStorefrontMarqueeSpeed(speedSeconds)
+  track.innerHTML = ''
+  for (let i = 0; i < 3; i++) {
+    const group = document.createElement('div')
+    group.className = 'storefront-marquee-group'
+    const icon = document.createElement('i')
+    icon.className = 'fas fa-bullhorn storefront-marquee-icon'
+    icon.setAttribute('aria-hidden', 'true')
+    const span = document.createElement('span')
+    span.className = 'storefront-marquee-text'
+    span.textContent = safeText
+    group.appendChild(icon)
+    group.appendChild(span)
+    track.appendChild(group)
+  }
+  track.style.setProperty('--storefront-marquee-duration', speed + 's')
+}
+
+function initStorefrontMarquee() {
+  renderStorefrontMarquee(DEFAULT_MARQUEE_NOTIFICATION_TEXT, 48)
+}
+
+async function loadNotificationSettings() {
+  try {
+    const res = await axios.get('/api/public/notification-settings')
+    const cfg = (res.data && res.data.data) || {}
+    renderStorefrontMarquee(cfg.marquee_text || DEFAULT_MARQUEE_NOTIFICATION_TEXT, cfg.marquee_speed_seconds || 48)
+  } catch (_) {
+    renderStorefrontMarquee(DEFAULT_MARQUEE_NOTIFICATION_TEXT, 48)
+  }
+}
+
 window.addEventListener('resize', () => {
   const mobileMode = isMobileHeroLayout()
   if (lastHeroMobileMode === null) {
@@ -1936,9 +1989,11 @@ window.addEventListener('resize', () => {
 })
 
 // Init
+initStorefrontMarquee()
 applyStorefrontTheme(loadStorefrontThemePreference())
 initHeroTypedText()
 bindAddressSearchableDropdowns()
+loadNotificationSettings()
 loadSettings()
 loadFooterSocialLinks()
 loadCart()

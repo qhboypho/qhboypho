@@ -38,6 +38,11 @@ type ImageSettingsInput = {
   home_trending_banner_title?: unknown
 }
 
+type NotificationSettingsInput = {
+  marquee_text?: unknown
+  marquee_speed_seconds?: unknown
+}
+
 const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
 const MAX_R2_IMAGE_BYTES = 3 * 1024 * 1024
 
@@ -82,6 +87,14 @@ const IMAGE_SETTING_KEYS = [
   'home_trending_banner_subtitle',
   'home_trending_banner_title',
 ] as const
+
+const NOTIFICATION_SETTING_KEYS = [
+  'marquee_text',
+  'marquee_speed_seconds',
+] as const
+
+const DEFAULT_MARQUEE_TEXT = 'Mua hàng tại đây không qua sàn thương mại nên giá thành sản phẩm sẽ rẻ hơn rất nhiều và bảo hành hoàn trả trong vòng 7 ngày nếu sản phẩm bị lỗi nên quý khách yên tâm mua sắm nhé.Bảo hành đổi trả nhắn qua trang facebook : QH Boypho. Chúc quý khách có trải nghiệm mua sắm tốt tại QH Clothes'
+const DEFAULT_MARQUEE_SPEED_SECONDS = 48
 
 async function readSocialHandles(db: D1Database) {
   const query = `SELECT key, value FROM app_settings WHERE key IN (${SOCIAL_SETTING_KEYS.map(() => '?').join(',')})`
@@ -136,6 +149,20 @@ async function readImageSettings(db: D1Database) {
     home_trending_banner_image: String(map.get('home_trending_banner_image') || '').trim(),
     home_trending_banner_subtitle: String(map.get('home_trending_banner_subtitle') || '').trim(),
     home_trending_banner_title: String(map.get('home_trending_banner_title') || '').trim(),
+  }
+}
+
+async function readNotificationSettings(db: D1Database) {
+  const query = `SELECT key, value FROM app_settings WHERE key IN (${NOTIFICATION_SETTING_KEYS.map(() => '?').join(',')})`
+  const result = await db.prepare(query).bind(...NOTIFICATION_SETTING_KEYS).all()
+  const map = new Map<string, string>()
+  for (const row of (result.results || []) as any[]) {
+    map.set(String(row.key || ''), String(row.value || '').trim())
+  }
+  const speed = Number(map.get('marquee_speed_seconds') || DEFAULT_MARQUEE_SPEED_SECONDS)
+  return {
+    marquee_text: String(map.get('marquee_text') || DEFAULT_MARQUEE_TEXT).trim(),
+    marquee_speed_seconds: Number.isFinite(speed) ? Math.min(120, Math.max(8, Math.round(speed))) : DEFAULT_MARQUEE_SPEED_SECONDS,
   }
 }
 
@@ -348,6 +375,35 @@ export function registerAdminUtilityRoutes(app: Hono<{ Bindings: AppBindings }>,
     }
   })
 
+  app.get('/api/admin/settings/notifications', async (c) => {
+    try {
+      await deps.initDB(c.env.DB)
+      const settings = await readNotificationSettings(c.env.DB)
+      return c.json({ success: true, data: settings })
+    } catch (e: any) {
+      return c.json({ success: false, error: e.message }, 500)
+    }
+  })
+
+  app.put('/api/admin/settings/notifications', async (c) => {
+    try {
+      await deps.initDB(c.env.DB)
+      const body: NotificationSettingsInput = await c.req.json<NotificationSettingsInput>().catch(() => ({} as NotificationSettingsInput))
+      const rawSpeed = Number(body.marquee_speed_seconds || DEFAULT_MARQUEE_SPEED_SECONDS)
+      const payload = {
+        marquee_text: String(body.marquee_text || '').trim().slice(0, 600),
+        marquee_speed_seconds: String(Number.isFinite(rawSpeed) ? Math.min(120, Math.max(8, Math.round(rawSpeed))) : DEFAULT_MARQUEE_SPEED_SECONDS),
+      }
+      await deps.upsertAppSettings(c.env.DB, [
+        { key: 'marquee_text', value: payload.marquee_text },
+        { key: 'marquee_speed_seconds', value: payload.marquee_speed_seconds },
+      ])
+      return c.json({ success: true, data: payload })
+    } catch (e: any) {
+      return c.json({ success: false, error: e.message }, 500)
+    }
+  })
+
   app.get('/api/public/social-links', async (c) => {
     try {
       await deps.initDB(c.env.DB)
@@ -362,6 +418,16 @@ export function registerAdminUtilityRoutes(app: Hono<{ Bindings: AppBindings }>,
     try {
       await deps.initDB(c.env.DB)
       const settings = await readImageSettings(c.env.DB)
+      return c.json({ success: true, data: settings })
+    } catch (e: any) {
+      return c.json({ success: false, error: e.message }, 500)
+    }
+  })
+
+  app.get('/api/public/notification-settings', async (c) => {
+    try {
+      await deps.initDB(c.env.DB)
+      const settings = await readNotificationSettings(c.env.DB)
       return c.json({ success: true, data: settings })
     } catch (e: any) {
       return c.json({ success: false, error: e.message }, 500)

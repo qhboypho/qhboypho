@@ -276,6 +276,94 @@ export function adminImageSettingsPage(): string {
   </div>`
 }
 
+export function adminNotificationSettingsPage(): string {
+  return `<!-- SETTINGS NOTIFICATIONS PAGE -->
+  <div id="page-settings-notifications" class="p-3 md:p-6 hidden">
+    <style>
+      #page-settings-notifications .storefront-marquee-bar { height: 24px; background: rgba(18,18,30,0.98); border-bottom: 1px solid rgba(255,255,255,0.06); overflow: hidden; }
+      #page-settings-notifications .storefront-marquee-track { display: flex; align-items: center; width: max-content; height: 100%; animation: storefrontMarqueePreview var(--storefront-marquee-duration, 48s) linear infinite; animation-delay: 0s; will-change: transform; }
+      #page-settings-notifications .storefront-marquee-group { display: inline-flex; align-items: center; flex: 0 0 auto; gap: 0.45rem; padding: 0 1.25rem; white-space: nowrap; }
+      #page-settings-notifications .storefront-marquee-icon { flex: 0 0 auto; color: #facc15; font-size: 14px; line-height: 1; }
+      #page-settings-notifications .storefront-marquee-text { flex: 0 0 auto; color: rgba(255,255,255,0.88); font-size: 16px; font-weight: 500; line-height: 1; white-space: nowrap; letter-spacing: 0; }
+      @keyframes storefrontMarqueePreview { from { transform: translateX(0); } to { transform: translateX(-33.333%); } }
+    </style>
+    <div class="mb-5 rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-950 via-slate-900 to-amber-900 p-5 md:p-6 text-white shadow-sm overflow-hidden relative">
+      <div class="absolute -right-14 -top-14 h-40 w-40 rounded-full bg-amber-400/20 blur-3xl"></div>
+      <div class="absolute -bottom-16 left-24 h-44 w-44 rounded-full bg-pink-500/15 blur-3xl"></div>
+      <div class="relative flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+        <div>
+          <p class="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold text-amber-100">
+            <i class="fas fa-bullhorn"></i>Thông báo storefront
+          </p>
+          <h2 class="mt-4 text-2xl md:text-3xl font-extrabold tracking-tight">Cài đặt thông báo</h2>
+          <p class="mt-2 max-w-2xl text-sm text-slate-300">Tuỳ chỉnh nội dung chữ chạy trên cùng trang chủ và tốc độ chạy marquee.</p>
+        </div>
+        <button id="saveNotificationSettingsBtn" onclick="saveNotificationSettings()" class="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-bold text-slate-950 shadow-lg shadow-black/20 hover:bg-amber-50 transition">
+          <i class="fas fa-save text-amber-500"></i>Lưu thông báo
+        </button>
+      </div>
+    </div>
+
+    <div class="grid gap-5 xl:grid-cols-[1fr_0.85fr]">
+      <section class="rounded-3xl border border-gray-200 bg-white p-5 md:p-6 shadow-sm">
+        <div class="mb-5">
+          <p class="text-xs font-bold uppercase tracking-[0.18em] text-amber-500">Marquee top bar</p>
+          <h3 class="mt-1 text-xl font-extrabold text-gray-900">Nội dung thông báo</h3>
+          <p class="mt-1 text-sm text-gray-500">Nội dung này sẽ hiển thị dạng chữ chạy ở thanh trên cùng frontend. Nhập text thường, hệ thống sẽ tự chống lỗi HTML.</p>
+        </div>
+        <div class="space-y-5">
+          <div>
+            <label class="block text-sm font-semibold text-gray-700 mb-1.5">Nội dung marquee</label>
+            <textarea id="marqueeNotificationText" rows="7" maxlength="600" oninput="previewNotificationSettings()" placeholder="Nhập nội dung thông báo chạy trên đầu trang..." class="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm leading-relaxed outline-none focus:border-amber-400 focus:ring-4 focus:ring-amber-100"></textarea>
+            <div class="mt-2 flex items-center justify-between gap-3 text-xs text-gray-500">
+              <span>Tối đa 600 ký tự. Để trống sẽ dùng thông báo mặc định.</span>
+              <span id="marqueeTextCounter">0/600</span>
+            </div>
+          </div>
+          <div class="grid gap-4 md:grid-cols-[180px_1fr]">
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-1.5">Tốc độ</label>
+              <div class="relative">
+                <input id="marqueeSpeedSeconds" type="number" min="8" max="120" step="1" value="48" oninput="previewNotificationSettings()" class="w-full rounded-2xl border border-gray-200 px-4 py-3 pr-12 text-sm outline-none focus:border-amber-400 focus:ring-4 focus:ring-amber-100">
+                <span class="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-semibold text-gray-400">giây</span>
+              </div>
+              <p class="mt-2 text-xs text-gray-500">Số nhỏ chạy nhanh hơn.</p>
+            </div>
+            <div class="rounded-2xl border border-amber-100 bg-amber-50 p-4">
+              <p class="text-sm font-bold text-amber-800"><i class="fas fa-gauge-high mr-1"></i>Gợi ý tốc độ</p>
+              <p class="mt-1 text-sm text-amber-700">Text ngắn dùng 24–36 giây. Text dài dùng 45–70 giây để khách đọc kịp.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="rounded-3xl border border-gray-200 bg-white p-5 md:p-6 shadow-sm">
+        <div class="flex items-center gap-3 mb-4">
+          <span class="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-100 text-slate-600"><i class="fas fa-eye"></i></span>
+          <div>
+            <h3 class="font-extrabold text-gray-900">Xem trước</h3>
+            <p class="text-sm text-gray-500">Preview dùng cùng CSS với frontend.</p>
+          </div>
+        </div>
+        <div class="rounded-2xl overflow-hidden border border-slate-200 bg-slate-950">
+          <div class="storefront-marquee-bar">
+            <div id="adminMarqueePreviewTrack" class="storefront-marquee-track" style="--storefront-marquee-duration:48s">
+              <div class="storefront-marquee-group">
+                <i class="fas fa-bullhorn storefront-marquee-icon" aria-hidden="true"></i>
+                <span id="adminMarqueePreviewText" class="storefront-marquee-text">Đang tải thông báo...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="mt-4 rounded-2xl border border-slate-100 bg-slate-50 p-4 text-sm text-slate-600">
+          <p class="font-bold text-slate-800"><i class="fas fa-circle-info mr-1"></i>Hiển thị frontend</p>
+          <p class="mt-1">Khi khách vào trang, marquee được render ngay bằng text mặc định trước, sau đó tự cập nhật sang text đã lưu khi API trả về.</p>
+        </div>
+      </section>
+    </div>
+  </div>`
+}
+
 export function adminBannersPage(): string {
   return "<!-- BANNERS PAGE -->\n  <div id=\"page-settings\" class=\"p-6 hidden\">\n    <div class=\"bg-white rounded-2xl shadow-sm border p-4 mb-4\">\n      <div class=\"flex items-center gap-2\">\n        <button type=\"button\" class=\"inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200\">\n          <i class=\"fas fa-warehouse\"></i>Cài đặt kho hàng\n        </button>\n      </div>\n    </div>\n\n    <div class=\"bg-white rounded-2xl shadow-sm border p-6 mb-6\">\n      <div class=\"flex flex-wrap items-center justify-between gap-3 mb-5\">\n        <h2 class=\"font-bold text-gray-800 text-lg flex items-center gap-2\">\n          <i class=\"fas fa-warehouse text-emerald-500\"></i>Cài đặt kho lấy hàng GHTK\n        </h2>\n        <button onclick=\"syncGhtkPickupAddresses()\" id=\"syncGhtkPickupBtn\" class=\"bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl text-sm font-medium transition flex items-center gap-2\">\n          <i class=\"fas fa-rotate\"></i> Đồng bộ kho từ GHTK\n        </button>\n      </div>\n      <p class=\"text-sm text-gray-500 mb-4\">Chọn kho đã tạo trên GHTK để dùng mặc định khi bấm Sắp xếp vận chuyển.</p>\n      <div class=\"grid md:grid-cols-2 gap-4\">\n        <div class=\"md:col-span-2\">\n          <label class=\"block text-sm font-semibold text-gray-700 mb-1.5\">Kho lấy hàng từ GHTK</label>\n          <select id=\"ghtkPickupAddressId\" onchange=\"applySelectedGhtkWarehouse()\" class=\"w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-400\">\n            <option value=\"\">-- Chọn kho đồng bộ --</option>\n          </select>\n          <p id=\"ghtkPickupHint\" class=\"text-xs text-gray-500 mt-1.5\">Nếu chưa thấy kho, bấm \"Đồng bộ kho từ GHTK\".</p>\n        </div>\n        <div>\n          <label class=\"block text-sm font-semibold text-gray-700 mb-1.5\">Tên người lấy hàng</label>\n          <input type=\"text\" id=\"ghtkPickName\" class=\"w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-400\">\n        </div>\n        <div>\n          <label class=\"block text-sm font-semibold text-gray-700 mb-1.5\">Số điện thoại lấy hàng</label>\n          <input type=\"text\" id=\"ghtkPickTel\" class=\"w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-400\">\n        </div>\n        <div class=\"md:col-span-2\">\n          <label class=\"block text-sm font-semibold text-gray-700 mb-1.5\">Địa chỉ lấy hàng (chi tiết)</label>\n          <input type=\"text\" id=\"ghtkPickAddress\" class=\"w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-400\">\n        </div>\n        <div>\n          <label class=\"block text-sm font-semibold text-gray-700 mb-1.5\">Tỉnh/Thành</label>\n          <input type=\"text\" id=\"ghtkPickProvince\" class=\"w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-400\">\n        </div>\n        <div>\n          <label class=\"block text-sm font-semibold text-gray-700 mb-1.5\">Quận/Huyện</label>\n          <input type=\"text\" id=\"ghtkPickDistrict\" class=\"w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-400\">\n        </div>\n        <div>\n          <label class=\"block text-sm font-semibold text-gray-700 mb-1.5\">Phường/Xã</label>\n          <input type=\"text\" id=\"ghtkPickWard\" class=\"w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-400\">\n        </div>\n        <div class=\"md:col-span-2 flex justify-end\">\n          <button onclick=\"saveGhtkPickupConfig()\" id=\"saveGhtkPickupBtn\" class=\"bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2 transition\">\n            <i class=\"fas fa-save\"></i>Lưu cấu hình kho GHTK\n          </button>\n        </div>\n      </div>\n    </div>\n  </div>\n\n</main>"
 }
