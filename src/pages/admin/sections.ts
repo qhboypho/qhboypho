@@ -305,22 +305,22 @@ export function adminNotificationSettingsPage(): string {
       </div>
     </div>
 
-    <div class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
-      <div class="space-y-5">
-        <section class="notification-card rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
+    <div class="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
+      <div class="min-w-0 space-y-5">
+        <section class="notification-card min-w-0 overflow-hidden rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
           <div class="mb-4 flex items-start justify-between gap-4">
-            <div class="flex items-start gap-4">
+            <div class="min-w-0 flex items-start gap-4">
               <span class="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-pink-50 text-pink-600">
                 <i class="fas fa-a text-lg"></i>
               </span>
-              <div>
+              <div class="min-w-0">
                 <h3 class="text-xl font-extrabold text-gray-900">Nội dung marquee</h3>
                 <p class="mt-1 text-sm text-gray-500">Nội dung này hiển thị ngay khi storefront loading, không delay.</p>
               </div>
             </div>
             <span id="marqueeTextCounter" class="inline-flex shrink-0 items-center rounded-full bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-500">0/600</span>
           </div>
-          <textarea id="marqueeNotificationText" rows="4" maxlength="600" oninput="previewNotificationSettings()" placeholder="Nhập nội dung thông báo chạy trên đầu trang..." class="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-4 text-base font-medium leading-relaxed text-slate-900 outline-none transition focus:border-pink-300 focus:bg-white focus:ring-4 focus:ring-pink-100"></textarea>
+          <textarea id="marqueeNotificationText" rows="4" maxlength="600" oninput="previewNotificationSettings()" placeholder="Nhập nội dung thông báo chạy trên đầu trang..." class="block w-full max-w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-4 text-base font-medium leading-relaxed text-slate-900 outline-none transition focus:border-pink-300 focus:bg-white focus:ring-4 focus:ring-pink-100"></textarea>
           <div class="mt-4 flex flex-wrap gap-2">
             <button type="button" onclick="setNotificationQuickText('Miễn phí vận chuyển cho đơn từ 500K | Flashsale mỗi tối 20:00 | Hỗ trợ đổi size trong 7 ngày')" class="rounded-full border border-orange-100 bg-orange-50 px-3 py-2 text-xs font-bold text-orange-700 hover:bg-orange-100 transition">Ưu đãi</button>
             <button type="button" onclick="setNotificationQuickText('Flashsale mỗi tối 20:00 | Số lượng có hạn | Chốt đơn sớm để giữ size đẹp')" class="rounded-full border border-orange-100 bg-orange-50 px-3 py-2 text-xs font-bold text-orange-700 hover:bg-orange-100 transition">Flashsale</button>
@@ -330,7 +330,7 @@ export function adminNotificationSettingsPage(): string {
           </div>
         </section>
 
-        <section class="notification-card rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
+        <section class="notification-card min-w-0 overflow-hidden rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
           <div class="mb-5 flex items-center justify-between gap-3">
             <div>
               <h3 class="text-lg font-extrabold text-gray-900">Tốc độ chạy</h3>
@@ -352,11 +352,11 @@ export function adminNotificationSettingsPage(): string {
         </section>
       </div>
 
-      <div class="space-y-5">
-        <section class="notification-card rounded-3xl border border-slate-900 bg-slate-950 p-4 text-white shadow-sm">
+      <div class="min-w-0 space-y-5">
+        <section class="notification-card min-w-0 overflow-hidden rounded-3xl border border-slate-900 bg-slate-950 p-4 text-white shadow-sm">
           <h3 class="text-lg font-extrabold">Preview storefront</h3>
           <p class="mt-1 text-sm text-slate-400">Mô phỏng thanh thông báo ở đầu trang.</p>
-          <div class="mt-4 overflow-hidden rounded-2xl border border-slate-700 bg-slate-950">
+          <div class="mt-4 min-w-0 overflow-hidden rounded-2xl border border-slate-700 bg-slate-950">
             <div class="h-8 bg-slate-900 px-4 flex items-center gap-2">
               <span class="h-2.5 w-2.5 rounded-full bg-red-500"></span>
               <span class="h-2.5 w-2.5 rounded-full bg-amber-500"></span>
@@ -377,7 +377,7 @@ export function adminNotificationSettingsPage(): string {
           </div>
         </section>
 
-        <section class="notification-card rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
+        <section class="notification-card min-w-0 overflow-hidden rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
           <h3 class="text-lg font-extrabold text-gray-900">Kiểm tra trước khi lưu</h3>
           <div class="mt-5 space-y-4">
             <div class="flex items-center gap-3 text-sm font-bold text-slate-700"><span class="h-2.5 w-2.5 rounded-full bg-emerald-500"></span>Độ dài phù hợp</div>
@@ -388,16 +388,16 @@ export function adminNotificationSettingsPage(): string {
       </div>
     </div>
 
-    <div class="mt-5 grid gap-4 xl:grid-cols-3">
-      <div class="rounded-3xl border border-gray-200 bg-white p-4 shadow-sm">
+    <div class="mt-5 grid min-w-0 gap-4 xl:grid-cols-3">
+      <div class="min-w-0 rounded-3xl border border-gray-200 bg-white p-4 shadow-sm">
         <span class="inline-flex rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-700">Ưu tiên rõ nội dung</span>
         <p class="mt-3 text-sm font-medium leading-relaxed text-slate-600">Một dòng thông báo nên tập trung vào ưu đãi hoặc chính sách quan trọng nhất.</p>
       </div>
-      <div class="rounded-3xl border border-gray-200 bg-white p-4 shadow-sm">
+      <div class="min-w-0 rounded-3xl border border-gray-200 bg-white p-4 shadow-sm">
         <span class="inline-flex rounded-full bg-blue-50 px-3 py-1.5 text-xs font-bold text-blue-700">Không delay loading</span>
         <p class="mt-3 text-sm font-medium leading-relaxed text-slate-600">Marquee chạy ngay khi trang mở, dữ liệu từ admin cập nhật lại sau khi API trả về.</p>
       </div>
-      <div class="rounded-3xl border border-gray-200 bg-white p-4 shadow-sm">
+      <div class="min-w-0 rounded-3xl border border-gray-200 bg-white p-4 shadow-sm">
         <span class="inline-flex rounded-full bg-orange-50 px-3 py-1.5 text-xs font-bold text-orange-700">Có fallback an toàn</span>
         <p class="mt-3 text-sm font-medium leading-relaxed text-slate-600">Nếu nội dung trống, hệ thống dùng thông báo mặc định để tránh thanh trống.</p>
       </div>
