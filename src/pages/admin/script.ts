@@ -659,37 +659,39 @@ function getDashboardStatsParams() {
   return params
 }
 
-function showPage(name) {
+function showPage(pageName) {
+  pageName = String(pageName || 'dashboard')
   ensureSettingsImagesNavItem()
-  ['dashboard','products','orders','returns','customers','reviews','vouchers','featured','settings','settings-social','settings-images','settings-warehouse','flashsale'].forEach(p => {
+  const adminPages = ['dashboard','products','orders','returns','customers','reviews','vouchers','featured','settings','settings-social','settings-images','settings-warehouse','flashsale']
+  adminPages.forEach(p => {
     const section = document.getElementById('page-'+p)
-    if (section) section.classList.toggle('hidden', p !== name)
+    if (section) section.classList.toggle('hidden', p !== pageName)
   })
   document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'))
-  const mainBtn = document.querySelector('.nav-item[data-page="' + name + '"]')
+  const mainBtn = document.querySelector('.nav-item[data-page="' + pageName + '"]')
   if (mainBtn) mainBtn.classList.add('active')
   document.querySelectorAll('.nav-sub-item').forEach(b => {
     b.classList.toggle('active', b.dataset.subPage === settingsActiveSubPage || b.dataset.subPage === marketingActiveSubPage)
   })
-  if (name === 'settings' || name === 'settings-social' || name === 'settings-images' || name === 'settings-warehouse') {
+  if (pageName === 'settings' || pageName === 'settings-social' || pageName === 'settings-images' || pageName === 'settings-warehouse') {
     const settingsBtn = document.getElementById('settingsMenuBtn')
     if (settingsBtn) settingsBtn.classList.add('active')
     setSettingsSubmenuOpen(true)
-    if (name === 'settings-social') settingsActiveSubPage = 'settings-social'
-    if (name === 'settings-images') settingsActiveSubPage = 'settings-images'
-    if (name === 'settings-warehouse') settingsActiveSubPage = 'settings-warehouse'
+    if (pageName === 'settings-social') settingsActiveSubPage = 'settings-social'
+    if (pageName === 'settings-images') settingsActiveSubPage = 'settings-images'
+    if (pageName === 'settings-warehouse') settingsActiveSubPage = 'settings-warehouse'
   } else {
     setSettingsSubmenuOpen(false)
-    if (name !== 'settings-social' && name !== 'settings-images' && name !== 'settings-warehouse') settingsActiveSubPage = ''
+    if (pageName !== 'settings-social' && pageName !== 'settings-images' && pageName !== 'settings-warehouse') settingsActiveSubPage = ''
   }
-  if (name === 'flashsale') {
+  if (pageName === 'flashsale') {
     const marketingBtn = document.getElementById('marketingMenuBtn')
     if (marketingBtn) marketingBtn.classList.add('active')
     setMarketingSubmenuOpen(true)
     marketingActiveSubPage = 'flashsale'
   } else {
     setMarketingSubmenuOpen(false)
-    if (name !== 'flashsale') marketingActiveSubPage = ''
+    if (pageName !== 'flashsale') marketingActiveSubPage = ''
   }
   document.querySelectorAll('.nav-sub-item').forEach(b => b.classList.remove('active'))
   if (settingsActiveSubPage) {
@@ -699,27 +701,27 @@ function showPage(name) {
     document.querySelectorAll('.nav-sub-item[data-sub-page="' + marketingActiveSubPage + '"]').forEach(b => b.classList.add('active'))
   }
   const titles = {dashboard:'Dashboard', products:'Quản lý Sản phẩm', orders:'Quản lý Đơn hàng', returns:'Quản lý hoàn trả', customers:'Quản lý Khách hàng', reviews:'Quản lý Đánh giá', vouchers:'Quản lý Voucher', featured:'Sản phẩm Nổi Bật', settings:'Setting', 'settings-social':'Cấu hình MXH', 'settings-images':'Cài đặt ảnh', 'settings-warehouse':'Cài đặt kho hàng', flashsale:'Quản lý Flashsale'}
-  document.body.dataset.adminPage = name
-  document.getElementById('pageTitle').textContent = titles[name] || name
+  document.body.dataset.adminPage = pageName
+  document.getElementById('pageTitle').textContent = titles[pageName] || pageName
 
-  if (name === 'dashboard') loadDashboard()
-  else if (name === 'products') loadAdminProducts()
-  else if (name === 'orders') loadAdminOrders()
-  else if (name === 'returns') loadReturns()
-  else if (name === 'customers') loadCustomers()
-  else if (name === 'reviews') loadAdminReviews()
-  else if (name === 'vouchers') loadVouchers()
-  else if (name === 'featured') loadFeaturedAdmin()
-  else if (name === 'settings') loadSettingsAdmin()
-  else if (name === 'settings-social') loadSocialSettings()
-  else if (name === 'settings-images') loadImageSettings()
-  else if (name === 'settings-warehouse') loadSettingsWarehousePage()
-  else if (name === 'flashsale') loadFlashSaleAdmin()
+  if (pageName === 'dashboard') loadDashboard()
+  else if (pageName === 'products') loadAdminProducts()
+  else if (pageName === 'orders') loadAdminOrders()
+  else if (pageName === 'returns') loadReturns()
+  else if (pageName === 'customers') loadCustomers()
+  else if (pageName === 'reviews') loadAdminReviews()
+  else if (pageName === 'vouchers') loadVouchers()
+  else if (pageName === 'featured') loadFeaturedAdmin()
+  else if (pageName === 'settings') loadSettingsAdmin()
+  else if (pageName === 'settings-social') loadSocialSettings()
+  else if (pageName === 'settings-images') loadImageSettings()
+  else if (pageName === 'settings-warehouse') loadSettingsWarehousePage()
+  else if (pageName === 'flashsale') loadFlashSaleAdmin()
 
   syncOrdersHeaderSearchUI()
   syncDashboardDateFilterUI()
 
-  if (name !== 'orders') {
+  if (pageName !== 'orders') {
     const bulkBar = document.getElementById('ordersBulkActionBar')
     const shipBar = document.getElementById('shippingBulkActionBar')
     if (bulkBar) bulkBar.classList.add('hidden')
