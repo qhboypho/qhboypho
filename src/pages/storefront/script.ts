@@ -1587,7 +1587,6 @@ function closeVisibleStorefrontOverlay() {
 function handleGlobalEscape(e) {
   if (e.key !== 'Escape') return
   if (closeVisibleStorefrontOverlay()) return
-  if (heroBannersIsExpanded) collapseBanners()
 }
 
 document.addEventListener('keydown', handleGlobalEscape)
@@ -1610,8 +1609,9 @@ document.addEventListener('keydown', handleGlobalEscape)
 
 // ── DYNAMIC HERO BANNERS ──────────────────────────
 let heroBannersData = []
-let heroBannersIsExpanded = false
 let lastHeroMobileMode = null
+let heroCarouselIndex = 0
+let heroCarouselTimer = null
 
 function renderFooterSocialLinks(data) {
   const section = document.getElementById('footerSocialSection')
@@ -1667,8 +1667,6 @@ async function loadSettings() {
         created_at: ''
       }]
       renderCollapsedBanners(heroBannersData)
-      renderExpandedBanners(heroBannersData)
-      bindHeroBannersWheelScroll()
       return
     }
 
@@ -1676,8 +1674,6 @@ async function loadSettings() {
     const trendingProducts = (trendingRes.data && trendingRes.data.data) ? trendingRes.data.data : []
     heroBannersData = sortHeroCards(mapTrendingProductsToHeroCards(trendingProducts))
     renderCollapsedBanners(heroBannersData)
-    renderExpandedBanners(heroBannersData)
-    bindHeroBannersWheelScroll()
   } catch (e) {
     console.error('Failed to load banners', e)
   }
@@ -1687,6 +1683,10 @@ function prepareHeroBannerShell() {
   const wrapper = document.getElementById('heroBannersWrapper')
   const container = document.getElementById('heroBannersCollapsed')
   if (!container) return
+  ensureHeroCarouselRuntimeStyle()
+  container.removeAttribute('title')
+  const legacyOverlay = document.getElementById('heroBannersExpanded')
+  if (legacyOverlay) legacyOverlay.remove()
   const mobileMode = isMobileHeroLayout()
   if (wrapper) {
     wrapper.style.justifyContent = mobileMode ? 'flex-start' : 'flex-end'
@@ -1709,12 +1709,16 @@ function mapTrendingProductsToHeroCards(products) {
   if (!Array.isArray(products)) return []
   return products.map((p) => {
     const imgs = safeJson(p.images)
+    const colors = safeJson(p.colors)
+    const sizes = safeJson(p.sizes)
     const categoryLabel = p.category === 'male' ? 'Nam' : p.category === 'female' ? 'Nu' : 'Unisex'
     return {
       image_url: p.thumbnail || imgs[0] || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400',
       subtitle: categoryLabel + ' · Dang thinh hanh',
       title: p.name || '',
       price: fmtPrice(p.price || 0),
+      description: String(p.description || '').trim(),
+      tags: [p.brand, ...colors.slice(0, 2), ...sizes.slice(0, 1)].filter(Boolean).slice(0, 4),
       product_id: p.id,
       trending_order: Number(p.trending_order || 0),
       updated_at: p.updated_at || '',
@@ -1741,31 +1745,22 @@ function isMobileHeroLayout() {
   return window.matchMedia('(max-width: 768px)').matches
 }
 
-function bindHeroBannersWheelScroll() {
-  const overlay = document.getElementById('heroBannersExpanded')
-  const inner = document.getElementById('heroBannersExpandedInner')
-  if (!overlay || !inner || inner.dataset.wheelBound === '1') return
-  inner.dataset.wheelBound = '1'
-  const onWheel = (e) => {
-    if (!heroBannersIsExpanded || isMobileHeroLayout()) return
-    const delta = Math.abs(e.deltaY) > Math.abs(e.deltaX) ? e.deltaY : e.deltaX
-    if (!delta) return
-    inner.scrollLeft += delta * 1.2
-    e.preventDefault()
-  }
-  inner.addEventListener('wheel', onWheel, { passive: false })
-  overlay.addEventListener('wheel', onWheel, { passive: false })
-}
-
 function renderCollapsedBanners(banners) {
   const container = document.getElementById('heroBannersCollapsed')
   if (!container) return
+  ensureHeroCarouselRuntimeStyle()
   const wrapper = document.getElementById('heroBannersWrapper')
   const mobileMode = isMobileHeroLayout()
   lastHeroMobileMode = mobileMode
   if (wrapper) wrapper.style.justifyContent = mobileMode ? 'flex-start' : 'flex-end'
+  container.removeAttribute('title')
+  stopHeroCarouselAutoPlay()
   if (!banners.length) {
     if (wrapper) wrapper.style.cursor = 'default'
+    container.style.width = mobileMode ? '100%' : '360px'
+    container.style.height = mobileMode ? '220px' : '360px'
+    container.style.paddingBottom = '0'
+    container.onclick = null
     container.innerHTML = \`<div class="relative w-full h-full rounded-3xl bg-gradient-to-br from-white/5 via-white/[0.03] to-pink-500/10 flex items-center justify-center text-center px-6">
       <div>
         <i class="fas fa-sparkles text-2xl text-pink-300 mb-2"></i>
@@ -1774,77 +1769,149 @@ function renderCollapsedBanners(banners) {
     </div>\`
     return
   }
-  if (mobileMode) {
-    const shown = banners.slice(0, Math.max(3, Math.min(banners.length, 8)))
-    const hasSettingBannerOnly = shown.length === 1 && shown[0]?.is_setting_banner
-    if (wrapper) wrapper.style.cursor = hasSettingBannerOnly ? 'default' : 'pointer'
-    container.style.width = '100%'
-    container.style.height = 'auto'
-    container.innerHTML = \`<div class="hero-mobile-slider">\${shown.map((b) => {
-      const safeTitle = b.title || 'Sản phẩm'
-      if (b.is_setting_banner) {
-        return \`<div class="hero-mobile-card" style="cursor:default">
-          <div class="hero-mobile-card-thumb relative overflow-hidden">
-            <img src="\${b.image_url}" alt="\${safeTitle}" onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'">
-            \${renderHeroSettingCaption(b, 'mobile')}
-          </div>
-        </div>\`
-      }
-      if (b.product_id) {
-        return \`<button type="button" class="hero-mobile-card hero-mobile-card-button" onclick="showDetail(\${b.product_id})">
-          <div class="hero-mobile-card-thumb">
-            <img src="\${b.image_url}" alt="\${safeTitle}" onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'">
-          </div>
-          <p class="hero-mobile-card-name">\${safeTitle}</p>
-        </button>\`
-      }
-      return \`<div class="hero-mobile-card">
-        <div class="hero-mobile-card-thumb">
-          <img src="\${b.image_url}" alt="\${safeTitle}" onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'">
-        </div>
-        <p class="hero-mobile-card-name">\${safeTitle}</p>
-      </div>\`
-    }).join('')}</div>
-    \${hasSettingBannerOnly ? '' : '<div class="hero-mobile-swipe-hint"><i class="fas fa-arrows-left-right"></i><span>Vuốt ngang để xem thêm</span></div>'}\`
-    container.style.paddingBottom = '0'
-    container.onclick = null
+  const hasSettingBannerOnly = banners.length === 1 && banners[0]?.is_setting_banner
+  if (wrapper) wrapper.style.cursor = 'default'
+  container.onclick = null
+  container.style.width = hasSettingBannerOnly ? (mobileMode ? 'min(100%, 320px)' : '360px') : (mobileMode ? '100%' : '430px')
+  container.style.height = hasSettingBannerOnly ? (mobileMode ? 'min(82vw, 320px)' : '360px') : (mobileMode ? '440px' : '456px')
+  container.style.paddingBottom = '0'
+  if (hasSettingBannerOnly) {
+    const b = banners[0]
+    const size = mobileMode ? 'min(100%, 320px)' : '360px'
+    container.innerHTML = \`<div class="relative hero-setting-banner-card" style="width:\${size};height:\${size};cursor:default">
+      <img src="\${escapeHtml(b.image_url)}" alt="\${escapeHtml(b.title || 'Banner')}" class="w-full h-full object-cover rounded-3xl pointer-events-none" onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'">
+      \${renderHeroSettingCaption(b, mobileMode ? 'mobile' : 'desktop')}
+    </div>\`
     return
   }
-  const len = banners.length
-  const shown = banners.slice(0, Math.min(len, 4)).reverse()
-  const hasSettingBannerOnly = shown.length === 1 && shown[0]?.is_setting_banner
-  if (wrapper) wrapper.style.cursor = hasSettingBannerOnly ? 'default' : 'pointer'
-  const desktopHeroSize = 360
-  container.style.width = \`\${desktopHeroSize}px\`
-  container.style.height = hasSettingBannerOnly ? \`\${desktopHeroSize}px\` : \`\${desktopHeroSize + 36}px\`
-  container.innerHTML = \`<div class="relative" style="width:\${desktopHeroSize}px;height:\${desktopHeroSize}px">
-  \${shown.map((b, i) => {
-    const rot = shown.length > 1 ? (i - Math.floor((shown.length - 1) / 2)) * 6 : 0
-    const z = i * 10
-    const isTop = i === shown.length - 1
-    const clickHandler = b.is_setting_banner ? '' : \` onclick="expandBanners()"\`
-    const cursor = b.is_setting_banner ? '' : 'cursor-pointer'
-    const cursorStyle = b.is_setting_banner ? 'cursor:default;' : ''
-    return \`<div class="absolute inset-0 rounded-3xl overflow-hidden \${cursor}"\${clickHandler} style="transform:rotate(\${rot}deg);z-index:\${z};transition:transform 0.5s ease,box-shadow 0.5s ease;box-shadow:0 12px 40px rgba(0,0,0,0.25);\${cursorStyle}">
-      <div class="absolute inset-0 bg-gradient-to-br from-pink-500/15 to-purple-600/15 rounded-3xl pointer-events-none"></div>
-      <img src="\${b.image_url}" alt="\${b.title || 'Banner'}" class="w-full h-full object-cover rounded-3xl pointer-events-none" onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'">
-      \${b.is_setting_banner ? renderHeroSettingCaption(b, 'desktop') : ''}
-      \${!b.is_setting_banner && isTop && (b.subtitle || b.title || b.price) ? \`
-        <div class="absolute left-0 right-0 bottom-0 px-4 pt-14 pb-4 pointer-events-none rounded-b-3xl"
-          style="z-index:\${z+5};background:linear-gradient(to top, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.6) 42%, rgba(0,0,0,0) 100%);">
-          \${b.subtitle ? \`<p class="text-[10px] text-white/75 uppercase tracking-[2px] font-semibold mb-1">\${b.subtitle}</p>\` : ''}
-          \${b.title ? \`<p class="font-bold text-white text-sm leading-tight overflow-hidden text-ellipsis whitespace-nowrap" style="max-width:100%;">\${b.title}</p>\` : ''}
-          \${b.price ? \`<p class="text-pink-300 font-bold text-sm mt-1">\${b.price}</p>\` : ''}
-        </div>\` : ''}
-    </div>\`
-  }).join('')}
-  </div>
-  \${hasSettingBannerOnly ? '' : \`
-  <div class="absolute flex items-center gap-1.5 bg-white/20 backdrop-blur-sm rounded-full px-3 py-1.5 text-white text-xs font-medium cursor-pointer hover:bg-white/30 transition whitespace-nowrap" style="bottom:-28px;left:50%;transform:translateX(-50%);z-index:5" onclick="expandBanners()">
-    <i class="fas fa-expand-alt mr-1 text-pink-300"></i>Các mẫu thịnh hành
-  </div>\`}\`
-  container.style.paddingBottom = hasSettingBannerOnly ? '0' : '36px'
-  container.onclick = hasSettingBannerOnly ? null : () => { if (!heroBannersIsExpanded) expandBanners() }
+  const shown = banners.slice(0, Math.min(banners.length, 6))
+  heroCarouselIndex = Math.min(heroCarouselIndex, Math.max(0, shown.length - 1))
+  container.innerHTML = \`<div class="hero-3d-carousel" role="region" aria-label="Sản phẩm thịnh hành">
+    <button type="button" class="hero-carousel-nav hero-carousel-prev" aria-label="Sản phẩm trước" onclick="moveHeroCarousel(-1)"><i class="fas fa-chevron-left"></i></button>
+    <div class="hero-carousel-stage" id="heroCarouselStage">
+      \${shown.map((b, i) => renderHeroCarouselCard(b, i)).join('')}
+    </div>
+    <button type="button" class="hero-carousel-nav hero-carousel-next" aria-label="Sản phẩm tiếp theo" onclick="moveHeroCarousel(1)"><i class="fas fa-chevron-right"></i></button>
+  </div>\`
+  updateHeroCarousel()
+  startHeroCarouselAutoPlay(shown.length)
+}
+
+function ensureHeroCarouselRuntimeStyle() {
+  if (document.getElementById('heroCarouselRuntimeStyle')) return
+  const style = document.createElement('style')
+  style.id = 'heroCarouselRuntimeStyle'
+  style.textContent = \`
+    #heroBannersWrapper{cursor:default!important}
+    #heroBannersCollapsed{position:relative}
+    .hero-setting-banner-card{border-radius:1.5rem;overflow:hidden;box-shadow:0 24px 55px rgba(0,0,0,.34);background:rgba(255,255,255,.05)}
+    .hero-3d-carousel{position:relative;width:430px;height:456px;display:flex;align-items:center;justify-content:center;perspective:1100px;overflow:visible}
+    .hero-carousel-stage{position:relative;width:360px;height:430px;transform-style:preserve-3d}
+    .hero-carousel-card{position:absolute;inset:0;border-radius:24px;overflow:hidden;background:#fff;color:#111827;box-shadow:0 28px 70px rgba(0,0,0,.34);border:1px solid rgba(255,255,255,.18);transition:transform .55s cubic-bezier(.2,.8,.2,1),opacity .45s ease,filter .45s ease;will-change:transform,opacity;pointer-events:none}
+    .hero-carousel-card[data-offset="0"]{transform:translate3d(0,0,64px) scale(1);opacity:1;filter:none;z-index:6;pointer-events:auto}
+    .hero-carousel-card[data-offset="-1"]{transform:translate3d(-30%,6px,-70px) rotateY(12deg) scale(.82);opacity:.56;filter:saturate(.78) brightness(.82);z-index:4}
+    .hero-carousel-card[data-offset="1"]{transform:translate3d(30%,6px,-70px) rotateY(-12deg) scale(.82);opacity:.56;filter:saturate(.78) brightness(.82);z-index:4}
+    .hero-carousel-card[data-offset="-2"]{transform:translate3d(-45%,18px,-155px) rotateY(18deg) scale(.72);opacity:.18;filter:blur(.5px) brightness(.7);z-index:2}
+    .hero-carousel-card[data-offset="2"]{transform:translate3d(45%,18px,-155px) rotateY(-18deg) scale(.72);opacity:.18;filter:blur(.5px) brightness(.7);z-index:2}
+    .hero-carousel-card[data-offset="hidden"]{transform:translate3d(0,24px,-220px) scale(.64);opacity:0;filter:blur(2px);z-index:1}
+    .hero-carousel-media{height:44%;min-height:158px;position:relative;overflow:hidden;background:linear-gradient(135deg,#1f2937,#831843)}
+    .hero-carousel-media img{width:100%;height:100%;object-fit:cover;display:block}
+    .hero-carousel-media::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(17,24,39,.08),rgba(190,24,93,.24))}
+    .hero-carousel-kicker{position:absolute;left:18px;right:18px;bottom:16px;color:#fff;font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;text-shadow:0 2px 10px rgba(0,0,0,.38);z-index:2}
+    .hero-carousel-body{height:56%;padding:22px 22px 20px;display:flex;flex-direction:column;gap:12px}
+    .hero-carousel-title{font-family:'Outfit',sans-serif;font-size:22px;font-weight:800;line-height:1.15;color:#0f172a;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+    .hero-carousel-desc{font-size:14px;line-height:1.48;color:#475569;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;min-height:62px}
+    .hero-carousel-tags{display:flex;gap:7px;flex-wrap:wrap;margin-top:auto}
+    .hero-carousel-tag{font-size:11px;color:#64748b;background:#f1f5f9;border-radius:999px;padding:5px 9px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .hero-carousel-footer{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .hero-carousel-price{font-size:18px;font-weight:900;color:#db2777;white-space:nowrap}
+    .hero-carousel-link{border:0;background:transparent;color:#64748b;font-size:14px;font-weight:700;white-space:nowrap;cursor:pointer}
+    .hero-carousel-link:hover{color:#db2777}
+    .hero-carousel-nav{position:absolute;top:50%;transform:translateY(-50%);z-index:10;width:42px;height:42px;border:0;border-radius:999px;background:rgba(255,255,255,.92);color:#475569;box-shadow:0 12px 28px rgba(15,23,42,.22);display:flex;align-items:center;justify-content:center;transition:transform .2s ease,background .2s ease,color .2s ease}
+    .hero-carousel-nav:hover{transform:translateY(-50%) scale(1.06);background:#fff;color:#db2777}
+    .hero-carousel-prev{left:0}
+    .hero-carousel-next{right:0}
+    @media (max-width:768px){
+      .hero-3d-carousel{width:100%;height:440px;overflow:hidden;perspective:900px}
+      .hero-carousel-stage{width:min(78vw,320px);height:410px}
+      .hero-carousel-card{border-radius:22px}
+      .hero-carousel-card[data-offset="-1"]{transform:translate3d(-24%,7px,-80px) rotateY(10deg) scale(.8);opacity:.44}
+      .hero-carousel-card[data-offset="1"]{transform:translate3d(24%,7px,-80px) rotateY(-10deg) scale(.8);opacity:.44}
+      .hero-carousel-card[data-offset="-2"],.hero-carousel-card[data-offset="2"]{opacity:0}
+      .hero-carousel-nav{width:36px;height:36px}
+      .hero-carousel-prev{left:4px}
+      .hero-carousel-next{right:4px}
+      .hero-carousel-body{padding:18px 18px 17px;gap:10px}
+      .hero-carousel-title{font-size:19px}
+      .hero-carousel-desc{font-size:13px;min-height:58px}
+    }
+  \`
+  document.head.appendChild(style)
+}
+
+function renderHeroCarouselCard(b, index) {
+  const title = escapeHtml(b.title || 'Sản phẩm thịnh hành')
+  const subtitle = escapeHtml(b.subtitle || 'Đang thịnh hành')
+  const desc = escapeHtml(b.description || 'Mẫu đang được quan tâm trong bộ sưu tập QH Clothes.')
+  const price = escapeHtml(b.price || '')
+  const image = escapeHtml(b.image_url || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400')
+  const tags = Array.isArray(b.tags) && b.tags.length ? b.tags : ['Trending', 'QH Clothes']
+  const action = b.product_id ? \`onclick="showDetail(\${Number(b.product_id)})"\` : 'onclick="document.getElementById(&quot;products&quot;)?.scrollIntoView({behavior:&quot;smooth&quot;})"'
+  return \`<article class="hero-carousel-card" data-hero-index="\${index}" data-offset="hidden" aria-hidden="true">
+    <div class="hero-carousel-media">
+      <img src="\${image}" alt="\${title}" onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'">
+      <p class="hero-carousel-kicker">\${subtitle}</p>
+    </div>
+    <div class="hero-carousel-body">
+      <h3 class="hero-carousel-title">\${title}</h3>
+      <p class="hero-carousel-desc">\${desc}</p>
+      <div class="hero-carousel-tags">\${tags.map((tag) => \`<span class="hero-carousel-tag">\${escapeHtml(tag)}</span>\`).join('')}</div>
+      <div class="hero-carousel-footer">
+        <p class="hero-carousel-price">\${price}</p>
+        <button type="button" class="hero-carousel-link" \${action}>Xem sản phẩm <i class="fas fa-arrow-right ml-1"></i></button>
+      </div>
+    </div>
+  </article>\`
+}
+
+function normalizeHeroCarouselOffset(offset, total) {
+  if (total <= 1) return 0
+  const half = Math.floor(total / 2)
+  if (offset > half) offset -= total
+  if (offset < -half) offset += total
+  return offset
+}
+
+function updateHeroCarousel() {
+  const cards = Array.from(document.querySelectorAll('.hero-carousel-card'))
+  const total = cards.length
+  if (!total) return
+  cards.forEach((card, index) => {
+    const offset = normalizeHeroCarouselOffset(index - heroCarouselIndex, total)
+    const visibleOffset = Math.abs(offset) <= 2 ? String(offset) : 'hidden'
+    card.setAttribute('data-offset', visibleOffset)
+    card.setAttribute('aria-hidden', offset === 0 ? 'false' : 'true')
+  })
+}
+
+function moveHeroCarousel(direction) {
+  const total = document.querySelectorAll('.hero-carousel-card').length
+  if (!total) return
+  heroCarouselIndex = (heroCarouselIndex + direction + total) % total
+  updateHeroCarousel()
+  startHeroCarouselAutoPlay(total)
+}
+
+function stopHeroCarouselAutoPlay() {
+  if (!heroCarouselTimer) return
+  clearInterval(heroCarouselTimer)
+  heroCarouselTimer = null
+}
+
+function startHeroCarouselAutoPlay(total) {
+  stopHeroCarouselAutoPlay()
+  if (total <= 1) return
+  heroCarouselTimer = window.setInterval(() => moveHeroCarousel(1), 5200)
 }
 
 function renderHeroSettingCaption(b, mode) {
@@ -1861,65 +1928,6 @@ function renderHeroSettingCaption(b, mode) {
     \${title ? \`<p class="\${titleCls} font-extrabold text-white leading-tight overflow-hidden text-ellipsis whitespace-nowrap mb-1">\${safeTitle}</p>\` : ''}
     \${subtitle ? \`<p class="\${subtitleCls} text-white/85 font-bold leading-tight">\${safeSubtitle}</p>\` : ''}
   </div>\`
-}
-
-function renderExpandedBanners(banners) {
-  const inner = document.getElementById('heroBannersExpandedInner')
-  const title = document.getElementById('heroBannersExpandedTitle')
-  if (!inner) return
-  if (title) title.textContent = \`🔥 Đang thịnh hành (\${banners.length} mẫu)\`
-  inner.innerHTML = banners.map(b => {
-    if (b.product_id) {
-      return \`<a href="javascript:void(0)" class="hero-banner-card" onclick="showDetail(\${b.product_id})">
-        <img src="\${b.image_url}" alt="\${b.title || ''}" onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'" loading="lazy">
-        \${(b.subtitle || b.title || b.price) ? \`
-          <div class="banner-caption">
-            \${b.subtitle ? \`<p class="banner-subtitle">\${b.subtitle}</p>\` : ''}
-            \${b.title ? \`<p class="banner-title">\${b.title}</p>\` : ''}
-            \${b.price ? \`<p class="banner-price">\${b.price}</p>\` : ''}
-          </div>\` : ''}
-      </a>\`
-    } else {
-      return \`<div class="hero-banner-card" style="cursor:default;">
-        <img src="\${b.image_url}" alt="\${b.title || ''}" onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'" loading="lazy">
-        \${(b.subtitle || b.title || b.price) ? \`
-          <div class="banner-caption">
-            \${b.subtitle ? \`<p class="banner-subtitle">\${b.subtitle}</p>\` : ''}
-            \${b.title ? \`<p class="banner-title">\${b.title}</p>\` : ''}
-            \${b.price ? \`<p class="banner-price">\${b.price}</p>\` : ''}
-          </div>\` : ''}
-      </div>\`
-    }
-  }).join('')
-  // Add placeholders to always have 4 per row
-  const needed = Math.max(0, 4 - banners.length)
-  for (let i = 0; i < needed; i++) {
-    inner.innerHTML += \`<div class="hero-banner-card" style="background:rgba(255,255,255,0.05);pointer-events:none;"></div>\`
-  }
-}
-
-function expandBanners() {
-  if (heroBannersIsExpanded || isMobileHeroLayout()) return
-  heroBannersIsExpanded = true
-  const overlay = document.getElementById('heroBannersExpanded')
-  overlay.style.display = 'flex'
-  requestAnimationFrame(() => { overlay.style.opacity = '1' })
-  document.body.style.overflow = 'hidden'
-}
-
-function collapseBanners() {
-  if (!heroBannersIsExpanded) return
-  heroBannersIsExpanded = false
-  const overlay = document.getElementById('heroBannersExpanded')
-  overlay.style.opacity = '0'
-  setTimeout(() => {
-    overlay.style.display = 'none'
-    document.body.style.overflow = ''
-  }, 350)
-}
-
-function handleBannerOverlayClick(e) {
-  if (e.target.id === 'heroBannersExpanded') collapseBanners()
 }
 
 const DEFAULT_MARQUEE_NOTIFICATION_TEXT = 'Mua hàng tại đây không qua sàn thương mại nên giá thành sản phẩm sẽ rẻ hơn rất nhiều và bảo hành hoàn trả trong vòng 7 ngày nếu sản phẩm bị lỗi nên quý khách yên tâm mua sắm nhé.Bảo hành đổi trả nhắn qua trang facebook : QH Boypho. Chúc quý khách có trải nghiệm mua sắm tốt tại QH Clothes'
@@ -1982,7 +1990,6 @@ window.addEventListener('resize', () => {
     return
   }
   if (mobileMode !== lastHeroMobileMode) {
-    if (mobileMode && heroBannersIsExpanded) collapseBanners()
     renderCollapsedBanners(heroBannersData)
     lastHeroMobileMode = mobileMode
   }
