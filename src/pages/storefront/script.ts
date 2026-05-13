@@ -1736,9 +1736,9 @@ function sortHeroCards(cards) {
     if (aHas && !bHas) return -1
     if (!aHas && bHas) return 1
     if (aHas && bHas && ao !== bo) return ao - bo
-    const au = Date.parse(a.updated_at || a.created_at || '')
-    const bu = Date.parse(b.updated_at || b.created_at || '')
-    if (!Number.isNaN(au) && !Number.isNaN(bu) && au !== bu) return bu - au
+    const au = Date.parse(a.created_at || a.updated_at || '')
+    const bu = Date.parse(b.created_at || b.updated_at || '')
+    if (!Number.isNaN(au) && !Number.isNaN(bu) && au !== bu) return au - bu
     return Number(a.product_id || 0) - Number(b.product_id || 0)
   })
 }
