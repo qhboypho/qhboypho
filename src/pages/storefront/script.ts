@@ -1614,6 +1614,8 @@ async function submitCartOrder() {
     const errCode = e.response?.data?.error
     if (errCode === 'CUSTOMER_BLOCKED') {
       showBlockedCustomerModal(e.response?.data?.reason || 'Không thể đặt hàng')
+    } else if (errCode === 'ORDER_DAILY_LIMIT_REACHED') {
+      showBlockedCustomerModal(e.response?.data?.reason || 'Bạn đã đặt tối đa 2 đơn trong hôm nay. Vui lòng liên hệ shop nếu cần hỗ trợ.')
     } else if (errCode==='INVALID_VOUCHER'||errCode==='VOUCHER_LIMIT') {
       showToast('Voucher không còn hiệu lực','error')
       ckAppliedVoucher=null; updateCkTotal()

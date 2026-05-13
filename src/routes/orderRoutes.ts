@@ -26,7 +26,135 @@ function isBlockedValue(value: unknown) {
 }
 
 function normalizeOrderPhone(value: unknown) {
-  return String(value || '').trim().replace(/\s+/g, '')
+  return String(value || '').trim().replace(/\s+/g, '').replace(/[^\d]/g, '')
+}
+
+function normalizeRiskAddress(value: unknown) {
+  return String(value || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+    .replace(/\s+/g, ' ')
+}
+
+function toHex(bytes: Uint8Array): string {
+  return Array.from(bytes).map((byte) => byte.toString(16).padStart(2, '0')).join('')
+}
+
+async function sha256Hex(value: string) {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value))
+  return toHex(new Uint8Array(digest))
+}
+
+function getClientIp(c: any) {
+  const cfIp = String(c.req.header('cf-connecting-ip') || '').trim()
+  if (cfIp) return cfIp
+  const realIp = String(c.req.header('x-real-ip') || '').trim()
+  if (realIp) return realIp
+  const forwarded = String(c.req.header('x-forwarded-for') || '').split(',')[0]?.trim()
+  return forwarded || ''
+}
+
+async function buildOrderRiskIdentity(c: any, address: unknown) {
+  const ip = getClientIp(c)
+  const normalizedAddress = normalizeRiskAddress(address)
+  return {
+    ipHash: ip ? await sha256Hex(`order-ip:${ip}`) : '',
+    addressFingerprint: normalizedAddress ? await sha256Hex(`order-address:${normalizedAddress}`) : ''
+  }
+}
+
+function getBangkokDayWindow(now = new Date()) {
+  const bangkokOffsetMs = 7 * 60 * 60 * 1000
+  const bangkokNow = new Date(now.getTime() + bangkokOffsetMs)
+  const dayStartUtcMs = Date.UTC(
+    bangkokNow.getUTCFullYear(),
+    bangkokNow.getUTCMonth(),
+    bangkokNow.getUTCDate(),
+    0,
+    0,
+    0
+  ) - bangkokOffsetMs
+  return {
+    startIso: new Date(dayStartUtcMs).toISOString(),
+    endIso: new Date(dayStartUtcMs + 24 * 60 * 60 * 1000).toISOString()
+  }
+}
+
+async function countOrdersForRiskKey(db: D1Database, whereSql: string, params: any[], startIso: string, endIso: string) {
+  const row = await db.prepare(`
+    SELECT COUNT(*) AS total
+    FROM orders
+    WHERE ${whereSql}
+      AND datetime(created_at) >= datetime(?)
+      AND datetime(created_at) < datetime(?)
+  `).bind(...params, startIso, endIso).first<{ total?: number }>()
+  return Number(row?.total || 0)
+}
+
+async function enforceDailyOrderRiskLimit(
+  db: D1Database,
+  input: {
+    userId: number | null
+    phone: string
+    ipHash: string
+    addressFingerprint: string
+  }
+) {
+  const limit = 2
+  const { startIso, endIso } = getBangkokDayWindow()
+  const checks: Array<{ label: string; whereSql: string; params: any[]; reason: string }> = []
+
+  if (input.userId) {
+    checks.push({
+      label: 'user',
+      whereSql: 'user_id = ?',
+      params: [input.userId],
+      reason: 'Tài khoản này đã đặt tối đa 2 đơn trong hôm nay. Vui lòng quay lại vào ngày mai hoặc liên hệ shop để được hỗ trợ.'
+    })
+  }
+  if (input.phone) {
+    checks.push({
+      label: 'phone',
+      whereSql: 'customer_phone = ?',
+      params: [input.phone],
+      reason: 'Số điện thoại này đã đặt tối đa 2 đơn trong hôm nay. Vui lòng quay lại vào ngày mai hoặc liên hệ shop để được hỗ trợ.'
+    })
+  }
+  if (input.addressFingerprint) {
+    checks.push({
+      label: 'address',
+      whereSql: 'customer_address_fingerprint = ?',
+      params: [input.addressFingerprint],
+      reason: 'Địa chỉ nhận hàng này đã đặt tối đa 2 đơn trong hôm nay. Vui lòng liên hệ shop nếu cần đặt thêm.'
+    })
+  }
+  if (input.ipHash) {
+    checks.push({
+      label: 'ip',
+      whereSql: 'client_ip_hash = ?',
+      params: [input.ipHash],
+      reason: 'Thiết bị hoặc mạng này đã đặt tối đa 2 đơn trong hôm nay. Vui lòng quay lại vào ngày mai hoặc liên hệ shop để được hỗ trợ.'
+    })
+  }
+
+  for (const check of checks) {
+    const count = await countOrdersForRiskKey(db, check.whereSql, check.params, startIso, endIso)
+    if (count >= limit) {
+      return {
+        allowed: false,
+        error: 'ORDER_DAILY_LIMIT_REACHED',
+        reason: check.reason,
+        matched: check.label,
+        limit,
+        count
+      }
+    }
+  }
+
+  return { allowed: true, error: '', reason: '', matched: '', limit, count: 0 }
 }
 
 async function generateUniqueOrderCode(db: D1Database) {
@@ -184,7 +312,7 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
         
         if (normalizedCustomerPhone) {
           if (userId) query += ' OR '
-          query += 'customer_phone = ?'
+          query += "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(TRIM(customer_phone), ' ', ''), '-', ''), '.', ''), '(', ''), ')', ''), '+', '') = ?"
           params.push(normalizedCustomerPhone)
         }
         
@@ -204,6 +332,23 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
           error: 'CUSTOMER_BLOCKED',
           reason: blockReason
         }, 403)
+      }
+
+      const riskIdentity = await buildOrderRiskIdentity(c, customer_address)
+      const riskLimit = await enforceDailyOrderRiskLimit(c.env.DB, {
+        userId,
+        phone: normalizedCustomerPhone,
+        ipHash: riskIdentity.ipHash,
+        addressFingerprint: riskIdentity.addressFingerprint
+      })
+      if (!riskLimit.allowed) {
+        return c.json({
+          success: false,
+          error: riskLimit.error,
+          reason: riskLimit.reason,
+          matched: riskLimit.matched,
+          limit: riskLimit.limit
+        }, 429)
       }
 
       const product = await c.env.DB.prepare(`SELECT * FROM products WHERE id=? AND is_active=1`).bind(product_id).first() as any
@@ -240,14 +385,16 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
 
       const result = await c.env.DB.prepare(`
         INSERT INTO orders 
-          (user_id, order_code, customer_name, customer_phone, customer_address, product_id, product_name, product_price, color, selected_color_image, size, quantity, total_price, voucher_code, discount_amount, note, payment_method)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          (user_id, order_code, customer_name, customer_phone, customer_address, client_ip_hash, customer_address_fingerprint, product_id, product_name, product_price, color, selected_color_image, size, quantity, total_price, voucher_code, discount_amount, note, payment_method)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).bind(
         userId,
         orderCode,
         customer_name,
         normalizedCustomerPhone,
         customer_address,
+        riskIdentity.ipHash || null,
+        riskIdentity.addressFingerprint || null,
         product_id,
         product.name,
         product.price,

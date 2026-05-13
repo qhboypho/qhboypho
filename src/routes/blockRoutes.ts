@@ -10,7 +10,7 @@ function isBlockedValue(value: unknown) {
 }
 
 function normalizeBlockPhone(value: unknown) {
-  return String(value || '').trim().replace(/\s+/g, '')
+  return String(value || '').trim().replace(/\s+/g, '').replace(/[^\d]/g, '')
 }
 
 export function registerBlockRoutes(app: Hono<{ Bindings: AppBindings }>, deps: BlockRouteDeps) {
@@ -53,7 +53,7 @@ export function registerBlockRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
         
         if (phone) {
           if (userId) query += ' OR '
-          query += 'customer_phone = ?'
+          query += "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(TRIM(customer_phone), ' ', ''), '-', ''), '.', ''), '(', ''), ')', ''), '+', '') = ?"
           params.push(phone)
         }
         
