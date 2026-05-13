@@ -818,6 +818,7 @@ async function loadBestSellers() {
   const track = document.getElementById('bestsellersTrack')
   if (!track) return
   try {
+    ensureBestsellerRuntimeStyle()
     const res = await axios.get('/api/bestsellers?limit=10')
     const products = Array.isArray(res.data?.data) ? res.data.data : []
     if (!products.length) { track.innerHTML = '<p class="text-gray-400 text-sm py-4 px-2">Chưa có dữ liệu bán hàng.</p>'; return }
@@ -827,6 +828,7 @@ async function loadBestSellers() {
     track.innerHTML = products.map((p, i) => {
       const flashMeta = getFlashSaleMeta(p)
       const price = Number(flashMeta?.salePrice || p.display_price || p.price || 0)
+      const originalPrice = Number(flashMeta?.basePrice || p.display_original_price || p.original_price || price)
       const soldCount = Number(p.total_sold || 0)
       return \`<div class="bs-card" onclick="showDetail(\${p.id})">
         <div class="relative">
@@ -837,8 +839,11 @@ async function loadBestSellers() {
         </div>
         <div class="p-3">
           <p class="bs-name mb-1.5">\${p.name}</p>
-          <div class="flex items-center justify-between mb-2">
-            <span class="bs-price">\${fmtPrice(price)}</span>
+          <div class="flex items-center justify-between gap-2 mb-2">
+            <div class="flex items-center gap-2 min-w-0 flex-wrap">
+              <span class="bs-price text-gradient-price">\${fmtPrice(price)}</span>
+              \${originalPrice > price ? \`<span class="bs-original-price">\${fmtPrice(originalPrice)}</span>\` : ''}
+            </div>
             <span class="bs-stars">★★★★★</span>
           </div>
           \${p.has_flash_sale ? renderFlashSaleMiniStrip(flashMeta) : ''}
@@ -1677,6 +1682,14 @@ async function loadSettings() {
   } catch (e) {
     console.error('Failed to load banners', e)
   }
+}
+
+function ensureBestsellerRuntimeStyle() {
+  if (document.getElementById('bestsellerRuntimeStyle')) return
+  const style = document.createElement('style')
+  style.id = 'bestsellerRuntimeStyle'
+  style.textContent = '.bs-price{font-size:15px;font-weight:800;white-space:nowrap}.bs-original-price{font-size:11px;color:rgba(148,163,184,.82);text-decoration:line-through;white-space:nowrap}'
+  document.head.appendChild(style)
 }
 
 function prepareHeroBannerShell() {
