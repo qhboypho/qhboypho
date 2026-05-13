@@ -1709,16 +1709,19 @@ function mapTrendingProductsToHeroCards(products) {
   if (!Array.isArray(products)) return []
   return products.map((p) => {
     const imgs = safeJson(p.images)
-    const colors = safeJson(p.colors)
-    const sizes = safeJson(p.sizes)
+    const colors = normalizeColorOptions(p.colors).map((c) => c.name)
+    const sizes = normalizeHeroCardTagList(Array.isArray(p.sizes) ? p.sizes : safeJson(p.sizes))
     const categoryLabel = p.category === 'male' ? 'Nam' : p.category === 'female' ? 'Nu' : 'Unisex'
+    const displayPrice = Number(p.display_price || p.price || 0)
+    const displayOriginalPrice = Number(p.display_original_price || p.original_price || displayPrice)
     return {
       image_url: p.thumbnail || imgs[0] || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400',
       subtitle: categoryLabel + ' · Dang thinh hanh',
       title: p.name || '',
-      price: fmtPrice(p.price || 0),
+      price: fmtPrice(displayPrice),
+      original_price: displayOriginalPrice > displayPrice ? fmtPrice(displayOriginalPrice) : '',
       description: String(p.description || '').trim(),
-      tags: [p.brand, ...colors.slice(0, 2), ...sizes.slice(0, 1)].filter(Boolean).slice(0, 4),
+      tags: normalizeHeroCardTagList([p.brand, ...colors.slice(0, 2), ...sizes.slice(0, 1)]).slice(0, 4),
       product_id: p.id,
       trending_order: Number(p.trending_order || 0),
       updated_at: p.updated_at || '',
@@ -1740,6 +1743,14 @@ function sortHeroCards(cards) {
     if (!Number.isNaN(au) && !Number.isNaN(bu) && au !== bu) return bu - au
     return Number(a.product_id || 0) - Number(b.product_id || 0)
   })
+}
+function normalizeHeroCardTagList(items) {
+  if (!Array.isArray(items)) return []
+  return items.map((item) => {
+    if (typeof item === 'string' || typeof item === 'number') return String(item).trim()
+    if (item && typeof item === 'object') return String(item.name || item.label || item.value || item.size || '').trim()
+    return ''
+  }).filter((tag) => tag && tag !== '[object Object]')
 }
 function isMobileHeroLayout() {
   return window.matchMedia('(max-width: 768px)').matches
@@ -1773,7 +1784,7 @@ function renderCollapsedBanners(banners) {
   if (wrapper) wrapper.style.cursor = 'default'
   container.onclick = null
   container.style.width = hasSettingBannerOnly ? (mobileMode ? 'min(100%, 320px)' : '360px') : (mobileMode ? '100%' : '430px')
-  container.style.height = hasSettingBannerOnly ? (mobileMode ? 'min(82vw, 320px)' : '360px') : (mobileMode ? '440px' : '456px')
+  container.style.height = hasSettingBannerOnly ? (mobileMode ? 'min(82vw, 320px)' : '360px') : (mobileMode ? '520px' : '548px')
   container.style.paddingBottom = '0'
   if (hasSettingBannerOnly) {
     const b = banners[0]
@@ -1794,7 +1805,6 @@ function renderCollapsedBanners(banners) {
     <button type="button" class="hero-carousel-nav hero-carousel-next" aria-label="Sản phẩm tiếp theo" onclick="moveHeroCarousel(1)"><i class="fas fa-chevron-right"></i></button>
   </div>\`
   updateHeroCarousel()
-  startHeroCarouselAutoPlay(shown.length)
 }
 
 function ensureHeroCarouselRuntimeStyle() {
@@ -1805,8 +1815,8 @@ function ensureHeroCarouselRuntimeStyle() {
     #heroBannersWrapper{cursor:default!important}
     #heroBannersCollapsed{position:relative}
     .hero-setting-banner-card{border-radius:1.5rem;overflow:hidden;box-shadow:0 24px 55px rgba(0,0,0,.34);background:rgba(255,255,255,.05)}
-    .hero-3d-carousel{position:relative;width:430px;height:456px;display:flex;align-items:center;justify-content:center;perspective:1100px;overflow:visible}
-    .hero-carousel-stage{position:relative;width:360px;height:430px;transform-style:preserve-3d}
+    .hero-3d-carousel{position:relative;width:430px;height:548px;display:flex;align-items:center;justify-content:center;perspective:1100px;overflow:visible}
+    .hero-carousel-stage{position:relative;width:360px;height:520px;transform-style:preserve-3d}
     .hero-carousel-card{position:absolute;inset:0;border-radius:24px;overflow:hidden;background:#fff;color:#111827;box-shadow:0 28px 70px rgba(0,0,0,.34);border:1px solid rgba(255,255,255,.18);transition:transform .55s cubic-bezier(.2,.8,.2,1),opacity .45s ease,filter .45s ease;will-change:transform,opacity;pointer-events:none}
     .hero-carousel-card[data-offset="0"]{transform:translate3d(0,0,64px) scale(1);opacity:1;filter:none;z-index:6;pointer-events:auto}
     .hero-carousel-card[data-offset="-1"]{transform:translate3d(-30%,6px,-70px) rotateY(12deg) scale(.82);opacity:.56;filter:saturate(.78) brightness(.82);z-index:4}
@@ -1814,17 +1824,22 @@ function ensureHeroCarouselRuntimeStyle() {
     .hero-carousel-card[data-offset="-2"]{transform:translate3d(-45%,18px,-155px) rotateY(18deg) scale(.72);opacity:.18;filter:blur(.5px) brightness(.7);z-index:2}
     .hero-carousel-card[data-offset="2"]{transform:translate3d(45%,18px,-155px) rotateY(-18deg) scale(.72);opacity:.18;filter:blur(.5px) brightness(.7);z-index:2}
     .hero-carousel-card[data-offset="hidden"]{transform:translate3d(0,24px,-220px) scale(.64);opacity:0;filter:blur(2px);z-index:1}
-    .hero-carousel-media{height:44%;min-height:158px;position:relative;overflow:hidden;background:linear-gradient(135deg,#1f2937,#831843)}
+    .hero-carousel-media{position:relative;overflow:hidden;background:linear-gradient(135deg,#1f2937,#831843);aspect-ratio:1/1}
     .hero-carousel-media img{width:100%;height:100%;object-fit:cover;display:block}
     .hero-carousel-media::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(17,24,39,.08),rgba(190,24,93,.24))}
+    .hero-carousel-detail-overlay{position:absolute;inset:0;z-index:3;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0);opacity:0;transition:background .2s ease,opacity .2s ease;border:0;cursor:pointer}
+    .hero-carousel-media:hover .hero-carousel-detail-overlay{background:rgba(0,0,0,.16);opacity:1}
+    .hero-carousel-detail-overlay span{display:inline-flex;align-items:center;gap:.4rem;border-radius:999px;background:rgba(255,255,255,.92);color:#1f2937;font-size:12px;font-weight:700;padding:8px 12px;box-shadow:0 12px 26px rgba(15,23,42,.2)}
     .hero-carousel-kicker{position:absolute;left:18px;right:18px;bottom:16px;color:#fff;font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;text-shadow:0 2px 10px rgba(0,0,0,.38);z-index:2}
-    .hero-carousel-body{height:56%;padding:22px 22px 20px;display:flex;flex-direction:column;gap:12px}
-    .hero-carousel-title{font-family:'Outfit',sans-serif;font-size:22px;font-weight:800;line-height:1.15;color:#0f172a;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
-    .hero-carousel-desc{font-size:14px;line-height:1.48;color:#475569;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;min-height:62px}
-    .hero-carousel-tags{display:flex;gap:7px;flex-wrap:wrap;margin-top:auto}
+    .hero-carousel-body{padding:14px 16px 16px;display:flex;flex-direction:column;gap:9px}
+    .hero-carousel-title{font-family:'Inter',sans-serif;font-size:16px;font-weight:800;line-height:1.28;color:#111827;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+    .hero-carousel-desc{font-size:12px;line-height:1.45;color:#64748b;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;min-height:34px}
+    .hero-carousel-tags{display:flex;gap:6px;flex-wrap:wrap}
     .hero-carousel-tag{font-size:11px;color:#64748b;background:#f1f5f9;border-radius:999px;padding:5px 9px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .hero-carousel-footer{display:flex;align-items:center;justify-content:space-between;gap:12px}
-    .hero-carousel-price{font-size:18px;font-weight:900;color:#db2777;white-space:nowrap}
+    .hero-carousel-price-wrap{display:flex;align-items:center;gap:8px;min-width:0;flex-wrap:wrap}
+    .hero-carousel-price{font-size:16px;font-weight:800;white-space:nowrap}
+    .hero-carousel-original-price{font-size:12px;color:#9ca3af;text-decoration:line-through;white-space:nowrap}
     .hero-carousel-link{border:0;background:transparent;color:#64748b;font-size:14px;font-weight:700;white-space:nowrap;cursor:pointer}
     .hero-carousel-link:hover{color:#db2777}
     .hero-carousel-nav{position:absolute;top:50%;transform:translateY(-50%);z-index:10;width:42px;height:42px;border:0;border-radius:999px;background:rgba(255,255,255,.92);color:#475569;box-shadow:0 12px 28px rgba(15,23,42,.22);display:flex;align-items:center;justify-content:center;transition:transform .2s ease,background .2s ease,color .2s ease}
@@ -1832,8 +1847,8 @@ function ensureHeroCarouselRuntimeStyle() {
     .hero-carousel-prev{left:0}
     .hero-carousel-next{right:0}
     @media (max-width:768px){
-      .hero-3d-carousel{width:100%;height:440px;overflow:hidden;perspective:900px}
-      .hero-carousel-stage{width:min(78vw,320px);height:410px}
+      .hero-3d-carousel{width:100%;height:520px;overflow:hidden;perspective:900px}
+      .hero-carousel-stage{width:min(78vw,320px);height:500px}
       .hero-carousel-card{border-radius:22px}
       .hero-carousel-card[data-offset="-1"]{transform:translate3d(-24%,7px,-80px) rotateY(10deg) scale(.8);opacity:.44}
       .hero-carousel-card[data-offset="1"]{transform:translate3d(24%,7px,-80px) rotateY(-10deg) scale(.8);opacity:.44}
@@ -1841,9 +1856,9 @@ function ensureHeroCarouselRuntimeStyle() {
       .hero-carousel-nav{width:36px;height:36px}
       .hero-carousel-prev{left:4px}
       .hero-carousel-next{right:4px}
-      .hero-carousel-body{padding:18px 18px 17px;gap:10px}
-      .hero-carousel-title{font-size:19px}
-      .hero-carousel-desc{font-size:13px;min-height:58px}
+      .hero-carousel-body{padding:13px 14px 15px;gap:8px}
+      .hero-carousel-title{font-size:16px}
+      .hero-carousel-desc{font-size:12px;min-height:34px}
     }
   \`
   document.head.appendChild(style)
@@ -1854,20 +1869,25 @@ function renderHeroCarouselCard(b, index) {
   const subtitle = escapeHtml(b.subtitle || 'Đang thịnh hành')
   const desc = escapeHtml(b.description || 'Mẫu đang được quan tâm trong bộ sưu tập QH Clothes.')
   const price = escapeHtml(b.price || '')
+  const originalPrice = escapeHtml(b.original_price || '')
   const image = escapeHtml(b.image_url || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400')
-  const tags = Array.isArray(b.tags) && b.tags.length ? b.tags : ['Trending', 'QH Clothes']
+  const tags = normalizeHeroCardTagList(Array.isArray(b.tags) && b.tags.length ? b.tags : ['Trending', 'QH Clothes'])
   const action = b.product_id ? \`onclick="showDetail(\${Number(b.product_id)})"\` : 'onclick="document.getElementById(&quot;products&quot;)?.scrollIntoView({behavior:&quot;smooth&quot;})"'
   return \`<article class="hero-carousel-card" data-hero-index="\${index}" data-offset="hidden" aria-hidden="true">
     <div class="hero-carousel-media">
       <img src="\${image}" alt="\${title}" onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'">
       <p class="hero-carousel-kicker">\${subtitle}</p>
+      <button type="button" class="hero-carousel-detail-overlay" \${action}><span><i class="fas fa-eye"></i>Xem chi tiết</span></button>
     </div>
     <div class="hero-carousel-body">
       <h3 class="hero-carousel-title">\${title}</h3>
       <p class="hero-carousel-desc">\${desc}</p>
       <div class="hero-carousel-tags">\${tags.map((tag) => \`<span class="hero-carousel-tag">\${escapeHtml(tag)}</span>\`).join('')}</div>
       <div class="hero-carousel-footer">
-        <p class="hero-carousel-price">\${price}</p>
+        <div class="hero-carousel-price-wrap">
+          <span class="hero-carousel-price text-gradient-price">\${price}</span>
+          \${originalPrice ? \`<span class="hero-carousel-original-price">\${originalPrice}</span>\` : ''}
+        </div>
         <button type="button" class="hero-carousel-link" \${action}>Xem sản phẩm <i class="fas fa-arrow-right ml-1"></i></button>
       </div>
     </div>
@@ -1899,7 +1919,6 @@ function moveHeroCarousel(direction) {
   if (!total) return
   heroCarouselIndex = (heroCarouselIndex + direction + total) % total
   updateHeroCarousel()
-  startHeroCarouselAutoPlay(total)
 }
 
 function stopHeroCarouselAutoPlay() {
@@ -1910,8 +1929,6 @@ function stopHeroCarouselAutoPlay() {
 
 function startHeroCarouselAutoPlay(total) {
   stopHeroCarouselAutoPlay()
-  if (total <= 1) return
-  heroCarouselTimer = window.setInterval(() => moveHeroCarousel(1), 5200)
 }
 
 function renderHeroSettingCaption(b, mode) {
