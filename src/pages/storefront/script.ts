@@ -1945,7 +1945,7 @@ function ensureStorefrontMarqueeRuntimeStyle() {
   if (document.getElementById('storefrontMarqueeRuntimeStyle')) return
   const style = document.createElement('style')
   style.id = 'storefrontMarqueeRuntimeStyle'
-  style.textContent = '.storefront-marquee-track{animation:storefrontMarqueeImmediate var(--storefront-marquee-duration,48s) linear infinite!important;animation-delay:0s!important;transform:translateX(0)}@keyframes storefrontMarqueeImmediate{from{transform:translateX(0)}to{transform:translateX(-33.333%)}}'
+  style.textContent = '.storefront-marquee-track{animation:storefrontMarqueeImmediate var(--storefront-marquee-duration,48s) linear infinite!important;animation-delay:0s!important;transform:translateX(100vw)}@keyframes storefrontMarqueeImmediate{from{transform:translateX(100vw)}to{transform:translateX(-100%)}}'
   document.head.appendChild(style)
 }
 
