@@ -1,4 +1,5 @@
 import { storefrontStyles } from './storefront/styles'
+import { storefrontThemeRefreshStyles } from './storefront/theme-refresh'
 import {
   storefrontBodyOpen,
   storefrontNavbarSection,
@@ -42,6 +43,9 @@ export function storefrontHTML(): string {
 <script src="https://cdn.jsdelivr.net/npm/typed.js@3.0.0/dist/typed.umd.js"></script>
 <style>
 ${storefrontStyles()}
+</style>
+<style>
+${storefrontThemeRefreshStyles()}
 </style>
 </head>
 ${storefrontBodyOpen()}
