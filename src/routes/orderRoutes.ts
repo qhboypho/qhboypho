@@ -39,6 +39,10 @@ function normalizeRiskAddress(value: unknown) {
     .replace(/\s+/g, ' ')
 }
 
+function normalizeDeviceId(value: unknown) {
+  return String(value || '').trim().replace(/[^a-zA-Z0-9._:-]/g, '').slice(0, 120)
+}
+
 function toHex(bytes: Uint8Array): string {
   return Array.from(bytes).map((byte) => byte.toString(16).padStart(2, '0')).join('')
 }
@@ -101,6 +105,7 @@ async function enforceDailyOrderRiskLimit(
     phone: string
     ipHash: string
     addressFingerprint: string
+    deviceHash: string
   }
 ) {
   const limit = 2
@@ -137,6 +142,14 @@ async function enforceDailyOrderRiskLimit(
       whereSql: 'client_ip_hash = ?',
       params: [input.ipHash],
       reason: 'Thiết bị hoặc mạng này đã đặt tối đa 2 đơn trong hôm nay. Vui lòng quay lại vào ngày mai hoặc liên hệ shop để được hỗ trợ.'
+    })
+  }
+  if (input.deviceHash) {
+    checks.push({
+      label: 'device',
+      whereSql: 'device_hash = ?',
+      params: [input.deviceHash],
+      reason: 'Thiết bị này đã đặt tối đa 2 đơn trong hôm nay. Vui lòng quay lại vào ngày mai hoặc liên hệ shop để được hỗ trợ.'
     })
   }
 
@@ -276,10 +289,11 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
       const body = await c.req.json()
       const {
         customer_name, customer_phone, customer_address,
-        product_id, color, selected_color_image, size, quantity, note, voucher_code, payment_method
+        product_id, color, selected_color_image, size, quantity, note, voucher_code, payment_method, device_id
       } = body
 
       const normalizedCustomerPhone = normalizeOrderPhone(customer_phone)
+      const normalizedDeviceId = normalizeDeviceId(device_id)
 
       if (!customer_name || !normalizedCustomerPhone || !customer_address || !product_id) {
         return c.json({ success: false, error: 'Missing required fields' }, 400)
@@ -335,11 +349,13 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
       }
 
       const riskIdentity = await buildOrderRiskIdentity(c, customer_address)
+      const deviceHash = normalizedDeviceId ? await sha256Hex(`order-device:${normalizedDeviceId}`) : ''
       const riskLimit = await enforceDailyOrderRiskLimit(c.env.DB, {
         userId,
         phone: normalizedCustomerPhone,
         ipHash: riskIdentity.ipHash,
-        addressFingerprint: riskIdentity.addressFingerprint
+        addressFingerprint: riskIdentity.addressFingerprint,
+        deviceHash
       })
       if (!riskLimit.allowed) {
         return c.json({
@@ -385,8 +401,8 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
 
       const result = await c.env.DB.prepare(`
         INSERT INTO orders 
-          (user_id, order_code, customer_name, customer_phone, customer_address, client_ip_hash, customer_address_fingerprint, product_id, product_name, product_price, color, selected_color_image, size, quantity, total_price, voucher_code, discount_amount, note, payment_method)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          (user_id, order_code, customer_name, customer_phone, customer_address, client_ip_hash, customer_address_fingerprint, device_hash, product_id, product_name, product_price, color, selected_color_image, size, quantity, total_price, voucher_code, discount_amount, note, payment_method)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).bind(
         userId,
         orderCode,
@@ -395,6 +411,7 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
         customer_address,
         riskIdentity.ipHash || null,
         riskIdentity.addressFingerprint || null,
+        deviceHash || null,
         product_id,
         product.name,
         product.price,

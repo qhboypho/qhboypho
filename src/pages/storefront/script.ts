@@ -33,12 +33,53 @@ let currentUser = null
 let isAdminUser = false
 let cartStorageKey = 'qhclothes_cart_guest'
 const STOREFRONT_THEME_KEY = 'qhclothes_storefront_theme'
+const STOREFRONT_DEVICE_KEY = 'qhclothes_device_id'
 const ADDRESS_EFFECTIVE_DATE = 'latest'
 let addressProvinceOptions = []
 let addressCommuneOptionsByProvince = {}
 let addressKitLoadingPromise = null
 let addressAutoFillInProgress = false
 const addressDropdownSearchState = {}
+
+function createStorefrontDeviceId() {
+  const random = new Uint8Array(16)
+  if (window.crypto && window.crypto.getRandomValues) {
+    window.crypto.getRandomValues(random)
+  } else {
+    for (let i = 0; i < random.length; i += 1) random[i] = Math.floor(Math.random() * 256)
+  }
+  const hex = Array.from(random).map((byte) => byte.toString(16).padStart(2, '0')).join('')
+  return 'qh_' + Date.now().toString(36) + '_' + hex
+}
+
+function getCookieValue(name) {
+  const prefix = name + '='
+  return document.cookie
+    .split(';')
+    .map((item) => item.trim())
+    .find((item) => item.indexOf(prefix) === 0)
+    ?.slice(prefix.length) || ''
+}
+
+function persistStorefrontDeviceId(deviceId) {
+  try { localStorage.setItem(STOREFRONT_DEVICE_KEY, deviceId) } catch (_) { }
+  try {
+    document.cookie = STOREFRONT_DEVICE_KEY + '=' + encodeURIComponent(deviceId) + '; Max-Age=31536000; Path=/; SameSite=Lax'
+  } catch (_) { }
+}
+
+function getStorefrontDeviceId() {
+  let deviceId = ''
+  try { deviceId = localStorage.getItem(STOREFRONT_DEVICE_KEY) || '' } catch (_) { }
+  if (!deviceId) {
+    try { deviceId = decodeURIComponent(getCookieValue(STOREFRONT_DEVICE_KEY) || '') } catch (_) { deviceId = '' }
+  }
+  if (!/^qh_[a-z0-9]+_[a-f0-9]{32}$/i.test(deviceId)) {
+    deviceId = createStorefrontDeviceId()
+  }
+  persistStorefrontDeviceId(deviceId)
+  return deviceId
+}
 
 function loadStorefrontThemePreference() {
   try {
@@ -1586,7 +1627,8 @@ async function submitCartOrder() {
         quantity: item.qty,
         voucher_code: ckAppliedVoucher ? ckAppliedVoucher.code : '',
         note,
-        payment_method: paymentMethod
+        payment_method: paymentMethod,
+        device_id: getStorefrontDeviceId()
       })
       createdOrders.push({
         orderCode: res.data.order_code,

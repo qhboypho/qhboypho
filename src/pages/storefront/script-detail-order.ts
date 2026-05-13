@@ -597,7 +597,8 @@ async function submitOrder() {
       quantity: orderQty,
       voucher_code: appliedVoucher ? appliedVoucher.code : '',
       note: document.getElementById('orderNote').value.trim(),
-      payment_method: paymentMethod
+      payment_method: paymentMethod,
+      device_id: getStorefrontDeviceId()
     })
     closeOrder()
     const orderCode = res.data.order_code
