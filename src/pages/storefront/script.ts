@@ -10,6 +10,9 @@ let selectedSize = ''
 let selectedPaymentMethod = ''
 let pendingBankTransferOrder = null
 let bankTransferPollTimer = null
+const PRODUCT_PREVIEW_ROWS = 3
+const PRODUCT_MODAL_PAGE_SIZE = 24
+let productsModalVisibleCount = PRODUCT_MODAL_PAGE_SIZE
 let zaloPayLinkTab = null
 let appliedVoucher = null   // { code, discount_amount }
 let detailColorOptions = []
@@ -955,47 +958,107 @@ async function loadFlashSaleShop() {
 function renderProducts(products) {
   const grid = document.getElementById('productsGrid')
   const empty = document.getElementById('emptyState')
+  const moreWrap = document.getElementById('productsMoreWrap')
+  const moreCount = document.getElementById('productsMoreCount')
   if (!products.length) {
     grid.innerHTML = ''
     empty.classList.remove('hidden')
+    if (moreWrap) moreWrap.classList.add('hidden')
     return
   }
   empty.classList.add('hidden')
-  grid.innerHTML = products.map(p => {
-    const colors = getProductColorOptions(p).map((c) => c.name)
-    const flashMeta = getFlashSaleMeta(p)
-    const displayPrice = Number(flashMeta?.salePrice || p.display_price || p.price || 0)
-    const displayOriginalPrice = Number(flashMeta?.basePrice || p.display_original_price || p.original_price || displayPrice)
-    const discount = flashMeta ? Number(flashMeta.discountPercent || 0) : (p.original_price ? Math.round((1 - p.price/p.original_price)*100) : 0)
-    return \`
-    <div class="product-card bg-white rounded-2xl overflow-hidden card-hover shadow-sm border border-gray-100 cursor-pointer" onclick="showDetail(\${p.id})">
-      <div class="relative overflow-hidden bg-gray-100">
-        <img src="\${p.thumbnail || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'}"
-          alt="\${p.name}" class="w-full product-img-main" loading="lazy"
-          onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'">
-        \${!p.has_flash_sale && discount > 0 ? \`<span class="absolute top-3 left-3 badge-sale text-white text-xs font-bold px-2 py-1 rounded-full">-\${discount}%</span>\` : ''}
-        \${p.is_featured ? \`<span class="absolute top-3 right-3 bg-amber-400 text-white text-xs font-bold px-2 py-1 rounded-full">⭐ Hot</span>\` : ''}
-        <div class="absolute inset-0 bg-black/0 hover:bg-black/10 transition flex items-center justify-center opacity-0 hover:opacity-100">
-          <span class="bg-white/90 text-gray-800 px-3 py-1 rounded-full text-xs font-semibold">Xem chi tiết</span>
-        </div>
+  const limit = getProductPreviewLimit()
+  const visible = products.slice(0, limit)
+  grid.innerHTML = visible.map((p) => renderStorefrontProductCard(p)).join('')
+  const hiddenCount = Math.max(0, products.length - visible.length)
+  if (moreWrap) moreWrap.classList.toggle('hidden', hiddenCount <= 0)
+  if (moreCount) moreCount.textContent = hiddenCount > 0 ? '(' + hiddenCount + ')' : ''
+  startFlashSaleCountdownTicker()
+}
+
+function getProductPreviewLimit() {
+  const w = window.innerWidth || document.documentElement.clientWidth || 1024
+  const cols = w >= 1024 ? 4 : w >= 768 ? 3 : 2
+  return cols * PRODUCT_PREVIEW_ROWS
+}
+
+function renderStorefrontProductCard(p) {
+  const colors = getProductColorOptions(p).map((c) => c.name)
+  const flashMeta = getFlashSaleMeta(p)
+  const displayPrice = Number(flashMeta?.salePrice || p.display_price || p.price || 0)
+  const displayOriginalPrice = Number(flashMeta?.basePrice || p.display_original_price || p.original_price || displayPrice)
+  const discount = flashMeta ? Number(flashMeta.discountPercent || 0) : (p.original_price ? Math.round((1 - p.price/p.original_price)*100) : 0)
+  return \`
+  <div class="product-card bg-white rounded-2xl overflow-hidden card-hover shadow-sm border border-gray-100 cursor-pointer" onclick="openProductDetailFromCard(\${p.id})">
+    <div class="relative overflow-hidden bg-gray-100">
+      <img src="\${p.thumbnail || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'}"
+        alt="\${p.name}" class="w-full product-img-main" loading="lazy"
+        onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'">
+      \${!p.has_flash_sale && discount > 0 ? \`<span class="absolute top-3 left-3 badge-sale text-white text-xs font-bold px-2 py-1 rounded-full">-\${discount}%</span>\` : ''}
+      \${p.is_featured ? \`<span class="absolute top-3 right-3 bg-amber-400 text-white text-xs font-bold px-2 py-1 rounded-full">⭐ Hot</span>\` : ''}
+      <div class="absolute inset-0 bg-black/0 hover:bg-black/10 transition flex items-center justify-center opacity-0 hover:opacity-100">
+        <span class="bg-white/90 text-gray-800 px-3 py-1 rounded-full text-xs font-semibold">Xem chi tiết</span>
       </div>
-      <div class="p-3 md:p-4">
-        \${p.brand ? \`<p class="text-xs text-pink-500 font-medium mb-1">\${p.brand}</p>\` : ''}
-        <h3 class="font-semibold text-gray-900 text-sm leading-tight mb-2 line-clamp-2">\${p.name}</h3>
-        <div class="flex items-center gap-2 mb-3">
-          <span class="text-gradient-price font-bold">\${fmtPrice(displayPrice)}</span>
-          \${displayOriginalPrice > displayPrice ? \`<span class="text-gray-400 text-xs line-through">\${fmtPrice(displayOriginalPrice)}</span>\` : ''}
-        </div>
-        \${p.has_flash_sale ? renderFlashSaleMiniStrip(flashMeta) : ''}
-        \${colors.length > 0 ? \`
-        <div class="flex gap-1 mb-3 flex-wrap">
-          \${colors.slice(0,4).map(c => \`<span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">\${c}</span>\`).join('')}
-          \${colors.length > 4 ? \`<span class="text-xs text-gray-400">+\${colors.length-4}</span>\` : ''}
-        </div>\` : ''}
-        \${renderProductCardActions(p.id)}
+    </div>
+    <div class="p-3 md:p-4">
+      \${p.brand ? \`<p class="text-xs text-pink-500 font-medium mb-1">\${p.brand}</p>\` : ''}
+      <h3 class="font-semibold text-gray-900 text-sm leading-tight mb-2 line-clamp-2">\${p.name}</h3>
+      <div class="flex items-center gap-2 mb-3 flex-wrap">
+        <span class="text-gradient-price font-bold">\${fmtPrice(displayPrice)}</span>
+        \${displayOriginalPrice > displayPrice ? \`<span class="text-gray-400 text-xs line-through">\${fmtPrice(displayOriginalPrice)}</span>\` : ''}
       </div>
-    </div>\`
-  }).join('')
+      \${p.has_flash_sale ? renderFlashSaleMiniStrip(flashMeta) : ''}
+      \${colors.length > 0 ? \`
+      <div class="flex gap-1 mb-3 flex-wrap">
+        \${colors.slice(0,4).map(c => \`<span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">\${c}</span>\`).join('')}
+        \${colors.length > 4 ? \`<span class="text-xs text-gray-400">+\${colors.length-4}</span>\` : ''}
+      </div>\` : ''}
+      \${renderProductCardActions(p.id)}
+    </div>
+  </div>\`
+}
+
+function openProductsModal() {
+  productsModalVisibleCount = PRODUCT_MODAL_PAGE_SIZE
+  renderProductsModal()
+  document.getElementById('productsModalOverlay')?.classList.remove('hidden')
+  document.body.style.overflow = 'hidden'
+}
+
+function closeProductsModal() {
+  document.getElementById('productsModalOverlay')?.classList.add('hidden')
+  document.body.style.overflow = ''
+}
+
+function openProductDetailFromCard(productId) {
+  if (!document.getElementById('productsModalOverlay')?.classList.contains('hidden')) closeProductsModal()
+  showDetail(productId)
+}
+
+function openOrderFromProductCard(productId) {
+  if (!document.getElementById('productsModalOverlay')?.classList.contains('hidden')) closeProductsModal()
+  openOrder(productId)
+}
+
+function addToCartFromProductCard(event, productId) {
+  if (!document.getElementById('productsModalOverlay')?.classList.contains('hidden')) closeProductsModal()
+  addToCartFromCard(event, productId)
+}
+
+function loadMoreProductsModal() {
+  productsModalVisibleCount += PRODUCT_MODAL_PAGE_SIZE
+  renderProductsModal()
+}
+
+function renderProductsModal() {
+  const grid = document.getElementById('productsModalGrid')
+  const meta = document.getElementById('productsModalMeta')
+  const loadMoreBtn = document.getElementById('productsModalLoadMore')
+  if (!grid) return
+  const visible = filteredProducts.slice(0, productsModalVisibleCount)
+  grid.innerHTML = visible.map((p) => renderStorefrontProductCard(p)).join('')
+  if (meta) meta.textContent = 'Đang hiển thị ' + visible.length + ' / ' + filteredProducts.length + ' sản phẩm'
+  if (loadMoreBtn) loadMoreBtn.classList.toggle('hidden', visible.length >= filteredProducts.length)
   startFlashSaleCountdownTicker()
 }
 
@@ -1137,8 +1200,8 @@ function renderProductCardActions(productId) {
     return '<div class="flex gap-2">' + renderBlockedPurchaseActions('flex-1 py-2 rounded-xl text-sm font-semibold') + '<button type="button" onclick="event.stopPropagation();showBlockedCustomerModal(getCurrentUserBlockReason())" title="Không thể đặt hàng" class="w-10 h-9 flex items-center justify-center rounded-xl bg-red-50 text-red-500 border border-red-100 cursor-not-allowed"><i class="fas fa-ban text-sm"></i></button></div>'
   }
   return '<div class="flex gap-2">'
-    + '<button onclick="event.stopPropagation();openOrder(' + productId + ')" title="Mua ngay" class="btn-primary flex-1 text-white py-2 rounded-xl text-sm font-semibold"><i class="fas fa-bolt mr-1"></i>Mua ngay</button>'
-    + '<button onclick="event.stopPropagation();addToCartFromCard(event, ' + productId + ')" title="Thêm vào giỏ hàng" class="add-to-cart-btn w-10 h-9 flex items-center justify-center text-white rounded-xl transition group relative"><i class="fas fa-shopping-bag text-sm"></i></button>'
+    + '<button onclick="event.stopPropagation();openOrderFromProductCard(' + productId + ')" title="Mua ngay" class="btn-primary flex-1 text-white py-2 rounded-xl text-sm font-semibold"><i class="fas fa-bolt mr-1"></i>Mua ngay</button>'
+    + '<button onclick="event.stopPropagation();addToCartFromProductCard(event, ' + productId + ')" title="Thêm vào giỏ hàng" class="add-to-cart-btn w-10 h-9 flex items-center justify-center text-white rounded-xl transition group relative"><i class="fas fa-shopping-bag text-sm"></i></button>'
     + '</div>'
 }
 
@@ -1569,9 +1632,11 @@ function toggleCart() { openCart() }
 document.getElementById('orderOverlay').addEventListener('click', (e) => { if(e.target.id==='orderOverlay') closeOrder() })
 document.getElementById('detailOverlay').addEventListener('click', (e) => { if(e.target.id==='detailOverlay') closeDetail() })
 document.getElementById('orderBankTransferOverlay').addEventListener('click', (e) => { if (e.target.id === 'orderBankTransferOverlay') closeOrderBankTransferModal() })
+document.getElementById('productsModalOverlay')?.addEventListener('click', (e) => { if (e.target.id === 'productsModalOverlay') closeProductsModal() })
 const storefrontClosableOverlays = [
   { id: 'orderBankTransferOverlay', close: () => closeOrderBankTransferModal() },
   { id: 'shippingJourneyOverlay', close: () => closeShippingJourneyModal() },
+  { id: 'productsModalOverlay', close: () => closeProductsModal() },
   { id: 'orderOverlay', close: () => closeOrder() },
   { id: 'detailOverlay', close: () => closeDetail() },
   { id: 'cartOverlay', close: () => closeCart() },
@@ -2008,6 +2073,11 @@ window.addEventListener('resize', () => {
   if (mobileMode !== lastHeroMobileMode) {
     renderCollapsedBanners(heroBannersData)
     lastHeroMobileMode = mobileMode
+  }
+  if (Array.isArray(filteredProducts) && filteredProducts.length && !document.getElementById('productsModalOverlay')?.classList.contains('hidden')) {
+    renderProductsModal()
+  } else if (Array.isArray(filteredProducts) && filteredProducts.length) {
+    renderProducts(filteredProducts)
   }
 })
 
