@@ -1019,7 +1019,7 @@ function renderProducts(products) {
 
 function getProductPreviewLimit() {
   const w = window.innerWidth || document.documentElement.clientWidth || 1024
-  const cols = w >= 1024 ? 4 : w >= 768 ? 3 : 2
+  const cols = w >= 1024 ? 4 : w >= 768 ? 3 : 1
   return cols * PRODUCT_PREVIEW_ROWS
 }
 
@@ -1241,8 +1241,8 @@ function renderProductCardActions(productId) {
     return '<div class="flex gap-2">' + renderBlockedPurchaseActions('flex-1 py-2 rounded-xl text-sm font-semibold') + '<button type="button" onclick="event.stopPropagation();showBlockedCustomerModal(getCurrentUserBlockReason())" title="Không thể đặt hàng" class="blocked-order-icon-btn w-10 h-9"><i class="fas fa-ban text-sm"></i></button></div>'
   }
   return '<div class="flex gap-2">'
-    + '<button onclick="event.stopPropagation();openOrderFromProductCard(' + productId + ')" title="Mua ngay" class="btn-primary flex-1 text-white py-2 rounded-xl text-sm font-semibold"><i class="fas fa-bolt mr-1"></i>Mua ngay</button>'
-    + '<button onclick="event.stopPropagation();addToCartFromProductCard(event, ' + productId + ')" title="Thêm vào giỏ hàng" class="add-to-cart-btn w-10 h-9 flex items-center justify-center text-white rounded-xl transition group relative"><i class="fas fa-shopping-bag text-sm"></i></button>'
+    + '<button onclick="event.stopPropagation();openOrderFromProductCard(' + productId + ')" title="Mua ngay" class="product-buy-btn btn-primary text-white py-2 rounded-xl text-sm font-semibold"><i class="fas fa-bolt mr-1"></i>Mua ngay</button>'
+    + '<button onclick="event.stopPropagation();addToCartFromProductCard(event, ' + productId + ')" title="Thêm vào giỏ hàng" class="product-cart-btn add-to-cart-btn h-9 flex items-center justify-center gap-1.5 text-white rounded-xl transition group relative"><i class="fas fa-shopping-bag text-sm"></i><span>Thêm giỏ</span></button>'
     + '</div>'
 }
 
