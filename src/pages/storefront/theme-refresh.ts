@@ -205,11 +205,11 @@ export function storefrontThemeRefreshStyles(): string {
     box-shadow: 0 14px 34px rgba(59,130,246,0.28), 0 10px 28px rgba(236,63,173,0.22) !important;
   }
   #filterBar {
-    background: rgba(5,15,34,0.86) !important;
+    background: rgba(255,255,255,0.86) !important;
     border: 1px solid var(--qh-border) !important;
     box-shadow: var(--qh-shadow) !important;
-    max-width: 96rem;
-    margin: 1rem auto 0;
+    max-width: none;
+    margin: 0 0 1.5rem;
     border-radius: 1.1rem;
     top: 6rem !important;
   }
@@ -218,7 +218,7 @@ export function storefrontThemeRefreshStyles(): string {
     color: var(--qh-muted) !important;
   }
   .filter-btn {
-    background: rgba(111,148,202,0.18);
+    background: rgba(241,245,249,0.9);
     border-color: var(--qh-border) !important;
   }
   .filter-btn.active {
@@ -228,12 +228,25 @@ export function storefrontThemeRefreshStyles(): string {
     box-shadow: 0 0 0 1px rgba(106,184,255,0.28), 0 0 22px rgba(49,151,255,0.34) !important;
   }
   #searchInput {
-    background: rgba(5,17,38,0.74) !important;
-    color: var(--qh-text) !important;
+    background: rgba(255,255,255,0.92) !important;
+    color: #0f172a !important;
     border-color: var(--qh-border) !important;
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.55);
   }
-  body[data-storefront-theme='dark'] #searchInput,
+  #searchInput::placeholder {
+    color: #64748b !important;
+    opacity: 1;
+  }
+  body[data-storefront-theme='dark'] #filterBar {
+    background: rgba(5,15,34,0.86) !important;
+  }
+  body[data-storefront-theme='dark'] #searchInput {
+    background: rgba(6,20,40,0.72) !important;
+    color: #f8fbff !important;
+  }
+  body[data-storefront-theme='dark'] #searchInput::placeholder {
+    color: #9fb0ca !important;
+  }
   body[data-storefront-theme='dark'] .filter-btn {
     background: rgba(6,20,40,0.72) !important;
   }
@@ -557,9 +570,9 @@ export function storefrontThemeRefreshStyles(): string {
     #filterBar {
       top: 5rem !important;
       border-radius: 1rem;
-      margin-left: 0.75rem;
-      margin-right: 0.75rem;
-      max-width: calc(100% - 1.5rem);
+      margin-left: 0;
+      margin-right: 0;
+      max-width: 100%;
     }
     #products,
     #bestsellersSection,

@@ -5,7 +5,6 @@ import {
   storefrontNavbarSection,
   storefrontHeroSection,
   storefrontBestsellersSection,
-  storefrontFilterBarSection,
   storefrontFlashSaleShopSection,
   storefrontProductsSection,
   storefrontFeaturesSection,
@@ -55,8 +54,6 @@ ${storefrontNavbarSection()}
 ${storefrontHeroSection()}
 
 ${storefrontBestsellersSection()}
-
-${storefrontFilterBarSection()}
 
 ${storefrontFlashSaleShopSection()}
 
