@@ -221,7 +221,7 @@ export function storefrontThemeRefreshStyles(): string {
     background: rgba(241,245,249,0.9);
     border-color: var(--qh-border) !important;
   }
-  .filter-btn.active {
+  #filterBar .filter-btn.active {
     color: #fff !important;
     background: linear-gradient(135deg, #337cff, #8d55ff 45%, #ec4fbe) !important;
     border-color: rgba(255,255,255,0.34) !important;
