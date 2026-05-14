@@ -12,7 +12,7 @@ export function storefrontThemeRefreshStyles(): string {
     --qh-glow-blue: rgba(49,151,255,0.34);
     --qh-glow-pink: rgba(219,75,255,0.3);
     --qh-shadow: 0 28px 80px rgba(0,0,0,0.44), 0 0 42px rgba(39,139,255,0.14), inset 0 1px 0 rgba(255,255,255,0.08);
-    --qh-card-bg: linear-gradient(135deg, rgba(3,15,35,0.98) 0%, rgba(5,17,42,0.96) 47%, rgba(36,18,70,0.94) 100%);
+    --qh-card-bg: radial-gradient(circle at 88% 12%, rgba(91,38,150,0.34), transparent 38%), linear-gradient(135deg, rgba(2,13,31,0.99) 0%, rgba(4,15,38,0.98) 58%, rgba(23,15,55,0.96) 100%);
     --qh-chip-bg: linear-gradient(180deg, rgba(122,177,246,0.45), rgba(44,86,139,0.55));
     --qh-chip-border: rgba(159,203,255,0.56);
     --qh-price-gradient: linear-gradient(135deg, #8e5dff 0%, #c768ff 42%, #ff63d5 100%);
@@ -228,7 +228,8 @@ export function storefrontThemeRefreshStyles(): string {
   .bs-card,
   .flash-sale-shop-card {
     background:
-      linear-gradient(145deg, rgba(3,17,42,0.98) 0%, rgba(6,17,42,0.97) 48%, rgba(42,19,78,0.94) 100%) padding-box,
+      radial-gradient(circle at 92% 12%, rgba(105,43,170,0.34), transparent 38%) padding-box,
+      linear-gradient(135deg, rgba(2,13,31,0.99) 0%, rgba(4,15,38,0.98) 58%, rgba(23,15,55,0.96) 100%) padding-box,
       linear-gradient(135deg, rgba(85,222,252,0.95) 0%, rgba(57,149,255,0.55) 28%, rgba(139,85,255,0.42) 58%, rgba(236,91,255,0.96) 100%) border-box !important;
     border: 1px solid transparent !important;
     box-shadow: 0 18px 48px rgba(0,0,0,0.42), 0 0 30px rgba(57,149,255,0.17), 0 0 32px rgba(236,91,255,0.12), inset 0 0 0 1px rgba(255,255,255,0.06), inset 0 1px 0 rgba(255,255,255,0.08) !important;
@@ -247,7 +248,7 @@ export function storefrontThemeRefreshStyles(): string {
   .bs-card::after,
   .flash-sale-shop-card::after,
   .hero-carousel-card::after {
-    content: '';
+    content: none;
     position: absolute;
     pointer-events: none;
     z-index: 0;
@@ -304,7 +305,8 @@ export function storefrontThemeRefreshStyles(): string {
   .flash-sale-shop-card:hover {
     border-color: transparent !important;
     background:
-      linear-gradient(145deg, rgba(4,21,52,0.99) 0%, rgba(6,18,44,0.98) 48%, rgba(50,22,88,0.95) 100%) padding-box,
+      radial-gradient(circle at 92% 12%, rgba(119,49,191,0.38), transparent 40%) padding-box,
+      linear-gradient(135deg, rgba(3,17,40,0.99) 0%, rgba(5,17,43,0.99) 58%, rgba(29,17,64,0.97) 100%) padding-box,
       linear-gradient(135deg, rgba(94,231,255,1) 0%, rgba(52,139,255,0.72) 30%, rgba(139,85,255,0.6) 58%, rgba(255,91,220,1) 100%) border-box !important;
     box-shadow: 0 24px 64px rgba(0,0,0,0.48), 0 0 40px rgba(77,163,255,0.24), 0 0 38px rgba(236,91,255,0.18), inset 0 0 0 1px rgba(255,255,255,0.08) !important;
   }
@@ -364,7 +366,8 @@ export function storefrontThemeRefreshStyles(): string {
   body[data-storefront-theme='dark'] .bs-card,
   body[data-storefront-theme='dark'] .flash-sale-shop-card {
     background:
-      linear-gradient(145deg, rgba(3,17,42,0.99) 0%, rgba(6,17,42,0.98) 48%, rgba(42,19,78,0.95) 100%) padding-box,
+      radial-gradient(circle at 92% 12%, rgba(105,43,170,0.35), transparent 38%) padding-box,
+      linear-gradient(135deg, rgba(2,13,31,0.99) 0%, rgba(4,15,38,0.99) 58%, rgba(23,15,55,0.97) 100%) padding-box,
       linear-gradient(135deg, rgba(85,222,252,0.98) 0%, rgba(57,149,255,0.58) 28%, rgba(139,85,255,0.45) 58%, rgba(236,91,255,0.98) 100%) border-box !important;
     border-color: transparent !important;
     box-shadow: 0 22px 58px rgba(0,0,0,0.48), 0 0 34px rgba(57,149,255,0.18), 0 0 34px rgba(236,91,255,0.13), inset 0 0 0 1px rgba(255,255,255,0.06), inset 0 1px 0 rgba(255,255,255,0.08) !important;
