@@ -1233,12 +1233,12 @@ function assertCustomerCanShop() {
 
 function renderBlockedPurchaseActions(extraClass) {
   const cls = extraClass || 'w-full rounded-2xl py-3 text-sm font-semibold'
-  return '<button type="button" onclick="event.stopPropagation();showBlockedCustomerModal(getCurrentUserBlockReason())" class="' + cls + ' bg-red-50 text-red-600 border border-red-100 cursor-not-allowed"><i class="fas fa-ban mr-1"></i>Không thể đặt hàng</button>'
+  return '<button type="button" onclick="event.stopPropagation();showBlockedCustomerModal(getCurrentUserBlockReason())" class="blocked-order-btn ' + cls + '"><i class="fas fa-ban"></i><span>Không thể đặt hàng</span></button>'
 }
 
 function renderProductCardActions(productId) {
   if (isCurrentUserBlocked()) {
-    return '<div class="flex gap-2">' + renderBlockedPurchaseActions('flex-1 py-2 rounded-xl text-sm font-semibold') + '<button type="button" onclick="event.stopPropagation();showBlockedCustomerModal(getCurrentUserBlockReason())" title="Không thể đặt hàng" class="w-10 h-9 flex items-center justify-center rounded-xl bg-red-50 text-red-500 border border-red-100 cursor-not-allowed"><i class="fas fa-ban text-sm"></i></button></div>'
+    return '<div class="flex gap-2">' + renderBlockedPurchaseActions('flex-1 py-2 rounded-xl text-sm font-semibold') + '<button type="button" onclick="event.stopPropagation();showBlockedCustomerModal(getCurrentUserBlockReason())" title="Không thể đặt hàng" class="blocked-order-icon-btn w-10 h-9"><i class="fas fa-ban text-sm"></i></button></div>'
   }
   return '<div class="flex gap-2">'
     + '<button onclick="event.stopPropagation();openOrderFromProductCard(' + productId + ')" title="Mua ngay" class="btn-primary flex-1 text-white py-2 rounded-xl text-sm font-semibold"><i class="fas fa-bolt mr-1"></i>Mua ngay</button>'

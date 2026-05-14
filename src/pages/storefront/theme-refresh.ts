@@ -355,6 +355,41 @@ export function storefrontThemeRefreshStyles(): string {
     color: rgba(173,184,208,0.68) !important;
     text-decoration-color: rgba(173,184,208,0.7) !important;
   }
+  .blocked-order-btn,
+  .blocked-order-icon-btn {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.6rem !important;
+    border: 1px solid rgba(255,115,124,0.78) !important;
+    background:
+      radial-gradient(circle at 18% 50%, rgba(96,165,250,0.2), transparent 34%),
+      linear-gradient(135deg, rgba(255,238,238,0.94), rgba(255,244,244,0.9)) !important;
+    color: #ef4444 !important;
+    box-shadow: 0 0 0 1px rgba(255,115,124,0.08), 0 12px 30px rgba(239,68,68,0.14), inset 0 1px 0 rgba(255,255,255,0.72) !important;
+    cursor: not-allowed !important;
+    letter-spacing: 0.01em;
+  }
+  .blocked-order-btn i {
+    font-size: 1.05em;
+  }
+  .blocked-order-btn span {
+    line-height: 1;
+  }
+  .blocked-order-icon-btn {
+    border-radius: 0.85rem !important;
+    padding: 0 !important;
+  }
+  body[data-storefront-theme='dark'] .blocked-order-btn,
+  body[data-storefront-theme='dark'] .blocked-order-icon-btn {
+    background:
+      radial-gradient(circle at 18% 50%, rgba(59,130,246,0.22), transparent 34%),
+      linear-gradient(135deg, rgba(38,22,44,0.92), rgba(57,18,56,0.88)) !important;
+    color: #ff7b82 !important;
+    border-color: rgba(255,115,124,0.9) !important;
+    box-shadow: 0 0 0 1px rgba(255,115,124,0.18), 0 0 22px rgba(255,86,116,0.22), inset 0 1px 0 rgba(255,255,255,0.08) !important;
+    text-shadow: 0 0 16px rgba(255,115,124,0.3);
+  }
   .product-card .badge-sale,
   .product-card span[class*="bg-amber-400"],
   .flash-sale-badge {
