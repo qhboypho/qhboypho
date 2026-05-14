@@ -230,6 +230,72 @@ export function storefrontThemeRefreshStyles(): string {
     background: linear-gradient(145deg, rgba(7,22,50,0.96) 0%, rgba(7,16,39,0.95) 55%, rgba(35,18,63,0.88) 100%) !important;
     border: 1px solid rgba(96,191,255,0.42) !important;
     box-shadow: 0 18px 48px rgba(0,0,0,0.42), 0 0 28px rgba(57,149,255,0.12), inset 0 1px 0 rgba(255,255,255,0.08) !important;
+    isolation: isolate;
+    position: relative;
+  }
+  .hero-carousel-card {
+    isolation: isolate;
+    overflow: hidden;
+  }
+  .product-card::before,
+  .bs-card::before,
+  .flash-sale-shop-card::before,
+  .hero-carousel-card::before,
+  .product-card::after,
+  .bs-card::after,
+  .flash-sale-shop-card::after,
+  .hero-carousel-card::after {
+    content: '';
+    position: absolute;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.95;
+    transition: opacity 0.25s ease, transform 0.25s ease, filter 0.25s ease;
+  }
+  .product-card::before,
+  .bs-card::before,
+  .flash-sale-shop-card::before,
+  .hero-carousel-card::before {
+    left: -18%;
+    bottom: -24%;
+    width: 56%;
+    height: 46%;
+    background:
+      radial-gradient(ellipse at bottom left, rgba(85,222,252,0.48) 0%, rgba(57,149,255,0.3) 34%, rgba(57,149,255,0.08) 62%, transparent 76%),
+      linear-gradient(90deg, rgba(85,222,252,0.78), transparent 68%);
+    filter: blur(15px);
+  }
+  .product-card::after,
+  .bs-card::after,
+  .flash-sale-shop-card::after,
+  .hero-carousel-card::after {
+    right: -18%;
+    bottom: -24%;
+    width: 58%;
+    height: 48%;
+    background:
+      radial-gradient(ellipse at bottom right, rgba(236,91,255,0.52) 0%, rgba(139,85,255,0.3) 36%, rgba(139,85,255,0.08) 62%, transparent 76%),
+      linear-gradient(270deg, rgba(236,91,255,0.8), transparent 68%);
+    filter: blur(16px);
+  }
+  .product-card > *,
+  .bs-card > *,
+  .flash-sale-shop-card > *,
+  .hero-carousel-card > * {
+    position: relative;
+    z-index: 1;
+  }
+  .product-card:hover::before,
+  .bs-card:hover::before,
+  .flash-sale-shop-card:hover::before,
+  .hero-carousel-card:hover::before,
+  .product-card:hover::after,
+  .bs-card:hover::after,
+  .flash-sale-shop-card:hover::after,
+  .hero-carousel-card:hover::after {
+    opacity: 1;
+    filter: blur(12px);
+    transform: translateY(-3px) scale(1.04);
   }
   .product-card:hover,
   .bs-card:hover,
