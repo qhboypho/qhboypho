@@ -348,14 +348,14 @@ export function storefrontThemeRefreshStyles(): string {
   .cart-modal span[class*="bg-pink-50"] {
     background: var(--qh-chip-bg) !important;
     border: 1px solid var(--qh-chip-border) !important;
-    color: #eaf5ff !important;
+    color: #475569 !important;
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.18), 0 8px 20px rgba(45,113,210,0.14);
     backdrop-filter: blur(10px);
   }
   .product-card span[class*="bg-pink-50"],
   .cart-modal span[class*="bg-pink-50"] {
-    background: linear-gradient(180deg, rgba(73,137,222,0.5), rgba(36,74,130,0.58)) !important;
-    color: #eaf5ff !important;
+    background: rgba(239,246,255,0.92) !important;
+    color: #2563eb !important;
   }
   .product-card .line-through,
   .product-card .product-card-original-price,
@@ -423,6 +423,17 @@ export function storefrontThemeRefreshStyles(): string {
     background: var(--qh-product-card-bg) !important;
     border-color: transparent !important;
     box-shadow: 0 22px 58px rgba(0,0,0,0.48), 0 0 34px rgba(57,149,255,0.18), 0 0 34px rgba(236,91,255,0.13), inset 0 0 0 1px rgba(255,255,255,0.06), inset 0 1px 0 rgba(255,255,255,0.08) !important;
+  }
+  body[data-storefront-theme='dark'] .product-card .bg-gray-100,
+  body[data-storefront-theme='dark'] .product-card span[class*="bg-gray-100"],
+  body[data-storefront-theme='dark'] .product-card span[class*="text-gray-400"],
+  body[data-storefront-theme='dark'] .cart-modal span[class*="bg-gray-100"] {
+    color: #eaf5ff !important;
+  }
+  body[data-storefront-theme='dark'] .product-card span[class*="bg-pink-50"],
+  body[data-storefront-theme='dark'] .cart-modal span[class*="bg-pink-50"] {
+    background: linear-gradient(180deg, rgba(73,137,222,0.5), rgba(36,74,130,0.58)) !important;
+    color: #eaf5ff !important;
   }
   #flashSaleShopSection > div {
     background: var(--qh-surface) !important;
