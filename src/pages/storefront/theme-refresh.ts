@@ -227,9 +227,11 @@ export function storefrontThemeRefreshStyles(): string {
   .product-card,
   .bs-card,
   .flash-sale-shop-card {
-    background: linear-gradient(145deg, rgba(7,22,50,0.96) 0%, rgba(7,16,39,0.95) 55%, rgba(35,18,63,0.88) 100%) !important;
-    border: 1px solid rgba(96,191,255,0.42) !important;
-    box-shadow: 0 18px 48px rgba(0,0,0,0.42), 0 0 28px rgba(57,149,255,0.12), inset 0 1px 0 rgba(255,255,255,0.08) !important;
+    background:
+      linear-gradient(145deg, rgba(7,22,50,0.96) 0%, rgba(7,16,39,0.95) 55%, rgba(35,18,63,0.88) 100%) padding-box,
+      linear-gradient(135deg, rgba(85,222,252,0.95) 0%, rgba(57,149,255,0.55) 28%, rgba(139,85,255,0.42) 58%, rgba(236,91,255,0.96) 100%) border-box !important;
+    border: 1px solid transparent !important;
+    box-shadow: 0 18px 48px rgba(0,0,0,0.42), 0 0 30px rgba(57,149,255,0.17), 0 0 32px rgba(236,91,255,0.12), inset 0 0 0 1px rgba(255,255,255,0.06), inset 0 1px 0 rgba(255,255,255,0.08) !important;
     isolation: isolate;
     position: relative;
   }
@@ -300,8 +302,11 @@ export function storefrontThemeRefreshStyles(): string {
   .product-card:hover,
   .bs-card:hover,
   .flash-sale-shop-card:hover {
-    border-color: rgba(220,109,255,0.58) !important;
-    box-shadow: 0 24px 64px rgba(0,0,0,0.48), 0 0 36px rgba(77,163,255,0.18), 0 0 30px rgba(236,91,255,0.12) !important;
+    border-color: transparent !important;
+    background:
+      linear-gradient(145deg, rgba(8,25,57,0.98) 0%, rgba(7,17,42,0.97) 54%, rgba(44,20,75,0.9) 100%) padding-box,
+      linear-gradient(135deg, rgba(94,231,255,1) 0%, rgba(52,139,255,0.72) 30%, rgba(139,85,255,0.6) 58%, rgba(255,91,220,1) 100%) border-box !important;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.48), 0 0 40px rgba(77,163,255,0.24), 0 0 38px rgba(236,91,255,0.18), inset 0 0 0 1px rgba(255,255,255,0.08) !important;
   }
   .product-card h3,
   .bs-name {
@@ -347,9 +352,11 @@ export function storefrontThemeRefreshStyles(): string {
   body[data-storefront-theme='dark'] .product-card,
   body[data-storefront-theme='dark'] .bs-card,
   body[data-storefront-theme='dark'] .flash-sale-shop-card {
-    background: linear-gradient(145deg, rgba(7,22,50,0.97) 0%, rgba(7,16,39,0.96) 55%, rgba(35,18,63,0.9) 100%) !important;
-    border-color: rgba(96,191,255,0.46) !important;
-    box-shadow: 0 22px 58px rgba(0,0,0,0.48), 0 0 32px rgba(57,149,255,0.14), inset 0 1px 0 rgba(255,255,255,0.08) !important;
+    background:
+      linear-gradient(145deg, rgba(7,22,50,0.97) 0%, rgba(7,16,39,0.96) 55%, rgba(35,18,63,0.9) 100%) padding-box,
+      linear-gradient(135deg, rgba(85,222,252,0.98) 0%, rgba(57,149,255,0.58) 28%, rgba(139,85,255,0.45) 58%, rgba(236,91,255,0.98) 100%) border-box !important;
+    border-color: transparent !important;
+    box-shadow: 0 22px 58px rgba(0,0,0,0.48), 0 0 34px rgba(57,149,255,0.18), 0 0 34px rgba(236,91,255,0.13), inset 0 0 0 1px rgba(255,255,255,0.06), inset 0 1px 0 rgba(255,255,255,0.08) !important;
   }
   #flashSaleShopSection > div {
     background: var(--qh-surface) !important;
