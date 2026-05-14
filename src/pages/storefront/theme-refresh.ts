@@ -1,34 +1,41 @@
 export function storefrontThemeRefreshStyles(): string {
   return `
   :root {
-    --qh-bg: #f7fbff;
-    --qh-bg-soft: #eef7ff;
-    --qh-surface: rgba(255,255,255,0.78);
-    --qh-surface-strong: rgba(255,255,255,0.92);
-    --qh-border: rgba(133,166,210,0.26);
-    --qh-text: #10194a;
-    --qh-muted: #62708f;
-    --qh-glow-blue: rgba(56,189,248,0.18);
-    --qh-glow-pink: rgba(236,72,153,0.14);
-    --qh-shadow: 0 18px 48px rgba(32,82,148,0.12), 0 2px 10px rgba(15,23,42,0.04);
+    --qh-bg: #020817;
+    --qh-bg-soft: #061128;
+    --qh-surface: rgba(7,20,45,0.82);
+    --qh-surface-strong: rgba(8,22,48,0.92);
+    --qh-border: rgba(96,191,255,0.42);
+    --qh-border-pink: rgba(236,91,255,0.46);
+    --qh-text: #f8fbff;
+    --qh-muted: #aab8d7;
+    --qh-glow-blue: rgba(49,151,255,0.34);
+    --qh-glow-pink: rgba(219,75,255,0.3);
+    --qh-shadow: 0 28px 80px rgba(0,0,0,0.44), 0 0 42px rgba(39,139,255,0.14), inset 0 1px 0 rgba(255,255,255,0.08);
+    --qh-card-bg: linear-gradient(135deg, rgba(6,22,51,0.96) 0%, rgba(8,16,42,0.94) 52%, rgba(42,21,72,0.9) 100%);
+    --qh-chip-bg: linear-gradient(180deg, rgba(122,177,246,0.45), rgba(44,86,139,0.55));
+    --qh-chip-border: rgba(159,203,255,0.56);
+    --qh-price-gradient: linear-gradient(135deg, #8e5dff 0%, #c768ff 42%, #ff63d5 100%);
   }
   body[data-storefront-theme='dark'] {
     --qh-bg: #020b1a;
     --qh-bg-soft: #07172d;
-    --qh-surface: rgba(8,23,45,0.78);
-    --qh-surface-strong: rgba(9,24,48,0.94);
-    --qh-border: rgba(99,179,237,0.28);
+    --qh-surface: rgba(7,20,45,0.84);
+    --qh-surface-strong: rgba(8,22,48,0.95);
+    --qh-border: rgba(96,191,255,0.46);
+    --qh-border-pink: rgba(236,91,255,0.5);
     --qh-text: #f7fbff;
     --qh-muted: #a9b8d3;
-    --qh-glow-blue: rgba(14,165,233,0.22);
-    --qh-glow-pink: rgba(217,70,239,0.18);
-    --qh-shadow: 0 24px 70px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.04);
+    --qh-glow-blue: rgba(14,165,233,0.34);
+    --qh-glow-pink: rgba(217,70,239,0.3);
+    --qh-shadow: 0 30px 86px rgba(0,0,0,0.5), 0 0 44px rgba(59,130,246,0.14), inset 0 1px 0 rgba(255,255,255,0.08);
   }
   body[data-storefront-theme] {
     background:
-      radial-gradient(circle at 18% 10%, var(--qh-glow-blue), transparent 34rem),
-      radial-gradient(circle at 86% 22%, var(--qh-glow-pink), transparent 28rem),
-      linear-gradient(180deg, var(--qh-bg) 0%, var(--qh-bg-soft) 48%, var(--qh-bg) 100%) !important;
+      radial-gradient(circle at 12% 8%, rgba(30,144,255,0.28), transparent 30rem),
+      radial-gradient(circle at 88% 10%, rgba(172,70,255,0.28), transparent 34rem),
+      radial-gradient(circle at 52% 48%, rgba(22,87,180,0.18), transparent 38rem),
+      linear-gradient(135deg, #010713 0%, #051126 44%, #130824 100%) !important;
     color: var(--qh-text);
   }
   body[data-storefront-theme]::before {
@@ -38,9 +45,9 @@ export function storefrontThemeRefreshStyles(): string {
     pointer-events: none;
     z-index: -1;
     background-image:
-      linear-gradient(rgba(59,130,246,0.055) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(59,130,246,0.055) 1px, transparent 1px);
-    background-size: 34px 34px;
+      linear-gradient(rgba(96,191,255,0.045) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(236,91,255,0.035) 1px, transparent 1px);
+    background-size: 38px 38px;
     mask-image: linear-gradient(to bottom, rgba(0,0,0,0.9), rgba(0,0,0,0.2) 70%, transparent);
   }
   body[data-storefront-theme='dark']::before {
@@ -49,20 +56,20 @@ export function storefrontThemeRefreshStyles(): string {
       linear-gradient(90deg, rgba(125,211,252,0.075) 1px, transparent 1px);
   }
   .navbar-blur {
-    background: rgba(255,255,255,0.78) !important;
+    background: rgba(3,11,26,0.82) !important;
     border-bottom: 1px solid var(--qh-border) !important;
-    box-shadow: var(--qh-shadow);
+    box-shadow: 0 12px 38px rgba(0,0,0,0.34), 0 0 26px rgba(59,130,246,0.14);
   }
   .navbar-blur a,
   .navbar-blur button {
     color: var(--qh-text) !important;
   }
   .navbar-blur .text-pink-400 {
-    color: #e83faa !important;
+    color: #63e4ff !important;
   }
   .navbar-blur .bg-white\\/20,
   #userAvatarDefault {
-    background: rgba(37,99,235,0.08) !important;
+    background: rgba(116,137,172,0.26) !important;
     border: 1px solid var(--qh-border);
   }
   body[data-storefront-theme='dark'] .navbar-blur {
@@ -74,11 +81,11 @@ export function storefrontThemeRefreshStyles(): string {
     color: #f8fbff !important;
   }
   .storefront-marquee-bar {
-    background: rgba(255,255,255,0.7) !important;
+    background: rgba(2,8,18,0.94) !important;
     border-color: var(--qh-border) !important;
   }
   .storefront-marquee-text {
-    color: var(--qh-text) !important;
+    color: rgba(232,240,255,0.9) !important;
   }
   body[data-storefront-theme='dark'] .storefront-marquee-bar {
     background: rgba(3,10,25,0.84) !important;
@@ -90,11 +97,8 @@ export function storefrontThemeRefreshStyles(): string {
   #bestsellersSection,
   #about,
   footer {
-    background:
-      radial-gradient(circle at 18% 12%, var(--qh-glow-blue), transparent 34rem),
-      radial-gradient(circle at 82% 36%, var(--qh-glow-pink), transparent 28rem),
-      var(--qh-surface) !important;
-    border: 1px solid var(--qh-border);
+    background: var(--qh-card-bg) !important;
+    border: 1px solid color-mix(in srgb, var(--qh-border) 68%, var(--qh-border-pink)) !important;
     box-shadow: var(--qh-shadow);
   }
   #hero.gradient-hero {
@@ -118,9 +122,9 @@ export function storefrontThemeRefreshStyles(): string {
     max-width: 96rem;
     margin-top: 1rem;
     margin-bottom: 1rem;
-    border: 1px solid var(--qh-border);
+    border: 1px solid color-mix(in srgb, var(--qh-border) 70%, var(--qh-border-pink));
     border-radius: 1.35rem;
-    background: var(--qh-surface) !important;
+    background: var(--qh-card-bg) !important;
     box-shadow: var(--qh-shadow);
   }
   #hero h1,
@@ -141,7 +145,8 @@ export function storefrontThemeRefreshStyles(): string {
   .hero-badge,
   #products .text-pink-500,
   #bestsellersSection .text-violet-400 {
-    color: #e83faa !important;
+    color: #55defc !important;
+    text-shadow: 0 0 18px rgba(85,222,252,0.28);
   }
   body[data-storefront-theme='dark'] .hero-badge,
   body[data-storefront-theme='dark'] #products .text-pink-500,
@@ -151,10 +156,17 @@ export function storefrontThemeRefreshStyles(): string {
   .hero-title-gradient,
   .text-gradient-price,
   .bs-price {
-    background: linear-gradient(135deg, #2f7df4, #e83faa) !important;
+    background: var(--qh-price-gradient) !important;
     -webkit-background-clip: text !important;
     background-clip: text !important;
     -webkit-text-fill-color: transparent !important;
+    filter: drop-shadow(0 0 14px rgba(199,104,255,0.22));
+  }
+  .line-through,
+  .bs-original-price,
+  .hero-carousel-original-price {
+    color: rgba(173,184,208,0.62) !important;
+    text-decoration-color: rgba(173,184,208,0.64) !important;
   }
   body[data-storefront-theme='dark'] .hero-title-gradient,
   body[data-storefront-theme='dark'] .text-gradient-price,
@@ -176,11 +188,11 @@ export function storefrontThemeRefreshStyles(): string {
   }
   .btn-primary,
   .add-to-cart-btn {
-    background: linear-gradient(135deg, #3388ff, #ec3fad) !important;
-    box-shadow: 0 14px 30px rgba(59,130,246,0.22), 0 10px 24px rgba(236,63,173,0.16) !important;
+    background: linear-gradient(135deg, #337cff, #8d55ff 45%, #ec4fbe) !important;
+    box-shadow: 0 14px 34px rgba(59,130,246,0.28), 0 10px 28px rgba(236,63,173,0.22) !important;
   }
   #filterBar {
-    background: var(--qh-surface-strong) !important;
+    background: rgba(5,15,34,0.86) !important;
     border: 1px solid var(--qh-border) !important;
     box-shadow: var(--qh-shadow) !important;
     max-width: 96rem;
@@ -193,15 +205,17 @@ export function storefrontThemeRefreshStyles(): string {
     color: var(--qh-muted) !important;
   }
   .filter-btn {
-    background: rgba(255,255,255,0.48);
+    background: rgba(111,148,202,0.18);
     border-color: var(--qh-border) !important;
   }
   .filter-btn.active {
     color: #fff !important;
-    background: linear-gradient(135deg, #5b8cff, #a855f7) !important;
+    background: linear-gradient(135deg, #1847c7, #2357ff 52%, #7a45ff) !important;
+    border-color: rgba(83,166,255,0.92) !important;
+    box-shadow: 0 0 0 1px rgba(106,184,255,0.28), 0 0 22px rgba(49,151,255,0.34) !important;
   }
   #searchInput {
-    background: rgba(255,255,255,0.62) !important;
+    background: rgba(5,17,38,0.74) !important;
     color: var(--qh-text) !important;
     border-color: var(--qh-border) !important;
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.55);
@@ -213,14 +227,15 @@ export function storefrontThemeRefreshStyles(): string {
   .product-card,
   .bs-card,
   .flash-sale-shop-card {
-    background: var(--qh-surface-strong) !important;
-    border: 1px solid var(--qh-border) !important;
-    box-shadow: 0 16px 36px rgba(28,80,150,0.1) !important;
+    background: linear-gradient(145deg, rgba(7,22,50,0.96) 0%, rgba(7,16,39,0.95) 55%, rgba(35,18,63,0.88) 100%) !important;
+    border: 1px solid rgba(96,191,255,0.42) !important;
+    box-shadow: 0 18px 48px rgba(0,0,0,0.42), 0 0 28px rgba(57,149,255,0.12), inset 0 1px 0 rgba(255,255,255,0.08) !important;
   }
   .product-card:hover,
   .bs-card:hover,
   .flash-sale-shop-card:hover {
-    box-shadow: 0 24px 54px rgba(28,80,150,0.18) !important;
+    border-color: rgba(220,109,255,0.58) !important;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.48), 0 0 36px rgba(77,163,255,0.18), 0 0 30px rgba(236,91,255,0.12) !important;
   }
   .product-card h3,
   .bs-name {
@@ -232,8 +247,32 @@ export function storefrontThemeRefreshStyles(): string {
   .bs-sold-chip {
     color: var(--qh-muted) !important;
   }
+  .product-card .bg-gray-100,
+  .product-card span[class*="bg-gray-100"],
+  .product-card span[class*="bg-pink-50"],
+  .product-card span[class*="text-gray-400"],
+  .cart-modal span[class*="bg-gray-100"],
+  .cart-modal span[class*="bg-pink-50"] {
+    background: var(--qh-chip-bg) !important;
+    border: 1px solid var(--qh-chip-border) !important;
+    color: #eaf5ff !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.18), 0 8px 20px rgba(45,113,210,0.14);
+    backdrop-filter: blur(10px);
+  }
+  .product-card span[class*="bg-pink-50"],
+  .cart-modal span[class*="bg-pink-50"] {
+    background: linear-gradient(180deg, rgba(73,137,222,0.5), rgba(36,74,130,0.58)) !important;
+    color: #eaf5ff !important;
+  }
+  .product-card .badge-sale,
+  .product-card span[class*="bg-amber-400"],
+  .flash-sale-badge {
+    background: linear-gradient(135deg, rgba(51,124,255,0.95), rgba(236,79,190,0.95)) !important;
+    border: 1px solid rgba(255,255,255,0.22) !important;
+    box-shadow: 0 10px 24px rgba(37,99,235,0.22), 0 0 18px rgba(236,79,190,0.22) !important;
+  }
   .bs-sold-chip {
-    background: rgba(74,144,255,0.1) !important;
+    background: rgba(91,131,246,0.18) !important;
     border-color: var(--qh-border) !important;
   }
   .bs-stars {
@@ -242,9 +281,9 @@ export function storefrontThemeRefreshStyles(): string {
   body[data-storefront-theme='dark'] .product-card,
   body[data-storefront-theme='dark'] .bs-card,
   body[data-storefront-theme='dark'] .flash-sale-shop-card {
-    background: linear-gradient(180deg, rgba(11,32,58,0.94), rgba(7,19,38,0.96)) !important;
-    border-color: rgba(76,166,232,0.36) !important;
-    box-shadow: 0 20px 50px rgba(0,0,0,0.36), inset 0 1px 0 rgba(255,255,255,0.04) !important;
+    background: linear-gradient(145deg, rgba(7,22,50,0.97) 0%, rgba(7,16,39,0.96) 55%, rgba(35,18,63,0.9) 100%) !important;
+    border-color: rgba(96,191,255,0.46) !important;
+    box-shadow: 0 22px 58px rgba(0,0,0,0.48), 0 0 32px rgba(57,149,255,0.14), inset 0 1px 0 rgba(255,255,255,0.08) !important;
   }
   #flashSaleShopSection > div {
     background: var(--qh-surface) !important;
