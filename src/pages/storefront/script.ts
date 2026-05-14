@@ -1046,13 +1046,13 @@ function renderStorefrontProductCard(p) {
       <h3 class="font-semibold text-gray-900 text-sm leading-tight mb-2 line-clamp-2">\${p.name}</h3>
       <div class="flex items-center gap-2 mb-3 flex-wrap">
         <span class="text-gradient-price font-bold">\${fmtPrice(displayPrice)}</span>
-        \${displayOriginalPrice > displayPrice ? \`<span class="text-gray-400 text-xs line-through">\${fmtPrice(displayOriginalPrice)}</span>\` : ''}
+        \${displayOriginalPrice > displayPrice ? \`<span class="product-card-original-price text-xs line-through">\${fmtPrice(displayOriginalPrice)}</span>\` : ''}
       </div>
       \${p.has_flash_sale ? renderFlashSaleMiniStrip(flashMeta) : ''}
       \${colors.length > 0 ? \`
       <div class="flex gap-1 mb-3 flex-wrap">
         \${colors.slice(0,4).map(c => \`<span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">\${c}</span>\`).join('')}
-        \${colors.length > 4 ? \`<span class="text-xs text-gray-400">+\${colors.length-4}</span>\` : ''}
+        \${colors.length > 4 ? \`<span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">+\${colors.length-4}</span>\` : ''}
       </div>\` : ''}
       \${renderProductCardActions(p.id)}
     </div>
