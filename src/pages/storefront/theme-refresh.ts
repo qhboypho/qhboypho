@@ -223,9 +223,9 @@ export function storefrontThemeRefreshStyles(): string {
   }
   .filter-btn.active {
     color: #fff !important;
-    background: linear-gradient(135deg, #1847c7, #2357ff 52%, #7a45ff) !important;
-    border-color: rgba(83,166,255,0.92) !important;
-    box-shadow: 0 0 0 1px rgba(106,184,255,0.28), 0 0 22px rgba(49,151,255,0.34) !important;
+    background: linear-gradient(135deg, #337cff, #8d55ff 45%, #ec4fbe) !important;
+    border-color: rgba(255,255,255,0.34) !important;
+    box-shadow: 0 14px 34px rgba(59,130,246,0.28), 0 10px 28px rgba(236,63,173,0.22) !important;
   }
   #searchInput {
     background: rgba(255,255,255,0.92) !important;
