@@ -407,6 +407,19 @@ export function storefrontThemeRefreshStyles(): string {
     font-weight: 700;
     white-space: nowrap;
   }
+  .detail-action-bar {
+    position: sticky;
+    bottom: 0;
+    z-index: 8;
+    display: flex;
+    gap: 0.75rem;
+    margin: 1rem -0.25rem -0.25rem;
+    padding: 0.85rem 0.25rem 0.25rem;
+    background: linear-gradient(180deg, rgba(255,255,255,0), var(--qh-surface) 24%, var(--qh-surface) 100%);
+  }
+  body[data-storefront-theme='dark'] .detail-action-bar {
+    background: linear-gradient(180deg, rgba(9,24,48,0), rgba(9,24,48,0.96) 24%, rgba(9,24,48,0.98) 100%);
+  }
   body[data-storefront-theme='dark'] .blocked-order-btn,
   body[data-storefront-theme='dark'] .blocked-order-icon-btn {
     background:
@@ -624,15 +637,15 @@ export function storefrontThemeRefreshStyles(): string {
     #products .product-card,
     #productsModalOverlay .product-card {
       display: flex !important;
-      align-items: stretch;
+      align-items: flex-start;
       border-radius: 1rem !important;
-      min-height: 142px;
     }
     #products .product-card > .relative,
     #productsModalOverlay .product-card > .relative {
       flex: 0 0 40%;
       min-width: 0;
       aspect-ratio: 1 / 1;
+      height: auto !important;
     }
     #products .product-card .product-img-main,
     #productsModalOverlay .product-card .product-img-main {
@@ -663,8 +676,7 @@ export function storefrontThemeRefreshStyles(): string {
     }
     #products .product-card .flex.gap-1,
     #productsModalOverlay .product-card .flex.gap-1 {
-      gap: 0.25rem !important;
-      margin-bottom: 0.45rem !important;
+      display: none !important;
     }
     #products .product-card .flex.gap-1 span,
     #productsModalOverlay .product-card .flex.gap-1 span {
@@ -689,16 +701,28 @@ export function storefrontThemeRefreshStyles(): string {
     }
     #products .product-buy-btn,
     #productsModalOverlay .product-buy-btn {
-      flex-basis: 38%;
+      flex-basis: 100%;
       font-size: 0.75rem !important;
       padding-left: 0.4rem !important;
       padding-right: 0.4rem !important;
     }
     #products .product-cart-btn,
     #productsModalOverlay .product-cart-btn {
-      font-size: 0.75rem !important;
-      padding-left: 0.5rem !important;
-      padding-right: 0.5rem !important;
+      display: none !important;
+    }
+    .detail-action-bar {
+      gap: 0.55rem;
+      margin-left: -0.65rem;
+      margin-right: -0.65rem;
+      margin-bottom: -0.65rem;
+      padding: 0.75rem 0.65rem 0.65rem;
+    }
+    .detail-action-bar .btn-primary,
+    .detail-action-bar .add-to-cart-btn {
+      min-width: 0;
+      font-size: 0.8125rem !important;
+      padding-left: 0.4rem !important;
+      padding-right: 0.4rem !important;
     }
   }`
 }

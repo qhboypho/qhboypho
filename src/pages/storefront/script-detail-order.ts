@@ -9,6 +9,7 @@ async function showDetail(id) {
   try {
     const res = await axios.get('/api/products/' + id)
     const p = res.data.data
+    currentProduct = p
     const colorOptions = getProductColorOptions(p)
     detailColorOptions = Array.isArray(colorOptions) ? colorOptions : []
     detailSelectedProductId = Number(p.id || id)
@@ -72,7 +73,11 @@ async function showDetail(id) {
             \${sizes.map(s => \`<button class="size-btn w-12 h-10 border rounded-lg text-sm font-medium hover:border-pink-400 transition" onclick="selectDetailSize('\${s}',this)">\${s}</button>\`).join('')}
           </div>
         </div>\` : ''}
-        \${isCurrentUserBlocked() ? renderBlockedPurchaseActions('w-full py-3.5 rounded-xl font-bold text-base') : \`<button onclick="closeDetail();collapseBanners();openOrder(\${p.id})" class="btn-primary w-full text-white py-3.5 rounded-xl font-bold text-base"><i class="fas fa-shopping-cart mr-2"></i>Đặt hàng ngay</button>\`}
+        <div class="detail-action-bar">
+          \${isCurrentUserBlocked()
+            ? renderBlockedPurchaseActions('w-full py-3.5 rounded-xl font-bold text-base')
+            : \`<button onclick="addDetailToCart()" class="add-to-cart-btn flex-1 text-white py-3.5 rounded-xl font-bold text-base"><i class="fas fa-shopping-bag mr-2"></i>Thêm vào giỏ</button><button onclick="closeDetail();collapseBanners();openOrder(\${p.id})" class="btn-primary flex-1 text-white py-3.5 rounded-xl font-bold text-base"><i class="fas fa-shopping-cart mr-2"></i>Đặt hàng ngay</button>\`}
+        </div>
       </div>
     </div>\`
     document.getElementById('detailOverlay').classList.remove('hidden')
@@ -115,6 +120,18 @@ function selectDetailSize(s, btn) {
 function closeDetail() {
   document.getElementById('detailOverlay').classList.add('hidden')
   document.body.style.overflow = ''
+}
+
+function addDetailToCart() {
+  if (!currentProduct) return
+  if (!assertCustomerCanShop()) return
+  const color = detailSelectedColor || getProductColorOptions(currentProduct)[0]?.name || ''
+  const sizes = safeJson(currentProduct.sizes)
+  const size = detailSelectedSize || sizes[0] || ''
+  animateFlyToCart(resolveFlyImage(currentProduct), document.getElementById('mainDetailImg'))
+  if (addToCart(currentProduct, color, size, 1)) {
+    showToast('Đã thêm "' + currentProduct.name + '" vào giỏ hàng!', 'success', 2500)
+  }
 }
 
 // ── ORDER POPUP ────────────────────────────────────
