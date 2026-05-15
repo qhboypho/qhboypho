@@ -732,10 +732,11 @@ export function storefrontThemeRefreshStyles(): string {
     #products .product-cart-btn,
     #productsModalOverlay .product-cart-btn {
       display: inline-flex !important;
-      flex: 0 0 2.35rem;
-      width: 2.35rem;
+      flex: 1 1 auto;
+      width: auto;
       height: 2.35rem !important;
-      padding: 0 !important;
+      padding: 0 0.8rem !important;
+      border-radius: 0.85rem !important;
     }
     #products .product-cart-btn span,
     #productsModalOverlay .product-cart-btn span {
