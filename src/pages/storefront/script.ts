@@ -1183,6 +1183,13 @@ function searchProducts(q) {
 ${storefrontDetailOrderScript()}
 
 function fmtPrice(p) { return new Intl.NumberFormat('vi-VN',{style:'currency',currency:'VND'}).format(p) }
+function fmtSold(n) {
+  const value = Number(n || 0)
+  if (!Number.isFinite(value) || value <= 0) return '0'
+  if (value >= 1000000) return (value / 1000000).toFixed(value >= 10000000 ? 0 : 1).replace('.0', '') + 'tr'
+  if (value >= 1000) return (value / 1000).toFixed(value >= 10000 ? 0 : 1).replace('.0', '') + 'k'
+  return String(Math.floor(value))
+}
 function safeJson(v) { try { return JSON.parse(v||'[]') } catch { return [] } }
 function normalizeColorOptions(raw) {
   const arr = Array.isArray(raw) ? raw : safeJson(raw)
