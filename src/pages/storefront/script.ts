@@ -895,7 +895,7 @@ async function loadBestSellers() {
           <div class="flex items-center gap-1.5">
             <span class="bs-sold-chip"><i class="fas fa-fire-flame-curved"></i> \${fmtSold(soldCount)} đã bán</span>
           </div>
-          \${isCurrentUserBlocked() ? renderBlockedPurchaseActions('w-full mt-2.5 py-2 text-xs font-bold rounded-xl') : \`<div class="bs-actions"><button onclick="event.stopPropagation();openOrder(\${p.id})" class="btn-primary bs-buy-btn text-xs font-bold text-white rounded-xl"><i class="fas fa-bolt mr-1"></i>Đặt hàng nhanh</button><button onclick="event.stopPropagation();addToCartFromProductCard(event, \${p.id})" title="Thêm vào giỏ hàng" class="bs-mobile-cart-btn add-to-cart-btn"><i class="fas fa-cart-plus"></i></button></div>\`}
+          \${isCurrentUserBlocked() ? renderBlockedPurchaseActions('w-full mt-2.5 py-2 text-xs font-bold rounded-xl') : \`<div class="bs-actions"><button onclick="event.stopPropagation();openOrder(\${p.id})" class="btn-primary bs-buy-btn text-xs font-bold text-white rounded-xl"><i class="fas fa-bolt mr-1"></i>Đặt nhanh</button><button onclick="event.stopPropagation();addToCartFromProductCard(event, \${p.id})" title="Thêm vào giỏ hàng" class="bs-mobile-cart-btn add-to-cart-btn"><i class="fas fa-cart-plus"></i></button></div>\`}
         </div>
       </div>\`
     }).join('')
@@ -985,7 +985,7 @@ async function loadFlashSaleShop() {
               \${original > price ? \`<span class="pb-0.5 text-sm text-slate-400 line-through">\${fmtPrice(original)}</span>\` : ''}
             </div>
             \${renderFlashSaleMiniStrip(meta)}
-            \${isCurrentUserBlocked() ? renderBlockedPurchaseActions('w-full rounded-2xl py-3 text-sm font-semibold') : \`<button onclick="event.stopPropagation();openOrder(\${product.id})" class="btn-primary w-full rounded-2xl py-3 text-sm font-semibold text-white"><i class="fas fa-bolt mr-1"></i>Đặt hàng nhanh</button>\`}
+            \${isCurrentUserBlocked() ? renderBlockedPurchaseActions('w-full rounded-2xl py-3 text-sm font-semibold') : \`<button onclick="event.stopPropagation();openOrder(\${product.id})" class="btn-primary w-full rounded-2xl py-3 text-sm font-semibold text-white"><i class="fas fa-bolt mr-1"></i>Đặt nhanh</button>\`}
           </div>
         </div>
       \`
@@ -1025,6 +1025,17 @@ function renderProductRatingStars(product, className) {
   return '<span class="' + (className || 'product-rating-stars') + '" title="' + avg.toFixed(1) + '/5 từ ' + total + ' đánh giá">' + '★'.repeat(rounded) + '☆'.repeat(5 - rounded) + '</span>'
 }
 
+function renderProductCardSocialMeta(product) {
+  const stars = renderProductRatingStars(product)
+  const soldCount = Number(product?.total_sold || 0)
+  if (!stars && soldCount <= 0) return ''
+  return '<div class="product-card-social-meta">' +
+    (stars || '<span class="product-rating-stars product-rating-stars--empty">☆☆☆☆☆</span>') +
+    '<span class="product-card-meta-divider">|</span>' +
+    '<span class="product-card-sold-text">Đã bán ' + fmtSold(soldCount) + '</span>' +
+  '</div>'
+}
+
 function getProductPreviewLimit() {
   const w = window.innerWidth || document.documentElement.clientWidth || 1024
   const cols = w >= 1024 ? 4 : w >= 768 ? 3 : 1
@@ -1057,9 +1068,9 @@ function renderStorefrontProductCard(p) {
       <div class="flex items-center gap-2 mb-3 flex-wrap">
         <span class="text-gradient-price font-bold">\${fmtPrice(displayPrice)}</span>
         \${displayOriginalPrice > displayPrice ? \`<span class="product-card-original-price text-xs line-through">\${fmtPrice(displayOriginalPrice)}</span>\` : ''}
-        \${renderProductRatingStars(p)}
       </div>
       \${p.has_flash_sale ? renderFlashSaleMiniStrip(flashMeta) : ''}
+      \${renderProductCardSocialMeta(p)}
       \${colors.length > 0 ? \`
       <div class="flex gap-1 mb-3 flex-wrap">
         \${colors.slice(0,4).map(c => \`<span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">\${c}</span>\`).join('')}
@@ -1249,11 +1260,11 @@ function renderBlockedPurchaseActions(extraClass) {
 
 function renderProductCardActions(productId) {
   if (isCurrentUserBlocked()) {
-    return '<div class="flex gap-2">' + renderBlockedPurchaseActions('flex-1 py-2 rounded-xl text-sm font-semibold') + '<button type="button" onclick="event.stopPropagation();showBlockedCustomerModal(getCurrentUserBlockReason())" title="Không thể đặt hàng" class="blocked-order-icon-btn w-10 h-9"><i class="fas fa-ban text-sm"></i></button></div>'
+    return '<div class="product-card-actions">' + renderBlockedPurchaseActions('product-buy-btn text-sm font-semibold') + '<button type="button" onclick="event.stopPropagation();showBlockedCustomerModal(getCurrentUserBlockReason())" title="Không thể đặt hàng" class="blocked-order-icon-btn product-cart-btn"><i class="fas fa-ban text-sm"></i></button></div>'
   }
-  return '<div class="flex gap-2">'
-    + '<button onclick="event.stopPropagation();openOrderFromProductCard(' + productId + ')" title="Đặt hàng nhanh" class="product-buy-btn btn-primary text-white py-2 rounded-xl text-sm font-semibold"><i class="fas fa-bolt mr-1"></i>Đặt hàng nhanh</button>'
-    + '<button onclick="event.stopPropagation();addToCartFromProductCard(event, ' + productId + ')" title="Thêm vào giỏ hàng" class="product-cart-btn add-to-cart-btn h-9 flex items-center justify-center gap-1.5 text-white rounded-xl transition group relative"><i class="fas fa-cart-plus text-sm"></i><span>Thêm vào giỏ hàng</span></button>'
+  return '<div class="product-card-actions">'
+    + '<button onclick="event.stopPropagation();openOrderFromProductCard(' + productId + ')" title="Đặt nhanh" class="product-buy-btn btn-primary text-white text-sm font-semibold"><i class="fas fa-bolt mr-1"></i>Đặt nhanh</button>'
+    + '<button onclick="event.stopPropagation();addToCartFromProductCard(event, ' + productId + ')" title="Thêm vào giỏ hàng" class="product-cart-btn add-to-cart-btn flex items-center justify-center text-white transition group relative"><i class="fas fa-cart-plus text-sm"></i><span>Thêm vào giỏ hàng</span></button>'
     + '</div>'
 }
 

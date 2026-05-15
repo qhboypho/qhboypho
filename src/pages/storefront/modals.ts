@@ -69,7 +69,7 @@ export function storefrontModalsSection(): string {
 <div id="orderOverlay" class="fixed inset-0 overlay z-50 hidden flex items-center justify-center p-4">
   <div class="popup-card bg-white rounded-3xl shadow-2xl w-full max-w-md md:max-w-[56rem] max-h-[90vh] overflow-y-auto" id="orderPopupCard">
     <div class="sticky top-0 bg-white rounded-t-3xl border-b px-6 py-4 flex items-center justify-between">
-      <h3 class="font-display text-xl font-bold text-gray-900">Đặt hàng nhanh</h3>
+      <h3 class="font-display text-xl font-bold text-gray-900">Đặt nhanh</h3>
       <button onclick="closeOrder()" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition">
         <i class="fas fa-times text-gray-600"></i>
       </button>
