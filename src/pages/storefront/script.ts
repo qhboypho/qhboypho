@@ -895,7 +895,7 @@ async function loadBestSellers() {
           <div class="flex items-center gap-1.5">
             <span class="bs-sold-chip"><i class="fas fa-fire-flame-curved"></i> \${fmtSold(soldCount)} đã bán</span>
           </div>
-          \${isCurrentUserBlocked() ? renderBlockedPurchaseActions('w-full mt-2.5 py-2 text-xs font-bold rounded-xl') : \`<button onclick="event.stopPropagation();openOrder(\${p.id})" class="btn-primary w-full mt-2.5 py-2 text-xs font-bold text-white rounded-xl"><i class="fas fa-bolt mr-1"></i>Đặt hàng nhanh</button><button onclick="event.stopPropagation();addToCartFromProductCard(event, \${p.id})" title="Thêm vào giỏ hàng" class="bs-mobile-cart-btn add-to-cart-btn"><i class="fas fa-cart-plus"></i></button>\`}
+          \${isCurrentUserBlocked() ? renderBlockedPurchaseActions('w-full mt-2.5 py-2 text-xs font-bold rounded-xl') : \`<div class="bs-actions"><button onclick="event.stopPropagation();openOrder(\${p.id})" class="btn-primary bs-buy-btn text-xs font-bold text-white rounded-xl"><i class="fas fa-bolt mr-1"></i>Đặt hàng nhanh</button><button onclick="event.stopPropagation();addToCartFromProductCard(event, \${p.id})" title="Thêm vào giỏ hàng" class="bs-mobile-cart-btn add-to-cart-btn"><i class="fas fa-cart-plus"></i></button></div>\`}
         </div>
       </div>\`
     }).join('')

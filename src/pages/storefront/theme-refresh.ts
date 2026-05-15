@@ -423,6 +423,13 @@ export function storefrontThemeRefreshStyles(): string {
   .bs-mobile-cart-btn {
     display: none;
   }
+  .bs-actions {
+    margin-top: 0.625rem;
+  }
+  .bs-buy-btn {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+  }
   .detail-action-bar {
     position: sticky;
     bottom: 0;
@@ -749,14 +756,26 @@ export function storefrontThemeRefreshStyles(): string {
     }
     .bs-mobile-cart-btn {
       display: inline-flex;
+      flex: 1 1 auto;
       align-items: center;
       justify-content: center;
-      width: 2.35rem;
+      width: auto;
       height: 2.35rem;
-      margin-top: 0.6rem;
       border-radius: 0.85rem;
       color: #fff;
       font-size: 0.9rem;
+    }
+    .bs-actions {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+    .bs-buy-btn {
+      flex: 0 0 auto;
+      width: auto;
+      height: 2.35rem;
+      padding: 0 0.8rem;
+      white-space: nowrap;
     }
     .detail-action-bar {
       gap: 0.55rem;
