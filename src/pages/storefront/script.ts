@@ -894,7 +894,7 @@ async function loadBestSellers() {
           <div class="flex items-center gap-1.5">
             <span class="bs-sold-chip"><i class="fas fa-fire-flame-curved"></i> \${fmtSold(soldCount)} đã bán</span>
           </div>
-          \${isCurrentUserBlocked() ? renderBlockedPurchaseActions('w-full mt-2.5 py-2 text-xs font-bold rounded-xl') : \`<button onclick="event.stopPropagation();openOrder(\${p.id})" class="btn-primary w-full mt-2.5 py-2 text-xs font-bold text-white rounded-xl"><i class="fas fa-bolt mr-1"></i>Mua ngay</button>\`}
+          \${isCurrentUserBlocked() ? renderBlockedPurchaseActions('w-full mt-2.5 py-2 text-xs font-bold rounded-xl') : \`<button onclick="event.stopPropagation();openOrder(\${p.id})" class="btn-primary w-full mt-2.5 py-2 text-xs font-bold text-white rounded-xl"><i class="fas fa-bolt mr-1"></i>Đặt hàng nhanh</button>\`}
         </div>
       </div>\`
     }).join('')
@@ -985,7 +985,7 @@ async function loadFlashSaleShop() {
               \${original > price ? \`<span class="pb-0.5 text-sm text-slate-400 line-through">\${fmtPrice(original)}</span>\` : ''}
             </div>
             \${renderFlashSaleMiniStrip(meta)}
-            \${isCurrentUserBlocked() ? renderBlockedPurchaseActions('w-full rounded-2xl py-3 text-sm font-semibold') : \`<button onclick="event.stopPropagation();openOrder(\${product.id})" class="btn-primary w-full rounded-2xl py-3 text-sm font-semibold text-white"><i class="fas fa-bolt mr-1"></i>Mua ngay</button>\`}
+            \${isCurrentUserBlocked() ? renderBlockedPurchaseActions('w-full rounded-2xl py-3 text-sm font-semibold') : \`<button onclick="event.stopPropagation();openOrder(\${product.id})" class="btn-primary w-full rounded-2xl py-3 text-sm font-semibold text-white"><i class="fas fa-bolt mr-1"></i>Đặt hàng nhanh</button>\`}
           </div>
         </div>
       \`
@@ -1241,7 +1241,7 @@ function renderProductCardActions(productId) {
     return '<div class="flex gap-2">' + renderBlockedPurchaseActions('flex-1 py-2 rounded-xl text-sm font-semibold') + '<button type="button" onclick="event.stopPropagation();showBlockedCustomerModal(getCurrentUserBlockReason())" title="Không thể đặt hàng" class="blocked-order-icon-btn w-10 h-9"><i class="fas fa-ban text-sm"></i></button></div>'
   }
   return '<div class="flex gap-2">'
-    + '<button onclick="event.stopPropagation();openOrderFromProductCard(' + productId + ')" title="Mua ngay" class="product-buy-btn btn-primary text-white py-2 rounded-xl text-sm font-semibold"><i class="fas fa-bolt mr-1"></i>Mua ngay</button>'
+    + '<button onclick="event.stopPropagation();openOrderFromProductCard(' + productId + ')" title="Đặt hàng nhanh" class="product-buy-btn btn-primary text-white py-2 rounded-xl text-sm font-semibold"><i class="fas fa-bolt mr-1"></i>Đặt hàng nhanh</button>'
     + '<button onclick="event.stopPropagation();addToCartFromProductCard(event, ' + productId + ')" title="Thêm vào giỏ hàng" class="product-cart-btn add-to-cart-btn h-9 flex items-center justify-center gap-1.5 text-white rounded-xl transition group relative"><i class="fas fa-shopping-bag text-sm"></i><span>Thêm giỏ</span></button>'
     + '</div>'
 }

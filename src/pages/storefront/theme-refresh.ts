@@ -394,8 +394,14 @@ export function storefrontThemeRefreshStyles(): string {
     padding: 0 !important;
   }
   .product-buy-btn {
-    flex: 0 0 42%;
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
     min-width: 0;
+    width: auto;
+    padding-left: 0.9rem;
+    padding-right: 0.9rem;
     white-space: nowrap;
   }
   .product-cart-btn {
@@ -501,6 +507,7 @@ export function storefrontThemeRefreshStyles(): string {
     background: rgba(1,8,20,0.72) !important;
   }
   body[data-storefront-theme='dark'] .popup-card,
+  body[data-storefront-theme='dark'] #productsModalOverlay > div,
   body[data-storefront-theme='dark'] .cart-modal,
   body[data-storefront-theme='dark'] .user-menu-panel,
   body[data-storefront-theme='dark'] .review-modal-panel {
@@ -510,10 +517,12 @@ export function storefrontThemeRefreshStyles(): string {
     box-shadow: 0 28px 80px rgba(0,0,0,0.56) !important;
   }
   body[data-storefront-theme='dark'] .popup-card .bg-white,
+  body[data-storefront-theme='dark'] #productsModalOverlay .bg-white,
   body[data-storefront-theme='dark'] .cart-modal .bg-white,
   body[data-storefront-theme='dark'] .user-menu-panel .bg-white,
   body[data-storefront-theme='dark'] .review-modal-panel .bg-white,
   body[data-storefront-theme='dark'] .popup-card .bg-gray-50,
+  body[data-storefront-theme='dark'] #productsModalOverlay .bg-gray-50,
   body[data-storefront-theme='dark'] .cart-modal .bg-gray-50,
   body[data-storefront-theme='dark'] .user-menu-panel .bg-gray-50,
   body[data-storefront-theme='dark'] .review-modal-panel .bg-gray-50,
@@ -528,6 +537,10 @@ export function storefrontThemeRefreshStyles(): string {
   body[data-storefront-theme='dark'] .cart-modal .sticky,
   body[data-storefront-theme='dark'] .review-modal-panel .sticky {
     background: rgba(7,20,40,0.96) !important;
+    border-color: rgba(80,160,220,0.24) !important;
+  }
+  body[data-storefront-theme='dark'] #productsModalOverlay .border-b,
+  body[data-storefront-theme='dark'] #productsModalOverlay .border-gray-100 {
     border-color: rgba(80,160,220,0.24) !important;
   }
   body[data-storefront-theme='dark'] .popup-card h1,
@@ -701,7 +714,7 @@ export function storefrontThemeRefreshStyles(): string {
     }
     #products .product-buy-btn,
     #productsModalOverlay .product-buy-btn {
-      flex-basis: 100%;
+      flex-basis: auto;
       font-size: 0.75rem !important;
       padding-left: 0.4rem !important;
       padding-right: 0.4rem !important;
