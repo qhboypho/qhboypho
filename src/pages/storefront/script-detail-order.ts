@@ -76,7 +76,7 @@ async function showDetail(id) {
         <div class="detail-action-bar">
           \${isCurrentUserBlocked()
             ? renderBlockedPurchaseActions('w-full py-3.5 rounded-xl font-bold text-base')
-            : \`<button onclick="addDetailToCart()" class="add-to-cart-btn flex-1 text-white py-3.5 rounded-xl font-bold text-base"><i class="fas fa-shopping-bag mr-2"></i>Thêm vào giỏ</button><button onclick="closeDetail();collapseBanners();openOrder(\${p.id})" class="btn-primary flex-1 text-white py-3.5 rounded-xl font-bold text-base"><i class="fas fa-shopping-cart mr-2"></i>Đặt hàng ngay</button>\`}
+            : \`<button onclick="addDetailToCart()" class="add-to-cart-btn flex-1 text-white py-3.5 rounded-xl font-bold text-base"><i class="fas fa-cart-plus mr-2"></i>Thêm vào giỏ hàng</button><button onclick="closeDetail();collapseBanners();openOrder(\${p.id})" class="btn-primary flex-1 text-white py-3.5 rounded-xl font-bold text-base"><i class="fas fa-shopping-cart mr-2"></i>Đặt hàng ngay</button>\`}
         </div>
       </div>
     </div>\`

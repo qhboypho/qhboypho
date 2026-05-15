@@ -65,14 +65,37 @@ function compactColorNamesJson(raw: any): string {
 }
 
 async function buildProductsWithSkus(db: D1Database, rows: any[], options?: { includeInactiveSkus?: boolean }) {
+  const productIds = rows.map((row: any) => Number(row.id)).filter((id) => Number.isFinite(id) && id > 0)
   const skuMap = await loadProductSkusByProductIds(
     db,
-    rows.map((row: any) => row.id),
+    productIds,
     options?.includeInactiveSkus ? { includeInactive: true } : undefined
   )
-  const activeFlashSaleRows = await loadActiveFlashSaleProductMap(db, rows.map((row: any) => row.id))
+  const activeFlashSaleRows = await loadActiveFlashSaleProductMap(db, productIds)
+  const reviewStats = new Map<number, { avg_rating: number; total_reviews: number }>()
+  if (productIds.length) {
+    const placeholders = productIds.map(() => '?').join(',')
+    const stats = await db.prepare(`
+      SELECT product_id, COUNT(*) as total_reviews, ROUND(AVG(rating), 1) as avg_rating
+      FROM reviews
+      WHERE product_id IN (${placeholders})
+      GROUP BY product_id
+    `).bind(...productIds).all()
+    for (const row of (stats.results || []) as any[]) {
+      reviewStats.set(Number(row.product_id), {
+        avg_rating: Number(row.avg_rating || 0),
+        total_reviews: Number(row.total_reviews || 0)
+      })
+    }
+  }
   return rows.map((row: any) => attachSkuStateToProduct(
-    shapeFlashSaleProduct({ product: row }),
+    shapeFlashSaleProduct({
+      product: {
+        ...row,
+        avg_rating: reviewStats.get(Number(row.id))?.avg_rating || 0,
+        total_reviews: reviewStats.get(Number(row.id))?.total_reviews || 0
+      }
+    }),
     skuMap.get(Number(row.id)) || [],
     activeFlashSaleRows
   ))

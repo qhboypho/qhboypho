@@ -413,6 +413,16 @@ export function storefrontThemeRefreshStyles(): string {
     font-weight: 700;
     white-space: nowrap;
   }
+  .product-rating-stars {
+    color: #f6b91a !important;
+    font-size: 0.75rem;
+    letter-spacing: -0.05em;
+    margin-left: auto;
+    white-space: nowrap;
+  }
+  .bs-mobile-cart-btn {
+    display: none;
+  }
   .detail-action-bar {
     position: sticky;
     bottom: 0;
@@ -721,7 +731,31 @@ export function storefrontThemeRefreshStyles(): string {
     }
     #products .product-cart-btn,
     #productsModalOverlay .product-cart-btn {
+      display: inline-flex !important;
+      flex: 0 0 2.35rem;
+      width: 2.35rem;
+      height: 2.35rem !important;
+      padding: 0 !important;
+    }
+    #products .product-cart-btn span,
+    #productsModalOverlay .product-cart-btn span {
       display: none !important;
+    }
+    #products .product-rating-stars,
+    #productsModalOverlay .product-rating-stars {
+      margin-left: 0;
+      font-size: 0.7rem;
+    }
+    .bs-mobile-cart-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 2.35rem;
+      height: 2.35rem;
+      margin-top: 0.6rem;
+      border-radius: 0.85rem;
+      color: #fff;
+      font-size: 0.9rem;
     }
     .detail-action-bar {
       gap: 0.55rem;

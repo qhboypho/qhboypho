@@ -222,7 +222,7 @@ export function storefrontModalsSection(): string {
         <div class="flex gap-2">
           <button onclick="addCurrentToCart()" id="addToCartBtn"
             class="add-to-cart-btn flex-shrink-0 flex items-center justify-center gap-2 text-white px-4 py-3.5 rounded-xl font-semibold text-sm transition">
-            <i class="fas fa-shopping-bag"></i><span class="hidden sm:inline">Thêm vào giỏ hàng</span>
+            <i class="fas fa-cart-plus"></i><span class="hidden sm:inline">Thêm vào giỏ hàng</span>
           </button>
           <button onclick="submitOrder()" id="submitOrderBtn"
             class="btn-primary flex-1 text-white py-3.5 rounded-xl font-bold text-base">
