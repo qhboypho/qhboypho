@@ -520,6 +520,30 @@ function flashSaleBuildCopyName(name) {
   return raw.includes('Bản sao') ? raw : ('Bản sao - ' + raw)
 }
 
+function flashSaleFormatDateTimeLocal(date) {
+  const d = date instanceof Date ? date : new Date(date)
+  if (!Number.isFinite(d.getTime())) return ''
+  const pad = (value) => String(value).padStart(2, '0')
+  return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes())
+}
+
+function flashSaleBuildCopyTimeWindow(campaign) {
+  const originalStart = Date.parse(String(campaign && campaign.start_at || '').replace(' ', 'T'))
+  const originalEnd = Date.parse(String(campaign && campaign.end_at || '').replace(' ', 'T'))
+  const fallbackDuration = 24 * 60 * 60 * 1000
+  const duration = Number.isFinite(originalStart) && Number.isFinite(originalEnd) && originalEnd > originalStart
+    ? Math.min(Math.max(originalEnd - originalStart, 60 * 60 * 1000), 30 * 24 * 60 * 60 * 1000)
+    : fallbackDuration
+  const now = new Date()
+  now.setSeconds(0, 0)
+  const start = new Date(now.getTime() + 10 * 60 * 1000)
+  const end = new Date(start.getTime() + duration)
+  return {
+    start_at: flashSaleFormatDateTimeLocal(start),
+    end_at: flashSaleFormatDateTimeLocal(end)
+  }
+}
+
 function flashSaleApplyCampaignToForm(campaign, options) {
   const opts = options || {}
   const asCopy = !!opts.asCopy
@@ -529,8 +553,9 @@ function flashSaleApplyCampaignToForm(campaign, options) {
   flashSaleEditingId = asCopy ? null : Number(campaign.id)
   flashSaleDuplicatingFromId = asCopy ? Number(campaign.id) : null
   if (nameInput) nameInput.value = asCopy ? flashSaleBuildCopyName(campaign.name) : String(campaign.name || '')
-  if (startInput) startInput.value = flashSaleNormalizeDateTime(campaign.start_at)
-  if (endInput) endInput.value = flashSaleNormalizeDateTime(campaign.end_at)
+  const copyWindow = asCopy ? flashSaleBuildCopyTimeWindow(campaign) : null
+  if (startInput) startInput.value = asCopy ? copyWindow.start_at : flashSaleNormalizeDateTime(campaign.start_at)
+  if (endInput) endInput.value = asCopy ? copyWindow.end_at : flashSaleNormalizeDateTime(campaign.end_at)
   flashSaleCreateSelectedItems = Array.isArray(campaign.items) ? campaign.items.map((item) => flashSaleMapDetailItem(item)) : []
   flashSaleProductExpandedState = {}
   flashSaleCreateSelectedItems.forEach((item) => {
@@ -539,6 +564,20 @@ function flashSaleApplyCampaignToForm(campaign, options) {
   flashSaleSyncModalMode()
   renderFlashSaleSelectedItems()
   loadFlashSaleProductPickerProducts()
+}
+
+function flashSaleSetAdminFilter(status) {
+  flashSaleAdminFilter = String(status || 'all')
+  document.querySelectorAll('.flashsale-filter-btn').forEach((elBtn) => {
+    const active = String(elBtn.dataset.status || 'all') === flashSaleAdminFilter
+    elBtn.classList.toggle('active', active)
+    elBtn.classList.toggle('bg-pink-50', active)
+    elBtn.classList.toggle('text-pink-600', active)
+    elBtn.classList.toggle('border-pink-200', active)
+    elBtn.classList.toggle('bg-white', !active)
+    elBtn.classList.toggle('text-gray-600', !active)
+    elBtn.classList.toggle('border-gray-200', !active)
+  })
 }
 
 function resetFlashSaleCreateForm() {
@@ -609,6 +648,7 @@ async function submitFlashSaleCreateForm() {
     if (!res.data || res.data.success === false) throw new Error(String(res.data && res.data.error ? res.data.error : (isEditing ? 'Không thể cập nhật flashsale' : 'Không thể tạo flashsale')))
     showAdminToast(isEditing ? 'Cập nhật flashsale thành công' : 'Tạo flashsale thành công', 'success')
     closeFlashSaleCreateModal()
+    flashSaleSetAdminFilter('all')
     await loadFlashSaleAdmin()
   } catch (e) {
     const message = e && e.response && e.response.data && e.response.data.error ? e.response.data.error : (e && e.message ? e.message : (isEditing ? 'Không thể cập nhật flashsale' : 'Không thể tạo flashsale'))
@@ -842,17 +882,7 @@ async function loadFlashSaleAdmin() {
     btn.dataset.bound = '1'
     btn.addEventListener('click', () => {
       const nextStatus = String(btn.dataset.status || 'all')
-      flashSaleAdminFilter = nextStatus
-      document.querySelectorAll('.flashsale-filter-btn').forEach((elBtn) => {
-        const active = String(elBtn.dataset.status || 'all') === nextStatus
-        elBtn.classList.toggle('active', active)
-        elBtn.classList.toggle('bg-pink-50', active)
-        elBtn.classList.toggle('text-pink-600', active)
-        elBtn.classList.toggle('border-pink-200', active)
-        elBtn.classList.toggle('bg-white', !active)
-        elBtn.classList.toggle('text-gray-600', !active)
-        elBtn.classList.toggle('border-gray-200', !active)
-      })
+      flashSaleSetAdminFilter(nextStatus)
       loadFlashSaleAdmin()
     })
   })
