@@ -12,7 +12,9 @@ let pendingBankTransferOrder = null
 let bankTransferPollTimer = null
 const PRODUCT_PREVIEW_ROWS = 3
 const PRODUCT_MODAL_PAGE_SIZE = 24
+const MOBILE_PRODUCT_PAGE_SIZE = 8
 let productsModalVisibleCount = PRODUCT_MODAL_PAGE_SIZE
+let mobileProductsVisibleCount = MOBILE_PRODUCT_PAGE_SIZE
 let zaloPayLinkTab = null
 let appliedVoucher = null   // { code, discount_amount }
 let detailColorOptions = []
@@ -679,6 +681,7 @@ async function loadProducts() {
     const res = await axios.get('/api/products')
     allProducts = res.data.data || []
     filteredProducts = [...allProducts]
+    resetMobileProductsVisibleCount()
     renderProducts(filteredProducts)
     loadFlashSaleShop()
   } catch(e) {
@@ -1008,13 +1011,35 @@ function renderProducts(products) {
     return
   }
   empty.classList.add('hidden')
-  const limit = getProductPreviewLimit()
+  const mobileMode = isMobileProductListMode()
+  const limit = mobileMode ? mobileProductsVisibleCount : getProductPreviewLimit()
   const visible = products.slice(0, limit)
   grid.innerHTML = visible.map((p) => renderStorefrontProductCard(p)).join('')
   const hiddenCount = Math.max(0, products.length - visible.length)
-  if (moreWrap) moreWrap.classList.toggle('hidden', hiddenCount <= 0)
+  if (moreWrap) moreWrap.classList.toggle('hidden', mobileMode || hiddenCount <= 0)
   if (moreCount) moreCount.textContent = hiddenCount > 0 ? '(' + hiddenCount + ')' : ''
   startFlashSaleCountdownTicker()
+  if (mobileMode && hiddenCount > 0) requestAnimationFrame(maybeLoadMoreMobileProducts)
+}
+
+function isMobileProductListMode() {
+  return (window.innerWidth || document.documentElement.clientWidth || 1024) < 768
+}
+
+function resetMobileProductsVisibleCount() {
+  mobileProductsVisibleCount = MOBILE_PRODUCT_PAGE_SIZE
+}
+
+function maybeLoadMoreMobileProducts() {
+  if (!isMobileProductListMode()) return
+  if (!Array.isArray(filteredProducts) || mobileProductsVisibleCount >= filteredProducts.length) return
+  const productsSection = document.getElementById('products')
+  if (!productsSection) return
+  const rect = productsSection.getBoundingClientRect()
+  const nearSectionEnd = rect.bottom - window.innerHeight < 420
+  if (!nearSectionEnd) return
+  mobileProductsVisibleCount = Math.min(filteredProducts.length, mobileProductsVisibleCount + MOBILE_PRODUCT_PAGE_SIZE)
+  renderProducts(filteredProducts)
 }
 
 function renderProductRatingStars(product, className) {
@@ -1084,8 +1109,11 @@ function renderStorefrontProductCard(p) {
 function openProductsModal() {
   productsModalVisibleCount = PRODUCT_MODAL_PAGE_SIZE
   renderProductsModal()
-  document.getElementById('productsModalOverlay')?.classList.remove('hidden')
+  const overlay = document.getElementById('productsModalOverlay')
+  if (!overlay) return
+  overlay.classList.remove('hidden')
   document.body.style.overflow = 'hidden'
+  requestAnimationFrame(() => overlay.querySelector('.overflow-y-auto')?.scrollTo({ top: 0 }))
 }
 
 function closeProductsModal() {
@@ -1129,6 +1157,7 @@ function renderProductsModal() {
 function filterProducts(cat, btn) {
   document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'))
   btn.classList.add('active')
+  resetMobileProductsVisibleCount()
   const search = document.getElementById('searchInput').value.toLowerCase()
   filteredProducts = allProducts.filter(p => {
     const matchCat = cat === 'all' || p.category === cat
@@ -1141,6 +1170,7 @@ function filterProducts(cat, btn) {
 function searchProducts(q) {
   const activeCat = document.querySelector('.filter-btn.active')?.dataset.cat || 'all'
   const ql = q.toLowerCase()
+  resetMobileProductsVisibleCount()
   filteredProducts = allProducts.filter(p => {
     const matchCat = activeCat === 'all' || p.category === activeCat
     const matchSearch = !q || p.name.toLowerCase().includes(ql) || (p.brand||'').toLowerCase().includes(ql)
@@ -2146,6 +2176,10 @@ window.addEventListener('resize', () => {
     renderProducts(filteredProducts)
   }
 })
+
+window.addEventListener('scroll', () => {
+  window.requestAnimationFrame(maybeLoadMoreMobileProducts)
+}, { passive: true })
 
 // Init
 initStorefrontMarquee()

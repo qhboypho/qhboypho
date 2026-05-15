@@ -237,6 +237,13 @@ export function storefrontThemeRefreshStyles(): string {
     color: #64748b !important;
     opacity: 1;
   }
+  #productsMoreWrap button {
+    transition: transform 0.16s ease, box-shadow 0.16s ease, opacity 0.16s ease;
+  }
+  #productsMoreWrap button:active {
+    transform: translateY(1px) scale(0.97);
+    opacity: 0.88;
+  }
   body[data-storefront-theme='dark'] #filterBar {
     background: rgba(5,15,34,0.86) !important;
   }
