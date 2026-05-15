@@ -922,10 +922,9 @@ function getFlashSaleMeta(product) {
 
 function renderFlashSaleMiniStrip(flashMeta) {
   if (!flashMeta) return ''
-  return \`<div class="flash-sale-mini-strip mt-2 mb-3 inline-flex max-w-full items-center overflow-hidden rounded-md border border-rose-100 bg-rose-50 shadow-[0_1px_4px_rgba(244,63,94,0.14)]" aria-label="Flash sale đang chạy">
-    <span class="flash-sale-mini-label shrink-0 bg-rose-500 px-2.5 py-1 text-[11px] font-extrabold leading-none text-white md:text-xs">Flash Sale</span>
-    <span class="flash-sale-mini-bolt -mx-0.5 flex h-6 w-6 shrink-0 items-center justify-center bg-yellow-300 text-[13px] text-rose-600 [clip-path:polygon(18%_0,100%_0,82%_100%,0_100%)]"><i class="fas fa-bolt"></i></span>
-    <span class="flash-sale-countdown flash-sale-mini-timer min-w-[74px] px-2.5 py-1 text-center font-mono text-[11px] font-bold leading-none text-rose-700 md:min-w-[82px] md:text-xs" style="background:#fff1f2;color:#be123c;border-radius:0;box-shadow:none;backdrop-filter:none;" data-flash-sale-ends-at="\${flashMeta.endsAt || ''}">\${formatFlashSaleCountdown(flashMeta.endsAt || '')}</span>
+  return \`<div class="flash-sale-mini-strip" aria-label="Flash sale đang chạy">
+    <span class="flash-sale-mini-label">Flash Sale <i class="fas fa-bolt"></i></span>
+    <span class="flash-sale-countdown flash-sale-mini-timer" data-flash-sale-ends-at="\${flashMeta.endsAt || ''}">\${formatFlashSaleCountdown(flashMeta.endsAt || '')}</span>
   </div>\`
 }
 
