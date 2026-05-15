@@ -368,6 +368,114 @@ export function storefrontThemeRefreshStyles(): string {
     color: rgba(173,184,208,0.68) !important;
     text-decoration-color: rgba(173,184,208,0.7) !important;
   }
+  #products .product-card > .relative,
+  #productsModalOverlay .product-card > .relative {
+    background: transparent !important;
+  }
+  #products .product-card .product-img-main,
+  #productsModalOverlay .product-card .product-img-main {
+    display: block;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    height: auto !important;
+    object-fit: cover;
+  }
+  #products .product-card > .p-3,
+  #productsModalOverlay .product-card > .p-3 {
+    padding: 0.7rem !important;
+  }
+  #products .product-card h3,
+  #productsModalOverlay .product-card h3 {
+    font-size: 0.82rem !important;
+    line-height: 1.18 !important;
+    margin-bottom: 0.45rem !important;
+  }
+  #products .product-card p,
+  #productsModalOverlay .product-card p {
+    font-size: 0.68rem !important;
+    line-height: 1.15 !important;
+    margin-bottom: 0.35rem !important;
+  }
+  #products .product-card .text-gradient-price,
+  #productsModalOverlay .product-card .text-gradient-price {
+    font-size: 0.92rem !important;
+    line-height: 1 !important;
+  }
+  #products .product-card .product-card-original-price,
+  #productsModalOverlay .product-card .product-card-original-price {
+    font-size: 0.68rem !important;
+  }
+  #products .product-card .flex.items-center.gap-2.mb-3,
+  #productsModalOverlay .product-card .flex.items-center.gap-2.mb-3 {
+    gap: 0.4rem !important;
+    margin-bottom: 0.5rem !important;
+  }
+  #products .product-card .flex.gap-1,
+  #productsModalOverlay .product-card .flex.gap-1 {
+    gap: 0.25rem !important;
+    margin-bottom: 0.55rem !important;
+  }
+  #products .product-card .flex.gap-1 span,
+  #productsModalOverlay .product-card .flex.gap-1 span {
+    font-size: 0.63rem !important;
+    line-height: 1 !important;
+    padding: 0.14rem 0.38rem !important;
+  }
+  #products .product-card span[class*="bg-amber-400"],
+  #productsModalOverlay .product-card span[class*="bg-amber-400"] {
+    top: 0.5rem !important;
+    right: 0.5rem !important;
+    font-size: 0.64rem !important;
+    line-height: 1 !important;
+    padding: 0.24rem 0.46rem !important;
+  }
+  #products .product-card .flash-sale-mini-strip,
+  #productsModalOverlay .product-card .flash-sale-mini-strip {
+    gap: 0.3rem;
+    margin: 0.35rem 0 0.55rem;
+    padding: 0.24rem;
+    border-radius: 0.82rem;
+  }
+  #products .product-card .flash-sale-mini-label,
+  #productsModalOverlay .product-card .flash-sale-mini-label {
+    min-width: 4.85rem;
+    padding: 0.36rem 0.5rem;
+    border-radius: 0.58rem;
+    font-size: 0.66rem;
+  }
+  #products .product-card .flash-sale-mini-strip .flash-sale-mini-timer,
+  #productsModalOverlay .product-card .flash-sale-mini-strip .flash-sale-mini-timer {
+    min-width: 5.1rem;
+    padding: 0.35rem 0.48rem;
+    border-radius: 0.58rem;
+    font-size: 0.68rem;
+    letter-spacing: 0.08em;
+  }
+  #products .product-buy-btn,
+  #productsModalOverlay .product-buy-btn,
+  #products .product-cart-btn,
+  #productsModalOverlay .product-cart-btn {
+    min-height: 0 !important;
+    height: 2.05rem !important;
+    border-radius: 0.72rem !important;
+    font-size: 0.72rem !important;
+    line-height: 1 !important;
+  }
+  #products .product-buy-btn,
+  #productsModalOverlay .product-buy-btn {
+    padding: 0 0.62rem !important;
+  }
+  #products .product-cart-btn,
+  #productsModalOverlay .product-cart-btn {
+    padding: 0 0.72rem !important;
+    gap: 0.35rem !important;
+  }
+  #products .product-cart-btn i,
+  #productsModalOverlay .product-cart-btn i,
+  #products .product-buy-btn i,
+  #productsModalOverlay .product-buy-btn i {
+    font-size: 0.72rem !important;
+  }
   .blocked-order-btn,
   .blocked-order-icon-btn {
     display: inline-flex !important;
@@ -772,28 +880,33 @@ export function storefrontThemeRefreshStyles(): string {
     #productsModalOverlay .product-card .product-img-main {
       height: 100% !important;
       min-height: 100%;
+      aspect-ratio: auto;
     }
     #products .product-card > .p-3,
     #productsModalOverlay .product-card > .p-3 {
       flex: 1 1 auto;
       min-width: 0;
-      padding: 0.65rem !important;
+      padding: 0.5rem 0.55rem !important;
       display: flex;
       flex-direction: column;
     }
+    #products .product-card p.text-pink-500,
+    #productsModalOverlay .product-card p.text-pink-500 {
+      display: none !important;
+    }
     #products .product-card h3,
     #productsModalOverlay .product-card h3 {
-      font-size: 0.875rem !important;
-      line-height: 1.2 !important;
-      margin-bottom: 0.35rem !important;
+      font-size: 0.8rem !important;
+      line-height: 1.16 !important;
+      margin-bottom: 0.3rem !important;
     }
     #products .product-card p,
     #productsModalOverlay .product-card p {
-      margin-bottom: 0.2rem !important;
+      margin-bottom: 0.15rem !important;
     }
     #products .product-card .text-gradient-price,
     #productsModalOverlay .product-card .text-gradient-price {
-      font-size: 0.95rem !important;
+      font-size: 0.9rem !important;
     }
     #products .product-card .flex.gap-1,
     #productsModalOverlay .product-card .flex.gap-1 {
@@ -823,18 +936,20 @@ export function storefrontThemeRefreshStyles(): string {
     #products .product-buy-btn,
     #productsModalOverlay .product-buy-btn {
       flex-basis: auto;
-      font-size: 0.75rem !important;
-      padding-left: 0.4rem !important;
-      padding-right: 0.4rem !important;
+      height: 1.95rem !important;
+      font-size: 0.68rem !important;
+      padding-left: 0.46rem !important;
+      padding-right: 0.46rem !important;
+      border-radius: 0.68rem !important;
     }
     #products .product-cart-btn,
     #productsModalOverlay .product-cart-btn {
       display: inline-flex !important;
       flex: 1 1 auto;
       width: auto;
-      height: 2.35rem !important;
-      padding: 0 0.8rem !important;
-      border-radius: 0.85rem !important;
+      height: 1.95rem !important;
+      padding: 0 0.55rem !important;
+      border-radius: 0.68rem !important;
     }
     #products .product-cart-btn span,
     #productsModalOverlay .product-cart-btn span {
