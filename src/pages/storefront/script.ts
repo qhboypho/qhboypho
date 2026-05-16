@@ -898,7 +898,7 @@ async function loadBestSellers() {
           <div class="flex items-center gap-1.5">
             <span class="bs-sold-chip"><i class="fas fa-fire-flame-curved"></i> \${fmtSold(soldCount)} đã bán</span>
           </div>
-          \${isCurrentUserBlocked() ? renderBlockedPurchaseActions('w-full mt-2.5 py-2 text-xs font-bold rounded-xl') : \`<div class="bs-actions"><button onclick="event.stopPropagation();openOrder(\${p.id})" class="btn-primary bs-buy-btn text-xs font-bold text-white rounded-xl"><i class="fas fa-bolt mr-1"></i>Đặt nhanh</button><button onclick="event.stopPropagation();addToCartFromProductCard(event, \${p.id})" title="Thêm vào giỏ hàng" class="bs-mobile-cart-btn add-to-cart-btn"><i class="fas fa-cart-plus"></i></button></div>\`}
+          \${isCurrentUserBlocked() ? renderBlockedPurchaseActions('w-full mt-2.5 py-2 text-xs font-bold rounded-xl') : \`<div class="bs-actions"><button onclick="event.stopPropagation();openOrder(\${p.id})" class="btn-primary bs-buy-btn text-xs font-bold text-white rounded-xl"><i class="fas fa-bolt mr-1"></i><span class="quick-order-label-desktop">Đặt hàng nhanh</span><span class="quick-order-label-mobile">Đặt nhanh</span></button><button onclick="event.stopPropagation();addToCartFromProductCard(event, \${p.id})" title="Thêm vào giỏ hàng" class="bs-mobile-cart-btn add-to-cart-btn"><i class="fas fa-cart-plus"></i></button></div>\`}
         </div>
       </div>\`
     }).join('')
@@ -928,6 +928,7 @@ function renderFlashSaleMiniStrip(flashMeta) {
   return \`<div class="flash-sale-mini-strip" aria-label="Flash sale đang chạy">
     <span class="flash-sale-mini-label">Flash Sale <i class="fas fa-bolt"></i></span>
     <span class="flash-sale-countdown flash-sale-mini-timer" data-flash-sale-ends-at="\${flashMeta.endsAt || ''}">\${formatFlashSaleCountdown(flashMeta.endsAt || '')}</span>
+    <img class="flash-sale-mini-tail" src="/GHTK_id8dR2ZdYY_1.svg" alt="" loading="lazy">
   </div>\`
 }
 
@@ -988,7 +989,7 @@ async function loadFlashSaleShop() {
               \${original > price ? \`<span class="pb-0.5 text-sm text-slate-400 line-through">\${fmtPrice(original)}</span>\` : ''}
             </div>
             \${renderFlashSaleMiniStrip(meta)}
-            \${isCurrentUserBlocked() ? renderBlockedPurchaseActions('w-full rounded-2xl py-3 text-sm font-semibold') : \`<button onclick="event.stopPropagation();openOrder(\${product.id})" class="btn-primary w-full rounded-2xl py-3 text-sm font-semibold text-white"><i class="fas fa-bolt mr-1"></i>Đặt nhanh</button>\`}
+            \${isCurrentUserBlocked() ? renderBlockedPurchaseActions('w-full rounded-2xl py-3 text-sm font-semibold') : \`<button onclick="event.stopPropagation();openOrder(\${product.id})" class="btn-primary w-full rounded-2xl py-3 text-sm font-semibold text-white"><i class="fas fa-bolt mr-1"></i><span class="quick-order-label-desktop">Đặt hàng nhanh</span><span class="quick-order-label-mobile">Đặt nhanh</span></button>\`}
           </div>
         </div>
       \`
@@ -1046,19 +1047,20 @@ function renderProductRatingStars(product, className) {
   const total = Number(product?.total_reviews || product?.review_count || 0)
   const avg = Number(product?.avg_rating || product?.rating || 0)
   if (!total || !avg) return ''
-  const rounded = Math.max(1, Math.min(5, Math.round(avg)))
-  return '<span class="' + (className || 'product-rating-stars') + '" title="' + avg.toFixed(1) + '/5 từ ' + total + ' đánh giá">' + '★'.repeat(rounded) + '☆'.repeat(5 - rounded) + '</span>'
+  const score = Math.max(1, Math.min(5, avg))
+  const rounded = Math.round(score)
+  const scoreText = score.toFixed(1)
+  return '<span class="' + (className || 'product-rating-stars') + '" title="' + scoreText + '/5 từ ' + total + ' đánh giá">' +
+    '<span class="product-rating-stars-icons">' + '★'.repeat(rounded) + '☆'.repeat(5 - rounded) + '</span>' +
+    '<span class="product-rating-score-text">' + scoreText + '</span>' +
+  '</span>'
 }
 
 function renderProductCardSocialMeta(product) {
   const stars = renderProductRatingStars(product)
   const soldCount = Number(product?.total_sold || 0)
-  if (!stars && soldCount <= 0) return ''
-  return '<div class="product-card-social-meta">' +
-    (stars || '<span class="product-rating-stars product-rating-stars--empty">☆☆☆☆☆</span>') +
-    '<span class="product-card-meta-divider">|</span>' +
-    '<span class="product-card-sold-text">Đã bán ' + fmtSold(soldCount) + '</span>' +
-  '</div>'
+  if (!stars) return soldCount > 0 ? '<div class="product-card-social-meta product-card-social-meta--sold-only"><span class="product-card-sold-text">Đã bán ' + fmtSold(soldCount) + '</span></div>' : ''
+  return '<div class="product-card-social-meta">' + stars + '<span class="product-card-sold-text">Đã bán ' + fmtSold(soldCount) + '</span></div>'
 }
 
 function getProductPreviewLimit() {
@@ -1093,6 +1095,7 @@ function renderStorefrontProductCard(p) {
       <div class="flex items-center gap-2 mb-3 flex-wrap">
         <span class="text-gradient-price font-bold">\${fmtPrice(displayPrice)}</span>
         \${displayOriginalPrice > displayPrice ? \`<span class="product-card-original-price text-xs line-through">\${fmtPrice(displayOriginalPrice)}</span>\` : ''}
+        <span class="product-rating-stars-desktop">\${renderProductRatingStars(p)}</span>
       </div>
       \${p.has_flash_sale ? renderFlashSaleMiniStrip(flashMeta) : ''}
       \${renderProductCardSocialMeta(p)}
@@ -1300,7 +1303,7 @@ function renderProductCardActions(productId) {
     return '<div class="product-card-actions">' + renderBlockedPurchaseActions('product-buy-btn text-sm font-semibold') + '<button type="button" onclick="event.stopPropagation();showBlockedCustomerModal(getCurrentUserBlockReason())" title="Không thể đặt hàng" class="blocked-order-icon-btn product-cart-btn"><i class="fas fa-ban text-sm"></i></button></div>'
   }
   return '<div class="product-card-actions">'
-    + '<button onclick="event.stopPropagation();openOrderFromProductCard(' + productId + ')" title="Đặt nhanh" class="product-buy-btn btn-primary text-white text-sm font-semibold"><i class="fas fa-bolt mr-1"></i>Đặt nhanh</button>'
+    + '<button onclick="event.stopPropagation();openOrderFromProductCard(' + productId + ')" title="Đặt hàng nhanh" class="product-buy-btn btn-primary text-white text-sm font-semibold"><i class="fas fa-bolt mr-1"></i><span class="quick-order-label-desktop">Đặt hàng nhanh</span><span class="quick-order-label-mobile">Đặt nhanh</span></button>'
     + '<button onclick="event.stopPropagation();addToCartFromProductCard(event, ' + productId + ')" title="Thêm vào giỏ hàng" class="product-cart-btn add-to-cart-btn flex items-center justify-center text-white transition group relative"><i class="fas fa-cart-plus text-sm"></i><span>Thêm vào giỏ hàng</span></button>'
     + '</div>'
 }
