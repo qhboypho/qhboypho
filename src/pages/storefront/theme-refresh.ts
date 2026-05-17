@@ -523,6 +523,112 @@ export function storefrontThemeRefreshStyles(): string {
   .hero-mobile-card-name {
     color: var(--qh-text) !important;
   }
+  .favorite-toggle-btn {
+    position: absolute;
+    top: 0.7rem;
+    left: 0.7rem;
+    z-index: 6;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: auto;
+    height: auto;
+    padding: 0;
+    border: 0 !important;
+    border-radius: 0;
+    background: none !important;
+    color: #9ca3af;
+    backdrop-filter: none;
+    box-shadow: none !important;
+    transition: transform 0.16s ease, color 0.16s ease;
+  }
+  .favorite-toggle-btn i {
+    font-size: 1.28rem;
+    line-height: 1;
+  }
+  .favorite-toggle-btn:hover {
+    transform: scale(1.04);
+  }
+  .favorite-toggle-btn.active {
+    background: none !important;
+    color: #ff5ca8 !important;
+    border: 0 !important;
+    box-shadow: none !important;
+  }
+  .bs-card .bs-medal {
+    left: auto;
+    right: 0.75rem;
+  }
+  .favorites-products-grid .product-card {
+    display: grid;
+    grid-template-columns: minmax(0, 40%) minmax(0, 1fr);
+    align-items: stretch;
+    height: 100%;
+  }
+  .favorites-products-grid .product-card > .relative {
+    min-width: 0;
+  }
+  .favorites-products-grid .product-card .product-img-main {
+    display: block;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    height: auto !important;
+    object-fit: cover;
+  }
+  .favorites-products-grid .product-card > .p-3 {
+    padding: 0.7rem !important;
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  .favorites-products-grid .product-card-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: auto;
+  }
+  .favorites-products-grid .product-buy-btn,
+  .favorites-products-grid .product-cart-btn {
+    min-height: 0 !important;
+    height: 2.05rem !important;
+    border-radius: 0.72rem !important;
+    font-size: 0.72rem !important;
+    line-height: 1 !important;
+  }
+  .favorites-products-grid .product-buy-btn {
+    flex: auto !important;
+    width: auto !important;
+    max-width: calc(100% - 60px - 0.5rem) !important;
+    padding: 0 0.62rem !important;
+  }
+  .favorites-products-grid .product-cart-btn {
+    flex: 0 0 60px !important;
+    min-width: 60px !important;
+    width: 60px !important;
+    padding: 0 !important;
+    gap: 0 !important;
+  }
+  .favorites-products-grid .product-cart-btn span {
+    display: none !important;
+  }
+  .favorites-products-grid .product-card .text-gradient-price {
+    font-size: 0.92rem !important;
+  }
+  .favorites-products-grid .product-card p.text-pink-500 {
+    display: none !important;
+  }
+  .favorites-products-grid .product-card h3 {
+    font-size: 0.82rem !important;
+    line-height: 1.18 !important;
+    margin-bottom: 0.45rem !important;
+  }
+  .favorites-products-grid .product-card p {
+    font-size: 0.68rem !important;
+    line-height: 1.15 !important;
+    margin-bottom: 0.35rem !important;
+  }
   .product-card .text-gray-500,
   .product-card .text-gray-600,
   .product-card p,
@@ -624,13 +730,16 @@ export function storefrontThemeRefreshStyles(): string {
     line-height: 1 !important;
     padding: 0.14rem 0.38rem !important;
   }
-  #products .product-card span[class*="bg-amber-400"],
-  #productsModalOverlay .product-card span[class*="bg-amber-400"] {
-    top: 0.5rem !important;
-    right: 0.5rem !important;
-    font-size: 0.64rem !important;
+  #products .product-card .product-featured-badge,
+  #productsModalOverlay .product-card .product-featured-badge {
+    top: 0.7rem !important;
+    right: 1.7rem !important;
+    z-index: 5;
+    font-size: 0.72rem !important;
     line-height: 1 !important;
-    padding: 0.24rem 0.46rem !important;
+    padding: 0.22rem 0.5rem !important;
+    border-radius: 999px !important;
+    white-space: nowrap;
   }
   #products .product-card .flash-sale-mini-strip,
   #productsModalOverlay .product-card .flash-sale-mini-strip {
@@ -762,6 +871,20 @@ export function storefrontThemeRefreshStyles(): string {
   }
   .blocked-order-btn span {
     line-height: 1;
+  }
+  .product-card-actions--blocked {
+    justify-content: center !important;
+    align-self: stretch !important;
+    width: 100% !important;
+    margin-left: 0 !important;
+  }
+  .product-card-actions--blocked .blocked-order-btn,
+  .product-buy-btn--blocked {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: none !important;
+    justify-content: center !important;
   }
   .blocked-order-icon-btn {
     border-radius: 0.85rem !important;
@@ -998,6 +1121,14 @@ export function storefrontThemeRefreshStyles(): string {
     .quick-order-label-mobile {
       display: inline;
     }
+    .favorite-toggle-btn {
+      height: 1.9rem;
+      top: 0.5rem;
+      left: 0.5rem;
+    }
+    .favorite-toggle-btn i {
+      font-size: 1.08rem;
+    }
     .flash-sale-mini-strip {
       gap: 0;
       margin: 0.4rem 0 0.5rem;
@@ -1060,6 +1191,17 @@ export function storefrontThemeRefreshStyles(): string {
   body[data-storefront-theme='dark'] .flash-sale-shop-card .text-slate-900,
   body[data-storefront-theme='dark'] .bs-card .bs-name {
     color: #f8fafc !important;
+  }
+  body[data-storefront-theme='dark'] .favorite-toggle-btn {
+    background: none !important;
+    border: 0 !important;
+    color: #9ca3af !important;
+    box-shadow: none !important;
+  }
+  body[data-storefront-theme='dark'] .favorite-toggle-btn.active {
+    background: none !important;
+    border: 0 !important;
+    color: #ff5ca8 !important;
   }
   body[data-storefront-theme='dark'] .hero-carousel-desc,
   body[data-storefront-theme='dark'] .hero-carousel-link,
@@ -1406,9 +1548,9 @@ export function storefrontThemeRefreshStyles(): string {
       padding: 0.08rem 0.42rem !important;
     }
     #products .product-card .badge-sale,
-    #products .product-card span[class*="bg-amber-400"],
+    #products .product-card .product-featured-badge,
     #productsModalOverlay .product-card .badge-sale,
-    #productsModalOverlay .product-card span[class*="bg-amber-400"] {
+    #productsModalOverlay .product-card .product-featured-badge {
       top: 0.45rem !important;
       font-size: 0.6875rem !important;
       padding: 0.18rem 0.45rem !important;
@@ -1417,9 +1559,9 @@ export function storefrontThemeRefreshStyles(): string {
     #productsModalOverlay .product-card .badge-sale {
       left: 0.45rem !important;
     }
-    #products .product-card span[class*="bg-amber-400"],
-    #productsModalOverlay .product-card span[class*="bg-amber-400"] {
-      right: 0.45rem !important;
+    #products .product-card .product-featured-badge,
+    #productsModalOverlay .product-card .product-featured-badge {
+      right: 1.7rem !important;
     }
     #products .product-card-actions,
     #productsModalOverlay .product-card-actions {
@@ -1461,6 +1603,17 @@ export function storefrontThemeRefreshStyles(): string {
       border-bottom-left-radius: 0.62rem !important;
       background: transparent !important;
       box-shadow: none !important;
+    }
+    #products .product-card-actions--blocked .blocked-order-btn,
+    #productsModalOverlay .product-card-actions--blocked .blocked-order-btn {
+      flex: 1 1 100% !important;
+      width: 100% !important;
+      min-width: 100% !important;
+      max-width: none !important;
+      height: 1.52rem !important;
+      border-radius: 0.62rem !important;
+      padding-left: 0.46rem !important;
+      padding-right: 0.46rem !important;
     }
     #products .product-cart-btn,
     #productsModalOverlay .product-cart-btn {

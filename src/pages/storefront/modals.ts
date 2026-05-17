@@ -539,6 +539,9 @@ export function storefrontModalsSection(): string {
         <button onclick="showUserOrders()" id="userOrdersBtn" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-pink-50 hover:text-pink-600 transition text-sm font-medium text-left">
           <i class="fas fa-clipboard-list w-5 text-pink-400"></i>Lịch sử mua hàng
         </button>
+        <button onclick="showUserFavorites()" id="userFavoritesBtn" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-pink-50 hover:text-pink-600 transition text-sm font-medium text-left">
+          <i class="fas fa-heart w-5 text-pink-400"></i>Sản phẩm yêu thích
+        </button>
         <button onclick="showWalletInMenu()" id="userWalletBtn" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-pink-50 hover:text-pink-600 transition text-sm font-medium text-left">
           <i class="fas fa-wallet w-5 text-pink-400"></i>Nạp tiền vào ví
           <span id="walletBalanceMenu" class="ml-auto text-xs bg-green-50 text-green-600 px-2 py-0.5 rounded-full font-semibold">0đ</span>
@@ -625,6 +628,30 @@ export function storefrontModalsSection(): string {
         class="w-full bg-gray-900 hover:bg-gray-800 text-white py-3 rounded-xl font-bold text-sm transition">
         <i class="fas fa-times mr-2"></i>Đóng
       </button>
+    </div>
+  </div>
+</div>
+
+<div id="favoriteAuthModal" class="fixed inset-0 overlay hidden flex items-center justify-center p-4" style="z-index:1003;" onclick="if(event.target===this) closeFavoriteAuthModal()">
+  <div class="popup-card bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden" onclick="event.stopPropagation()">
+    <div class="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
+      <h3 class="font-display text-lg font-bold text-gray-900"><i class="fas fa-heart text-pink-500 mr-2"></i>Lưu yêu thích</h3>
+      <button type="button" onclick="closeFavoriteAuthModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition">
+        <i class="fas fa-times text-gray-600"></i>
+      </button>
+    </div>
+    <div class="px-6 py-5">
+      <div class="rounded-2xl border border-pink-100 bg-pink-50 px-4 py-4 text-center">
+        <p class="text-sm font-semibold text-gray-800">Bạn cần login để lưu sản phẩm yêu thích</p>
+      </div>
+      <div class="mt-5 flex gap-3">
+        <button type="button" onclick="closeFavoriteAuthModal()" class="flex-1 border border-gray-200 text-gray-700 py-3 rounded-xl font-semibold text-sm hover:bg-gray-50 transition">
+          Để sau
+        </button>
+        <button type="button" onclick="openFavoriteLoginFlow()" class="btn-primary flex-1 text-white py-3 rounded-xl font-semibold text-sm">
+          Đăng nhập
+        </button>
+      </div>
     </div>
   </div>
 </div>

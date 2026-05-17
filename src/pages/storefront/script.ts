@@ -27,6 +27,8 @@ let activeProductCategory = 'all'
 let activeProductSearch = ''
 let activeProductSort = 'newest'
 let mobileProductsLayout = 'list'
+let favoriteProductIds = []
+let activeUserMenuView = ''
 let userOrderHistoryCache = []
 
 // ── CART STATE ─────────────────────────────────────
@@ -40,6 +42,7 @@ let isAdminUser = false
 let cartStorageKey = 'qhclothes_cart_guest'
 const STOREFRONT_THEME_KEY = 'qhclothes_storefront_theme'
 const STOREFRONT_DEVICE_KEY = 'qhclothes_device_id'
+const STOREFRONT_FAVORITES_KEY = 'qhclothes_storefront_favorites'
 const ADDRESS_EFFECTIVE_DATE = 'latest'
 let addressProvinceOptions = []
 let addressCommuneOptionsByProvince = {}
@@ -111,6 +114,123 @@ function toggleStorefrontTheme() {
   const theme = document.body.dataset.storefrontTheme === 'dark' ? 'light' : 'dark'
   try { localStorage.setItem(STOREFRONT_THEME_KEY, theme) } catch (_) { }
   applyStorefrontTheme(theme)
+}
+
+function getFavoritesOwnerKey() {
+  const raw = currentUser?.userId || currentUser?.id || currentUser?.username || currentUser?.email || ''
+  return String(raw || '').trim()
+}
+
+function readFavoritesStore() {
+  try {
+    const raw = localStorage.getItem(STOREFRONT_FAVORITES_KEY)
+    const parsed = raw ? JSON.parse(raw) : {}
+    return parsed && typeof parsed === 'object' ? parsed : {}
+  } catch (_) {
+    return {}
+  }
+}
+
+function writeFavoritesStore(store) {
+  try { localStorage.setItem(STOREFRONT_FAVORITES_KEY, JSON.stringify(store || {})) } catch (_) { }
+}
+
+function loadFavoriteProductsForCurrentUser() {
+  const ownerKey = getFavoritesOwnerKey()
+  if (!ownerKey) {
+    favoriteProductIds = []
+    return
+  }
+  const store = readFavoritesStore()
+  const list = Array.isArray(store[ownerKey]) ? store[ownerKey] : []
+  favoriteProductIds = list
+    .map((id) => Number(id || 0))
+    .filter((id, index, arr) => Number.isFinite(id) && id > 0 && arr.indexOf(id) === index)
+}
+
+function persistFavoriteProductsForCurrentUser() {
+  const ownerKey = getFavoritesOwnerKey()
+  if (!ownerKey) return
+  const store = readFavoritesStore()
+  store[ownerKey] = favoriteProductIds
+  writeFavoritesStore(store)
+}
+
+function isFavoriteProduct(productId) {
+  const id = Number(productId || 0)
+  return favoriteProductIds.includes(id)
+}
+
+function renderFavoriteButton(productId, extraClass) {
+  const id = Number(productId || 0)
+  if (!id) return ''
+  const active = isFavoriteProduct(id)
+  const cls = extraClass ? ' ' + extraClass : ''
+  return '<button type="button" class="favorite-toggle-btn' + (active ? ' active' : '') + cls + '" title="' + (active ? 'Bỏ yêu thích' : 'Lưu yêu thích') + '" aria-label="' + (active ? 'Bỏ yêu thích' : 'Lưu yêu thích') + '" aria-pressed="' + (active ? 'true' : 'false') + '" onclick="toggleFavoriteProduct(event,' + id + ')"><i class="' + (active ? 'fas' : 'far') + ' fa-heart"></i></button>'
+}
+
+function syncFavoriteButtonState(productId) {
+  const id = Number(productId || 0)
+  if (!id) return
+  const active = isFavoriteProduct(id)
+  document.querySelectorAll('.favorite-toggle-btn[onclick*="toggleFavoriteProduct(event,' + id + ')"]').forEach((btn) => {
+    btn.classList.toggle('active', active)
+    btn.setAttribute('aria-pressed', active ? 'true' : 'false')
+    btn.setAttribute('title', active ? 'Bỏ yêu thích' : 'Lưu yêu thích')
+    btn.setAttribute('aria-label', active ? 'Bỏ yêu thích' : 'Lưu yêu thích')
+    const icon = btn.querySelector('i')
+    if (icon) icon.className = (active ? 'fas' : 'far') + ' fa-heart'
+  })
+}
+
+function refreshFavoriteProductViews() {
+  if (activeUserMenuView === 'favorites' && !document.getElementById('userMenuOverlay')?.classList.contains('hidden')) showUserFavorites()
+}
+
+function showFavoriteAuthModal() {
+  const modal = document.getElementById('favoriteAuthModal')
+  if (!modal) return
+  modal.classList.remove('hidden')
+  modal.classList.add('flex')
+  document.body.style.overflow = 'hidden'
+}
+
+function closeFavoriteAuthModal() {
+  const modal = document.getElementById('favoriteAuthModal')
+  if (!modal) return
+  modal.classList.add('hidden')
+  modal.classList.remove('flex')
+  if (!document.getElementById('userMenuOverlay') || document.getElementById('userMenuOverlay').classList.contains('hidden')) document.body.style.overflow = ''
+}
+
+function openFavoriteLoginFlow() {
+  closeFavoriteAuthModal()
+  openUserMenu()
+  renderUserAuthForm('login')
+}
+
+function toggleFavoriteProduct(event, productId) {
+  if (event) {
+    event.preventDefault()
+    event.stopPropagation()
+  }
+  if (!currentUser || isAdminUser) {
+    showFavoriteAuthModal()
+    return
+  }
+  const id = Number(productId || 0)
+  if (!id) return
+  if (isFavoriteProduct(id)) {
+    favoriteProductIds = favoriteProductIds.filter((item) => item !== id)
+    persistFavoriteProductsForCurrentUser()
+    showToast('Đã bỏ khỏi yêu thích', 'success', 1800)
+  } else {
+    favoriteProductIds = [id].concat(favoriteProductIds.filter((item) => item !== id))
+    persistFavoriteProductsForCurrentUser()
+    showToast('Đã lưu vào yêu thích', 'success', 1800)
+  }
+  syncFavoriteButtonState(id)
+  refreshFavoriteProductViews()
 }
 
 function initHeroTypedText() {
@@ -885,6 +1005,7 @@ async function loadBestSellers() {
           <img src="\${p.thumbnail || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'}"
             alt="\${p.name}" class="bs-card-img" loading="lazy"
             onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'">
+          \${renderFavoriteButton(p.id, 'favorite-toggle-btn--bestseller')}
           <div class="\${medalClass(i)}">\${medalIcon(i)}</div>
         </div>
         <div class="bs-card-body p-3">
@@ -983,6 +1104,7 @@ async function loadFlashSaleShop() {
         <div class="flash-sale-shop-card shrink-0 snap-start basis-[78%] cursor-pointer sm:basis-[46%] lg:basis-[30%] xl:basis-[23%]" onclick="showDetail(\${product.id})">
           <div class="relative aspect-square overflow-hidden bg-slate-100">
             <img src="\${product.thumbnail || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'}" alt="\${product.name}" class="h-full w-full object-cover" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'">
+            \${renderFavoriteButton(product.id)}
           </div>
           <div class="flash-sale-shop-body space-y-3 p-4">
             <h3 class="line-clamp-2 text-sm font-semibold leading-6 text-slate-900">\${product.name}</h3>
@@ -1086,10 +1208,11 @@ function renderStorefrontProductCard(p) {
       <img src="\${p.thumbnail || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'}"
         alt="\${p.name}" class="w-full product-img-main" loading="lazy"
         onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'">
+      \${renderFavoriteButton(p.id)}
       <!-- Discount badge hidden temporarily; keep logic for later reuse.
       \${!p.has_flash_sale && discount > 0 ? \`<span class="absolute top-3 left-3 badge-sale text-white text-xs font-bold px-2 py-1 rounded-full">-\${discount}%</span>\` : ''}
       -->
-      \${p.is_featured ? \`<span class="absolute top-3 right-3 bg-amber-400 text-white text-xs font-bold px-2 py-1 rounded-full">⭐ Hot</span>\` : ''}
+      \${p.is_featured ? \`<span class="absolute top-3 right-3 product-featured-badge bg-amber-400 text-white text-xs font-bold px-2 py-1 rounded-full">⭐ Hot</span>\` : ''}
       <div class="absolute inset-0 bg-black/0 hover:bg-black/10 transition flex items-center justify-center opacity-0 hover:opacity-100">
         <span class="bg-white/90 text-gray-800 px-3 py-1 rounded-full text-xs font-semibold">Xem chi tiết</span>
       </div>
@@ -1355,7 +1478,7 @@ function renderBlockedPurchaseActions(extraClass) {
 
 function renderProductCardActions(productId) {
   if (isCurrentUserBlocked()) {
-    return '<div class="product-card-actions">' + renderBlockedPurchaseActions('product-buy-btn text-sm font-semibold') + '<button type="button" onclick="event.stopPropagation();showBlockedCustomerModal(getCurrentUserBlockReason())" title="Không thể đặt hàng" class="blocked-order-icon-btn product-cart-btn"><i class="fas fa-ban text-sm"></i></button></div>'
+    return '<div class="product-card-actions product-card-actions--blocked">' + renderBlockedPurchaseActions('product-buy-btn product-buy-btn--blocked w-full text-sm font-semibold') + '</div>'
   }
   return '<div class="product-card-actions">'
     + '<button onclick="event.stopPropagation();openOrderFromProductCard(' + productId + ')" title="Đặt hàng nhanh" class="product-buy-btn btn-primary text-white text-sm font-semibold"><i class="fas fa-bolt mr-1"></i><span class="quick-order-label-desktop">Đặt hàng nhanh</span><span class="quick-order-label-mobile">Đặt nhanh</span></button>'
@@ -1795,6 +1918,7 @@ document.getElementById('detailOverlay').addEventListener('click', (e) => { if(e
 document.getElementById('orderBankTransferOverlay').addEventListener('click', (e) => { if (e.target.id === 'orderBankTransferOverlay') closeOrderBankTransferModal() })
 document.getElementById('productsModalOverlay')?.addEventListener('click', (e) => { if (e.target.id === 'productsModalOverlay') closeProductsModal() })
 const storefrontClosableOverlays = [
+  { id: 'favoriteAuthModal', close: () => closeFavoriteAuthModal() },
   { id: 'orderBankTransferOverlay', close: () => closeOrderBankTransferModal() },
   { id: 'shippingJourneyOverlay', close: () => closeShippingJourneyModal() },
   { id: 'productsModalOverlay', close: () => closeProductsModal() },
@@ -2280,6 +2404,7 @@ async function checkUserAuth() {
       currentUser.is_blocked = isBlockedFlag(currentUser.is_blocked) ? 1 : 0
       currentUser.blocked_reason = String(currentUser.blocked_reason || '')
     }
+    loadFavoriteProductsForCurrentUser()
     isAdminUser = !!res.data.isAdmin
     syncCartScope()
     ensureAddressKitReady()
@@ -2290,8 +2415,10 @@ async function checkUserAuth() {
       .catch(() => { })
     updateUserUI()
     refreshStorefrontPurchaseControls()
+    loadSettings()
   } catch {
     currentUser = null
+    loadFavoriteProductsForCurrentUser()
     isAdminUser = false
     syncCartScope()
     ensureAddressKitReady()
@@ -2302,6 +2429,7 @@ async function checkUserAuth() {
       .catch(() => { })
     updateUserUI()
     refreshStorefrontPurchaseControls()
+    loadSettings()
   }
 }
 
@@ -2316,6 +2444,7 @@ function updateUserUI() {
   const walletNav = document.getElementById('walletNavBtn')
   const adminLink = document.getElementById('adminNavLink')
   const userOrdersBtn = document.getElementById('userOrdersBtn')
+  const userFavoritesBtn = document.getElementById('userFavoritesBtn')
   const userWalletBtn = document.getElementById('userWalletBtn')
   const authedNav = document.getElementById('userMenuAuthedNav')
   const clearAuthFormContent = () => {
@@ -2340,6 +2469,7 @@ function updateUserUI() {
     walletNav.classList.remove('flex')
     if (authedNav) authedNav.classList.remove('hidden')
     if (userOrdersBtn) userOrdersBtn.classList.add('hidden')
+    if (userFavoritesBtn) userFavoritesBtn.classList.add('hidden')
     if (userWalletBtn) userWalletBtn.classList.add('hidden')
   } else if (currentUser) {
     clearAuthFormContent()
@@ -2367,6 +2497,7 @@ function updateUserUI() {
     document.getElementById('walletBalanceMenu').textContent = bal
     if (authedNav) authedNav.classList.remove('hidden')
     if (userOrdersBtn) userOrdersBtn.classList.remove('hidden')
+    if (userFavoritesBtn) userFavoritesBtn.classList.remove('hidden')
     if (userWalletBtn) userWalletBtn.classList.remove('hidden')
   } else {
     defaultAvatar.classList.remove('hidden')
@@ -2380,6 +2511,7 @@ function updateUserUI() {
     walletNav.classList.remove('flex')
     if (authedNav) authedNav.classList.add('hidden')
     if (userOrdersBtn) userOrdersBtn.classList.add('hidden')
+    if (userFavoritesBtn) userFavoritesBtn.classList.add('hidden')
     if (userWalletBtn) userWalletBtn.classList.add('hidden')
   }
 }
@@ -2391,6 +2523,7 @@ function toggleUserMenu() {
 function openUserMenu() {
   const overlay = document.getElementById('userMenuOverlay')
   const panel = document.getElementById('userMenuPanel')
+  activeUserMenuView = ''
   panel.classList.remove('closing')
   overlay.classList.remove('hidden')
   document.body.style.overflow = 'hidden'
@@ -2521,9 +2654,11 @@ function getUserAuthPayload(includePhone) {
 function applyAuthenticatedUser(user) {
   currentUser = user
   isAdminUser = false
+  loadFavoriteProductsForCurrentUser()
   syncCartScope(true)
   updateUserUI()
   document.getElementById('userMenuContent').innerHTML = ''
+  refreshFavoriteProductViews()
 }
 
 async function submitUserLogin(event) {
@@ -2581,14 +2716,17 @@ async function logoutUser() {
   try { await axios.post('/api/auth/logout') } catch {}
   currentUser = null
   isAdminUser = false
+  loadFavoriteProductsForCurrentUser()
   syncCartScope(true)
   updateUserUI()
+  refreshFavoriteProductViews()
   closeUserMenu()
   showToast('Đã đăng xuất thành công', 'success')
 }
 
 function showUserAccount() {
   const content = document.getElementById('userMenuContent')
+  activeUserMenuView = 'account'
   if (!currentUser) {
     content.innerHTML = '<div class="text-center py-8 text-gray-400"><i class="fas fa-lock text-3xl mb-3"></i><p>Vui lòng đăng nhập để xem thông tin</p></div>'
     return
@@ -2610,6 +2748,35 @@ function showUserAccount() {
     + '<p class="text-sm text-gray-500">' + escapeHtml(getUserDisplayLine(currentUser)) + '</p>'
     + (currentUser.phone ? '<p class="text-sm text-gray-500"><i class="fas fa-phone text-pink-300 mr-1"></i>' + escapeHtml(currentUser.phone) + '</p>' : '')
     + '</div></div></div>'
+}
+
+function getFavoriteProductsForMenu() {
+  if (!Array.isArray(favoriteProductIds) || !favoriteProductIds.length || !Array.isArray(allProducts)) return []
+  const byId = new Map(allProducts.map((product) => [Number(product?.id || 0), product]))
+  return favoriteProductIds
+    .map((id) => byId.get(Number(id || 0)) || null)
+    .filter(Boolean)
+}
+
+function showUserFavorites() {
+  const content = document.getElementById('userMenuContent')
+  activeUserMenuView = 'favorites'
+  if (!currentUser) {
+    content.innerHTML = '<div class="text-center py-8 text-gray-400"><i class="fas fa-lock text-3xl mb-3"></i><p>Vui lòng đăng nhập để xem sản phẩm yêu thích</p></div>'
+    return
+  }
+  if (isAdminUser) {
+    content.innerHTML = '<div class="text-center py-8 text-gray-400"><i class="fas fa-user-shield text-3xl mb-3"></i><p>Tài khoản quản trị không dùng danh sách yêu thích</p></div>'
+    return
+  }
+  const products = getFavoriteProductsForMenu()
+  if (!products.length) {
+    content.innerHTML = '<div class="text-center py-8 text-gray-400"><i class="fas fa-heart text-4xl mb-3 text-pink-300"></i><p>Chưa có sản phẩm yêu thích nào</p></div>'
+    return
+  }
+  content.innerHTML = '<h3 class="font-semibold text-gray-800 mb-3"><i class="fas fa-heart text-pink-400 mr-2"></i>Sản phẩm yêu thích</h3>'
+    + '<div class="favorites-products-grid space-y-3">' + products.map((product) => renderStorefrontProductCard(product)).join('') + '</div>'
+  startFlashSaleCountdownTicker()
 }
 
 function escapeHtml(value) {
@@ -2744,6 +2911,7 @@ function handleShippingJourneyOverlayClick(e) {
 
 async function showUserOrders() {
   const content = document.getElementById('userMenuContent')
+  activeUserMenuView = 'orders'
   if (!currentUser) {
     content.innerHTML = '<div class="text-center py-8 text-gray-400"><i class="fas fa-lock text-3xl mb-3"></i><p>Vui lòng đăng nhập để xem lịch sử</p></div>'
     return
@@ -3110,6 +3278,7 @@ function handlePaymentReturnFlow() {
 
 function showWalletInMenu() {
     var content = document.getElementById('userMenuContent')
+    activeUserMenuView = 'wallet'
     if (!currentUser) {
         content.innerHTML = '<div class="text-center py-8 text-gray-400"><i class="fas fa-lock text-3xl mb-3"></i><p>Vui lòng đăng nhập để nạp tiền</p></div>'
         return
