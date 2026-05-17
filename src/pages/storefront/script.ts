@@ -23,6 +23,10 @@ let detailSelectedColorImage = ''
 let detailSelectedColorIndex = -1
 let detailSelectedSize = ''
 let detailSelectedProductId = null
+let activeProductCategory = 'all'
+let activeProductSearch = ''
+let activeProductSort = 'newest'
+let mobileProductsLayout = 'list'
 let userOrderHistoryCache = []
 
 // ── CART STATE ─────────────────────────────────────
@@ -680,12 +684,10 @@ async function loadProducts() {
   try {
     const res = await axios.get('/api/products')
     allProducts = res.data.data || []
-    filteredProducts = [...allProducts]
-    resetMobileProductsVisibleCount()
-    renderProducts(filteredProducts)
+    applyProductsFilters()
     loadFlashSaleShop()
   } catch(e) {
-    document.getElementById('productsGrid').innerHTML = '<div class="col-span-4 text-center text-gray-400 py-12"><i class="fas fa-exclamation-circle text-4xl mb-3"></i><p>Không thể tải sản phẩm</p></div>'
+    document.getElementById('productsGrid').innerHTML = '<div class="col-span-full text-center text-gray-400 py-12"><i class="fas fa-exclamation-circle text-4xl mb-3"></i><p>Không thể tải sản phẩm</p></div>'
   }
 }
 
@@ -885,7 +887,7 @@ async function loadBestSellers() {
             onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'">
           <div class="\${medalClass(i)}">\${medalIcon(i)}</div>
         </div>
-        <div class="p-3">
+        <div class="bs-card-body p-3">
           <p class="bs-name mb-1.5">\${p.name}</p>
           <div class="flex items-center justify-between gap-2 mb-2">
             <div class="flex items-center gap-2 min-w-0 flex-wrap">
@@ -982,14 +984,14 @@ async function loadFlashSaleShop() {
           <div class="relative aspect-square overflow-hidden bg-slate-100">
             <img src="\${product.thumbnail || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'}" alt="\${product.name}" class="h-full w-full object-cover" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'">
           </div>
-          <div class="space-y-3 p-4">
+          <div class="flash-sale-shop-body space-y-3 p-4">
             <h3 class="line-clamp-2 text-sm font-semibold leading-6 text-slate-900">\${product.name}</h3>
             <div class="flex items-end gap-2">
               <span class="text-2xl font-bold text-gradient-price">\${fmtPrice(price)}</span>
               \${original > price ? \`<span class="pb-0.5 text-sm text-slate-400 line-through">\${fmtPrice(original)}</span>\` : ''}
             </div>
             \${renderFlashSaleMiniStrip(meta)}
-            \${isCurrentUserBlocked() ? renderBlockedPurchaseActions('w-full rounded-2xl py-3 text-sm font-semibold') : \`<button onclick="event.stopPropagation();openOrder(\${product.id})" class="btn-primary w-full rounded-2xl py-3 text-sm font-semibold text-white"><i class="fas fa-bolt mr-1"></i><span class="quick-order-label-desktop">Đặt hàng nhanh</span><span class="quick-order-label-mobile">Đặt nhanh</span></button>\`}
+            \${isCurrentUserBlocked() ? renderBlockedPurchaseActions('w-full rounded-2xl py-3 text-sm font-semibold') : \`<div class="flash-sale-shop-actions"><button onclick="event.stopPropagation();openOrder(\${product.id})" class="btn-primary flash-sale-shop-buy-btn text-sm font-semibold text-white"><i class="fas fa-bolt mr-1"></i><span class="quick-order-label-desktop">Đặt hàng nhanh</span><span class="quick-order-label-mobile">Đặt nhanh</span></button><button onclick="event.stopPropagation();addToCartFromProductCard(event, \${product.id})" title="Thêm vào giỏ hàng" class="flash-sale-shop-cart-btn add-to-cart-btn flex items-center justify-center text-white transition group relative"><i class="fas fa-cart-plus text-sm"></i></button></div>\`}
           </div>
         </div>
       \`
@@ -1009,6 +1011,7 @@ function renderProducts(products) {
     grid.innerHTML = ''
     empty.classList.remove('hidden')
     if (moreWrap) moreWrap.classList.add('hidden')
+    updateProductsFilterMeta(0)
     return
   }
   empty.classList.add('hidden')
@@ -1019,6 +1022,8 @@ function renderProducts(products) {
   const hiddenCount = Math.max(0, products.length - visible.length)
   if (moreWrap) moreWrap.classList.toggle('hidden', mobileMode || hiddenCount <= 0)
   if (moreCount) moreCount.textContent = hiddenCount > 0 ? '(' + hiddenCount + ')' : ''
+  updateProductsFilterMeta(products.length)
+  applyProductsMobileLayout()
   startFlashSaleCountdownTicker()
   if (mobileMode && hiddenCount > 0) requestAnimationFrame(maybeLoadMoreMobileProducts)
 }
@@ -1065,7 +1070,7 @@ function renderProductCardSocialMeta(product) {
 
 function getProductPreviewLimit() {
   const w = window.innerWidth || document.documentElement.clientWidth || 1024
-  const cols = w >= 1024 ? 4 : w >= 768 ? 3 : 1
+  const cols = w >= 1024 ? 6 : w >= 768 ? 3 : 1
   return cols * PRODUCT_PREVIEW_ROWS
 }
 
@@ -1157,29 +1162,79 @@ function renderProductsModal() {
 }
 
 // ── FILTER & SEARCH ────────────────────────────────
-function filterProducts(cat, btn) {
-  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'))
-  btn.classList.add('active')
-  resetMobileProductsVisibleCount()
-  const search = document.getElementById('searchInput').value.toLowerCase()
-  filteredProducts = allProducts.filter(p => {
-    const matchCat = cat === 'all' || p.category === cat
-    const matchSearch = !search || p.name.toLowerCase().includes(search) || (p.brand||'').toLowerCase().includes(search)
-    return matchCat && matchSearch
+function getProductTimeValue(product) {
+  const createdAt = Date.parse(product?.created_at || '')
+  const updatedAt = Date.parse(product?.updated_at || '')
+  return Number.isFinite(createdAt) ? createdAt : (Number.isFinite(updatedAt) ? updatedAt : 0)
+}
+
+function sortProductsList(products) {
+  const list = Array.isArray(products) ? [...products] : []
+  list.sort((a, b) => {
+    const av = getProductTimeValue(a)
+    const bv = getProductTimeValue(b)
+    return activeProductSort === 'oldest' ? av - bv : bv - av
   })
+  return list
+}
+
+function updateProductsFilterMeta(total) {
+  const countLabel = document.getElementById('productsCountLabel')
+  if (countLabel) countLabel.textContent = String(total || 0) + ' sản phẩm'
+  const sortSelect = document.getElementById('productsSortSelect')
+  if (sortSelect && sortSelect.value !== activeProductSort) sortSelect.value = activeProductSort
+  applyProductsMobileLayout()
+}
+
+function applyProductsMobileLayout() {
+  const grid = document.getElementById('productsGrid')
+  const btn = document.getElementById('productsLayoutToggle')
+  const compactMode = mobileProductsLayout === 'grid'
+  if (grid) {
+    grid.classList.toggle('products-grid-compact', compactMode)
+    grid.dataset.mobileLayout = compactMode ? 'grid' : 'list'
+  }
+  if (btn) {
+    btn.classList.toggle('active', compactMode)
+    btn.setAttribute('aria-label', compactMode ? 'Chuyển sang danh sách ngang' : 'Chuyển sang dạng lưới 2 cột')
+    btn.setAttribute('title', compactMode ? 'Chuyển sang danh sách ngang' : 'Chuyển sang dạng lưới 2 cột')
+    btn.innerHTML = compactMode
+      ? '<i class="fas fa-list-ul" aria-hidden="true"></i>'
+      : '<i class="fas fa-table-cells-large" aria-hidden="true"></i>'
+  }
+}
+
+function toggleProductsMobileLayout() {
+  mobileProductsLayout = mobileProductsLayout === 'grid' ? 'list' : 'grid'
+  applyProductsMobileLayout()
+  if (Array.isArray(filteredProducts) && filteredProducts.length) renderProducts(filteredProducts)
+}
+
+function applyProductsFilters() {
+  resetMobileProductsVisibleCount()
+  filteredProducts = sortProductsList(allProducts.filter((p) => {
+    const matchCat = activeProductCategory === 'all' || p.category === activeProductCategory
+    const matchSearch = !activeProductSearch || p.name.toLowerCase().includes(activeProductSearch) || (p.brand || '').toLowerCase().includes(activeProductSearch)
+    return matchCat && matchSearch
+  }))
   renderProducts(filteredProducts)
 }
 
+function filterProducts(cat, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'))
+  btn.classList.add('active')
+  activeProductCategory = cat
+  applyProductsFilters()
+}
+
 function searchProducts(q) {
-  const activeCat = document.querySelector('.filter-btn.active')?.dataset.cat || 'all'
-  const ql = q.toLowerCase()
-  resetMobileProductsVisibleCount()
-  filteredProducts = allProducts.filter(p => {
-    const matchCat = activeCat === 'all' || p.category === activeCat
-    const matchSearch = !q || p.name.toLowerCase().includes(ql) || (p.brand||'').toLowerCase().includes(ql)
-    return matchCat && matchSearch
-  })
-  renderProducts(filteredProducts)
+  activeProductSearch = String(q || '').toLowerCase().trim()
+  applyProductsFilters()
+}
+
+function sortProductsByTime(value) {
+  activeProductSort = value === 'oldest' ? 'oldest' : 'newest'
+  applyProductsFilters()
 }
 
 // ── PRODUCT DETAIL ─────────────────────────────────

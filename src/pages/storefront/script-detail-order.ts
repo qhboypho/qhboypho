@@ -76,7 +76,7 @@ async function showDetail(id) {
         <div class="detail-action-bar">
           \${isCurrentUserBlocked()
             ? renderBlockedPurchaseActions('w-full py-3.5 rounded-xl font-bold text-base')
-            : \`<button onclick="addDetailToCart()" class="add-to-cart-btn flex-1 text-white py-3.5 rounded-xl font-bold text-base"><i class="fas fa-cart-plus mr-2"></i>Thêm vào giỏ hàng</button><button onclick="closeDetail();collapseBanners();openOrder(\${p.id})" class="btn-primary flex-1 text-white py-3.5 rounded-xl font-bold text-base"><i class="fas fa-shopping-cart mr-2"></i>Đặt hàng ngay</button>\`}
+            : \`<button onclick="closeDetail();collapseBanners();openOrder(\${p.id})" class="btn-primary flex-1 text-white py-3.5 rounded-xl font-bold text-base"><i class="fas fa-shopping-cart"></i><span class="quick-order-label-desktop">Đặt hàng ngay</span><span class="quick-order-label-mobile">Đặt ngay</span></button><button onclick="addDetailToCart()" class="add-to-cart-btn detail-cart-btn text-white py-3.5 rounded-xl font-bold text-base"><i class="fas fa-cart-plus"></i><span class="quick-order-label-desktop">Thêm vào giỏ hàng</span><span class="quick-order-label-mobile">Thêm vào giỏ</span></button>\`}
         </div>
       </div>
     </div>\`
@@ -125,9 +125,23 @@ function closeDetail() {
 function addDetailToCart() {
   if (!currentProduct) return
   if (!assertCustomerCanShop()) return
-  const color = detailSelectedColor || getProductColorOptions(currentProduct)[0]?.name || ''
+  const colorOptions = getProductColorOptions(currentProduct)
+  if (colorOptions.length && !detailSelectedColor) {
+    showToast('Vui lòng chọn màu sản phẩm', 'error')
+    document.getElementById('detailColorGrid')?.classList.add('shake')
+    setTimeout(() => document.getElementById('detailColorGrid')?.classList.remove('shake'), 450)
+    return
+  }
+  const color = detailSelectedColor || ''
   const sizes = safeJson(currentProduct.sizes)
-  const size = detailSelectedSize || sizes[0] || ''
+  if (sizes.length && !detailSelectedSize) {
+    showToast('Vui lòng chọn size sản phẩm', 'error')
+    const sizeGroup = document.querySelector('#detailContent .size-btn')?.closest('.flex')
+    sizeGroup?.classList.add('shake')
+    setTimeout(() => sizeGroup?.classList.remove('shake'), 450)
+    return
+  }
+  const size = detailSelectedSize || ''
   animateFlyToCart(resolveFlyImage(currentProduct), document.getElementById('mainDetailImg'))
   if (addToCart(currentProduct, color, size, 1)) {
     showToast('Đã thêm "' + currentProduct.name + '" vào giỏ hàng!', 'success', 2500)
@@ -346,12 +360,20 @@ function animateFlyToCart(imgUrl, sourceEl) {
   setTimeout(() => chip.remove(), 760)
 }
 
-// Add to cart from product card – always add directly, pick first color/size as default
+function productRequiresSkuSelection(product) {
+  return getProductColorOptions(product).length > 0 || safeJson(product?.sizes).length > 0
+}
+
+// Add to cart from product card. Products with SKU options must go through detail modal.
 async function addToCartFromCard(evt, id) {
   try {
     if (!assertCustomerCanShop()) return
     const res = await axios.get('/api/products/' + id)
     const p = res.data.data
+    if (productRequiresSkuSelection(p)) {
+      showDetail(id)
+      return
+    }
     const colors = getProductColorOptions(p).map((c) => c.name)
     const sizes = safeJson(p.sizes)
     const color = colors.length > 0 ? colors[0] : ''
