@@ -1021,7 +1021,7 @@ async function loadBestSellers() {
           <div class="flex items-center gap-1.5">
             <span class="bs-sold-chip"><i class="fas fa-fire-flame-curved"></i> \${fmtSold(soldCount)} đã bán</span>
           </div>
-          \${isCurrentUserBlocked() ? renderBlockedPurchaseActions('w-full mt-2.5 py-2 text-xs font-bold rounded-xl') : \`<div class="bs-actions"><button onclick="event.stopPropagation();openOrder(\${p.id})" class="btn-primary bs-buy-btn text-xs font-bold text-white rounded-xl"><i class="fas fa-bolt mr-1"></i><span class="quick-order-label-desktop">Đặt hàng nhanh</span><span class="quick-order-label-mobile">Đặt nhanh</span></button><button onclick="event.stopPropagation();addToCartFromProductCard(event, \${p.id})" title="Thêm vào giỏ hàng" class="bs-mobile-cart-btn add-to-cart-btn"><i class="fas fa-cart-plus"></i></button></div>\`}
+          \${isCurrentUserBlocked() ? renderBlockedPurchaseActions('w-full mt-2.5 py-2 text-xs font-bold rounded-xl') : \`<div class="bs-actions"><button onclick="event.stopPropagation();openOrder(\${p.id})" class="btn-primary bs-buy-btn text-xs font-bold text-white rounded-xl"><i class="fas fa-bolt mr-1"></i><span class="quick-order-label-desktop">Đặt nhanh</span><span class="quick-order-label-mobile">Đặt nhanh</span></button><button onclick="event.stopPropagation();addToCartFromProductCard(event, \${p.id})" title="Thêm vào giỏ hàng" class="bs-mobile-cart-btn add-to-cart-btn"><i class="fas fa-cart-plus"></i></button></div>\`}
         </div>
       </div>\`
     }).join('')
@@ -1113,7 +1113,7 @@ async function loadFlashSaleShop() {
               \${original > price ? \`<span class="pb-0.5 text-sm text-slate-400 line-through">\${fmtPrice(original)}</span>\` : ''}
             </div>
             \${renderFlashSaleMiniStrip(meta)}
-            \${isCurrentUserBlocked() ? renderBlockedPurchaseActions('w-full rounded-2xl py-3 text-sm font-semibold') : \`<div class="flash-sale-shop-actions"><button onclick="event.stopPropagation();openOrder(\${product.id})" class="btn-primary flash-sale-shop-buy-btn text-sm font-semibold text-white"><i class="fas fa-bolt mr-1"></i><span class="quick-order-label-desktop">Đặt hàng nhanh</span><span class="quick-order-label-mobile">Đặt nhanh</span></button><button onclick="event.stopPropagation();addToCartFromProductCard(event, \${product.id})" title="Thêm vào giỏ hàng" class="flash-sale-shop-cart-btn add-to-cart-btn flex items-center justify-center text-white transition group relative"><i class="fas fa-cart-plus text-sm"></i></button></div>\`}
+            \${isCurrentUserBlocked() ? renderBlockedPurchaseActions('w-full rounded-2xl py-3 text-sm font-semibold') : \`<div class="flash-sale-shop-actions"><button onclick="event.stopPropagation();openOrder(\${product.id})" class="btn-primary flash-sale-shop-buy-btn text-sm font-semibold text-white"><i class="fas fa-bolt mr-1"></i><span class="quick-order-label-desktop">Đặt nhanh</span><span class="quick-order-label-mobile">Đặt nhanh</span></button><button onclick="event.stopPropagation();addToCartFromProductCard(event, \${product.id})" title="Thêm vào giỏ hàng" class="flash-sale-shop-cart-btn add-to-cart-btn flex items-center justify-center text-white transition group relative"><i class="fas fa-cart-plus text-sm"></i></button></div>\`}
           </div>
         </div>
       \`
@@ -1481,7 +1481,7 @@ function renderProductCardActions(productId) {
     return '<div class="product-card-actions product-card-actions--blocked">' + renderBlockedPurchaseActions('product-buy-btn product-buy-btn--blocked w-full text-sm font-semibold') + '</div>'
   }
   return '<div class="product-card-actions">'
-    + '<button onclick="event.stopPropagation();openOrderFromProductCard(' + productId + ')" title="Đặt hàng nhanh" class="product-buy-btn btn-primary text-white text-sm font-semibold"><i class="fas fa-bolt mr-1"></i><span class="quick-order-label-desktop">Đặt hàng nhanh</span><span class="quick-order-label-mobile">Đặt nhanh</span></button>'
+    + '<button onclick="event.stopPropagation();openOrderFromProductCard(' + productId + ')" title="Đặt nhanh" class="product-buy-btn btn-primary text-white text-sm font-semibold"><i class="fas fa-bolt mr-1"></i><span class="quick-order-label-desktop">Đặt nhanh</span><span class="quick-order-label-mobile">Đặt nhanh</span></button>'
     + '<button onclick="event.stopPropagation();addToCartFromProductCard(event, ' + productId + ')" title="Thêm vào giỏ hàng" class="product-cart-btn add-to-cart-btn flex items-center justify-center text-white transition group relative"><i class="fas fa-cart-plus text-sm"></i><span>Thêm vào giỏ hàng</span></button>'
     + '</div>'
 }
@@ -2966,7 +2966,7 @@ async function showUserOrders() {
         const paymentMethod = String(o.payment_method || '').toUpperCase()
         const orderStatus = String(o.status || '').toLowerCase()
         const canResume = !paymentPaid
-          && paymentMethod === 'BANK_TRANSFER'
+          && (paymentMethod === 'BANK_TRANSFER' || paymentMethod === 'ZALOPAY')
           && orderStatus !== 'cancelled'
           && orderStatus !== 'done'
         const imageSrc = getOrderHistoryImage(o)
@@ -3002,7 +3002,7 @@ async function showUserOrders() {
           + '<span class="font-bold text-gradient-price text-sm whitespace-nowrap">' + fmtPrice(getOrderAmountDue(o)) + '</span></div>'
           + '<div class="mt-2">' + statusHtml + '</div>'
           + resumeActionHtml
-          + (isAdminUser && orderStatus === 'done' && !o.has_review
+          + (!isAdminUser && orderStatus === 'done' && !o.has_review
              ? '<button class="btn-rate-order mt-2" onclick="openReviewModal(' + o.id + ',' + o.product_id + ')"><i class=\"fas fa-star mr-1\"></i>Đánh giá</button>'
              : '')
           + '</div>'
