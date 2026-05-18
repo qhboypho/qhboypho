@@ -1,4 +1,3 @@
-```
 # Compiled and build artifacts
 *.pyc
 __pycache__/
@@ -30,6 +29,9 @@ venv/
 # Editors
 .vscode/
 .idea/
+.claude/
+.codex/
+.playwright-mcp/
 
 # System files
 .DS_Store
@@ -45,6 +47,7 @@ dist/
 build/
 target/
 .gradle/
+.wrangler/
 
 # Python specific
 .mypy_cache/
@@ -73,4 +76,10 @@ target/
 *.tar.bz2
 *.tar.xz
 *.tar.zst
-```
+
+# AI / Graph
+.gitnexus/
+
+# Local verification artifacts
+detail-*.png
+tmp-storefront-*.png
