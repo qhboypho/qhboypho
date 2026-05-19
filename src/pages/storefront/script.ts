@@ -2198,21 +2198,26 @@ function ensureHeroCarouselRuntimeStyle() {
     .hero-carousel-prev{left:0}
     .hero-carousel-next{right:0}
     @media (max-width:768px){
-      .hero-3d-carousel{width:100%;height:418px;overflow:hidden;perspective:880px}
-      .hero-carousel-stage{width:min(56vw,236px);height:392px}
+      .hero-3d-carousel{width:100%;height:384px;overflow:hidden;perspective:820px}
+      .hero-carousel-stage{width:min(52vw,218px);height:360px}
       .hero-carousel-card{border-radius:20px}
       .hero-carousel-card[data-offset="-1"]{transform:translate3d(-42%,8px,-42px) scale(.8);opacity:.66}
       .hero-carousel-card[data-offset="1"]{transform:translate3d(42%,8px,-42px) scale(.8);opacity:.66}
       .hero-carousel-card[data-offset="-2"]{transform:translate3d(-68%,18px,-94px) scale(.66);opacity:.16}
       .hero-carousel-card[data-offset="2"]{transform:translate3d(68%,18px,-94px) scale(.66);opacity:.16}
+      .hero-carousel-card[data-offset="-1"] .hero-carousel-body,
+      .hero-carousel-card[data-offset="1"] .hero-carousel-body,
+      .hero-carousel-card[data-offset="-2"] .hero-carousel-body,
+      .hero-carousel-card[data-offset="2"] .hero-carousel-body{opacity:0}
       .hero-carousel-nav{width:34px;height:34px}
       .hero-carousel-prev{left:2px}
       .hero-carousel-next{right:2px}
+      .hero-carousel-detail-overlay{display:none}
       .hero-carousel-kicker{left:12px;right:12px;bottom:12px;font-size:10px}
-      .hero-carousel-body{padding:11px 12px 13px;gap:6px}
-      .hero-carousel-title{font-size:14px;line-height:1.24}
-      .hero-carousel-desc{font-size:11px;min-height:30px}
-      .hero-carousel-price{font-size:15px}
+      .hero-carousel-body{padding:10px 12px 12px;gap:5px}
+      .hero-carousel-title{font-size:13px;line-height:1.22}
+      .hero-carousel-desc{font-size:10px;min-height:24px}
+      .hero-carousel-price{font-size:14px}
       .hero-carousel-original-price{font-size:11px}
       .hero-carousel-link{font-size:12px}
     }
@@ -2227,12 +2232,14 @@ function renderHeroCarouselCard(b, index) {
   const price = escapeHtml(b.price || '')
   const originalPrice = escapeHtml(b.original_price || '')
   const image = escapeHtml(b.image_url || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400')
-  const action = b.product_id ? \`onclick="showDetail(\${Number(b.product_id)})"\` : 'onclick="document.getElementById(&quot;products&quot;)?.scrollIntoView({behavior:&quot;smooth&quot;})"'
-  return \`<article class="hero-carousel-card" data-hero-index="\${index}" data-offset="hidden" aria-hidden="true">
+  const detailAction = b.product_id ? \`onclick="showDetail(\${Number(b.product_id)})"\` : 'onclick="document.getElementById(&quot;products&quot;)?.scrollIntoView({behavior:&quot;smooth&quot;})"'
+  const footerAction = b.product_id ? \`onclick="event.stopPropagation();openOrder(\${Number(b.product_id)})"\` : detailAction
+  const footerLabel = b.product_id ? 'Đặt ngay' : 'Xem sản phẩm'
+  return \`<article class="hero-carousel-card" data-hero-index="\${index}" data-offset="hidden" aria-hidden="true" \${detailAction}>
     <div class="hero-carousel-media">
       <img src="\${image}" alt="\${title}" onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'">
       <p class="hero-carousel-kicker">\${subtitle}</p>
-      <button type="button" class="hero-carousel-detail-overlay" \${action}><span><i class="fas fa-eye"></i>Xem chi tiết</span></button>
+      <button type="button" class="hero-carousel-detail-overlay" \${detailAction}><span><i class="fas fa-eye"></i>Xem chi tiết</span></button>
     </div>
     <div class="hero-carousel-body">
       <h3 class="hero-carousel-title">\${title}</h3>
