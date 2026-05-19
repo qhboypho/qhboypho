@@ -2198,8 +2198,8 @@ function ensureHeroCarouselRuntimeStyle() {
     .hero-carousel-prev{left:0}
     .hero-carousel-next{right:0}
     @media (max-width:768px){
-      .hero-3d-carousel{width:100%;height:384px;overflow:hidden;perspective:820px}
-      .hero-carousel-stage{width:min(52vw,218px);height:360px}
+      .hero-3d-carousel{width:100%;height:334px;overflow:hidden;perspective:820px}
+      .hero-carousel-stage{width:min(52vw,214px);height:312px}
       .hero-carousel-card{border-radius:20px}
       .hero-carousel-card[data-offset="-1"]{transform:translate3d(-42%,8px,-42px) scale(.8);opacity:.66}
       .hero-carousel-card[data-offset="1"]{transform:translate3d(42%,8px,-42px) scale(.8);opacity:.66}
@@ -2217,6 +2217,7 @@ function ensureHeroCarouselRuntimeStyle() {
       .hero-carousel-body{padding:10px 12px 12px;gap:5px}
       .hero-carousel-title{font-size:13px;line-height:1.22}
       .hero-carousel-desc{font-size:10px;min-height:24px}
+      .hero-carousel-price-wrap{gap:0}
       .hero-carousel-price{font-size:14px}
       .hero-carousel-original-price{font-size:11px}
       .hero-carousel-link{font-size:12px}

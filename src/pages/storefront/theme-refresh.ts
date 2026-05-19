@@ -1015,7 +1015,7 @@ export function storefrontThemeRefreshStyles(): string {
     justify-content: center;
     height: 2.05rem;
     padding: 0;
-    border-radius: 0.75rem;
+    border-radius: 0.62rem;
     color: #fff;
     font-size: 0.78rem;
   }
@@ -1033,6 +1033,7 @@ export function storefrontThemeRefreshStyles(): string {
     min-width: 0;
     height: 2.05rem;
     padding: 0 0.9rem;
+    border-radius: 0.62rem !important;
     white-space: nowrap;
   }
   .flash-sale-shop-actions {
@@ -2006,7 +2007,7 @@ export function storefrontThemeRefreshStyles(): string {
       justify-content: center;
       width: 60px;
       height: 1.8rem;
-      border-radius: 0.75rem;
+      border-radius: 0.62rem;
       color: #fff;
       font-size: 0.78rem;
     }
@@ -2022,6 +2023,7 @@ export function storefrontThemeRefreshStyles(): string {
       width: auto;
       height: 1.8rem;
       padding: 0 0.62rem;
+      border-radius: 0.62rem !important;
       white-space: nowrap;
     }
     .flash-sale-shop-actions {
@@ -2046,7 +2048,7 @@ export function storefrontThemeRefreshStyles(): string {
       align-self: stretch;
     }
     .bs-card > div:last-child {
-      padding-bottom: 0.75rem !important;
+      padding-bottom: 0.55rem !important;
     }
     .bs-name {
       min-height: calc(1.35em * 2) !important;
