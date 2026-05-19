@@ -2198,18 +2198,23 @@ function ensureHeroCarouselRuntimeStyle() {
     .hero-carousel-prev{left:0}
     .hero-carousel-next{right:0}
     @media (max-width:768px){
-      .hero-3d-carousel{width:100%;height:520px;overflow:hidden;perspective:900px}
-      .hero-carousel-stage{width:min(78vw,320px);height:500px}
-      .hero-carousel-card{border-radius:22px}
-      .hero-carousel-card[data-offset="-1"]{transform:translate3d(-22%,7px,-48px) scale(.82);opacity:.64}
-      .hero-carousel-card[data-offset="1"]{transform:translate3d(22%,7px,-48px) scale(.82);opacity:.64}
-      .hero-carousel-card[data-offset="-2"],.hero-carousel-card[data-offset="2"]{opacity:0}
-      .hero-carousel-nav{width:36px;height:36px}
-      .hero-carousel-prev{left:4px}
-      .hero-carousel-next{right:4px}
-      .hero-carousel-body{padding:13px 14px 15px;gap:8px}
-      .hero-carousel-title{font-size:16px}
-      .hero-carousel-desc{font-size:12px;min-height:34px}
+      .hero-3d-carousel{width:100%;height:418px;overflow:hidden;perspective:880px}
+      .hero-carousel-stage{width:min(56vw,236px);height:392px}
+      .hero-carousel-card{border-radius:20px}
+      .hero-carousel-card[data-offset="-1"]{transform:translate3d(-42%,8px,-42px) scale(.8);opacity:.66}
+      .hero-carousel-card[data-offset="1"]{transform:translate3d(42%,8px,-42px) scale(.8);opacity:.66}
+      .hero-carousel-card[data-offset="-2"]{transform:translate3d(-68%,18px,-94px) scale(.66);opacity:.16}
+      .hero-carousel-card[data-offset="2"]{transform:translate3d(68%,18px,-94px) scale(.66);opacity:.16}
+      .hero-carousel-nav{width:34px;height:34px}
+      .hero-carousel-prev{left:2px}
+      .hero-carousel-next{right:2px}
+      .hero-carousel-kicker{left:12px;right:12px;bottom:12px;font-size:10px}
+      .hero-carousel-body{padding:11px 12px 13px;gap:6px}
+      .hero-carousel-title{font-size:14px;line-height:1.24}
+      .hero-carousel-desc{font-size:11px;min-height:30px}
+      .hero-carousel-price{font-size:15px}
+      .hero-carousel-original-price{font-size:11px}
+      .hero-carousel-link{font-size:12px}
     }
   \`
   document.head.appendChild(style)
