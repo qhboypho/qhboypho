@@ -2137,7 +2137,7 @@ function renderCollapsedBanners(banners) {
   if (wrapper) wrapper.style.cursor = 'default'
   container.onclick = null
   container.style.width = hasSettingBannerOnly ? (mobileMode ? 'min(100%, 320px)' : '360px') : (mobileMode ? '100%' : '430px')
-  container.style.height = hasSettingBannerOnly ? (mobileMode ? 'min(82vw, 320px)' : '360px') : (mobileMode ? '344px' : '548px')
+  container.style.height = hasSettingBannerOnly ? (mobileMode ? 'min(82vw, 320px)' : '360px') : (mobileMode ? '356px' : '548px')
   container.style.paddingBottom = '0'
   if (hasSettingBannerOnly) {
     const b = banners[0]
@@ -2198,9 +2198,10 @@ function ensureHeroCarouselRuntimeStyle() {
     .hero-carousel-prev{left:0}
     .hero-carousel-next{right:0}
     @media (max-width:768px){
-      .hero-3d-carousel{width:100%;height:334px;overflow:hidden;perspective:820px}
-      .hero-carousel-stage{width:min(52vw,214px);height:312px}
-      .hero-carousel-card{border-radius:20px}
+      .hero-3d-carousel{width:100%;height:348px;overflow:hidden;perspective:820px}
+      .hero-carousel-stage{width:min(52vw,214px);height:326px}
+      .hero-carousel-card{border-radius:20px;display:flex;flex-direction:column}
+      .hero-carousel-media{height:min(52vw,214px);aspect-ratio:auto;flex:0 0 auto}
       .hero-carousel-card[data-offset="-1"]{transform:translate3d(-42%,8px,-42px) scale(.8);opacity:.66}
       .hero-carousel-card[data-offset="1"]{transform:translate3d(42%,8px,-42px) scale(.8);opacity:.66}
       .hero-carousel-card[data-offset="-2"]{transform:translate3d(-68%,18px,-94px) scale(.66);opacity:.16}
@@ -2214,9 +2215,10 @@ function ensureHeroCarouselRuntimeStyle() {
       .hero-carousel-next{right:2px}
       .hero-carousel-detail-overlay{display:none}
       .hero-carousel-kicker{left:12px;right:12px;bottom:12px;font-size:10px}
-      .hero-carousel-body{padding:10px 12px 12px;gap:5px}
+      .hero-carousel-body{padding:10px 12px 12px;gap:5px;min-height:0;flex:1}
       .hero-carousel-title{font-size:13px;line-height:1.22}
       .hero-carousel-desc{font-size:10px;min-height:24px}
+      .hero-carousel-footer{margin-top:auto;gap:8px;align-items:flex-end}
       .hero-carousel-price-wrap{gap:0}
       .hero-carousel-price{font-size:14px}
       .hero-carousel-original-price{font-size:11px}
