@@ -1019,6 +1019,9 @@ export function storefrontThemeRefreshStyles(): string {
     color: #fff;
     font-size: 0.78rem;
   }
+  .bs-mobile-cart-btn.add-to-cart-btn {
+    border-radius: 0.62rem !important;
+  }
   .bs-actions {
     display: flex;
     align-items: center;

@@ -2137,7 +2137,7 @@ function renderCollapsedBanners(banners) {
   if (wrapper) wrapper.style.cursor = 'default'
   container.onclick = null
   container.style.width = hasSettingBannerOnly ? (mobileMode ? 'min(100%, 320px)' : '360px') : (mobileMode ? '100%' : '430px')
-  container.style.height = hasSettingBannerOnly ? (mobileMode ? 'min(82vw, 320px)' : '360px') : (mobileMode ? '520px' : '548px')
+  container.style.height = hasSettingBannerOnly ? (mobileMode ? 'min(82vw, 320px)' : '360px') : (mobileMode ? '344px' : '548px')
   container.style.paddingBottom = '0'
   if (hasSettingBannerOnly) {
     const b = banners[0]
