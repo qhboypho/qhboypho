@@ -1152,6 +1152,20 @@ export function storefrontThemeRefreshStyles(): string {
     color: #10233f !important;
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.72);
   }
+  #orderPopupCard .size-btn.active,
+  #orderPopupCard .payment-method-btn.active {
+    background: linear-gradient(135deg, #337cff, #8d55ff 45%, #ec4fbe) !important;
+    border-color: transparent !important;
+    color: #fff !important;
+    box-shadow: 0 10px 22px rgba(59,130,246,0.22), 0 8px 20px rgba(236,79,190,0.16) !important;
+  }
+  #orderPopupCard .payment-method-btn .text-gray-800,
+  #orderPopupCard .payment-method-btn.active .text-gray-800,
+  #orderPopupCard .payment-method-btn.active .text-gray-500,
+  #orderPopupCard .payment-method-btn.active .text-gray-600,
+  #orderPopupCard .order-total-card .font-semibold.text-gray-700 {
+    color: inherit !important;
+  }
   #orderPopupCard #voucherBtn {
     background: rgba(15,23,42,0.9) !important;
     color: #f8fbff !important;
@@ -1228,6 +1242,25 @@ export function storefrontThemeRefreshStyles(): string {
     background: rgba(8,23,45,0.82) !important;
     border-color: rgba(80,160,220,0.26) !important;
     color: #f8fbff !important;
+  }
+  body[data-storefront-theme='dark'] #orderPopupCard .payment-method-btn .text-gray-800,
+  body[data-storefront-theme='dark'] #orderPopupCard .payment-method-btn .text-gray-500,
+  body[data-storefront-theme='dark'] #orderPopupCard .payment-method-btn .text-gray-600,
+  body[data-storefront-theme='dark'] #orderPopupCard .payment-method-unavailable .text-gray-800,
+  body[data-storefront-theme='dark'] #orderPopupCard .payment-method-unavailable .text-gray-500,
+  body[data-storefront-theme='dark'] #orderPopupCard .payment-method-unavailable .text-gray-600,
+  body[data-storefront-theme='dark'] #orderPopupCard .order-total-card .font-semibold.text-gray-700 {
+    color: #f8fbff !important;
+  }
+  body[data-storefront-theme='dark'] #orderPopupCard .payment-method-unavailable .payment-method-badge {
+    color: rgba(169,184,211,0.82) !important;
+  }
+  body[data-storefront-theme='dark'] #orderPopupCard .size-btn.active,
+  body[data-storefront-theme='dark'] #orderPopupCard .payment-method-btn.active {
+    background: linear-gradient(135deg, #337cff, #8d55ff 45%, #ec4fbe) !important;
+    border-color: transparent !important;
+    color: #fff !important;
+    box-shadow: 0 10px 22px rgba(59,130,246,0.22), 0 8px 20px rgba(236,79,190,0.16) !important;
   }
   body[data-storefront-theme='dark'] #orderPopupCard #voucherBtn {
     background: rgba(30,41,59,0.9) !important;
