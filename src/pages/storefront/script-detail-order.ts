@@ -76,7 +76,7 @@ async function showDetail(id) {
         <div class="detail-action-bar">
           \${isCurrentUserBlocked()
             ? renderBlockedPurchaseActions('w-full py-3.5 rounded-xl font-bold text-base')
-            : \`<button onclick="closeDetail();collapseBanners();openOrder(\${p.id})" class="btn-primary flex-1 text-white py-3.5 rounded-xl font-bold text-base"><i class="fas fa-shopping-cart"></i><span class="quick-order-label-desktop">Đặt hàng ngay</span><span class="quick-order-label-mobile">Đặt ngay</span></button><button onclick="addDetailToCart()" class="add-to-cart-btn detail-cart-btn text-white py-3.5 rounded-xl font-bold text-base"><i class="fas fa-cart-plus"></i><span class="quick-order-label-desktop">Thêm vào giỏ hàng</span><span class="quick-order-label-mobile">Thêm vào giỏ</span></button>\`}
+            : \`<button onclick="openOrderFromDetail(\${p.id})" class="btn-primary flex-1 text-white py-3.5 rounded-xl font-bold text-base"><i class="fas fa-shopping-cart"></i><span class="quick-order-label-desktop">Đặt hàng ngay</span><span class="quick-order-label-mobile">Đặt ngay</span></button><button onclick="addDetailToCart()" class="add-to-cart-btn detail-cart-btn text-white py-3.5 rounded-xl font-bold text-base"><i class="fas fa-cart-plus"></i><span class="quick-order-label-desktop">Thêm vào giỏ hàng</span><span class="quick-order-label-mobile">Thêm vào giỏ</span></button>\`}
         </div>
       </div>
     </div>\`
@@ -145,7 +145,13 @@ function addDetailToCart() {
   animateFlyToCart(resolveFlyImage(currentProduct), document.getElementById('mainDetailImg'))
   if (addToCart(currentProduct, color, size, 1)) {
     showToast('Đã thêm "' + currentProduct.name + '" vào giỏ hàng!', 'success', 2500)
+    closeDetail()
   }
+}
+
+function openOrderFromDetail(id) {
+  closeDetail()
+  return openOrder(id)
 }
 
 // ── ORDER POPUP ────────────────────────────────────
@@ -238,7 +244,8 @@ function selectOrderColorByIndex(idx, btn) {
   selectOrderColor(String(item.name || ''), String(item.image || ''), btn)
 }
 function selectOrderSize(s, btn) {
-  document.querySelectorAll('.size-btn').forEach(b => b.classList.remove('active','bg-gray-900','text-white','border-gray-900'))
+  const scope = document.getElementById('sizeOptions')
+  ;(scope ? scope.querySelectorAll('.size-btn') : document.querySelectorAll('#sizeOptions .size-btn')).forEach((b) => b.classList.remove('active','bg-gray-900','text-white','border-gray-900'))
   if (btn) btn.classList.add('active','bg-gray-900','text-white','border-gray-900')
   selectedSize = s
   document.getElementById('sizeSection')?.classList.remove('field-error','shake')
