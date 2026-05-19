@@ -68,7 +68,7 @@ export function storefrontModalsSection(): string {
   return `
 <div id="orderOverlay" class="fixed inset-0 overlay z-50 hidden flex items-center justify-center p-4">
   <div class="popup-card bg-white rounded-3xl shadow-2xl w-full max-w-md md:max-w-[56rem] max-h-[90vh] overflow-y-auto" id="orderPopupCard">
-    <div class="sticky top-0 bg-white rounded-t-3xl border-b px-6 py-4 flex items-center justify-between">
+    <div id="orderModalHeader" class="sticky top-0 bg-white rounded-t-3xl border-b px-6 py-4 flex items-center justify-between">
       <h3 class="font-display text-xl font-bold text-gray-900">Đặt hàng nhanh</h3>
       <button onclick="closeOrder()" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition">
         <i class="fas fa-times text-gray-600"></i>
@@ -76,7 +76,7 @@ export function storefrontModalsSection(): string {
     </div>
 
     <div class="px-6 py-4">
-      <div id="orderProductPreview" class="flex gap-3 p-3 bg-gray-50 rounded-2xl mb-5">
+      <div id="orderProductPreview" class="order-product-preview flex gap-3 p-3 bg-gray-50 rounded-2xl mb-5">
         <img id="orderProductImg" src="" alt="" class="w-16 h-20 object-cover rounded-xl">
         <div>
           <p id="orderProductName" class="font-semibold text-gray-800 text-sm"></p>
@@ -204,7 +204,7 @@ export function storefrontModalsSection(): string {
 
         ${checkoutPaymentOptions('order', 'Chuyển khoản trực tiếp')}
 
-        <div class="bg-gradient-to-r from-pink-50 to-red-50 rounded-2xl p-4 space-y-1.5">
+        <div class="order-total-card bg-gradient-to-r from-pink-50 to-red-50 rounded-2xl p-4 space-y-1.5">
           <div id="subtotalRow" class="flex justify-between items-center hidden">
             <span class="text-sm text-gray-500">Tạm tính:</span>
             <span id="orderSubtotal" class="text-sm font-semibold text-gray-700">0đ</span>
@@ -219,13 +219,13 @@ export function storefrontModalsSection(): string {
           </div>
         </div>
 
-        <div class="flex gap-2">
+        <div class="order-action-bar flex gap-2">
           <button onclick="addCurrentToCart()" id="addToCartBtn"
-            class="add-to-cart-btn flex-shrink-0 flex items-center justify-center gap-2 text-white px-4 py-3.5 rounded-xl font-semibold text-sm transition">
+            class="add-to-cart-btn order-cart-btn flex-shrink-0 flex items-center justify-center gap-2 text-white px-4 py-3.5 rounded-xl font-semibold text-sm transition">
             <i class="fas fa-cart-plus"></i><span class="hidden sm:inline">Thêm vào giỏ hàng</span>
           </button>
           <button onclick="submitOrder()" id="submitOrderBtn"
-            class="btn-primary flex-1 text-white py-3.5 rounded-xl font-bold text-base">
+            class="btn-primary order-submit-btn flex-1 text-white py-3.5 rounded-xl font-bold text-base">
             <i class="fas fa-bolt mr-2"></i>Đặt ngay
           </button>
         </div>

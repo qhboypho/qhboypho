@@ -1101,6 +1101,142 @@ export function storefrontThemeRefreshStyles(): string {
     margin: 0 !important;
     font-size: 0.95rem;
   }
+  #orderPopupCard {
+    background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(247,250,255,0.98)) !important;
+    border: 1px solid rgba(77,138,213,0.18) !important;
+    box-shadow: 0 28px 80px rgba(15,23,42,0.2), inset 0 0 0 1px rgba(255,255,255,0.72) !important;
+    color: #10233f;
+  }
+  #orderModalHeader {
+    background: rgba(252,253,255,0.96) !important;
+    border-color: rgba(77,138,213,0.16) !important;
+    backdrop-filter: blur(14px);
+  }
+  #orderPopupCard .order-product-preview,
+  #orderPopupCard .order-total-card {
+    background: linear-gradient(135deg, rgba(243,247,255,0.96), rgba(252,242,249,0.9)) !important;
+    border: 1px solid rgba(77,138,213,0.16);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
+  }
+  #orderPopupCard #orderProductName,
+  #orderPopupCard .field-title,
+  #orderPopupCard label,
+  #orderPopupCard .font-semibold.text-gray-700 {
+    color: #10233f;
+  }
+  #orderPopupCard #orderProductName,
+  #orderPopupCard h3,
+  #orderPopupCard .text-gray-900 {
+    color: #10233f !important;
+  }
+  #orderPopupCard p,
+  #orderPopupCard .text-gray-500,
+  #orderPopupCard .text-gray-600,
+  #orderPopupCard .text-sm.text-gray-500,
+  #orderPopupCard .text-sm.text-gray-700 {
+    color: #5c6f8d !important;
+  }
+  #orderPopupCard input,
+  #orderPopupCard textarea,
+  #orderPopupCard select,
+  #orderPopupCard button[type='button'] {
+    border-color: rgba(77,138,213,0.24) !important;
+  }
+  #orderPopupCard .payment-method-btn,
+  #orderPopupCard .size-btn,
+  #orderPopupCard .color-btn,
+  #orderPopupCard #orderProvinceTrigger,
+  #orderPopupCard #orderCommuneTrigger {
+    background: rgba(255,255,255,0.98) !important;
+    border-color: rgba(77,138,213,0.24) !important;
+    color: #10233f !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.72);
+  }
+  #orderPopupCard #voucherBtn {
+    background: rgba(15,23,42,0.9) !important;
+    color: #f8fbff !important;
+    border: 1px solid rgba(15,23,42,0.9) !important;
+    box-shadow: none !important;
+  }
+  #orderPopupCard #voucherBtn:hover {
+    background: #10233f !important;
+  }
+  #orderPopupCard .order-total-card .text-green-600,
+  #orderPopupCard .order-total-card #orderDiscount {
+    color: #0f9f6e !important;
+  }
+  #orderPopupCard .order-action-bar {
+    position: sticky;
+    bottom: 0;
+    z-index: 8;
+    display: flex;
+    gap: 0.75rem;
+    margin: 1rem -0.25rem -0.25rem;
+    padding: 0.85rem 0.25rem 0.25rem;
+    background: linear-gradient(180deg, rgba(247,250,255,0), rgba(247,250,255,0.94) 24%, rgba(247,250,255,0.98) 100%);
+  }
+  #orderPopupCard .order-submit-btn,
+  #orderPopupCard .order-cart-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 3.25rem;
+    border-radius: 0.75rem !important;
+    line-height: 1.1;
+    box-shadow: 0 14px 28px rgba(79,70,229,0.16), 0 12px 24px rgba(236,72,153,0.12);
+  }
+  #orderPopupCard .order-cart-btn {
+    flex: 0 0 auto;
+    min-width: 11.5rem;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+  body[data-storefront-theme='dark'] #orderPopupCard {
+    background: linear-gradient(180deg, rgba(9,24,48,0.98), rgba(4,13,29,0.98)) !important;
+    border-color: rgba(80,160,220,0.28) !important;
+    box-shadow: 0 28px 80px rgba(0,0,0,0.56), inset 0 1px 0 rgba(255,255,255,0.05) !important;
+    color: #f8fbff !important;
+  }
+  body[data-storefront-theme='dark'] #orderModalHeader {
+    background: rgba(7,20,40,0.96) !important;
+    border-color: rgba(80,160,220,0.24) !important;
+  }
+  body[data-storefront-theme='dark'] #orderPopupCard .order-product-preview,
+  body[data-storefront-theme='dark'] #orderPopupCard .order-total-card {
+    background: linear-gradient(135deg, rgba(11,32,58,0.9), rgba(28,19,59,0.88)) !important;
+    border-color: rgba(80,160,220,0.22) !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+  }
+  body[data-storefront-theme='dark'] #orderPopupCard #orderProductName,
+  body[data-storefront-theme='dark'] #orderPopupCard h3,
+  body[data-storefront-theme='dark'] #orderPopupCard .text-gray-900 {
+    color: #f8fbff !important;
+  }
+  body[data-storefront-theme='dark'] #orderPopupCard p,
+  body[data-storefront-theme='dark'] #orderPopupCard label,
+  body[data-storefront-theme='dark'] #orderPopupCard .text-gray-500,
+  body[data-storefront-theme='dark'] #orderPopupCard .text-gray-600,
+  body[data-storefront-theme='dark'] #orderPopupCard .text-sm.text-gray-500,
+  body[data-storefront-theme='dark'] #orderPopupCard .text-sm.text-gray-700 {
+    color: #a9b8d3 !important;
+  }
+  body[data-storefront-theme='dark'] #orderPopupCard .payment-method-btn,
+  body[data-storefront-theme='dark'] #orderPopupCard .size-btn,
+  body[data-storefront-theme='dark'] #orderPopupCard .color-btn,
+  body[data-storefront-theme='dark'] #orderPopupCard #orderProvinceTrigger,
+  body[data-storefront-theme='dark'] #orderPopupCard #orderCommuneTrigger {
+    background: rgba(8,23,45,0.82) !important;
+    border-color: rgba(80,160,220,0.26) !important;
+    color: #f8fbff !important;
+  }
+  body[data-storefront-theme='dark'] #orderPopupCard #voucherBtn {
+    background: rgba(30,41,59,0.9) !important;
+    border-color: rgba(80,160,220,0.26) !important;
+    color: #f8fbff !important;
+  }
+  body[data-storefront-theme='dark'] #orderPopupCard .order-action-bar {
+    background: linear-gradient(180deg, rgba(9,24,48,0), rgba(9,24,48,0.96) 24%, rgba(9,24,48,0.98) 100%);
+  }
   body[data-storefront-theme='dark'] .detail-action-bar {
     background: linear-gradient(180deg, rgba(9,24,48,0), rgba(9,24,48,0.96) 24%, rgba(9,24,48,0.98) 100%);
   }
