@@ -2250,7 +2250,7 @@ function renderHeroCarouselCard(b, index) {
           <span class="hero-carousel-price text-gradient-price">\${price}</span>
           \${originalPrice ? \`<span class="hero-carousel-original-price">\${originalPrice}</span>\` : ''}
         </div>
-        <button type="button" class="hero-carousel-link" \${action}>Xem sản phẩm <i class="fas fa-arrow-right ml-1"></i></button>
+        <button type="button" class="hero-carousel-link" \${footerAction}>\${footerLabel} <i class="fas fa-arrow-right ml-1"></i></button>
       </div>
     </div>
   </article>\`
