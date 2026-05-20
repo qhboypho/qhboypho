@@ -74,7 +74,7 @@ async function showDetail(id, options) {
             \${sizes.map(s => \`<button class="size-btn w-12 h-10 border rounded-lg text-sm font-medium hover:border-pink-400 transition" onclick="selectDetailSize('\${s}',this)">\${s}</button>\`).join('')}
           </div>
         </div>\` : ''}
-        <div class="detail-action-bar">
+        <div class="detail-action-bar \${detailOptions.cartItemId ? 'detail-action-bar--cart-edit' : ''}">
           \${isCurrentUserBlocked()
             ? renderBlockedPurchaseActions('w-full py-3.5 rounded-xl font-bold text-base')
             : \`<button onclick="openOrderFromDetail(\${p.id})" class="btn-primary flex-1 text-white py-3.5 rounded-xl font-bold text-base"><i class="fas fa-shopping-cart"></i><span class="quick-order-label-desktop">Đặt hàng ngay</span><span class="quick-order-label-mobile">Đặt ngay</span></button><button onclick="addDetailToCart()" id="detailAddToCartBtn" class="add-to-cart-btn detail-cart-btn text-white py-3.5 rounded-xl font-bold text-base"><i class="fas fa-cart-plus"></i><span class="quick-order-label-desktop">Thêm vào giỏ hàng</span><span class="quick-order-label-mobile">Thêm vào giỏ</span></button>\`}

@@ -841,7 +841,15 @@ export function storefrontThemeRefreshStyles(): string {
     color: #0f172a;
   }
   .detail-cart-btn--edit {
-    min-width: 12rem;
+    min-width: 0;
+    width: 100%;
+    flex: 1 1 100% !important;
+  }
+  .detail-action-bar--cart-edit {
+    display: flex;
+  }
+  .detail-action-bar--cart-edit > .btn-primary {
+    display: none !important;
   }
   .cart-item-delete-bg {
     display: none !important;
