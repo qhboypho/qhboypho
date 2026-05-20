@@ -544,14 +544,28 @@ export function storefrontThemeRefreshStyles(): string {
     display: none;
   }
   .hero-typed-cursor {
-    display: inline-block !important;
-    animation: heroTypedCursorBlink 0.85s steps(1) infinite !important;
+    display: none !important;
+    animation: none !important;
   }
   .hero-typed-text {
+    display: inline-block !important;
     min-width: var(--hero-typed-width, 16ch) !important;
     width: var(--hero-typed-width, 16ch);
-    contain: layout paint;
+    overflow: hidden;
     white-space: nowrap;
+    background: linear-gradient(135deg, #a855f7, #ec4899) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    transform: translateZ(0);
+    will-change: clip-path;
+  }
+  .hero-typed-text.is-typing {
+    animation: heroTypedReveal var(--hero-typed-duration, 1100ms) steps(var(--hero-typed-steps, 16), end) both;
+  }
+  @keyframes heroTypedReveal {
+    from { clip-path: inset(0 100% 0 0); }
+    to { clip-path: inset(0 0 0 0); }
   }
   .hero-carousel-card {
     isolation: isolate;

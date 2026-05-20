@@ -251,40 +251,21 @@ function initHeroTypedText() {
   }
   const maxLength = texts.reduce((max, item) => Math.max(max, item.length), 0)
   el.style.setProperty('--hero-typed-width', Math.max(10, maxLength) + 'ch')
-  let index = 0
   let textIndex = 0
-  let deleting = false
-  const typeDelay = 88
-  const deleteDelay = 42
-  const holdDelay = 1450
-  const restartDelay = 360
-  function schedule(delay) {
-    el._heroTypedTimer = window.setTimeout(typeNext, delay)
-  }
-  function typeNext() {
+  const holdDelay = 1650
+  function renderPhrase() {
     const text = texts[textIndex] || ''
-    el.textContent = text.slice(0, index)
-    if (!deleting && index < text.length) {
-      index += 1
-      schedule(typeDelay)
-      return
-    }
-    if (!deleting) {
-      deleting = true
-      schedule(holdDelay)
-      return
-    }
-    if (index > 0) {
-      index -= 1
-      schedule(deleteDelay)
-      return
-    }
-    deleting = false
+    el.classList.remove('is-typing')
+    el.textContent = text
+    el.style.setProperty('--hero-typed-steps', String(Math.max(1, text.length)))
+    el.style.setProperty('--hero-typed-duration', Math.max(720, text.length * 72) + 'ms')
+    window.requestAnimationFrame(() => {
+      el.classList.add('is-typing')
+    })
     textIndex = (textIndex + 1) % texts.length
-    schedule(restartDelay)
+    el._heroTypedTimer = window.setTimeout(renderPhrase, Math.max(1900, text.length * 72 + holdDelay))
   }
-  el.textContent = ''
-  typeNext()
+  renderPhrase()
 }
 
 function getAddressScopeElements(scope) {
