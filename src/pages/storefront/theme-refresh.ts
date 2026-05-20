@@ -537,6 +537,10 @@ export function storefrontThemeRefreshStyles(): string {
   .quick-order-label-mobile {
     display: none;
   }
+  .hero-typed-cursor {
+    display: none !important;
+    animation: none !important;
+  }
   .hero-carousel-card {
     isolation: isolate;
     overflow: hidden;
@@ -1466,7 +1470,7 @@ export function storefrontThemeRefreshStyles(): string {
     white-space: nowrap;
   }
   .flash-sale-mini-tail {
-    display: block;
+    display: none !important;
     flex: 0 0 auto;
     width: auto;
     height: 1rem;
@@ -1529,6 +1533,7 @@ export function storefrontThemeRefreshStyles(): string {
       margin-left: 0rem;
     }
     .flash-sale-mini-tail {
+      display: none !important;
       height: 0.96rem;
       margin-left: 0.1rem;
     }
@@ -1982,6 +1987,7 @@ export function storefrontThemeRefreshStyles(): string {
     }
     #products .product-card .flash-sale-mini-tail,
     #productsModalOverlay .product-card .flash-sale-mini-tail {
+      display: none !important;
       height: 0.82rem;
       margin-left: 0.14rem;
     }

@@ -241,50 +241,11 @@ function initHeroTypedText() {
     .map((item) => item.trim())
     .filter(Boolean)
   if (!texts.length) return
-  if (window.Typed) {
-    if (el._heroTypedInstance) el._heroTypedInstance.destroy()
-    el._heroTypedInstance = new window.Typed(el, {
-      strings: texts,
-      typeSpeed: 70,
-      backSpeed: 35,
-      backDelay: 1300,
-      startDelay: 150,
-      loop: true,
-      showCursor: false
-    })
-    return
+  if (el._heroTypedInstance) {
+    el._heroTypedInstance.destroy()
+    el._heroTypedInstance = null
   }
-  let index = 0
-  let textIndex = 0
-  let deleting = false
-  const typingDelay = 95
-  const deletingDelay = 45
-  const holdDelay = 1400
-  const restartDelay = 450
-  function typeNext() {
-    const text = texts[textIndex] || ''
-    el.textContent = text.slice(0, index)
-    if (!deleting && index < text.length) {
-      index += 1
-      window.setTimeout(typeNext, typingDelay)
-      return
-    }
-    if (!deleting) {
-      deleting = true
-      window.setTimeout(typeNext, holdDelay)
-      return
-    }
-    if (index > 0) {
-      index -= 1
-      window.setTimeout(typeNext, deletingDelay)
-      return
-    }
-    deleting = false
-    textIndex = (textIndex + 1) % texts.length
-    window.setTimeout(typeNext, restartDelay)
-  }
-  el.textContent = ''
-  typeNext()
+  el.textContent = texts[0]
 }
 
 function getAddressScopeElements(scope) {
@@ -1051,7 +1012,6 @@ function renderFlashSaleMiniStrip(flashMeta) {
   return \`<div class="flash-sale-mini-strip" aria-label="Flash sale đang chạy">
     <span class="flash-sale-mini-label">Flash Sale <i class="fas fa-bolt"></i></span>
     <span class="flash-sale-countdown flash-sale-mini-timer" data-flash-sale-ends-at="\${flashMeta.endsAt || ''}">\${formatFlashSaleCountdown(flashMeta.endsAt || '')}</span>
-    <img class="flash-sale-mini-tail" src="/GHTK_id8dR2ZdYY_1.svg" alt="" loading="lazy">
   </div>\`
 }
 
