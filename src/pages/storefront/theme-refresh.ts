@@ -506,6 +506,12 @@ export function storefrontThemeRefreshStyles(): string {
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  body[data-storefront-theme='dark'] .product-card-brand-row {
+    width: fit-content;
+    background: rgb(63 69 108 / 79%);
+    padding: 0 0.5rem;
+    border-radius: 4px;
+  }
   .shipping-carrier-logo {
     display: inline-block;
     flex: 0 0 auto;
@@ -538,8 +544,14 @@ export function storefrontThemeRefreshStyles(): string {
     display: none;
   }
   .hero-typed-cursor {
-    display: none !important;
-    animation: none !important;
+    display: inline-block !important;
+    animation: heroTypedCursorBlink 0.85s steps(1) infinite !important;
+  }
+  .hero-typed-text {
+    min-width: var(--hero-typed-width, 16ch) !important;
+    width: var(--hero-typed-width, 16ch);
+    contain: layout paint;
+    white-space: nowrap;
   }
   .hero-carousel-card {
     isolation: isolate;
