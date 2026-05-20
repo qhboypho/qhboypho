@@ -246,26 +246,43 @@ function initHeroTypedText() {
     el._heroTypedTimer = null
   }
   if (el._heroTypedInstance) {
-    el._heroTypedInstance.destroy()
+    if (typeof el._heroTypedInstance.stop === 'function') el._heroTypedInstance.stop()
     el._heroTypedInstance = null
   }
   const maxLength = texts.reduce((max, item) => Math.max(max, item.length), 0)
   el.style.setProperty('--hero-typed-width', Math.max(10, maxLength) + 'ch')
-  let textIndex = 0
-  const holdDelay = 1650
-  function renderPhrase() {
-    const text = texts[textIndex] || ''
-    el.classList.remove('is-typing')
-    el.textContent = text
-    el.style.setProperty('--hero-typed-steps', String(Math.max(1, text.length)))
-    el.style.setProperty('--hero-typed-duration', Math.max(720, text.length * 72) + 'ms')
-    window.requestAnimationFrame(() => {
-      el.classList.add('is-typing')
-    })
-    textIndex = (textIndex + 1) % texts.length
-    el._heroTypedTimer = window.setTimeout(renderPhrase, Math.max(1900, text.length * 72 + holdDelay))
+  el.innerHTML = ''
+  if (typeof window.AutoTyping !== 'function') {
+    el.textContent = texts[0]
+    return
   }
-  renderPhrase()
+  el._heroTypedInstance = new window.AutoTyping({
+    id: 'heroTypedText',
+    typeText: texts,
+    typeSpeed: 72,
+    typeRandom: false,
+    typeDelay: 240,
+    deleteSpeed: 32,
+    deleteDelay: 1500,
+    cursor: '',
+    cursorColor: '',
+    cursorSpeed: 0,
+    textColor: '',
+    typeInfinity: true,
+    callBack: {
+      method: function() {
+        el.querySelectorAll('span').forEach((span) => {
+          span.classList.add('hero-typed-segment')
+        })
+      }
+    }
+  })
+  el._heroTypedInstance.init()
+  window.requestAnimationFrame(() => {
+    el.querySelectorAll('span').forEach((span) => {
+      span.classList.add('hero-typed-segment')
+    })
+  })
 }
 
 function getAddressScopeElements(scope) {

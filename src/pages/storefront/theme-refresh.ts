@@ -553,19 +553,20 @@ export function storefrontThemeRefreshStyles(): string {
     width: var(--hero-typed-width, 16ch);
     overflow: hidden;
     white-space: nowrap;
+    vertical-align: baseline;
     background: linear-gradient(135deg, #a855f7, #ec4899) !important;
     -webkit-background-clip: text !important;
     background-clip: text !important;
     -webkit-text-fill-color: transparent !important;
     transform: translateZ(0);
-    will-change: clip-path;
+    will-change: contents;
   }
-  .hero-typed-text.is-typing {
-    animation: heroTypedReveal var(--hero-typed-duration, 1100ms) steps(var(--hero-typed-steps, 16), end) both;
-  }
-  @keyframes heroTypedReveal {
-    from { clip-path: inset(0 100% 0 0); }
-    to { clip-path: inset(0 0 0 0); }
+  .hero-typed-text .hero-typed-segment,
+  .hero-typed-text > span {
+    background: linear-gradient(135deg, #a855f7, #ec4899) !important;
+    -webkit-background-clip: text !important;
+    background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
   }
   .hero-carousel-card {
     isolation: isolate;
