@@ -1563,6 +1563,9 @@ export function storefrontThemeRefreshStyles(): string {
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 0 18px rgba(93,65,255,0.22);
   }
   @media (max-width: 768px) {
+    #purchaseToastContainer {
+      display: none !important;
+    }
     .quick-order-label-desktop {
       display: none;
     }
