@@ -2098,67 +2098,6 @@ export function storefrontThemeRefreshStyles(): string {
       margin-left: 0;
       margin-right: 0;
     }
-    .bs-card .product-card-actions {
-      display: inline-flex;
-      align-items: stretch;
-      justify-content: center;
-      gap: 0;
-      align-self: center;
-      margin: 0.55rem auto 0;
-      overflow: hidden;
-      border-radius: 0.62rem;
-      position: relative;
-      background: linear-gradient(135deg, #337cff, #8d55ff 45%, #ec4fbe) !important;
-      box-shadow: 0 10px 22px rgba(59,130,246,0.24), 0 8px 20px rgba(236,63,173,0.18) !important;
-    }
-    .bs-card .product-buy-btn {
-      flex: 0 0 auto !important;
-      width: auto !important;
-      max-width: none !important;
-      height: 1.52rem !important;
-      font-size: 0.62rem !important;
-      padding-left: 0.46rem !important;
-      padding-right: 0.46rem !important;
-      border-radius: 0 !important;
-      border-top-left-radius: 0.62rem !important;
-      border-bottom-left-radius: 0.62rem !important;
-      background: transparent !important;
-      box-shadow: none !important;
-    }
-    .bs-card .product-cart-btn {
-      display: inline-flex !important;
-      flex: 0 0 auto !important;
-      width: 2.05rem !important;
-      min-width: 2.05rem !important;
-      height: 1.52rem !important;
-      padding: 0 0.46rem !important;
-      border-radius: 0 !important;
-      border-top-right-radius: 0.62rem !important;
-      border-bottom-right-radius: 0.62rem !important;
-      background: transparent !important;
-      box-shadow: none !important;
-    }
-    .bs-card .product-cart-btn span,
-    .bs-card .product-buy-btn .quick-order-label-desktop {
-      display: none !important;
-    }
-    .bs-card .product-buy-btn .quick-order-label-mobile {
-      display: inline-flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-    }
-    .bs-card .product-cart-btn::before {
-      content: '|';
-      position: absolute;
-      left: 0;
-      top: 50%;
-      color: rgba(255,255,255,0.62);
-      font-size: 0.74rem;
-      font-weight: 700;
-      line-height: 1;
-      transform: translate(-50%, -52%);
-      pointer-events: none;
-    }
     .bs-actions {
       display: inline-flex;
       align-items: center;
