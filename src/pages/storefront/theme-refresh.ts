@@ -494,6 +494,25 @@ export function storefrontThemeRefreshStyles(): string {
     display: flex;
     flex-direction: column;
   }
+  .product-card-brand-row {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-height: 1.05rem;
+  }
+  .product-card-brand-text {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .shipping-carrier-logo {
+    display: inline-block;
+    flex: 0 0 auto;
+    width: 2.5rem;
+    height: auto;
+    object-fit: contain;
+  }
   .bs-card,
   .flash-sale-shop-card {
     display: flex;
@@ -695,6 +714,16 @@ export function storefrontThemeRefreshStyles(): string {
   }
   .favorites-products-grid .product-card p.text-pink-500 {
     display: none !important;
+  }
+  .favorites-products-grid .product-card .product-card-brand-row {
+    display: flex !important;
+    margin-bottom: 0.15rem !important;
+  }
+  .favorites-products-grid .product-card .product-card-brand-text {
+    display: none !important;
+  }
+  .favorites-products-grid .product-card .shipping-carrier-logo {
+    width: 2.5rem !important;
   }
   .favorites-products-grid .product-card h3 {
     font-size: 0.82rem !important;
@@ -1878,6 +1907,19 @@ export function storefrontThemeRefreshStyles(): string {
     #products .product-card p.text-pink-500,
     #productsModalOverlay .product-card p.text-pink-500 {
       display: none !important;
+    }
+    #products .product-card .product-card-brand-row,
+    #productsModalOverlay .product-card .product-card-brand-row {
+      display: flex !important;
+      margin-bottom: 0.15rem !important;
+    }
+    #products .product-card .product-card-brand-text,
+    #productsModalOverlay .product-card .product-card-brand-text {
+      display: none !important;
+    }
+    #products .product-card .shipping-carrier-logo,
+    #productsModalOverlay .product-card .shipping-carrier-logo {
+      width: 2.5rem !important;
     }
     #products .product-card h3 {
       font-size: 0.8rem !important;
