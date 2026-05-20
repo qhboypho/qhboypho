@@ -5,8 +5,9 @@ export function storefrontDetailOrderScript(): string {
   axios.post('/api/products/' + productId + '/view').catch(() => {})
 }
 
-async function showDetail(id) {
+async function showDetail(id, options) {
   try {
+    const detailOptions = options || {}
     const res = await axios.get('/api/products/' + id)
     const p = res.data.data
     currentProduct = p
@@ -76,20 +77,42 @@ async function showDetail(id) {
         <div class="detail-action-bar">
           \${isCurrentUserBlocked()
             ? renderBlockedPurchaseActions('w-full py-3.5 rounded-xl font-bold text-base')
-            : \`<button onclick="openOrderFromDetail(\${p.id})" class="btn-primary flex-1 text-white py-3.5 rounded-xl font-bold text-base"><i class="fas fa-shopping-cart"></i><span class="quick-order-label-desktop">Đặt hàng ngay</span><span class="quick-order-label-mobile">Đặt ngay</span></button><button onclick="addDetailToCart()" class="add-to-cart-btn detail-cart-btn text-white py-3.5 rounded-xl font-bold text-base"><i class="fas fa-cart-plus"></i><span class="quick-order-label-desktop">Thêm vào giỏ hàng</span><span class="quick-order-label-mobile">Thêm vào giỏ</span></button>\`}
+            : \`<button onclick="openOrderFromDetail(\${p.id})" class="btn-primary flex-1 text-white py-3.5 rounded-xl font-bold text-base"><i class="fas fa-shopping-cart"></i><span class="quick-order-label-desktop">Đặt hàng ngay</span><span class="quick-order-label-mobile">Đặt ngay</span></button><button onclick="addDetailToCart()" id="detailAddToCartBtn" class="add-to-cart-btn detail-cart-btn text-white py-3.5 rounded-xl font-bold text-base"><i class="fas fa-cart-plus"></i><span class="quick-order-label-desktop">Thêm vào giỏ hàng</span><span class="quick-order-label-mobile">Thêm vào giỏ</span></button>\`}
         </div>
       </div>
     </div>\`
+    if (detailOptions.cartItemId) {
+      cartVariantEditId = String(detailOptions.cartItemId || '')
+      const editBtn = document.getElementById('detailAddToCartBtn')
+      if (editBtn) {
+        editBtn.classList.add('detail-cart-btn--edit')
+        editBtn.innerHTML = '<i class="fas fa-check"></i><span>Cập nhật lựa chọn</span>'
+      }
+    } else {
+      cartVariantEditId = ''
+    }
     document.getElementById('detailOverlay').classList.remove('hidden')
     document.body.style.overflow = 'hidden'
     trackProductDetailView(p.id || id)
     startFlashSaleCountdownTicker()
     if (detailColorOptions.length) {
-      const initialButton = document.querySelector('#detailColorGrid .detail-color-card')
-      if (initialButton) selectDetailColorByIndex(0, initialButton)
+      const selectedColor = String(detailOptions.selectedColor || '').trim().toLowerCase()
+      const matchedColorIndex = selectedColor ? detailColorOptions.findIndex((item) => String(item.name || '').trim().toLowerCase() === selectedColor) : -1
+      const colorButtons = document.querySelectorAll('#detailColorGrid .detail-color-card')
+      const initialButton = colorButtons[matchedColorIndex >= 0 ? matchedColorIndex : 0]
+      if (initialButton) selectDetailColorByIndex(matchedColorIndex >= 0 ? matchedColorIndex : 0, initialButton)
     } else {
       const label = document.getElementById('detailColorLabel')
       if (label) label.textContent = ''
+    }
+    const selectedSize = String(detailOptions.selectedSize || '').trim().toLowerCase()
+    if (selectedSize) {
+      const sizeButtons = Array.from(document.querySelectorAll('#detailContent .size-btn'))
+      const sizeButton = sizeButtons.find((btn) => String(btn.textContent || '').trim().toLowerCase() === selectedSize)
+      if (sizeButton) selectDetailSize(String(sizeButton.textContent || '').trim(), sizeButton)
+    }
+    if (detailOptions.focusVariants) {
+      setTimeout(scrollDetailToVariantPicker, 120)
     }
     // Load reviews (only if user is logged in)
     if (typeof currentUser !== 'undefined' && currentUser) loadProductReviews(Number(p.id))
@@ -117,8 +140,13 @@ function selectDetailSize(s, btn) {
   }
   if (btn) btn.classList.add('active','bg-gray-900','text-white')
 }
+function scrollDetailToVariantPicker() {
+  const target = document.getElementById('detailColorGrid') || document.querySelector('#detailContent .size-btn')
+  if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' })
+}
 function closeDetail() {
   document.getElementById('detailOverlay').classList.add('hidden')
+  cartVariantEditId = ''
   document.body.style.overflow = ''
 }
 
@@ -142,11 +170,38 @@ function addDetailToCart() {
     return
   }
   const size = detailSelectedSize || ''
+  if (cartVariantEditId) {
+    updateCartItemVariant(cartVariantEditId, color, size)
+    cartVariantEditId = ''
+    closeDetail()
+    renderCartStep1()
+    showToast('Đã cập nhật phân loại sản phẩm', 'success', 2200)
+    return
+  }
   animateFlyToCart(resolveFlyImage(currentProduct), document.getElementById('mainDetailImg'))
   if (addToCart(currentProduct, color, size, 1)) {
     showToast('Đã thêm "' + currentProduct.name + '" vào giỏ hàng!', 'success', 2500)
     closeDetail()
   }
+}
+
+function updateCartItemVariant(cartId, color, size) {
+  const item = cart.find(i => i.cartId === cartId)
+  if (!item || !currentProduct) return
+  const duplicate = cart.find(i => i.cartId !== cartId && i.productId === item.productId && i.color === color && i.size === size)
+  if (duplicate) {
+    duplicate.qty = Math.min(99, Number(duplicate.qty || 1) + Number(item.qty || 1))
+    cart = cart.filter(i => i.cartId !== cartId)
+  } else {
+    item.color = color
+    item.size = size
+    item.colorImage = getSelectedColorImageFromProduct(currentProduct, color)
+      || detailSelectedColorImage
+      || item.colorImage
+      || currentProduct.thumbnail
+      || ''
+  }
+  saveCart()
 }
 
 function openOrderFromDetail(id) {

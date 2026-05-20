@@ -23,6 +23,7 @@ let detailSelectedColorImage = ''
 let detailSelectedColorIndex = -1
 let detailSelectedSize = ''
 let detailSelectedProductId = null
+let cartVariantEditId = ''
 let activeProductCategory = 'all'
 let activeProductSearch = ''
 let activeProductSort = 'newest'
@@ -1555,8 +1556,7 @@ function renderCartStep1() {
     const col = (typeof item.color === 'string' && item.color) ? item.color : ''
     const sz = item.size || ''
     const chk = item.checked ? 'checked' : ''
-    const colorTag = col ? '<span class="text-xs bg-pink-50 text-pink-600 border border-pink-200 px-2 py-0.5 rounded-full">' + col + '</span>' : ''
-    const sizeTag = sz ? '<span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">' + sz + '</span>' : ''
+    const variantLabel = [col, sz].filter(Boolean).join(', ') || 'Chọn màu, size'
     return '<div class="cart-item rounded-xl border border-gray-200 bg-white" data-cart-id="' + item.cartId + '">'
       + '<div class="cart-item-delete-bg cart-del-btn" data-id="' + item.cartId + '"><i class="fas fa-trash"></i></div>'
       + '<div class="cart-item-inner rounded-xl p-3" data-cart-id="' + item.cartId + '">'
@@ -1566,7 +1566,7 @@ function renderCartStep1() {
       + '<div class="flex-1 min-w-0">'
       + '<p class="font-semibold text-gray-900 text-sm line-clamp-1 mb-0.5">' + item.name + '</p>'
       + '<p class="text-xs text-gray-400 mb-1">' + item.sku + '</p>'
-      + '<div class="flex flex-wrap gap-1 mb-2">' + colorTag + sizeTag + '</div>'
+      + '<button type="button" class="cart-variant-selector" data-cart-id="' + item.cartId + '"><span>' + escapeHtml(variantLabel) + '</span><i class="fas fa-chevron-down"></i></button>'
       + '<div class="flex items-center justify-between">'
       + '<span class="text-gradient-price font-bold text-sm">' + fmtPrice(item.price) + '</span>'
       + '<div class="flex items-center gap-2">'
@@ -1588,11 +1588,29 @@ function renderCartStep1() {
   listEl.querySelectorAll('.cart-qty-btn').forEach(function(btn) {
     btn.addEventListener('click', function() { changeCartQty(btn.dataset.id, parseInt(btn.dataset.delta)) })
   })
+  listEl.querySelectorAll('.cart-variant-selector').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+      e.stopPropagation()
+      openCartItemVariantEditor(btn.dataset.cartId)
+    })
+  })
 
   // Setup swipe-to-delete for each item
   setupSwipeToDelete()
   updateCartSummary()
   updateCartHeaderSubtitle()
+}
+
+async function openCartItemVariantEditor(cartId) {
+  const item = cart.find(i => i.cartId === cartId)
+  if (!item) return
+  cartVariantEditId = cartId
+  await showDetail(item.productId, {
+    cartItemId: cartId,
+    focusVariants: true,
+    selectedColor: item.color || '',
+    selectedSize: item.size || ''
+  })
 }
 
 function updateCartHeaderSubtitle() {

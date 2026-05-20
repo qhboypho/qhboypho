@@ -808,6 +808,41 @@ export function storefrontThemeRefreshStyles(): string {
     background: rgba(239,68,68,0.08);
     transform: scale(1.04);
   }
+  .cart-variant-selector {
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.45rem;
+    max-width: 100%;
+    margin: 0.15rem 0 0.55rem;
+    padding: 0.42rem 0.62rem;
+    border: 0;
+    border-radius: 0.55rem;
+    background: rgba(241,245,249,0.94);
+    color: #334155;
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1.15;
+    text-align: left;
+  }
+  .cart-variant-selector span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .cart-variant-selector i {
+    flex: 0 0 auto;
+    color: #64748b;
+    font-size: 0.7rem;
+  }
+  .cart-variant-selector:hover {
+    background: rgba(226,232,240,0.98);
+    color: #0f172a;
+  }
+  .detail-cart-btn--edit {
+    min-width: 12rem;
+  }
   .cart-item-delete-bg {
     display: none !important;
   }
@@ -1779,6 +1814,17 @@ export function storefrontThemeRefreshStyles(): string {
   body[data-storefront-theme='dark'] .cart-inline-delete-btn:hover {
     color: #ff7b82;
     background: rgba(255,123,130,0.12);
+  }
+  body[data-storefront-theme='dark'] .cart-variant-selector {
+    background: rgba(63,69,108,0.78);
+    color: #e5ecff;
+  }
+  body[data-storefront-theme='dark'] .cart-variant-selector i {
+    color: rgba(229,236,255,0.72);
+  }
+  body[data-storefront-theme='dark'] .cart-variant-selector:hover {
+    background: rgba(80,88,135,0.9);
+    color: #ffffff;
   }
   body[data-storefront-theme='dark'] .popup-card input,
   body[data-storefront-theme='dark'] .popup-card textarea,
