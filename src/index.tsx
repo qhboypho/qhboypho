@@ -16,6 +16,7 @@ import { registerReviewRoutes } from './routes/reviewRoutes'
 import { registerBlockRoutes } from './routes/blockRoutes'
 import { createInitDB } from './lib/db'
 import type { AppBindings } from './types/app'
+import ghtkTailSvg from '../public/GHTK_id8dR2ZdYY_1.svg?raw'
 import {
   ADDRESS_KIT_BASE_URL,
   addressKitCache,
@@ -69,6 +70,10 @@ app.use('/api/*', cors({
   credentials: true
 }))
 app.use('/static/*', serveStatic({ root: './', manifest: {} }))
+app.get('/GHTK_id8dR2ZdYY_1.svg', (c) => c.body(ghtkTailSvg, 200, {
+  'content-type': 'image/svg+xml; charset=UTF-8',
+  'cache-control': 'public, max-age=31536000, immutable'
+}))
 
 // Enforce admin auth for all admin APIs except login
 app.use('/api/admin/*', async (c, next) => {
