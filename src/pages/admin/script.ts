@@ -2583,8 +2583,8 @@ document.addEventListener('DOMContentLoaded', function() {
 async function initAdminAuth() {
   resetAdminTransientSurface('auth-start-reset')
   try {
-    const res = await axios.get('/api/auth/me')
-    if (!res.data.isAdmin) {
+    const res = await axios.get('/api/admin/profile')
+    if (!res.data?.success) {
       window.location.replace('/admin/login')
       return
     }

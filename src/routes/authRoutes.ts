@@ -1,7 +1,7 @@
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie'
 import type { Hono } from 'hono'
 import type { AppBindings } from '../types/app'
-import { generateSecureToken, storeAdminSessionToken, validateAdminSessionToken, hashPassword, verifyPassword, timingSafeStringEqual } from '../lib/adminHelpers'
+import { generateSecureToken, storeAdminSessionToken, hashPassword, verifyPassword, timingSafeStringEqual } from '../lib/adminHelpers'
 import { clearUserSessionCookie, getUserSessionUserId, setUserSessionCookie } from '../lib/userSessionHelpers'
 
 type AuthRouteDeps = {
@@ -362,29 +362,11 @@ export function registerAuthRoutes(app: Hono<{ Bindings: AppBindings }>, deps: A
 
   app.get('/api/auth/me', async (c) => {
     await deps.initDB(c.env.DB)
-    const adminToken = getCookie(c, 'admin_token')
     const userToken = await getUserSessionUserId(c)
-    const adminUserKeyCookie = getCookie(c, 'admin_user_key') || 'admin'
 
-    let isAdmin = await validateAdminSessionToken(c.env.DB, adminUserKeyCookie, adminToken || '')
     let currentUser = null
 
-    if (isAdmin) {
-      try {
-        await deps.initDB(c.env.DB)
-        currentUser = await deps.resolveAdminProfile(c.env.DB, c)
-      } catch (e: any) {
-        console.error('[auth] resolve admin profile failed', e)
-        currentUser = {
-          userId: 0,
-          email: 'admin@qhclothes.local',
-          name: 'Admin',
-          avatar: '',
-          balance: 0,
-          is_admin: 1
-        }
-      }
-    } else if (userToken) {
+    if (userToken) {
       try {
         const parsedId = parseInt(userToken, 10)
         const user = await c.env.DB.prepare(`
@@ -404,12 +386,12 @@ export function registerAuthRoutes(app: Hono<{ Bindings: AppBindings }>, deps: A
       }
     }
 
-    if (!currentUser && !isAdmin) return c.json({ success: false, error: 'UNAUTHORIZED' }, 401)
+    if (!currentUser) return c.json({ success: false, error: 'UNAUTHORIZED' }, 401)
 
     return c.json({
       success: true,
       data: currentUser,
-      isAdmin
+      isAdmin: Number((currentUser as any)?.is_admin || 0) === 1
     })
   })
 
