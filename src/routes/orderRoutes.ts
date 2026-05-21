@@ -14,6 +14,13 @@ type OrderRouteDeps = {
   mergePdfBytes: (files: Uint8Array[]) => Promise<Uint8Array>
 }
 
+type OrderHistoryUser = {
+  id: number | string
+  email?: string | null
+}
+
+const NORMALIZED_CUSTOMER_PHONE_SQL = "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(TRIM(COALESCE(customer_phone, '')), ' ', ''), '-', ''), '.', ''), '(', ''), ')', ''), '+', '')"
+
 function generateNumericOrderSuffix6() {
   const array = new Uint32Array(1)
   crypto.getRandomValues(array)
@@ -27,6 +34,15 @@ function isBlockedValue(value: unknown) {
 
 function normalizeOrderPhone(value: unknown) {
   return String(value || '').trim().replace(/\s+/g, '').replace(/[^\d]/g, '')
+}
+
+function normalizeOrderEmail(value: unknown) {
+  return String(value || '').trim().toLowerCase()
+}
+
+function normalizeOrderUserId(value: unknown) {
+  const parsed = Number.parseInt(String(value || ''), 10)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null
 }
 
 function normalizeRiskAddress(value: unknown) {
@@ -180,6 +196,30 @@ async function generateUniqueOrderCode(db: D1Database) {
   return 'QH' + fallback
 }
 
+async function getOrderHistoryUser(db: D1Database, userId: unknown) {
+  const normalizedUserId = normalizeOrderUserId(userId)
+  if (!normalizedUserId) return null
+
+  return db.prepare('SELECT id, email FROM users WHERE id = ? LIMIT 1')
+    .bind(normalizedUserId)
+    .first<OrderHistoryUser>()
+}
+
+async function linkGuestOrdersToUser(db: D1Database, user: OrderHistoryUser | null) {
+  const userId = normalizeOrderUserId(user?.id)
+  if (!userId) return
+
+  const email = normalizeOrderEmail(user?.email)
+  if (!email) return
+
+  await db.prepare(`
+    UPDATE orders
+    SET user_id = ?
+    WHERE user_id IS NULL
+      AND LOWER(TRIM(COALESCE(customer_email, ''))) = ?
+  `).bind(userId, email).run()
+}
+
 async function checkAndAutoBlockCustomer(db: D1Database, userId: number | null, customerPhone: string | null) {
   if (!userId && !customerPhone) return
   
@@ -270,6 +310,13 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
       }
       return c.json({ success: false, error: 'Unauthorized' }, 401)
     }
+    const user = await getOrderHistoryUser(c.env.DB, userId)
+    if (!user) {
+      return c.json({ success: false, error: 'Unauthorized' }, 401)
+    }
+
+    await linkGuestOrdersToUser(c.env.DB, user)
+
     const orders = await c.env.DB.prepare(`
       SELECT o.*,
              p.thumbnail AS product_thumbnail,
@@ -279,7 +326,7 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
       LEFT JOIN products p ON p.id = o.product_id
       WHERE o.user_id=?
       ORDER BY o.created_at DESC
-    `).bind(userId).all()
+    `).bind(normalizeOrderUserId(user.id)).all()
     return c.json({ success: true, data: orders.results || [] })
   })
 
@@ -299,8 +346,11 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
         return c.json({ success: false, error: 'Missing required fields' }, 400)
       }
 
+      const sessionUserId = await getUserSessionUserId(c)
+      const user = sessionUserId ? await getOrderHistoryUser(c.env.DB, sessionUserId) : null
+      const userId = normalizeOrderUserId(user?.id)
+
       // Check if customer is blocked
-      const userId = await getUserSessionUserId(c)
       let isBlocked = false
       let blockReason = ''
       
@@ -326,7 +376,7 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
         
         if (normalizedCustomerPhone) {
           if (userId) query += ' OR '
-          query += "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(TRIM(customer_phone), ' ', ''), '-', ''), '.', ''), '(', ''), ')', ''), '+', '') = ?"
+          query += `${NORMALIZED_CUSTOMER_PHONE_SQL} = ?`
           params.push(normalizedCustomerPhone)
         }
         
@@ -401,13 +451,14 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
 
       const result = await c.env.DB.prepare(`
         INSERT INTO orders 
-          (user_id, order_code, customer_name, customer_phone, customer_address, client_ip_hash, customer_address_fingerprint, device_hash, product_id, product_name, product_price, color, selected_color_image, size, quantity, total_price, voucher_code, discount_amount, note, payment_method)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          (user_id, order_code, customer_name, customer_phone, customer_email, customer_address, client_ip_hash, customer_address_fingerprint, device_hash, product_id, product_name, product_price, color, selected_color_image, size, quantity, total_price, voucher_code, discount_amount, note, payment_method)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).bind(
         userId,
         orderCode,
         customer_name,
         normalizedCustomerPhone,
+        normalizeOrderEmail(user?.email) || null,
         customer_address,
         riskIdentity.ipHash || null,
         riskIdentity.addressFingerprint || null,
