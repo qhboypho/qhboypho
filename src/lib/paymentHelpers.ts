@@ -1,3 +1,6 @@
+import type { AppBindings } from '../types/app'
+import { getRuntimeConfigValues } from './runtimeConfigHelpers'
+
 export function payOSBuildDataString(input: Record<string, any>) {
   const normalize = (v: any) => {
     if (v === null || v === undefined) return ''
@@ -23,9 +26,17 @@ export async function payOSSignWithChecksum(checksumKey: string, dataString: str
   return Array.from(new Uint8Array(sigBuf)).map((b) => b.toString(16).padStart(2, '0')).join('')
 }
 
-export async function payOSGetPaymentInfo(env: any, id: string | number) {
-  const clientId = String(env.PAYOS_CLIENT_ID || '')
-  const apiKey = String(env.PAYOS_API_KEY || '')
+export async function getPayOSConfig(db: D1Database, env: AppBindings) {
+  const config = await getRuntimeConfigValues(db, env, ['PAYOS_CLIENT_ID', 'PAYOS_API_KEY', 'PAYOS_CHECKSUM_KEY'])
+  return {
+    clientId: config.PAYOS_CLIENT_ID || '',
+    apiKey: config.PAYOS_API_KEY || '',
+    checksumKey: config.PAYOS_CHECKSUM_KEY || ''
+  }
+}
+
+export async function payOSGetPaymentInfo(db: D1Database, env: AppBindings, id: string | number) {
+  const { clientId, apiKey } = await getPayOSConfig(db, env)
   if (!clientId || !apiKey || !id) return null
 
   const resp = await fetch(`https://api-merchant.payos.vn/v2/payment-requests/${encodeURIComponent(String(id))}`, {
@@ -73,24 +84,34 @@ export function parseJsonObject(input: any) {
   }
 }
 
-export function getZaloPayConfig(env: any) {
-  const appIdRaw = String(env.ZALOPAY_APP_ID || '').trim()
+export async function getZaloPayConfig(db: D1Database, env: AppBindings) {
+  const config = await getRuntimeConfigValues(db, env, [
+    'ZALOPAY_APP_ID',
+    'ZALOPAY_KEY1',
+    'ZALOPAY_KEY2',
+    'ZALOPAY_CREATE_ENDPOINT',
+    'ZALOPAY_QUERY_ENDPOINT',
+    'ZALOPAY_CALLBACK_URL'
+  ])
+  const appIdRaw = String(config.ZALOPAY_APP_ID || '').trim()
   const appIdNum = Number(appIdRaw)
-  const key1 = String(env.ZALOPAY_KEY1 || '').trim()
-  const key2 = String(env.ZALOPAY_KEY2 || '').trim()
-  const createEndpoint = String(env.ZALOPAY_CREATE_ENDPOINT || 'https://sb-openapi.zalopay.vn/v2/create').trim()
-  const queryEndpoint = String(env.ZALOPAY_QUERY_ENDPOINT || 'https://sb-openapi.zalopay.vn/v2/query').trim()
+  const key1 = String(config.ZALOPAY_KEY1 || '').trim()
+  const key2 = String(config.ZALOPAY_KEY2 || '').trim()
+  const createEndpoint = String(config.ZALOPAY_CREATE_ENDPOINT || 'https://sb-openapi.zalopay.vn/v2/create').trim()
+  const queryEndpoint = String(config.ZALOPAY_QUERY_ENDPOINT || 'https://sb-openapi.zalopay.vn/v2/query').trim()
+  const callbackUrl = String(config.ZALOPAY_CALLBACK_URL || '').trim()
   return {
     appIdRaw,
     appIdNum,
     key1,
     key2,
     createEndpoint,
-    queryEndpoint
+    queryEndpoint,
+    callbackUrl
   }
 }
 
-export function getZaloPayMissingConfigKeys(config: ReturnType<typeof getZaloPayConfig>) {
+export function getZaloPayMissingConfigKeys(config: Awaited<ReturnType<typeof getZaloPayConfig>>) {
   const missing: string[] = []
   if (!config.appIdRaw || !Number.isFinite(config.appIdNum) || config.appIdNum <= 0) missing.push('ZALOPAY_APP_ID')
   if (!config.key1) missing.push('ZALOPAY_KEY1')
@@ -120,7 +141,7 @@ export async function syncOrderPaymentWithPayOS(db: D1Database, env: any, order:
   const payOSId = order?.payment_link_id || order?.payment_order_code || order?.id
   if (!payOSId) return { synced: false, paid: false }
 
-  const paymentInfo = await payOSGetPaymentInfo(env, payOSId)
+  const paymentInfo = await payOSGetPaymentInfo(db, env, payOSId)
   if (!paymentInfo) return { synced: false, paid: false }
 
   const payStatus = String(paymentInfo.status || '').toUpperCase()
@@ -155,7 +176,7 @@ export async function syncOrderPaymentWithZaloPay(db: D1Database, env: any, orde
   const isPaid = String(order?.payment_status || '').toLowerCase() === 'paid'
   if (!isZaloPay || isPaid) return { synced: false, paid: isPaid }
 
-  const config = getZaloPayConfig(env)
+  const config = await getZaloPayConfig(db, env)
   if (!config.appIdRaw || !Number.isFinite(config.appIdNum) || config.appIdNum <= 0 || !config.key1) {
     return { synced: false, paid: false }
   }

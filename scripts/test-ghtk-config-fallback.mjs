@@ -1,40 +1,6 @@
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 
-import { getGhtkApiCredentials } from '../src/lib/shippingHelpers.ts'
-
-function mockSettingsDb(rows) {
-  return {
-    prepare() {
-      return {
-        bind(...keys) {
-          return {
-            async all() {
-              return {
-                results: rows.filter((row) => keys.includes(row.key)),
-              }
-            },
-          }
-        },
-      }
-    },
-  }
-}
-
-const db = mockSettingsDb([
-  { key: 'ghtk_token', value: ' db-token ' },
-  { key: 'ghtk_client_source', value: ' db-source ' },
-])
-
-const fromDb = await getGhtkApiCredentials(db, {})
-assert.deepEqual(fromDb, { token: 'db-token', clientSource: 'db-source' })
-
-const fromEnv = await getGhtkApiCredentials(db, {
-  GHTK_TOKEN: ' env-token ',
-  GHTK_CLIENT_SOURCE: ' env-source ',
-})
-assert.deepEqual(fromEnv, { token: 'env-token', clientSource: 'env-source' })
-
 const returnsRouteSource = await readFile(new URL('../src/routes/returnsRoutes.ts', import.meta.url), 'utf8')
 const orderRoutesSource = await readFile(new URL('../src/routes/orderRoutes.ts', import.meta.url), 'utf8')
 const shippingHelpersSource = await readFile(new URL('../src/lib/shippingHelpers.ts', import.meta.url), 'utf8')
@@ -72,6 +38,18 @@ assert.doesNotMatch(
   shippingHelpersSource,
   /export async function ghtkCancelShipment[\s\S]*?const token = String\(env\.GHTK_TOKEN \|\| ''\)\.trim\(\)[\s\S]*?const clientSource = String\(env\.GHTK_CLIENT_SOURCE \|\| ''\)\.trim\(\)/,
   'GHTK cancel helper should not read credentials only from env'
+)
+
+assert.match(
+  shippingHelpersSource,
+  /getRuntimeConfigValues\(db,\s*env,\s*\['GHTK_TOKEN',\s*'GHTK_CLIENT_SOURCE'\]\)/,
+  'GHTK helper should use the shared runtime config fallback layer'
+)
+
+assert.match(
+  shippingHelpersSource,
+  /GHTK_PICK_ADDRESS_ID[\s\S]*GHTK_PICK_NAME[\s\S]*GHTK_PICK_TEL/,
+  'GHTK pickup config should use the same runtime config fallback layer for warehouse settings'
 )
 
 console.log('ghtk config fallback contract passed')

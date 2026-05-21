@@ -1,5 +1,6 @@
 ﻿import { PDFDocument } from 'pdf-lib'
 import type { AppBindings } from '../types/app'
+import { getRuntimeConfigValues } from './runtimeConfigHelpers'
 
 export type GhtkPickupConfig = {
   token: string
@@ -28,28 +29,12 @@ export type GhtkPickupAddressFetchResult =
   | { ok: true, data: GhtkPickupAddress[] }
   | { ok: false, message: string, data: GhtkPickupAddress[], detail?: unknown }
 
-const GHTK_PICKUP_SETTING_KEYS = [
-  'ghtk_token',
-  'ghtk_client_source',
-  'ghtk_pick_address_id',
-  'ghtk_pick_name',
-  'ghtk_pick_address',
-  'ghtk_pick_province',
-  'ghtk_pick_district',
-  'ghtk_pick_ward',
-  'ghtk_pick_tel'
-] as const
-
 export async function getGhtkApiCredentials(db: D1Database, env: AppBindings) {
-  const query = 'SELECT key, value FROM app_settings WHERE key IN (?, ?)'
-  const result = await db.prepare(query).bind('ghtk_token', 'ghtk_client_source').all()
-  const map = new Map<string, string>()
-  for (const row of (result.results || []) as any[]) {
-    map.set(String(row.key || ''), String(row.value || ''))
+  const config = await getRuntimeConfigValues(db, env, ['GHTK_TOKEN', 'GHTK_CLIENT_SOURCE'])
+  return {
+    token: config.GHTK_TOKEN || '',
+    clientSource: config.GHTK_CLIENT_SOURCE || ''
   }
-  const token = String(env.GHTK_TOKEN || map.get('ghtk_token') || '').trim()
-  const clientSource = String(env.GHTK_CLIENT_SOURCE || map.get('ghtk_client_source') || '').trim()
-  return { token, clientSource }
 }
 
 export function normalizeGHTKOriginal(v: any) {
@@ -158,23 +143,27 @@ export function buildInternalTestOrderWhereSql(alias = '') {
 }
 
 export async function getGhtkPickupConfig(db: D1Database, env: AppBindings): Promise<GhtkPickupConfig> {
-  const query = `SELECT key, value FROM app_settings WHERE key IN (${GHTK_PICKUP_SETTING_KEYS.map(() => '?').join(',')})`
-  const result = await db.prepare(query).bind(...GHTK_PICKUP_SETTING_KEYS).all()
-  const map = new Map<string, string>()
-  for (const row of (result.results || []) as any[]) {
-    map.set(String(row.key || ''), String(row.value || ''))
-  }
-  const dbValue = (key: string) => String(map.get(key) || '').trim()
+  const config = await getRuntimeConfigValues(db, env, [
+    'GHTK_TOKEN',
+    'GHTK_CLIENT_SOURCE',
+    'GHTK_PICK_ADDRESS_ID',
+    'GHTK_PICK_NAME',
+    'GHTK_PICK_ADDRESS',
+    'GHTK_PICK_PROVINCE',
+    'GHTK_PICK_DISTRICT',
+    'GHTK_PICK_WARD',
+    'GHTK_PICK_TEL'
+  ])
   return {
-    token: dbValue('ghtk_token'),
-    clientSource: dbValue('ghtk_client_source'),
-    pickAddressId: dbValue('ghtk_pick_address_id'),
-    pickName: dbValue('ghtk_pick_name') || String(env.GHTK_PICK_NAME || '').trim(),
-    pickAddress: dbValue('ghtk_pick_address') || String(env.GHTK_PICK_ADDRESS || '').trim(),
-    pickProvince: dbValue('ghtk_pick_province') || String(env.GHTK_PICK_PROVINCE || '').trim(),
-    pickDistrict: dbValue('ghtk_pick_district') || String(env.GHTK_PICK_DISTRICT || '').trim(),
-    pickWard: dbValue('ghtk_pick_ward') || String(env.GHTK_PICK_WARD || '').trim(),
-    pickTel: dbValue('ghtk_pick_tel') || String(env.GHTK_PICK_TEL || '').trim()
+    token: config.GHTK_TOKEN || '',
+    clientSource: config.GHTK_CLIENT_SOURCE || '',
+    pickAddressId: config.GHTK_PICK_ADDRESS_ID || '',
+    pickName: config.GHTK_PICK_NAME || '',
+    pickAddress: config.GHTK_PICK_ADDRESS || '',
+    pickProvince: config.GHTK_PICK_PROVINCE || '',
+    pickDistrict: config.GHTK_PICK_DISTRICT || '',
+    pickWard: config.GHTK_PICK_WARD || '',
+    pickTel: config.GHTK_PICK_TEL || ''
   }
 }
 

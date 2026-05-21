@@ -3,13 +3,15 @@ import type { AppBindings } from '../types/app'
 import { getCookie } from 'hono/cookie'
 import { validateAdminSessionToken } from '../lib/adminHelpers'
 import { getUserSessionUserId } from '../lib/userSessionHelpers'
+import { getRuntimeConfigValue } from '../lib/runtimeConfigHelpers'
 
 type PaymentRouteDeps = {
   initDB: (db: D1Database) => Promise<void>
   syncOrderPayment: (db: D1Database, env: any, order: any) => Promise<any>
   syncOrderPaymentWithPayOS: (db: D1Database, env: any, order: any) => Promise<any>
   syncOrderPaymentWithZaloPay: (db: D1Database, env: any, order: any) => Promise<any>
-  getZaloPayConfig: (env: any) => any
+  getPayOSConfig: (db: D1Database, env: any) => Promise<any>
+  getZaloPayConfig: (db: D1Database, env: any) => Promise<any>
   getZaloPayMissingConfigKeys: (config: any) => string[]
   sanitizeAddressEffectiveDate: (value: string) => string
   addressKitCache: { provinces: Map<string, any[]>, communes: Map<string, any[]> }
@@ -18,7 +20,7 @@ type PaymentRouteDeps = {
   payOSSignWithChecksum: (key: string, payload: string) => Promise<string>
   payOSBuildDataString: (input: Record<string, any>) => string
   parseJsonObject: (value: any) => Record<string, any>
-  payOSGetPaymentInfo: (env: any, paymentLinkIdOrOrderCode: string | number) => Promise<any>
+  payOSGetPaymentInfo: (db: D1Database, env: any, paymentLinkIdOrOrderCode: string | number) => Promise<any>
 }
 
 async function verifyOrderAccess(c: any, order: any): Promise<boolean> {
@@ -33,7 +35,8 @@ async function verifyOrderAccess(c: any, order: any): Promise<boolean> {
 export function registerPaymentRoutes(app: Hono<{ Bindings: AppBindings }>, deps: PaymentRouteDeps) {
   app.post('/api/webhooks/casso', async (c) => {
     try {
-      const configuredToken = String(c.env.CASSO_SECURE_TOKEN || '').trim()
+      await deps.initDB(c.env.DB)
+      const configuredToken = await getRuntimeConfigValue(c.env.DB, c.env, 'CASSO_SECURE_TOKEN')
       if (!configuredToken) {
         console.error('[payments] Casso webhook token is not configured')
         return c.json({ error: 'Webhook not configured' }, 503)
@@ -46,7 +49,6 @@ export function registerPaymentRoutes(app: Hono<{ Bindings: AppBindings }>, deps
       const body = await c.req.json()
       if (body.error !== 0) return c.json({ success: false })
 
-      await deps.initDB(c.env.DB)
       const transactions = body.data || []
 
       let count = 0
@@ -135,7 +137,8 @@ export function registerPaymentRoutes(app: Hono<{ Bindings: AppBindings }>, deps
   })
 
   app.get('/api/payments/zalopay/config', async (c) => {
-    const config = deps.getZaloPayConfig(c.env)
+    await deps.initDB(c.env.DB)
+    const config = await deps.getZaloPayConfig(c.env.DB, c.env)
     const missing = deps.getZaloPayMissingConfigKeys(config)
     return c.json({
       success: true,
@@ -237,7 +240,7 @@ export function registerPaymentRoutes(app: Hono<{ Bindings: AppBindings }>, deps
         return c.json({ success: true, data: { alreadyPaid: true, orderCode: order.order_code } })
       }
 
-      const config = deps.getZaloPayConfig(c.env)
+      const config = await deps.getZaloPayConfig(c.env.DB, c.env)
       const missingConfig = deps.getZaloPayMissingConfigKeys(config)
       if (missingConfig.length) {
         return c.json({ success: false, error: 'ZALOPAY_CONFIG_MISSING', missing: missingConfig }, 500)
@@ -266,7 +269,7 @@ export function registerPaymentRoutes(app: Hono<{ Bindings: AppBindings }>, deps
       ])
       const appUser = String(order.customer_phone || order.customer_name || `user_${order.id}`).slice(0, 50)
       const description = `QHClothes - Thanh toan don hang #${order.order_code}`.slice(0, 256)
-      const callbackUrl = String((c.env as any).ZALOPAY_CALLBACK_URL || '').trim()
+      const callbackUrl = config.callbackUrl || ''
 
       const macInput = `${config.appIdRaw}|${appTransId}|${appUser}|${amount}|${nowMs}|${embedData}|${item}`
       const mac = await deps.payOSSignWithChecksum(config.key1, macInput)
@@ -349,7 +352,7 @@ export function registerPaymentRoutes(app: Hono<{ Bindings: AppBindings }>, deps
 
       const existingLinkId = String(order.payment_link_id || '').trim()
       const existingCheckoutUrl = String(order.payment_checkout_url || '').trim()
-      const existingPayment = await deps.payOSGetPaymentInfo(c.env, existingLinkId || order.payment_order_code || order.id)
+      const existingPayment = await deps.payOSGetPaymentInfo(c.env.DB, c.env, existingLinkId || order.payment_order_code || order.id)
       if (existingPayment) {
         const existingPaymentStatus = String(existingPayment.status || '').trim().toUpperCase()
         const existingPaymentLinkId = String(existingPayment.id || '').trim()
@@ -379,9 +382,7 @@ export function registerPaymentRoutes(app: Hono<{ Bindings: AppBindings }>, deps
         }
       }
 
-      const clientId = String((c.env as any).PAYOS_CLIENT_ID || '')
-      const apiKey = String((c.env as any).PAYOS_API_KEY || '')
-      const checksumKey = String((c.env as any).PAYOS_CHECKSUM_KEY || '')
+      const { clientId, apiKey, checksumKey } = await deps.getPayOSConfig(c.env.DB, c.env)
       if (!clientId || !apiKey || !checksumKey) {
         return c.json({ success: false, error: 'PAYOS_CONFIG_MISSING' }, 500)
       }
@@ -456,7 +457,7 @@ export function registerPaymentRoutes(app: Hono<{ Bindings: AppBindings }>, deps
       const body: any = await c.req.json().catch(() => ({}))
       const cbDataStr = String(body?.data || '')
       const providedMac = String(body?.mac || '').toLowerCase()
-      const config = deps.getZaloPayConfig(c.env)
+      const config = await deps.getZaloPayConfig(c.env.DB, c.env)
       if (!config.key2) {
         return c.json({ return_code: 0, return_message: 'ZALOPAY_CONFIG_MISSING' })
       }
@@ -541,7 +542,7 @@ export function registerPaymentRoutes(app: Hono<{ Bindings: AppBindings }>, deps
     try {
       await deps.initDB(c.env.DB)
       const body: any = await c.req.json()
-      const checksumKey = String((c.env as any).PAYOS_CHECKSUM_KEY || '')
+      const { checksumKey } = await deps.getPayOSConfig(c.env.DB, c.env)
       if (!checksumKey) return c.json({ success: false, error: 'PAYOS_CONFIG_MISSING' }, 500)
 
       const data = body?.data || {}
@@ -614,8 +615,8 @@ export function registerPaymentRoutes(app: Hono<{ Bindings: AppBindings }>, deps
         return c.json({ success: false, error: 'INVALID_WEBHOOK_URL' }, 400)
       }
 
-      const clientId = String((c.env as any).PAYOS_CLIENT_ID || '')
-      const apiKey = String((c.env as any).PAYOS_API_KEY || '')
+      await deps.initDB(c.env.DB)
+      const { clientId, apiKey } = await deps.getPayOSConfig(c.env.DB, c.env)
       if (!clientId || !apiKey) {
         return c.json({ success: false, error: 'PAYOS_CONFIG_MISSING' }, 500)
       }

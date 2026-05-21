@@ -16,6 +16,7 @@ export type AppBindings = CloudflareBindings & {
   ZALOPAY_CALLBACK_URL?: string
   GHTK_TOKEN?: string
   GHTK_CLIENT_SOURCE?: string
+  GHTK_PICK_ADDRESS_ID?: string
   GHTK_PICK_NAME?: string
   GHTK_PICK_ADDRESS?: string
   GHTK_PICK_PROVINCE?: string

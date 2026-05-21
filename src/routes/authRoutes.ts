@@ -3,6 +3,7 @@ import type { Hono } from 'hono'
 import type { AppBindings } from '../types/app'
 import { generateSecureToken, storeAdminSessionToken, hashPassword, verifyPassword, timingSafeStringEqual } from '../lib/adminHelpers'
 import { clearUserSessionCookie, getUserSessionUserId, setUserSessionCookie } from '../lib/userSessionHelpers'
+import { getRuntimeConfigValues } from '../lib/runtimeConfigHelpers'
 
 type AuthRouteDeps = {
   initDB: (db: D1Database) => Promise<void>
@@ -253,10 +254,18 @@ function clearAdminSessionCookies(c: any) {
   deleteCookie(c, 'admin_user_key', { path: '/' })
 }
 
-function getGoogleRedirectUri(c: any) {
-  const configured = String(c.env.GOOGLE_REDIRECT_URI || '').trim()
-  if (configured) return configured
-  return new URL('/api/auth/callback', c.req.url).toString()
+async function getGoogleOAuthConfig(c: any) {
+  const config = await getRuntimeConfigValues(c.env.DB, c.env, [
+    'GOOGLE_CLIENT_ID',
+    'GOOGLE_CLIENT_SECRET',
+    'GOOGLE_REDIRECT_URI'
+  ])
+  const configured = String(config.GOOGLE_REDIRECT_URI || '').trim()
+  return {
+    clientId: String(config.GOOGLE_CLIENT_ID || '').trim(),
+    clientSecret: String(config.GOOGLE_CLIENT_SECRET || '').trim(),
+    redirectUri: configured || new URL('/api/auth/callback', c.req.url).toString()
+  }
 }
 
 export function registerAuthRoutes(app: Hono<{ Bindings: AppBindings }>, deps: AuthRouteDeps) {
@@ -490,9 +499,9 @@ export function registerAuthRoutes(app: Hono<{ Bindings: AppBindings }>, deps: A
     })
   })
 
-  app.get('/api/auth/google', (c) => {
-    const clientId = String(c.env.GOOGLE_CLIENT_ID || '').trim()
-    const clientSecret = String(c.env.GOOGLE_CLIENT_SECRET || '').trim()
+  app.get('/api/auth/google', async (c) => {
+    await deps.initDB(c.env.DB)
+    const { clientId, clientSecret, redirectUri } = await getGoogleOAuthConfig(c)
     if (!clientId || !clientSecret) {
       console.error('[auth] google oauth config missing')
       return c.redirect(buildGoogleAuthErrorRedirect(c.req.url))
@@ -501,7 +510,6 @@ export function registerAuthRoutes(app: Hono<{ Bindings: AppBindings }>, deps: A
       console.error('[auth] google oauth client id invalid')
       return c.redirect(buildGoogleAuthErrorRedirect(c.req.url, 'google_client_id_invalid', 'GOOGLE_AUTH_CLIENT_ID_INVALID'))
     }
-    const redirectUri = getGoogleRedirectUri(c)
     const state = generateSecureToken(16)
     const isSecure = c.req.url.startsWith('https://')
     setCookie(c, 'oauth_state', state, { path: '/', maxAge: 300, httpOnly: true, secure: isSecure, sameSite: 'Lax' })
@@ -526,10 +534,8 @@ export function registerAuthRoutes(app: Hono<{ Bindings: AppBindings }>, deps: A
     }
     if (!code) return c.redirect('/?login=error&step=google_callback_missing_code&error=AUTH_CALLBACK_FAILED')
 
-    const clientId = String(c.env.GOOGLE_CLIENT_ID || '').trim()
-    const clientSecret = String(c.env.GOOGLE_CLIENT_SECRET || '').trim()
-
     await deps.initDB(c.env.DB)
+    const { clientId, clientSecret, redirectUri } = await getGoogleOAuthConfig(c)
 
     if (!clientId || !clientSecret) {
       console.error('[auth] google oauth config missing')
@@ -539,8 +545,6 @@ export function registerAuthRoutes(app: Hono<{ Bindings: AppBindings }>, deps: A
       console.error('[auth] google oauth client id invalid')
       return c.redirect(buildGoogleAuthErrorRedirect(c.req.url, 'google_client_id_invalid', 'GOOGLE_AUTH_CLIENT_ID_INVALID'))
     }
-
-    const redirectUri = getGoogleRedirectUri(c)
 
     try {
       const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
