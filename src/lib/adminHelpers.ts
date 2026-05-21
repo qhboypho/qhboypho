@@ -147,7 +147,8 @@ export async function hashPassword(password: string): Promise<string> {
 export async function verifyPassword(password: string, stored: string): Promise<boolean> {
   if (!stored) return false
   if (!stored.startsWith('pbkdf2:')) {
-    return password === stored
+    console.error('[auth] rejected plaintext password value; force password reset required')
+    return false
   }
   const parts = stored.split(':')
   if (parts.length !== 3) return false

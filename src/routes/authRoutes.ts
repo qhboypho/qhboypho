@@ -308,8 +308,9 @@ export function registerAuthRoutes(app: Hono<{ Bindings: AppBindings }>, deps: A
       const adminUserKey = deps.normalizeAdminUserKey(getCookie(c, 'admin_user_key') || 'admin')
       const settingKey = `admin_password_${adminUserKey}`
       const storedPassword = await deps.getAppSettingValue(c.env.DB, settingKey)
-      const currentPassword = storedPassword || (adminUserKey === 'admin' ? 'admin' : '')
-      if (!currentPassword) {
+      const currentPassword = storedPassword
+      if (!currentPassword || !currentPassword.startsWith('pbkdf2:')) {
+        if (currentPassword) console.error('[auth] legacy plaintext admin password rejected during password change')
         return c.json({ success: false, error: 'OLD_PASSWORD_INCORRECT' }, 400)
       }
       const isMatch = await verifyPassword(oldPassword, currentPassword)
@@ -338,8 +339,9 @@ export function registerAuthRoutes(app: Hono<{ Bindings: AppBindings }>, deps: A
       return c.json({ success: false, error: 'Too many login attempts', retry_after: rateLimit.retryAfter }, 429)
     }
     const storedPassword = await deps.getAppSettingValue(c.env.DB, `admin_password_${adminKey}`)
-    const expectedPassword = storedPassword || (adminKey === 'admin' ? 'admin' : '')
-    if (!expectedPassword) {
+    const expectedPassword = storedPassword
+    if (!expectedPassword || !expectedPassword.startsWith('pbkdf2:')) {
+      if (expectedPassword) console.error('[auth] legacy plaintext admin password rejected during login')
       await recordAdminLoginFailure(c.env.DB, attemptKey, now)
       return c.json({ success: false, error: 'Invalid credentials' }, 401)
     }
@@ -349,11 +351,6 @@ export function registerAuthRoutes(app: Hono<{ Bindings: AppBindings }>, deps: A
       return c.json({ success: false, error: 'Invalid credentials' }, 401)
     }
     await clearAdminLoginFailures(c.env.DB, attemptKey)
-    // Auto-migrate legacy plaintext password to hashed on successful login
-    if (!expectedPassword.startsWith('pbkdf2:')) {
-      const hashed = await hashPassword(password)
-      await deps.upsertAppSettings(c.env.DB, [{ key: `admin_password_${adminKey}`, value: hashed }])
-    }
     const token = generateSecureToken()
     await storeAdminSessionToken(c.env.DB, adminKey, token)
     const isSecure = c.req.url.startsWith('https://')
