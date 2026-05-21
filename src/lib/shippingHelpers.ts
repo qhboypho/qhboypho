@@ -279,9 +279,8 @@ export async function ghtkCreateShipment(env: any, db: D1Database, order: any) {
   return { ok: false, message: String(body?.message || 'GHTK_CREATE_ORDER_FAILED'), detail: body }
 }
 
-export async function ghtkFetchLabelPdf(env: any, trackingCode: string, original?: string, pageSize?: string) {
-  const token = String(env.GHTK_TOKEN || '').trim()
-  const clientSource = String(env.GHTK_CLIENT_SOURCE || '').trim()
+export async function ghtkFetchLabelPdf(env: any, db: D1Database, trackingCode: string, original?: string, pageSize?: string) {
+  const { token, clientSource } = await getGhtkApiCredentials(db, env)
   if (!token || !clientSource) throw new Error('MISSING_GHTK_KEYS')
 
   const url = 'https://services.giaohangtietkiem.vn/services/label/'
@@ -304,9 +303,8 @@ export async function ghtkFetchLabelPdf(env: any, trackingCode: string, original
   return new Uint8Array(await resp.arrayBuffer())
 }
 
-export async function ghtkCancelShipment(env: any, trackingOrder: string) {
-  const token = String(env.GHTK_TOKEN || '').trim()
-  const clientSource = String(env.GHTK_CLIENT_SOURCE || '').trim()
+export async function ghtkCancelShipment(env: any, db: D1Database, trackingOrder: string) {
+  const { token, clientSource } = await getGhtkApiCredentials(db, env)
   if (!token || !clientSource) throw new Error('MISSING_GHTK_KEYS')
 
   const code = String(trackingOrder || '').trim()

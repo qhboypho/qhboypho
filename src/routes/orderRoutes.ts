@@ -8,9 +8,9 @@ type OrderRouteDeps = {
   initDB: (db: D1Database) => Promise<void>
   buildInternalTestOrderWhereSql: (alias?: string) => string
   resolveSelectedColorImage: (productColors: any, selectedColor: any, fallbackImage?: string) => string
-  ghtkCancelShipment: (env: any, trackingOrder: string) => Promise<any>
+  ghtkCancelShipment: (env: any, db: D1Database, trackingOrder: string) => Promise<any>
   ghtkCreateShipment: (env: any, db: D1Database, order: any) => Promise<any>
-  ghtkFetchLabelPdf: (env: any, trackingCode: string, original?: any, pageSize?: any) => Promise<Uint8Array>
+  ghtkFetchLabelPdf: (env: any, db: D1Database, trackingCode: string, original?: any, pageSize?: any) => Promise<Uint8Array>
   mergePdfBytes: (files: Uint8Array[]) => Promise<Uint8Array>
 }
 
@@ -574,7 +574,7 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
         const carrier = String(existing.shipping_carrier || '').trim().toUpperCase()
         const trackingCode = String(existing.shipping_tracking_code || '').trim()
         if (carrier === 'GHTK' && trackingCode) {
-          const cancelRes = await deps.ghtkCancelShipment(c.env, trackingCode)
+          const cancelRes = await deps.ghtkCancelShipment(c.env, c.env.DB, trackingCode)
           if (!cancelRes.ok) {
             return c.json({ success: false, error: cancelRes.message || 'GHTK_CANCEL_FAILED', detail: cancelRes.detail || null }, 400)
           }
@@ -745,7 +745,7 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
 
       const files: Uint8Array[] = []
       for (const row of selected) {
-        files.push(await deps.ghtkFetchLabelPdf(c.env, String(row.shipping_tracking_code), c.req.query('original'), c.req.query('page_size')))
+        files.push(await deps.ghtkFetchLabelPdf(c.env, c.env.DB, String(row.shipping_tracking_code), c.req.query('original'), c.req.query('page_size')))
       }
       const merged = files.length === 1 ? files[0] : await deps.mergePdfBytes(files)
       const pdfBytes = new Uint8Array(merged)
