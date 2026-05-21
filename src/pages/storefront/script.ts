@@ -2827,12 +2827,10 @@ function escapeHtml(value) {
 }
 
 function escapeJsString(value) {
-  return String(value || '')
-    .replace(/\\/g, '\\\\')
-    .replace(/'/g, "\\'")
-    .replace(/\r/g, '\\r')
-    .replace(/\n/g, '\\n')
-    .replace(/</g, '\\x3C')
+  return JSON.stringify(String(value || ''))
+    .slice(1, -1)
+    .replace(/'/g, "\\\\'")
+    .replace(/</g, '\\\\x3C')
 }
 
 function getOrderHistoryImage(order) {
