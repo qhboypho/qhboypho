@@ -28,11 +28,11 @@ async function showDetail(id, options) {
     document.getElementById('detailContent').innerHTML = \`
     <div class="grid md:grid-cols-2 gap-6">
       <div>
-        <img id="mainDetailImg" src="\${defaultMainImage}" alt="\${p.name}" class="w-full rounded-2xl h-80 object-cover mb-3">
+        <img id="mainDetailImg" src="\${escapeHtml(defaultMainImage)}" alt="\${escapeHtml(p.name)}" class="w-full rounded-2xl h-80 object-cover mb-3">
         <div class="img-gallery grid grid-cols-4 gap-2">
           \${[p.thumbnail, ...images].filter((v,i,a)=>v&&a.indexOf(v)===i).slice(0,8).map(img => \`
-          <img src="\${img}" alt="" class="w-full h-16 object-cover rounded-lg border-2 border-transparent hover:border-pink-400"
-            onclick="document.getElementById('mainDetailImg').src='\${img}'">\`).join('')}
+          <img src="\${escapeHtml(img)}" alt="" class="w-full h-16 object-cover rounded-lg border-2 border-transparent hover:border-pink-400"
+            onclick="document.getElementById('mainDetailImg').src='\${escapeJsString(img)}'">\`).join('')}
         </div>
         <!-- Reviews section - only shown when logged in -->
         <div id="detailReviewsSection" class="review-section \${currentUser ? '' : 'hidden'}">
@@ -40,15 +40,15 @@ async function showDetail(id, options) {
         </div>
       </div>
       <div>
-        \${p.brand ? \`<p class="text-sm text-pink-500 font-medium mb-1">\${p.brand}</p>\` : ''}
-        <h2 class="font-display text-2xl font-bold text-gray-900 mb-3">\${p.name}</h2>
-        \${p.has_flash_sale ? \`<div class="flex flex-wrap items-center gap-2 mb-3"><span class="flash-sale-badge"><i class="fas fa-bolt"></i> Flash Sale</span><span class="flash-sale-countdown" data-flash-sale-ends-at="\${flashMeta?.endsAt || ''}">\${formatFlashSaleCountdown(flashMeta?.endsAt || '')}</span></div>\` : ''}
+        \${p.brand ? \`<p class="text-sm text-pink-500 font-medium mb-1">\${escapeHtml(p.brand)}</p>\` : ''}
+        <h2 class="font-display text-2xl font-bold text-gray-900 mb-3">\${escapeHtml(p.name)}</h2>
+        \${p.has_flash_sale ? \`<div class="flex flex-wrap items-center gap-2 mb-3"><span class="flash-sale-badge"><i class="fas fa-bolt"></i> Flash Sale</span><span class="flash-sale-countdown" data-flash-sale-ends-at="\${escapeHtml(flashMeta?.endsAt || '')}">\${formatFlashSaleCountdown(flashMeta?.endsAt || '')}</span></div>\` : ''}
         <div class="flex items-baseline gap-3 mb-4">
           <span class="text-3xl font-bold text-gradient-price">\${fmtPrice(detailDisplayPrice)}</span>
           \${detailDisplayOriginalPrice > detailDisplayPrice ? \`<span class="text-gray-400 line-through">\${fmtPrice(detailDisplayOriginalPrice)}</span><span class="badge-sale text-white text-xs px-2 py-1 rounded-full">-\${discount}%</span>\` : ''}
         </div>
-        \${p.description ? \`<p class="text-gray-600 text-sm leading-relaxed mb-4">\${p.description}</p>\` : ''}
-        \${p.material ? \`<p class="text-sm text-gray-500 mb-4"><strong>Chất liệu:</strong> \${p.material}</p>\` : ''}
+        \${p.description ? \`<p class="text-gray-600 text-sm leading-relaxed mb-4">\${escapeHtml(p.description)}</p>\` : ''}
+        \${p.material ? \`<p class="text-sm text-gray-500 mb-4"><strong>Chất liệu:</strong> \${escapeHtml(p.material)}</p>\` : ''}
         \${detailColorOptions.length ? \`
         <div class="mb-4">
           <p class="text-sm font-semibold mb-2">Màu sắc: <span class="text-pink-500" id="detailColorLabel"></span></p>
@@ -58,11 +58,11 @@ async function showDetail(id, options) {
               onclick="selectDetailColorByIndex(\${idx}, this)">
               <div class="relative aspect-square bg-gray-100 overflow-hidden">
                 \${item.image
-                  ? \`<img src="\${item.image}" alt="\${item.name}" class="w-full h-full object-cover transition duration-300 group-hover:scale-[1.02]">\`
+                  ? \`<img src="\${escapeHtml(item.image)}" alt="\${escapeHtml(item.name)}" class="w-full h-full object-cover transition duration-300 group-hover:scale-[1.02]">\`
                   : \`<div class="w-full h-full flex items-center justify-center text-gray-300 text-xs">Không có ảnh</div>\`}
               </div>
               <div class="px-2.5 py-2 text-center">
-                <span class="block text-sm font-medium text-gray-900 leading-tight">\${item.name}</span>
+                <span class="block text-sm font-medium text-gray-900 leading-tight">\${escapeHtml(item.name)}</span>
               </div>
             </button>\`).join('')}
           </div>
@@ -71,7 +71,7 @@ async function showDetail(id, options) {
         <div class="mb-6">
           <p class="text-sm font-semibold mb-2">Size:</p>
           <div class="flex flex-wrap gap-2">
-            \${sizes.map(s => \`<button class="size-btn w-12 h-10 border rounded-lg text-sm font-medium hover:border-pink-400 transition" onclick="selectDetailSize('\${s}',this)">\${s}</button>\`).join('')}
+            \${sizes.map(s => \`<button class="size-btn w-12 h-10 border rounded-lg text-sm font-medium hover:border-pink-400 transition" onclick="selectDetailSize('\${escapeJsString(s)}',this)">\${escapeHtml(s)}</button>\`).join('')}
           </div>
         </div>\` : ''}
         <div class="detail-action-bar \${detailOptions.cartItemId ? 'detail-action-bar--cart-edit' : ''}">
@@ -249,8 +249,8 @@ async function openOrder(id) {
     colorDiv.innerHTML = orderColorOptions.length ? orderColorOptions.map((item, idx) => \`
       <button class="color-btn px-3 py-1.5 border rounded-lg text-sm hover:border-pink-400 transition inline-flex items-center gap-2"
         onclick="selectOrderColorByIndex(\${idx}, this)">
-        \${item.image ? \`<img src="\${item.image}" alt="" class="w-5 h-5 rounded-md object-cover border border-gray-200">\` : '<span class="w-5 h-5 rounded-md bg-gray-100 border border-gray-200"></span>'}
-        <span>\${item.name}</span>
+        \${item.image ? \`<img src="\${escapeHtml(item.image)}" alt="" class="w-5 h-5 rounded-md object-cover border border-gray-200">\` : '<span class="w-5 h-5 rounded-md bg-gray-100 border border-gray-200"></span>'}
+        <span>\${escapeHtml(item.name)}</span>
       </button>
     \`).join('') : '<p class="text-gray-400 text-sm">Không có lựa chọn màu</p>'
     const shouldPrefillFromDetail = Number(detailSelectedProductId || 0) === Number(currentProduct?.id || 0) && detailSelectedColor
@@ -266,7 +266,7 @@ async function openOrder(id) {
     const sizes = safeJson(currentProduct.sizes)
     const sizeDiv = document.getElementById('sizeOptions')
     sizeDiv.innerHTML = sizes.length ? sizes.map(s => \`
-      <button class="size-btn px-3 py-1.5 border rounded-lg text-sm font-medium hover:border-pink-400 transition" onclick="selectOrderSize('\${s}',this)">\${s}</button>
+      <button class="size-btn px-3 py-1.5 border rounded-lg text-sm font-medium hover:border-pink-400 transition" onclick="selectOrderSize('\${escapeJsString(s)}',this)">\${escapeHtml(s)}</button>
     \`).join('') : '<p class="text-gray-400 text-sm">Không có size</p>'
     document.getElementById('sizeSection').style.display = sizes.length ? '' : 'none'
     const shouldPrefillSizeFromDetail = Number(detailSelectedProductId || 0) === Number(currentProduct?.id || 0) && detailSelectedSize

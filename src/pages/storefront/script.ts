@@ -500,7 +500,7 @@ function renderAddressDropdownList(scope, type, keyword = '') {
 
   optionsEl.innerHTML = filtered.map((item) => {
     const active = String(item.code) === selectedCode ? ' active' : ''
-    return '<button type="button" class="address-option-item' + active + '" data-scope="' + scope + '" data-type="' + type + '" data-code="' + item.code + '" onclick="selectAddressDropdownOption(this.dataset.scope,this.dataset.type,this.dataset.code)">' + item.name + '</button>'
+    return '<button type="button" class="address-option-item' + active + '" data-scope="' + escapeHtml(scope) + '" data-type="' + escapeHtml(type) + '" data-code="' + escapeHtml(item.code) + '" onclick="selectAddressDropdownOption(this.dataset.scope,this.dataset.type,this.dataset.code)">' + escapeHtml(item.name) + '</button>'
   }).join('')
 }
 
@@ -1001,14 +1001,14 @@ async function loadBestSellers() {
       const ratingStars = renderProductRatingStars(p, 'bs-stars')
       return \`<div class="bs-card" onclick="showDetail(\${p.id})">
         <div class="relative">
-          <img src="\${p.thumbnail || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'}"
-            alt="\${p.name}" class="bs-card-img" loading="lazy"
+          <img src="\${escapeHtml(p.thumbnail || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400')}"
+            alt="\${escapeHtml(p.name)}" class="bs-card-img" loading="lazy"
             onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'">
           \${renderFavoriteButton(p.id, 'favorite-toggle-btn--bestseller')}
           <div class="\${medalClass(i)}">\${medalIcon(i)}</div>
         </div>
         <div class="bs-card-body p-3">
-          <p class="bs-name mb-1.5">\${p.name}</p>
+          <p class="bs-name mb-1.5">\${escapeHtml(p.name)}</p>
           <div class="flex items-center justify-between gap-2 mb-2">
             <div class="flex items-center gap-2 min-w-0 flex-wrap">
               <span class="bs-price text-gradient-price">\${fmtPrice(price)}</span>
@@ -1211,8 +1211,8 @@ function renderStorefrontProductCard(p) {
   return \`
   <div class="product-card bg-white rounded-2xl overflow-hidden card-hover shadow-sm border border-gray-100 cursor-pointer" onclick="openProductDetailFromCard(\${p.id})">
     <div class="relative overflow-hidden bg-gray-100">
-      <img src="\${p.thumbnail || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'}"
-        alt="\${p.name}" class="w-full product-img-main" loading="lazy"
+      <img src="\${escapeHtml(p.thumbnail || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400')}"
+        alt="\${escapeHtml(p.name)}" class="w-full product-img-main" loading="lazy"
         onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'">
       \${renderFavoriteButton(p.id)}
       <!-- Discount badge hidden temporarily; keep logic for later reuse.
@@ -1225,7 +1225,7 @@ function renderStorefrontProductCard(p) {
     </div>
     <div class="p-3 md:p-4">
       \${renderProductCardBrandRow(p)}
-      <h3 class="font-semibold text-gray-900 text-sm leading-tight mb-2 line-clamp-2">\${p.name}</h3>
+      <h3 class="font-semibold text-gray-900 text-sm leading-tight mb-2 line-clamp-2">\${escapeHtml(p.name)}</h3>
       <div class="flex items-center gap-2 mb-3 flex-wrap">
         <span class="text-gradient-price font-bold">\${fmtPrice(displayPrice)}</span>
         \${displayOriginalPrice > displayPrice ? \`<span class="product-card-original-price text-xs line-through">\${fmtPrice(displayOriginalPrice)}</span>\` : ''}
@@ -1235,7 +1235,7 @@ function renderStorefrontProductCard(p) {
       \${renderProductCardSocialMeta(p)}
       \${colors.length > 0 ? \`
       <div class="flex gap-1 mb-3 flex-wrap">
-        \${colors.slice(0,4).map(c => \`<span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">\${c}</span>\`).join('')}
+        \${colors.slice(0,4).map(c => \`<span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">\${escapeHtml(c)}</span>\`).join('')}
         \${colors.length > 4 ? \`<span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">+\${colors.length-4}</span>\` : ''}
       </div>\` : ''}
       \${renderProductCardActions(p.id)}
@@ -1562,10 +1562,10 @@ function renderCartStep1() {
       + '<div class="cart-item-inner rounded-xl p-3" data-cart-id="' + item.cartId + '">'
       + '<div class="flex gap-3 items-start">'
       + '<div class="flex-shrink-0 pt-1"><input type="checkbox" ' + chk + ' data-toggle-id="' + item.cartId + '" class="cart-chk w-4 h-4 accent-pink-500 cursor-pointer mt-0.5"></div>'
-      + '<img src="' + item.thumbnail + '" alt="' + item.name + '" class="w-16 h-20 object-cover rounded-lg flex-shrink-0" onerror="this.src=&quot;https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&quot;">'
+      + '<img src="' + escapeHtml(item.thumbnail) + '" alt="' + escapeHtml(item.name) + '" class="w-16 h-20 object-cover rounded-lg flex-shrink-0" onerror="this.src=&quot;https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&quot;">'
       + '<div class="flex-1 min-w-0">'
-      + '<p class="font-semibold text-gray-900 text-sm line-clamp-1 mb-0.5">' + item.name + '</p>'
-      + '<p class="text-xs text-gray-400 mb-1">' + item.sku + '</p>'
+      + '<p class="font-semibold text-gray-900 text-sm line-clamp-1 mb-0.5">' + escapeHtml(item.name) + '</p>'
+      + '<p class="text-xs text-gray-400 mb-1">' + escapeHtml(item.sku) + '</p>'
       + '<button type="button" class="cart-variant-selector" data-cart-id="' + item.cartId + '"><span>' + escapeHtml(variantLabel) + '</span><i class="fas fa-chevron-down"></i></button>'
       + '<div class="flex items-center justify-between">'
       + '<span class="text-gradient-price font-bold text-sm">' + fmtPrice(item.price) + '</span>'
@@ -1723,9 +1723,9 @@ async function proceedToCheckout() {
   document.getElementById('checkoutSummaryItems').innerHTML = checked.map(function(i){
     return '<div class="flex-shrink-0 w-20 text-center">'
       + '<div class="relative inline-block">'
-      + '<img src="' + i.thumbnail + '" class="w-16 h-20 object-cover rounded-xl border-2 border-white shadow" onerror="this.src=&quot;https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&quot;">'
+      + '<img src="' + escapeHtml(i.thumbnail) + '" class="w-16 h-20 object-cover rounded-xl border-2 border-white shadow" onerror="this.src=&quot;https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&quot;">'
       + '<span class="absolute -top-1 -right-1 w-5 h-5 bg-pink-500 text-white text-xs rounded-full flex items-center justify-center font-bold">' + i.qty + '</span>'
-      + '</div><p class="text-xs text-gray-600 mt-1 line-clamp-1">' + i.name + '</p></div>'
+      + '</div><p class="text-xs text-gray-600 mt-1 line-clamp-1">' + escapeHtml(i.name) + '</p></div>'
   }).join('')
   // reset form
   ;['ckName','ckPhone','ckAddress','ckAddressDetail','ckNote'].forEach(id => { const el=document.getElementById(id); if(el) el.value='' })
@@ -2824,6 +2824,15 @@ function escapeHtml(value) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;')
+}
+
+function escapeJsString(value) {
+  return String(value || '')
+    .replace(/\\/g, '\\\\')
+    .replace(/'/g, "\\'")
+    .replace(/\r/g, '\\r')
+    .replace(/\n/g, '\\n')
+    .replace(/</g, '\\x3C')
 }
 
 function getOrderHistoryImage(order) {

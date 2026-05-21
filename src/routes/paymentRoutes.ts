@@ -33,13 +33,18 @@ async function verifyOrderAccess(c: any, order: any): Promise<boolean> {
 export function registerPaymentRoutes(app: Hono<{ Bindings: AppBindings }>, deps: PaymentRouteDeps) {
   app.post('/api/webhooks/casso', async (c) => {
     try {
-      const body = await c.req.json()
-      if (body.error !== 0) return c.json({ success: false })
-
-      const secureToken = c.req.header('secure-token')
-      if (c.env.CASSO_SECURE_TOKEN && secureToken !== c.env.CASSO_SECURE_TOKEN) {
+      const configuredToken = String(c.env.CASSO_SECURE_TOKEN || '').trim()
+      if (!configuredToken) {
+        console.error('[payments] Casso webhook token is not configured')
+        return c.json({ error: 'Webhook not configured' }, 503)
+      }
+      const secureToken = String(c.req.header('secure-token') || '').trim()
+      if (secureToken !== configuredToken) {
         return c.json({ error: 'Invalid token' }, 401)
       }
+
+      const body = await c.req.json()
+      if (body.error !== 0) return c.json({ success: false })
 
       await deps.initDB(c.env.DB)
       const transactions = body.data || []

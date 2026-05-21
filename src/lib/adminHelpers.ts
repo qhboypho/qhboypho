@@ -78,6 +78,18 @@ export function generateSecureToken(length = 48): string {
   return Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('')
 }
 
+export function timingSafeStringEqual(a: string, b: string): boolean {
+  const encoder = new TextEncoder()
+  const aBytes = encoder.encode(String(a || ''))
+  const bBytes = encoder.encode(String(b || ''))
+  const length = Math.max(aBytes.length, bBytes.length)
+  let diff = aBytes.length ^ bBytes.length
+  for (let i = 0; i < length; i++) {
+    diff |= (aBytes[i] || 0) ^ (bBytes[i] || 0)
+  }
+  return diff === 0
+}
+
 export async function storeAdminSessionToken(db: D1Database, adminUserKey: string, token: string): Promise<void> {
   const key = `admin_session_${normalizeAdminUserKey(adminUserKey)}`
   await upsertAppSettings(db, [{ key, value: token }])
@@ -90,7 +102,7 @@ export async function validateAdminSessionToken(db: D1Database, adminUserKey: st
     const row = await db.prepare(
       "SELECT value FROM app_settings WHERE key = ? LIMIT 1"
     ).bind(key).first() as { value?: string } | null
-    return !!row && row.value === token
+    return !!row && timingSafeStringEqual(String(row.value || ''), token)
   } catch {
     return false
   }
@@ -142,5 +154,5 @@ export async function verifyPassword(password: string, stored: string): Promise<
   const salt = fromHex(parts[1])
   const expectedHash = parts[2]
   const hash = await deriveKey(password, salt)
-  return hash === expectedHash
+  return timingSafeStringEqual(hash, expectedHash)
 }

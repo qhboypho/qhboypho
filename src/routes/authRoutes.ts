@@ -1,7 +1,7 @@
 import { deleteCookie, getCookie, setCookie } from 'hono/cookie'
 import type { Hono } from 'hono'
 import type { AppBindings } from '../types/app'
-import { generateSecureToken, storeAdminSessionToken, validateAdminSessionToken, hashPassword, verifyPassword } from '../lib/adminHelpers'
+import { generateSecureToken, storeAdminSessionToken, validateAdminSessionToken, hashPassword, verifyPassword, timingSafeStringEqual } from '../lib/adminHelpers'
 import { clearUserSessionCookie, getUserSessionUserId, setUserSessionCookie } from '../lib/userSessionHelpers'
 
 type AuthRouteDeps = {
@@ -50,6 +50,75 @@ function isBlockedValue(value: unknown) {
 
 function buildLocalUserEmail(username: string) {
   return `${username}@user.qhclothes.local`
+}
+
+const ADMIN_LOGIN_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000
+const ADMIN_LOGIN_RATE_LIMIT_MAX_ATTEMPTS = 8
+const ADMIN_LOGIN_LOCK_MS = 15 * 60 * 1000
+
+type LoginAttemptState = {
+  count: number
+  windowStart: number
+  lockedUntil: number
+}
+
+function parseLoginAttemptState(raw: unknown): LoginAttemptState {
+  try {
+    const parsed = JSON.parse(String(raw || '{}')) as Partial<LoginAttemptState>
+    return {
+      count: Number(parsed.count || 0),
+      windowStart: Number(parsed.windowStart || 0),
+      lockedUntil: Number(parsed.lockedUntil || 0)
+    }
+  } catch {
+    return { count: 0, windowStart: 0, lockedUntil: 0 }
+  }
+}
+
+async function getAdminLoginAttemptKey(c: any, adminKey: string) {
+  const ip = getClientIp(c) || 'unknown'
+  const ipHash = await sha256Hex(`admin-login:${ip}`)
+  return `admin_login_attempt:${adminKey}:${ipHash}`
+}
+
+async function getAdminLoginAttemptState(db: D1Database, key: string) {
+  const row = await db.prepare("SELECT value FROM app_settings WHERE key=? LIMIT 1").bind(key).first<{ value?: string | null }>()
+  return parseLoginAttemptState(row?.value || '')
+}
+
+async function assertAdminLoginAllowed(db: D1Database, key: string, now: number) {
+  const state = await getAdminLoginAttemptState(db, key)
+  if (state.lockedUntil > now) {
+    return {
+      allowed: false,
+      retryAfter: Math.max(1, Math.ceil((state.lockedUntil - now) / 1000))
+    }
+  }
+  return { allowed: true, retryAfter: 0 }
+}
+
+async function saveAdminLoginAttemptState(db: D1Database, key: string, state: LoginAttemptState) {
+  await db.prepare(`
+    INSERT INTO app_settings (key, value, updated_at)
+    VALUES (?, ?, CURRENT_TIMESTAMP)
+    ON CONFLICT(key) DO UPDATE SET value=excluded.value, updated_at=CURRENT_TIMESTAMP
+  `).bind(key, JSON.stringify(state)).run()
+}
+
+async function recordAdminLoginFailure(db: D1Database, key: string, now: number) {
+  const current = await getAdminLoginAttemptState(db, key)
+  const inWindow = current.windowStart > 0 && now - current.windowStart <= ADMIN_LOGIN_RATE_LIMIT_WINDOW_MS
+  const count = inWindow ? current.count + 1 : 1
+  const lockedUntil = count >= ADMIN_LOGIN_RATE_LIMIT_MAX_ATTEMPTS ? now + ADMIN_LOGIN_LOCK_MS : 0
+  await saveAdminLoginAttemptState(db, key, {
+    count,
+    windowStart: inWindow ? current.windowStart : now,
+    lockedUntil
+  })
+}
+
+async function clearAdminLoginFailures(db: D1Database, key: string) {
+  await db.prepare("DELETE FROM app_settings WHERE key=?").bind(key).run()
 }
 
 function toHex(bytes: Uint8Array): string {
@@ -259,17 +328,27 @@ export function registerAuthRoutes(app: Hono<{ Bindings: AppBindings }>, deps: A
   app.post('/api/admin/login', async (c) => {
     await deps.initDB(c.env.DB)
     const body = await c.req.json()
-    const { username, password } = body
+    const username = String(body?.username || '')
+    const password = String(body?.password || '')
     const adminKey = deps.normalizeAdminUserKey(username)
+    const now = Date.now()
+    const attemptKey = await getAdminLoginAttemptKey(c, adminKey)
+    const rateLimit = await assertAdminLoginAllowed(c.env.DB, attemptKey, now)
+    if (!rateLimit.allowed) {
+      return c.json({ success: false, error: 'Too many login attempts', retry_after: rateLimit.retryAfter }, 429)
+    }
     const storedPassword = await deps.getAppSettingValue(c.env.DB, `admin_password_${adminKey}`)
     const expectedPassword = storedPassword || (adminKey === 'admin' ? 'admin' : '')
     if (!expectedPassword) {
+      await recordAdminLoginFailure(c.env.DB, attemptKey, now)
       return c.json({ success: false, error: 'Invalid credentials' }, 401)
     }
     const isMatch = await verifyPassword(password, expectedPassword)
     if (!isMatch) {
+      await recordAdminLoginFailure(c.env.DB, attemptKey, now)
       return c.json({ success: false, error: 'Invalid credentials' }, 401)
     }
+    await clearAdminLoginFailures(c.env.DB, attemptKey)
     // Auto-migrate legacy plaintext password to hashed on successful login
     if (!expectedPassword.startsWith('pbkdf2:')) {
       const hashed = await hashPassword(password)
@@ -444,12 +523,28 @@ export function registerAuthRoutes(app: Hono<{ Bindings: AppBindings }>, deps: A
       return c.redirect(buildGoogleAuthErrorRedirect(c.req.url, 'google_client_id_invalid', 'GOOGLE_AUTH_CLIENT_ID_INVALID'))
     }
     const redirectUri = getGoogleRedirectUri(c)
-    const url = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=openid%20email%20profile&prompt=select_account`
+    const state = generateSecureToken(16)
+    const isSecure = c.req.url.startsWith('https://')
+    setCookie(c, 'oauth_state', state, { path: '/', maxAge: 300, httpOnly: true, secure: isSecure, sameSite: 'Lax' })
+    const url = 'https://accounts.google.com/o/oauth2/v2/auth?' + new URLSearchParams({
+      client_id: clientId,
+      redirect_uri: redirectUri,
+      response_type: 'code',
+      scope: 'openid email profile',
+      prompt: 'select_account',
+      state
+    }).toString()
     return c.redirect(url)
   })
 
   app.get('/api/auth/callback', async (c) => {
     const code = c.req.query('code')
+    const cookieState = String(getCookie(c, 'oauth_state') || '')
+    const queryState = String(c.req.query('state') || '')
+    deleteCookie(c, 'oauth_state', { path: '/' })
+    if (!cookieState || !queryState || !timingSafeStringEqual(cookieState, queryState)) {
+      return c.redirect('/?login=error&step=state_mismatch&error=OAUTH_STATE_MISMATCH')
+    }
     if (!code) return c.redirect('/?login=error&step=google_callback_missing_code&error=AUTH_CALLBACK_FAILED')
 
     const clientId = String(c.env.GOOGLE_CLIENT_ID || '').trim()
@@ -501,7 +596,8 @@ export function registerAuthRoutes(app: Hono<{ Bindings: AppBindings }>, deps: A
           await c.env.DB.prepare("UPDATE users SET name=?, avatar=? WHERE id=?").bind(userData.name, userData.picture || null, user.id).run()
         }
       } catch (dbErr: any) {
-        return c.redirect('/?login=error&step=db_sync&msg=' + encodeURIComponent(dbErr.message))
+        console.error('[auth] db sync error', dbErr)
+        return c.redirect('/?login=error&step=db_sync&error=DB_SYNC_FAILED')
       }
 
       if (!user || !user.id) {
@@ -511,7 +607,8 @@ export function registerAuthRoutes(app: Hono<{ Bindings: AppBindings }>, deps: A
       await setUserSessionCookie(c, user.id)
       return c.redirect('/?login=success')
     } catch (e: any) {
-      return c.redirect('/?login=error&step=exchange&msg=' + encodeURIComponent(e.message))
+      console.error('[auth] google callback failed', e)
+      return c.redirect('/?login=error&step=exchange&error=AUTH_CALLBACK_FAILED')
     }
   })
 }
