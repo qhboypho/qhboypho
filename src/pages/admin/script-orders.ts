@@ -21,6 +21,12 @@ function getOrderShippingCarrier(order) {
   return normalizeShippingCarrierValue(order?.shipping_carrier || order?.carrier || 'GHTK')
 }
 
+function getActiveBulkShippingCarrier() {
+  const select = document.getElementById('ordersCarrierBulkSelect')
+  const value = String(select?.value || '').trim()
+  return value ? normalizeShippingCarrierValue(value) : ''
+}
+
 function ensureOrdersCarrierBulkSelect() {
   const modeSelect = document.getElementById('ordersViewModeSelect')
   if (modeSelect && !document.getElementById('ordersCarrierBulkSelect')) {
@@ -204,9 +210,10 @@ function getRowPrimaryActionMeta() {
 
 function buildCarrierMapForOrderIds(ids) {
   const map = {}
+  const activeCarrier = getActiveBulkShippingCarrier()
   ;(ids || []).forEach(id => {
     const order = adminOrders.find(o => Number(o.id) === Number(id))
-    map[String(Number(id))] = getOrderShippingCarrier(order)
+    map[String(Number(id))] = activeCarrier || getOrderShippingCarrier(order)
   })
   return map
 }
@@ -215,8 +222,7 @@ async function handleBulkShippingCarrierChange(selectEl) {
   const carrier = normalizeShippingCarrierValue(selectEl?.value)
   const ids = Array.from(selectedOrderIds).map(Number).filter((id) => Number.isFinite(id) && id > 0)
   if (!ids.length) {
-    showAdminToast('Chọn đơn hàng trước khi đổi đơn vị vận chuyển', 'warning')
-    if (selectEl) selectEl.value = ''
+    showAdminToast('Đã chọn ' + carrier + ' làm đơn vị vận chuyển cho lần sắp xếp tiếp theo', 'success')
     return
   }
   selectEl.disabled = true

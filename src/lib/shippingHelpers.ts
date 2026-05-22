@@ -261,8 +261,8 @@ function getGhnAddressNames(row: Record<string, any>, fields: string[]) {
 function isGhnUnsupportedArea(row: Record<string, any>) {
   const supportType = Number(row?.SupportType ?? row?.support_type ?? 1)
   const status = Number(row?.Status ?? row?.status ?? 1)
-  const deliverType = Number(row?.DeliverType ?? row?.deliver_type ?? 1)
-  return supportType === 0 || deliverType === 0 || status === 2
+  const isEnable = Number(row?.IsEnable ?? row?.is_enable ?? 1)
+  return supportType === 0 || status === 2 || isEnable === 0
 }
 
 export function normalizeGhnAddressToken(value: string) {

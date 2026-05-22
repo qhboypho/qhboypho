@@ -43,6 +43,12 @@ assert.match(
   'GHN helper should return a clear unsupported-area error before calling create order'
 )
 
+assert.doesNotMatch(
+  shippingHelpersSource.match(/function isGhnUnsupportedArea[\s\S]*?\n\}/)?.[0] || '',
+  /DeliverType|deliver_type/,
+  'GHN unsupported-area precheck should not block deliverable wards from district DeliverType metadata'
+)
+
 assert.match(
   shippingHelpersSource,
   /v2\/a5\/gen-token/,

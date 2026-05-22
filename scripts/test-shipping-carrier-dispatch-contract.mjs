@@ -16,6 +16,13 @@ assert.match(adminOrdersSource, /function handleBulkShippingCarrierChange[\s\S]*
 assert.doesNotMatch(adminOrdersSource, /function renderShippingCarrierSelect/, 'order rows should not render duplicate carrier selectors')
 assert.doesNotMatch(adminOrdersSource, /carrierSelect\.disabled\s*=\s*!anySelectedVisible/, 'bulk carrier selector should stay clickable and show a warning when no order is selected')
 assert.match(adminOrdersSource, /if \(success\)[\s\S]*selectEl\.value = carrier/, 'bulk carrier selector should keep the selected carrier visible after a successful change')
+assert.doesNotMatch(
+  adminOrdersSource.match(/if \(!ids\.length\) \{[\s\S]*?\n  \}/)?.[0] || '',
+  /selectEl\.value = ''/,
+  'carrier selector should not reset when used as the next arrange default without checked rows'
+)
+assert.match(adminOrdersSource, /function getActiveBulkShippingCarrier[\s\S]*ordersCarrierBulkSelect/, 'admin orders UI should expose the current carrier selector value')
+assert.match(adminOrdersSource, /function buildCarrierMapForOrderIds[\s\S]*getActiveBulkShippingCarrier[\s\S]*activeCarrier \|\| getOrderShippingCarrier/, 'arrange payload should prefer the current carrier selector over the row default')
 assert.match(adminOrdersSource, /axios\.post\('\/api\/admin\/orders\/arrange-shipping',\s*\{ ids,\s*carriers:/, 'bulk arrange should send selected carrier map')
 assert.match(adminOrdersSource, /axios\.post\('\/api\/admin\/orders\/arrange-shipping',\s*\{ ids: \[orderId\],\s*carriers:/, 'single arrange should send selected carrier')
 assert.match(adminOrdersSource, /\/api\/admin\/orders\/shipping\/print-labels/, 'print action should use generic carrier-dispatch label endpoint')
