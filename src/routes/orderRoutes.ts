@@ -86,6 +86,17 @@ function normalizeDeviceId(value: unknown) {
   return String(value || '').trim().replace(/[^a-zA-Z0-9._:-]/g, '').slice(0, 120)
 }
 
+function normalizeAddressCode(value: unknown) {
+  return String(value || '').trim().replace(/[^0-9A-Za-z._-]/g, '').slice(0, 32)
+}
+
+function normalizeAddressEffectiveDate(value: unknown) {
+  const raw = String(value || '').trim()
+  if (raw === 'latest') return raw
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw
+  return 'latest'
+}
+
 function toHex(bytes: Uint8Array): string {
   return Array.from(bytes).map((byte) => byte.toString(16).padStart(2, '0')).join('')
 }
@@ -393,7 +404,8 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
       const body = await c.req.json()
       const {
         customer_name, customer_phone, customer_address,
-        product_id, color, selected_color_image, size, quantity, note, voucher_code, payment_method, device_id
+        product_id, color, selected_color_image, size, quantity, note, voucher_code, payment_method, device_id,
+        customer_province_code, customer_commune_code, address_effective_date
       } = body
 
       const normalizedCustomerPhone = normalizeOrderPhone(customer_phone)
@@ -505,11 +517,14 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
         : 'COD'
       const selectedColorImage = String(selected_color_image || '').trim()
         || deps.resolveSelectedColorImage(product.colors, color, product.thumbnail || '')
+      const customerProvinceCode = normalizeAddressCode(customer_province_code)
+      const customerCommuneCode = normalizeAddressCode(customer_commune_code)
+      const customerAddressEffectiveDate = normalizeAddressEffectiveDate(address_effective_date)
 
       const result = await c.env.DB.prepare(`
         INSERT INTO orders 
-          (user_id, order_code, customer_name, customer_phone, customer_email, customer_address, client_ip_hash, customer_address_fingerprint, device_hash, product_id, product_name, product_price, color, selected_color_image, size, quantity, total_price, voucher_code, discount_amount, note, payment_method)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          (user_id, order_code, customer_name, customer_phone, customer_email, customer_address, customer_province_code, customer_commune_code, customer_address_effective_date, client_ip_hash, customer_address_fingerprint, device_hash, product_id, product_name, product_price, color, selected_color_image, size, quantity, total_price, voucher_code, discount_amount, note, payment_method)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).bind(
         userId,
         orderCode,
@@ -517,6 +532,9 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
         normalizedCustomerPhone,
         normalizeOrderEmail(user?.email) || null,
         customer_address,
+        customerProvinceCode || null,
+        customerCommuneCode || null,
+        customerAddressEffectiveDate,
         riskIdentity.ipHash || null,
         riskIdentity.addressFingerprint || null,
         deviceHash || null,
@@ -740,6 +758,7 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
 
       const orderQuery = `
         SELECT id, order_code, customer_name, customer_phone, customer_address, product_name,
+               customer_province_code, customer_commune_code, customer_address_effective_date,
                quantity, total_price, note, payment_status, status, shipping_carrier, shipping_tracking_code
         FROM orders
         WHERE id IN (${ids.map(() => '?').join(',')})

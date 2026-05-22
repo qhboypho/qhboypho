@@ -726,7 +726,8 @@ function getAddressPayload(scope) {
     valid: !!(provinceCode && communeCode && detail && address),
     provinceCode,
     communeCode,
-    detail
+    detail,
+    effectiveDate: ADDRESS_EFFECTIVE_DATE
   }
 }
 
@@ -1885,6 +1886,9 @@ async function submitCartOrder() {
     for (const item of checkedItems) {
       const res = await axios.post('/api/orders', {
         customer_name: payload.name, customer_phone: payload.phone, customer_address: payload.address,
+        customer_province_code: payload.addressPayload.provinceCode,
+        customer_commune_code: payload.addressPayload.communeCode,
+        address_effective_date: payload.addressPayload.effectiveDate,
         product_id: item.productId, color: item.color, size: item.size,
         selected_color_image: item.colorImage || '',
         quantity: item.qty,

@@ -212,6 +212,12 @@ export async function spxFetchLabelPdf(env: AppBindings, db: D1Database, trackin
 
 const GHN_API_BASE_URL = 'https://online-gateway.ghn.vn/shiip/public-api'
 const GHN_PRINT_A5_URL = 'https://online-gateway.ghn.vn/a5/public-api/printA5'
+const ADDRESS_KIT_BASE_URL = 'https://production.cas.so/address-kit'
+const ADDRESS_KIT_LEGACY_EFFECTIVE_DATE = '2025-06-30'
+const addressKitProvinceCache = new Map<string, any[]>()
+const addressKitCommuneCache = new Map<string, any[]>()
+const addressKitLegacyCommuneByCodeCache = new Map<string, any | null>()
+const addressKitLatestCommuneByNameCache = new Map<string, any | null>()
 
 function numberOrDefault(value: unknown, fallback: number) {
   const n = Number(value)
@@ -271,44 +277,141 @@ export function normalizeGhnAddressToken(value: string) {
     .trim()
 }
 
-async function resolveGhnRecipientAddress(config: GhnConfig, rawAddress: string) {
+async function addressKitFetchJson(path: string) {
+  const resp = await fetch(ADDRESS_KIT_BASE_URL + path, {
+    headers: { accept: 'application/json' }
+  })
+  const data: any = await resp.json().catch(() => ({}))
+  if (!resp.ok) {
+    throw new Error(String(data?.message || data?.error || 'ADDRESS_KIT_LOOKUP_FAILED'))
+  }
+  return data
+}
+
+async function getAddressKitProvinces(effectiveDate: string) {
+  const key = String(effectiveDate || 'latest').trim() || 'latest'
+  if (addressKitProvinceCache.has(key)) return addressKitProvinceCache.get(key) || []
+  const json = await addressKitFetchJson('/' + encodeURIComponent(key) + '/provinces')
+  const provinces = Array.isArray(json?.provinces) ? json.provinces : []
+  addressKitProvinceCache.set(key, provinces)
+  return provinces
+}
+
+async function getAddressKitCommunes(effectiveDate: string, provinceCode: string) {
+  const date = String(effectiveDate || 'latest').trim() || 'latest'
+  const code = String(provinceCode || '').trim()
+  if (!code) return []
+  const key = date + ':' + code
+  if (addressKitCommuneCache.has(key)) return addressKitCommuneCache.get(key) || []
+  const json = await addressKitFetchJson('/' + encodeURIComponent(date) + '/provinces/' + encodeURIComponent(code) + '/communes')
+  const communes = Array.isArray(json?.communes) ? json.communes : []
+  addressKitCommuneCache.set(key, communes)
+  return communes
+}
+
+async function resolveAddressKitLatestCommuneByNames(provinceName: unknown, communeName: unknown) {
+  const provinceTarget = normalizeGhnAddressToken(String(provinceName || ''))
+  const communeTarget = normalizeGhnAddressToken(String(communeName || ''))
+  if (!provinceTarget || !communeTarget) return null
+  const cacheKey = provinceTarget + ':' + communeTarget
+  if (addressKitLatestCommuneByNameCache.has(cacheKey)) return addressKitLatestCommuneByNameCache.get(cacheKey)
+
+  const provinces = await getAddressKitProvinces('latest')
+  const province = provinces.find((item: any) => normalizeGhnAddressToken(String(item?.name || '')) === provinceTarget)
+    || provinces.find((item: any) => {
+      const source = normalizeGhnAddressToken(String(item?.name || ''))
+      return source && (source.includes(provinceTarget) || provinceTarget.includes(source))
+    })
+  const provinceCode = String(province?.code || '').trim()
+  if (!provinceCode) {
+    addressKitLatestCommuneByNameCache.set(cacheKey, null)
+    return null
+  }
+
+  const communes = await getAddressKitCommunes('latest', provinceCode)
+  const commune = communes.find((item: any) => normalizeGhnAddressToken(String(item?.name || '')) === communeTarget)
+    || communes.find((item: any) => {
+      const source = normalizeGhnAddressToken(String(item?.name || ''))
+      return source && (source.includes(communeTarget) || communeTarget.includes(source))
+    })
+    || null
+  addressKitLatestCommuneByNameCache.set(cacheKey, commune)
+  return commune
+}
+
+async function resolveAddressKitLegacyCommuneByCode(communeCode: unknown) {
+  const code = String(communeCode || '').trim()
+  if (!code) return null
+  const cacheKey = ADDRESS_KIT_LEGACY_EFFECTIVE_DATE + ':' + code
+  if (addressKitLegacyCommuneByCodeCache.has(cacheKey)) return addressKitLegacyCommuneByCodeCache.get(cacheKey)
+
+  const provinces = await getAddressKitProvinces(ADDRESS_KIT_LEGACY_EFFECTIVE_DATE)
+  for (const province of provinces) {
+    const provinceCode = String(province?.code || '').trim()
+    if (!provinceCode) continue
+    const communes = await getAddressKitCommunes(ADDRESS_KIT_LEGACY_EFFECTIVE_DATE, provinceCode)
+    const commune = communes.find((item: any) => String(item?.code || '').trim() === code)
+    if (commune) {
+      addressKitLegacyCommuneByCodeCache.set(cacheKey, commune)
+      return commune
+    }
+  }
+
+  addressKitLegacyCommuneByCodeCache.set(cacheKey, null)
+  return null
+}
+
+async function resolveGhnRecipientAddress(config: GhnConfig, rawAddress: string, order: any) {
   const parsed = parseVietnamAddress(rawAddress)
   if (!parsed) return null
+  const latestCommune = order?.customer_commune_code
+    ? null
+    : await resolveAddressKitLatestCommuneByNames(parsed.province, parsed.ward).catch(() => null)
+  const legacyCommune = await resolveAddressKitLegacyCommuneByCode(order?.customer_commune_code || latestCommune?.code).catch(() => null)
+  const addressForGhn = legacyCommune?.districtName && legacyCommune?.provinceName
+    ? {
+        ...parsed,
+        ward: String(legacyCommune.name || parsed.ward),
+        district: String(legacyCommune.districtName || parsed.district),
+        province: String(legacyCommune.provinceName || parsed.province),
+        usedLegacyAddress: true
+      }
+    : parsed
 
   const provinces = await ghnFetchJson('/master-data/province', config)
   const provinceRows = Array.isArray(provinces?.data) ? provinces.data : []
-  const province = findGhnAddressMatch(provinceRows, ['ProvinceName', 'Name'], parsed.province)
+  const province = findGhnAddressMatch(provinceRows, ['ProvinceName', 'Name'], addressForGhn.province)
   const provinceId = Number(province?.ProvinceID || province?.ProvinceId || province?.ID || 0)
   if (!provinceId) return null
 
   const districts = await ghnFetchJson('/master-data/district', config, { province_id: provinceId })
   const districtRows = Array.isArray(districts?.data) ? districts.data : []
-  const district = findGhnAddressMatch(districtRows, ['DistrictName', 'Name'], parsed.district)
+  const district = findGhnAddressMatch(districtRows, ['DistrictName', 'Name'], addressForGhn.district)
   const districtId = Number(district?.DistrictID || district?.DistrictId || district?.ID || 0)
   if (!districtId) return null
 
   const wards = await ghnFetchJson('/master-data/ward', config, { district_id: districtId })
   const wardRows = Array.isArray(wards?.data) ? wards.data : []
-  const ward = findGhnAddressMatch(wardRows, ['WardName', 'Name'], parsed.ward)
+  const ward = findGhnAddressMatch(wardRows, ['WardName', 'Name'], addressForGhn.ward)
   const wardCode = String(ward?.WardCode || ward?.Code || '').trim()
   if (!wardCode) return null
   if (isGhnUnsupportedArea(district) || isGhnUnsupportedArea(ward)) {
     return {
-      ...parsed,
+      ...addressForGhn,
       to_district_id: districtId,
       to_ward_code: wardCode,
       unsupported: true,
-      unsupported_area: [ward?.WardName || parsed.ward, district?.DistrictName || parsed.district, province?.ProvinceName || parsed.province].filter(Boolean).join(', ')
+      unsupported_area: [ward?.WardName || addressForGhn.ward, district?.DistrictName || addressForGhn.district, province?.ProvinceName || addressForGhn.province].filter(Boolean).join(', ')
     }
   }
 
   return {
-    ...parsed,
+    ...addressForGhn,
     to_district_id: districtId,
     to_ward_code: wardCode,
-    to_ward_name: String(ward?.WardName || parsed.ward),
-    to_district_name: String(district?.DistrictName || parsed.district),
-    to_province_name: String(province?.ProvinceName || parsed.province)
+    to_ward_name: String(ward?.WardName || addressForGhn.ward),
+    to_district_name: String(district?.DistrictName || addressForGhn.district),
+    to_province_name: String(province?.ProvinceName || addressForGhn.province)
   }
 }
 
@@ -318,7 +421,7 @@ export async function ghnCreateShipment(env: AppBindings, db: D1Database, order:
 
   let recipientAddress: any
   try {
-    recipientAddress = await resolveGhnRecipientAddress(config, String(order?.customer_address || ''))
+    recipientAddress = await resolveGhnRecipientAddress(config, String(order?.customer_address || ''), order)
   } catch (e: any) {
     return { ok: false, message: 'GHN_ADDRESS_LOOKUP_FAILED', detail: e?.message || e }
   }
