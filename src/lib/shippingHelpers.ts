@@ -236,14 +236,32 @@ async function ghnFetchJson(path: string, config: GhnConfig, body?: Record<strin
 }
 
 function findGhnAddressMatch<T extends Record<string, any>>(rows: T[], fields: string[], target: string) {
-  const normalizedTarget = normalizeAddressToken(target)
+  const normalizedTarget = normalizeGhnAddressToken(target)
   if (!normalizedTarget) return null
-  return rows.find((row) => fields.some((field) => normalizeAddressToken(String(row?.[field] || '')) === normalizedTarget))
-    || rows.find((row) => fields.some((field) => {
-      const source = normalizeAddressToken(String(row?.[field] || ''))
+  return rows.find((row) => getGhnAddressNames(row, fields).some((name) => normalizeGhnAddressToken(name) === normalizedTarget))
+    || rows.find((row) => getGhnAddressNames(row, fields).some((name) => {
+      const source = normalizeGhnAddressToken(name)
       return source && (source.includes(normalizedTarget) || normalizedTarget.includes(source))
     }))
     || null
+}
+
+function getGhnAddressNames(row: Record<string, any>, fields: string[]) {
+  const names = fields.map((field) => String(row?.[field] || '')).filter(Boolean)
+  const extensions = Array.isArray(row?.NameExtension) ? row.NameExtension.map((name: unknown) => String(name || '')).filter(Boolean) : []
+  return [...names, ...extensions]
+}
+
+export function normalizeGhnAddressToken(value: string) {
+  return String(value || '')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/[.,]/g, ' ')
+    .replace(/\b(thanh pho|tp|tinh|quan|q|huyen dao|huyen|h|dac khu|thi xa|thi tran|phuong|p|xa|x)\b/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
 async function resolveGhnRecipientAddress(config: GhnConfig, rawAddress: string) {

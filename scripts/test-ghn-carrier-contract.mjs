@@ -21,6 +21,18 @@ assert.match(
 
 assert.match(
   shippingHelpersSource,
+  /export function normalizeGhnAddressToken[\s\S]*huyen dao[\s\S]*dac khu/,
+  'GHN address mapper should normalize Vietnamese administrative prefixes without changing the GHTK mapper'
+)
+
+assert.match(
+  shippingHelpersSource,
+  /getGhnAddressNames[\s\S]*NameExtension/,
+  'GHN address mapper should match against GHN NameExtension aliases'
+)
+
+assert.match(
+  shippingHelpersSource,
   /v2\/a5\/gen-token/,
   'GHN label helper should generate a print token before fetching the A5 PDF'
 )
