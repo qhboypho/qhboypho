@@ -41,7 +41,9 @@ import {
   ghtkCreateShipment,
   ghtkFetchLabelPdf,
   ghtkFetchPickupAddresses,
-  mergePdfBytes
+  mergePdfBytes,
+  spxCreateShipment,
+  spxFetchLabelPdf
 } from './lib/shippingHelpers'
 import {
   getAppSettingValue,
@@ -102,6 +104,8 @@ registerOrderRoutes(app, {
   ghtkCancelShipment,
   ghtkCreateShipment,
   ghtkFetchLabelPdf,
+  spxCreateShipment,
+  spxFetchLabelPdf,
   mergePdfBytes
 })
 

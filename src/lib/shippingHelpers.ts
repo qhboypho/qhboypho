@@ -33,6 +33,8 @@ export type SpxConfig = {
   userId: string
   secretKey: string
   accountId: string
+  createOrderEndpoint: string
+  labelEndpoint: string
 }
 
 export async function getGhtkApiCredentials(db: D1Database, env: AppBindings) {
@@ -47,13 +49,46 @@ export async function getSpxConfig(db: D1Database, env: AppBindings): Promise<Sp
   const config = await getRuntimeConfigValues(db, env, [
     'SPX_USER_ID',
     'SPX_SECRET_KEY',
-    'SPX_ACCOUNT_ID'
+    'SPX_ACCOUNT_ID',
+    'SPX_CREATE_ORDER_ENDPOINT',
+    'SPX_LABEL_ENDPOINT'
   ])
   return {
     userId: config.SPX_USER_ID || '',
     secretKey: config.SPX_SECRET_KEY || '',
-    accountId: config.SPX_ACCOUNT_ID || ''
+    accountId: config.SPX_ACCOUNT_ID || '',
+    createOrderEndpoint: config.SPX_CREATE_ORDER_ENDPOINT || '',
+    labelEndpoint: config.SPX_LABEL_ENDPOINT || ''
   }
+}
+
+export async function spxCreateShipment(env: AppBindings, db: D1Database, order: any) {
+  const config = await getSpxConfig(db, env)
+  if (!config.userId || !config.secretKey || !config.accountId) {
+    return { ok: false, message: 'MISSING_SPX_KEYS' }
+  }
+  if (!config.createOrderEndpoint) {
+    return { ok: false, message: 'SPX_CREATE_ORDER_ENDPOINT_NOT_CONFIGURED' }
+  }
+  return {
+    ok: false,
+    message: 'SPX_CREATE_ORDER_NOT_IMPLEMENTED',
+    detail: {
+      endpoint: config.createOrderEndpoint,
+      order_code: String(order?.order_code || '')
+    }
+  }
+}
+
+export async function spxFetchLabelPdf(env: AppBindings, db: D1Database, trackingCode: string) {
+  const config = await getSpxConfig(db, env)
+  if (!config.userId || !config.secretKey || !config.accountId) {
+    throw new Error('MISSING_SPX_KEYS')
+  }
+  if (!config.labelEndpoint) {
+    throw new Error('SPX_LABEL_ENDPOINT_NOT_CONFIGURED')
+  }
+  throw new Error('SPX_LABEL_FETCH_NOT_IMPLEMENTED:' + String(trackingCode || '').trim())
 }
 
 export function normalizeGHTKOriginal(v: any) {

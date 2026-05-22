@@ -11,6 +11,8 @@ type OrderRouteDeps = {
   ghtkCancelShipment: (env: any, db: D1Database, trackingOrder: string) => Promise<any>
   ghtkCreateShipment: (env: any, db: D1Database, order: any) => Promise<any>
   ghtkFetchLabelPdf: (env: any, db: D1Database, trackingCode: string, original?: any, pageSize?: any) => Promise<Uint8Array>
+  spxCreateShipment: (env: any, db: D1Database, order: any) => Promise<any>
+  spxFetchLabelPdf: (env: any, db: D1Database, trackingCode: string) => Promise<Uint8Array>
   mergePdfBytes: (files: Uint8Array[]) => Promise<Uint8Array>
 }
 
@@ -20,6 +22,22 @@ type OrderHistoryUser = {
 }
 
 const NORMALIZED_CUSTOMER_PHONE_SQL = "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(TRIM(COALESCE(customer_phone, '')), ' ', ''), '-', ''), '.', ''), '(', ''), ')', ''), '+', '')"
+const SHIPPING_CARRIERS = new Set(['GHTK', 'SPX'])
+
+function normalizeShippingCarrier(value: unknown) {
+  const carrier = String(value || '').trim().toUpperCase()
+  return SHIPPING_CARRIERS.has(carrier) ? carrier : 'GHTK'
+}
+
+function buildRequestedCarrierMap(raw: unknown) {
+  const result = new Map<number, string>()
+  if (!raw || typeof raw !== 'object') return result
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+    const id = Number(key)
+    if (Number.isFinite(id) && id > 0) result.set(id, normalizeShippingCarrier(value))
+  }
+  return result
+}
 
 function generateNumericOrderSuffix6() {
   const array = new Uint32Array(1)
@@ -298,6 +316,26 @@ async function checkAndAutoBlockCustomer(db: D1Database, userId: number | null, 
 }
 
 export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: OrderRouteDeps) {
+  const createShipmentForCarrier = async (carrier: string, env: any, db: D1Database, order: any) => {
+    switch (normalizeShippingCarrier(carrier)) {
+      case 'SPX':
+        return deps.spxCreateShipment(env, db, order)
+      case 'GHTK':
+      default:
+        return deps.ghtkCreateShipment(env, db, order)
+    }
+  }
+
+  const fetchLabelPdfForCarrier = async (carrier: string, env: any, db: D1Database, trackingCode: string, original?: any, pageSize?: any) => {
+    switch (normalizeShippingCarrier(carrier)) {
+      case 'SPX':
+        return deps.spxFetchLabelPdf(env, db, trackingCode)
+      case 'GHTK':
+      default:
+        return deps.ghtkFetchLabelPdf(env, db, trackingCode, original, pageSize)
+    }
+  }
+
   app.get('/api/user/orders', async (c) => {
     await deps.initDB(c.env.DB)
     const userId = await getUserSessionUserId(c)
@@ -638,16 +676,47 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
     }
   })
 
+  app.patch('/api/admin/orders/:id/shipping-carrier', async (c) => {
+    try {
+      await deps.initDB(c.env.DB)
+      const id = Number(c.req.param('id'))
+      if (!Number.isFinite(id) || id <= 0) return c.json({ success: false, error: 'INVALID_ORDER_ID' }, 400)
+      const body = await c.req.json().catch(() => ({} as any))
+      const carrier = normalizeShippingCarrier(body?.carrier)
+      const existing = await c.env.DB.prepare(`
+        SELECT id, shipping_tracking_code, shipping_carrier
+        FROM orders
+        WHERE id=?
+        LIMIT 1
+      `).bind(id).first() as any
+      if (!existing) return c.json({ success: false, error: 'ORDER_NOT_FOUND' }, 404)
+      const tracking = String(existing.shipping_tracking_code || '').trim()
+      const currentCarrier = normalizeShippingCarrier(existing.shipping_carrier || 'GHTK')
+      if (tracking && currentCarrier !== carrier) {
+        return c.json({ success: false, error: 'ORDER_ALREADY_HAS_TRACKING' }, 400)
+      }
+      await c.env.DB.prepare(`
+        UPDATE orders
+        SET shipping_carrier=?, updated_at=CURRENT_TIMESTAMP
+        WHERE id=?
+      `).bind(carrier, id).run()
+      return c.json({ success: true, carrier })
+    } catch (e: any) {
+      return c.json({ success: false, error: e.message }, 500)
+    }
+  })
+
   app.post('/api/admin/orders/arrange-shipping', async (c) => {
     try {
       await deps.initDB(c.env.DB)
       const body: any = await c.req.json().catch(() => ({}))
       const ids = Array.isArray(body.ids) ? body.ids.map((v: any) => Number(v)).filter((v: number) => Number.isFinite(v) && v > 0) : []
+      const requestedCarriers = buildRequestedCarrierMap(body.carriers)
       if (!ids.length) return c.json({ success: false, error: 'NO_ORDER_IDS' }, 400)
 
       const orderQuery = `
         SELECT id, order_code, customer_name, customer_phone, customer_address, product_name,
-               quantity, total_price, note, payment_status, status, shipping_tracking_code
+               quantity, total_price, note, payment_status, status, shipping_carrier, shipping_tracking_code
         FROM orders
         WHERE id IN (${ids.map(() => '?').join(',')})
       `
@@ -668,46 +737,52 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
           failed.push({ id, order_code: order.order_code, error: 'ORDER_CLOSED' })
           continue
         }
+        const targetCarrier = normalizeShippingCarrier(requestedCarriers.get(id) || order.shipping_carrier || 'GHTK')
 
         let trackingCode = String(order.shipping_tracking_code || '').trim()
+        const existingCarrier = normalizeShippingCarrier(order.shipping_carrier || targetCarrier)
+        if (trackingCode && existingCarrier !== targetCarrier) {
+          failed.push({ id, order_code: order.order_code, error: 'ORDER_ALREADY_HAS_DIFFERENT_CARRIER_TRACKING' })
+          continue
+        }
         let labelCode = ''
         let fee = 0
         if (!trackingCode) {
-          const createRes: any = await deps.ghtkCreateShipment(c.env, c.env.DB, order)
+          const createRes: any = await createShipmentForCarrier(targetCarrier, c.env, c.env.DB, order)
           if (!createRes.ok) {
-            failed.push({ id, order_code: order.order_code, error: createRes.message || 'GHTK_CREATE_ORDER_FAILED', detail: createRes.detail || null })
+            failed.push({ id, order_code: order.order_code, carrier: targetCarrier, error: createRes.message || `${targetCarrier}_CREATE_ORDER_FAILED`, detail: createRes.detail || null })
             continue
           }
           trackingCode = String(createRes.data?.label || createRes.data?.tracking_id || '').trim()
           labelCode = String(createRes.data?.label || '').trim()
           fee = Number(createRes.data?.fee || 0) || 0
           if (!trackingCode) {
-            failed.push({ id, order_code: order.order_code, error: 'GHTK_TRACKING_EMPTY', detail: createRes.data || null })
+            failed.push({ id, order_code: order.order_code, carrier: targetCarrier, error: `${targetCarrier}_TRACKING_EMPTY`, detail: createRes.data || null })
             continue
           }
           updated.push({
             id,
             order_code: order.order_code,
             tracking_code: trackingCode,
-            carrier: 'GHTK',
+            carrier: targetCarrier,
             used_fallback_address: !!createRes.usedFallbackAddress
           })
         } else {
-          updated.push({ id, order_code: order.order_code, tracking_code: trackingCode, carrier: 'GHTK', reused_tracking: true })
+          updated.push({ id, order_code: order.order_code, tracking_code: trackingCode, carrier: targetCarrier, reused_tracking: true })
         }
 
         await c.env.DB.prepare(`
           UPDATE orders
           SET shipping_arranged=1,
               shipping_arranged_at=COALESCE(shipping_arranged_at, CURRENT_TIMESTAMP),
-              shipping_carrier='GHTK',
+              shipping_carrier=?,
               shipping_tracking_code=COALESCE(NULLIF(?, ''), shipping_tracking_code),
               shipping_label=COALESCE(NULLIF(?, ''), shipping_label),
               shipping_fee=CASE WHEN ? > 0 THEN ? ELSE shipping_fee END,
               status=CASE WHEN status='pending' THEN 'confirmed' ELSE status END,
               updated_at=CURRENT_TIMESTAMP
           WHERE id=?
-        `).bind(trackingCode, labelCode, fee, fee, id).run()
+        `).bind(targetCarrier, trackingCode, labelCode, fee, fee, id).run()
       }
 
       return c.json({
@@ -716,6 +791,48 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
         failed_count: failed.length,
         updated,
         failed
+      })
+    } catch (e: any) {
+      return c.json({ success: false, error: e.message }, 500)
+    }
+  })
+
+  app.get('/api/admin/orders/shipping/print-labels', async (c) => {
+    try {
+      await deps.initDB(c.env.DB)
+      const ids = String(c.req.query('ids') || '')
+        .split(',')
+        .map((v) => Number(v.trim()))
+        .filter((v) => Number.isFinite(v) && v > 0)
+      if (!ids.length) return c.json({ success: false, error: 'NO_ORDER_IDS' }, 400)
+
+      const ordersResult = await c.env.DB.prepare(`
+        SELECT id, shipping_carrier, shipping_tracking_code
+        FROM orders
+        WHERE id IN (${ids.map(() => '?').join(',')})
+      `).bind(...ids).all()
+      const orders = (ordersResult.results || []) as any[]
+      const selected = ids
+        .map((id) => orders.find((o) => Number(o.id) === id))
+        .filter(Boolean)
+        .filter((o: any) => String(o.shipping_tracking_code || '').trim())
+      if (!selected.length) return c.json({ success: false, error: 'NO_SHIPPING_TRACKING_FOUND' }, 400)
+
+      const files: Uint8Array[] = []
+      for (const row of selected) {
+        const carrier = normalizeShippingCarrier(row.shipping_carrier || 'GHTK')
+        files.push(await fetchLabelPdfForCarrier(carrier, c.env, c.env.DB, String(row.shipping_tracking_code), c.req.query('original'), c.req.query('page_size')))
+      }
+      const merged = files.length === 1 ? files[0] : await deps.mergePdfBytes(files)
+      const pdfBytes = new Uint8Array(merged)
+      const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' })
+      return new Response(pdfBlob, {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/pdf',
+          'Content-Disposition': `inline; filename="shipping-labels-${new Date().toISOString().slice(0, 10)}.pdf"`,
+          'Cache-Control': 'no-store'
+        }
       })
     } catch (e: any) {
       return c.json({ success: false, error: e.message }, 500)

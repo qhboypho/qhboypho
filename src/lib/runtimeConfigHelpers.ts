@@ -25,7 +25,9 @@ const RUNTIME_CONFIG_KEYS = {
   GHTK_PICK_TEL: 'ghtk_pick_tel',
   SPX_USER_ID: 'spx_user_id',
   SPX_SECRET_KEY: 'spx_secret_key',
-  SPX_ACCOUNT_ID: 'spx_account_id'
+  SPX_ACCOUNT_ID: 'spx_account_id',
+  SPX_CREATE_ORDER_ENDPOINT: 'spx_create_order_endpoint',
+  SPX_LABEL_ENDPOINT: 'spx_label_endpoint'
 } as const
 
 type RuntimeConfigKey = keyof typeof RUNTIME_CONFIG_KEYS

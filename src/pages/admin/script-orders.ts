@@ -5,6 +5,20 @@ export function adminOrdersScript(): string {
   return div.innerHTML
 }
 
+const SHIPPING_CARRIERS = [
+  { value: 'GHTK', label: 'GHTK' },
+  { value: 'SPX', label: 'SPX Express' }
+]
+
+function normalizeShippingCarrierValue(value) {
+  const carrier = String(value || '').trim().toUpperCase()
+  return SHIPPING_CARRIERS.some(item => item.value === carrier) ? carrier : 'GHTK'
+}
+
+function getOrderShippingCarrier(order) {
+  return normalizeShippingCarrierValue(order?.shipping_carrier || order?.carrier || 'GHTK')
+}
+
 async function loadAdminOrders() {
   document.getElementById('ordersTable').innerHTML = '<tr><td colspan="7" class="text-center py-12 text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></td></tr>'
   document.getElementById('ordersMobileList').innerHTML = '<div class="py-12 text-center text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></div>'
@@ -143,6 +157,58 @@ function getRowPrimaryActionMeta() {
   }
 }
 
+function renderShippingCarrierSelect(order, compact = false) {
+  const orderId = Number(order?.id)
+  const current = getOrderShippingCarrier(order)
+  const tracking = String(order?.shipping_tracking_code || order?.tracking_code || '').trim()
+  const disabled = !!tracking
+  const options = SHIPPING_CARRIERS.map(item =>
+    '<option value="' + item.value + '"' + (item.value === current ? ' selected' : '') + '>' + item.label + '</option>'
+  ).join('')
+  const label = compact
+    ? '<label class="text-[11px] font-semibold text-gray-500">Đơn vị vận chuyển</label>'
+    : ''
+  return ''
+    + '<div class="' + (compact ? 'space-y-1' : 'w-full') + '">'
+    +   label
+    +   '<select onchange="handleOrderCarrierChange(' + orderId + ', this)"'
+    +     (disabled ? ' disabled' : '')
+    +     ' class="w-full min-w-0 text-xs border rounded-lg px-2 py-2 focus:outline-none bg-white text-gray-700 border-gray-300 ' + (disabled ? 'opacity-70 cursor-not-allowed' : 'focus:border-pink-400') + '">'
+    +     options
+    +   '</select>'
+    +   (disabled ? '<p class="mt-1 text-[10px] text-gray-400">Đã có mã vận đơn</p>' : '')
+    + '</div>'
+}
+
+function buildCarrierMapForOrderIds(ids) {
+  const map = {}
+  ;(ids || []).forEach(id => {
+    const order = adminOrders.find(o => Number(o.id) === Number(id))
+    map[String(Number(id))] = getOrderShippingCarrier(order)
+  })
+  return map
+}
+
+async function handleOrderCarrierChange(id, selectEl) {
+  const orderId = Number(id)
+  const carrier = normalizeShippingCarrierValue(selectEl?.value)
+  const order = adminOrders.find(o => Number(o.id) === orderId)
+  const previous = getOrderShippingCarrier(order)
+  if (!order || carrier === previous) return
+  selectEl.disabled = true
+  try {
+    await axios.patch('/api/admin/orders/' + id + '/shipping-carrier', { carrier })
+    order.shipping_carrier = carrier
+    showAdminToast('Đã chọn đơn vị vận chuyển ' + carrier, 'success')
+  } catch (e) {
+    selectEl.value = previous
+    const code = e?.response?.data?.error || e?.message || 'UPDATE_CARRIER_FAILED'
+    showAdminToast(mapArrangeErrorText(code), 'error')
+  } finally {
+    selectEl.disabled = false
+  }
+}
+
 function renderOrderRowActionControls(order, compact = false) {
   const meta = getRowPrimaryActionMeta()
   const orderId = Number(order.id)
@@ -239,6 +305,9 @@ function renderOrdersTable(orders) {
     <td class="px-4 py-3 text-center hidden lg:table-cell w-[120px] min-w-[120px]">
       \${o.voucher_code ? \`<span class="font-mono text-xs bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 rounded-lg font-semibold">\${o.voucher_code}</span>\` : '<span class="text-gray-300 text-xs">—</span>'}
     </td>
+    <td class="px-4 py-3 text-center align-top w-[170px] min-w-[170px]">
+      \${renderShippingCarrierSelect(o)}
+    </td>
     <td class="px-4 py-3 text-center align-top w-[240px] min-w-[240px]">
       \${renderOrderRowActionControls(o)}
     </td>
@@ -296,6 +365,9 @@ function renderOrdersMobileList(orders) {
                     </div>\`
                   : ''}
               </div>
+            </div>
+            <div class="mobile-order-carrier min-w-0">
+              \${renderShippingCarrierSelect(o, true)}
             </div>
             <div class="mobile-order-actions min-w-0">
               \${renderOrderRowActionControls(o, true)}
@@ -430,7 +502,7 @@ async function arrangeSelectedForShipping() {
   const ids = paginatedAdminOrders.map(o => Number(o.id)).filter(id => selectedOrderIds.has(id))
   if (!ids.length) return
   try {
-    const res = await axios.post('/api/admin/orders/arrange-shipping', { ids })
+    const res = await axios.post('/api/admin/orders/arrange-shipping', { ids, carriers: buildCarrierMapForOrderIds(ids) })
     const updated = Array.isArray(res.data?.updated) ? res.data.updated : []
     const failed = Array.isArray(res.data?.failed) ? res.data.failed : []
     arrangedOrdersForPrint = updated.map((o) => ({
@@ -451,23 +523,27 @@ async function arrangeSelectedForShipping() {
 function printSelectedOrders() {
   const selected = paginatedAdminOrders.filter(o => selectedOrderIds.has(Number(o.id)))
   if (!selected.length) return
-  const ghtkOrders = extractGHTKPrintableOrders(selected)
-  if (!ghtkOrders.length) {
-    showAdminToast('Chưa có mã vận đơn GHTK để in nhãn', 'warning')
+  const printableOrders = extractShippingPrintableOrders(selected)
+  if (!printableOrders.length) {
+    showAdminToast('Chưa có mã vận đơn để in nhãn', 'warning')
     return
   }
-  if (ghtkOrders.length < selected.length) {
-    showAdminToast('Một số đơn chưa có mã vận đơn, chỉ in các đơn đã có mã GHTK', 'warning')
+  if (printableOrders.length < selected.length) {
+    showAdminToast('Một số đơn chưa có mã vận đơn, chỉ in các đơn đã có mã', 'warning')
   }
-  openGHTKLabelsPdf(ghtkOrders.map(o => Number(o.id)))
+  openShippingLabelsPdf(printableOrders.map(o => Number(o.id)))
+}
+
+function openShippingLabelsPdf(orderIds) {
+  const ids = (orderIds || []).map((v) => Number(v)).filter((v) => Number.isFinite(v) && v > 0)
+  if (!ids.length) return
+  const url = '/api/admin/orders/shipping/print-labels?ids=' + encodeURIComponent(ids.join(',')) + '&original=portrait&page_size=A6'
+  const tab = window.open(url, '_blank')
+  if (!tab) showAdminToast('Trình duyệt đang chặn mở PDF nhãn vận chuyển', 'error')
 }
 
 function openGHTKLabelsPdf(orderIds) {
-  const ids = (orderIds || []).map((v) => Number(v)).filter((v) => Number.isFinite(v) && v > 0)
-  if (!ids.length) return
-  const url = '/api/admin/orders/ghtk/print-labels?ids=' + encodeURIComponent(ids.join(',')) + '&original=portrait&page_size=A6'
-  const tab = window.open(url, '_blank')
-  if (!tab) showAdminToast('Trình duyệt đang chặn mở PDF nhãn GHTK', 'error')
+  openShippingLabelsPdf(orderIds)
 }
 
 function openPrintOrdersPopup(selected) {
@@ -518,13 +594,16 @@ function openPrintOrdersPopup(selected) {
   popup.document.close()
 }
 
-function extractGHTKPrintableOrders(rows) {
+function extractShippingPrintableOrders(rows) {
   const list = Array.isArray(rows) ? rows : []
   return list.filter((o) => {
-    const carrier = String(o.shipping_carrier || o.carrier || '').toUpperCase()
     const tracking = String(o.shipping_tracking_code || o.tracking_code || '').trim()
-    return carrier === 'GHTK' && !!tracking
+    return !!tracking
   })
+}
+
+function extractGHTKPrintableOrders(rows) {
+  return extractShippingPrintableOrders(rows).filter((o) => getOrderShippingCarrier(o) === 'GHTK')
 }
 
 function mapArrangeErrorText(code) {
@@ -532,8 +611,14 @@ function mapArrangeErrorText(code) {
   if (code === 'ORDER_CLOSED') return 'Đơn đã đóng/hủy'
   if (code === 'MISSING_GHTK_KEYS') return 'Thiếu GHTK_TOKEN hoặc GHTK_CLIENT_SOURCE'
   if (code === 'MISSING_GHTK_PICKUP_CONFIG') return 'Thiếu cấu hình địa chỉ lấy hàng GHTK'
+  if (code === 'MISSING_SPX_KEYS') return 'Thiếu cấu hình SPX Express'
+  if (code === 'SPX_CREATE_ORDER_ENDPOINT_NOT_CONFIGURED') return 'Chưa cấu hình endpoint tạo vận đơn SPX'
+  if (code === 'SPX_LABEL_ENDPOINT_NOT_CONFIGURED') return 'Chưa cấu hình endpoint in nhãn SPX'
+  if (code === 'ORDER_ALREADY_HAS_TRACKING') return 'Đơn đã có mã vận đơn, không đổi được đơn vị vận chuyển'
+  if (code === 'ORDER_ALREADY_HAS_DIFFERENT_CARRIER_TRACKING') return 'Đơn đã có mã vận đơn ở đơn vị vận chuyển khác'
   if (code === 'INVALID_CUSTOMER_ADDRESS_FORMAT') return 'Địa chỉ khách chưa hợp lệ và không có fallback'
   if (code === 'GHTK_TRACKING_EMPTY') return 'GHTK không trả mã vận đơn'
+  if (code === 'SPX_TRACKING_EMPTY') return 'SPX không trả mã vận đơn'
   return String(code || 'Lỗi không xác định')
 }
 
@@ -578,12 +663,12 @@ function printArrangedOrdersFromModal() {
     closeArrangeSuccessModal()
     return
   }
-  const ghtkOrders = extractGHTKPrintableOrders(arrangedOrdersForPrint)
-  if (!ghtkOrders.length) {
-    showAdminToast('Chưa có mã vận đơn GHTK để in nhãn', 'warning')
+  const printableOrders = extractShippingPrintableOrders(arrangedOrdersForPrint)
+  if (!printableOrders.length) {
+    showAdminToast('Chưa có mã vận đơn để in nhãn', 'warning')
     return
   }
-  openGHTKLabelsPdf(ghtkOrders.map((o) => Number(o.id)))
+  openShippingLabelsPdf(printableOrders.map((o) => Number(o.id)))
   closeArrangeSuccessModal()
 }
 
@@ -593,16 +678,16 @@ async function handleOrderPrimaryAction(id) {
   if (ordersViewMode === 'waiting_ship') {
     const order = adminOrders.find((x) => Number(x.id) === orderId)
     if (!order) return
-    const printable = extractGHTKPrintableOrders([order])
+    const printable = extractShippingPrintableOrders([order])
     if (!printable.length) {
-      showAdminToast('Chưa có mã vận đơn GHTK để in nhãn', 'warning')
+      showAdminToast('Chưa có mã vận đơn để in nhãn', 'warning')
       return
     }
-    openGHTKLabelsPdf([orderId])
+    openShippingLabelsPdf([orderId])
     return
   }
   try {
-    const res = await axios.post('/api/admin/orders/arrange-shipping', { ids: [orderId] })
+    const res = await axios.post('/api/admin/orders/arrange-shipping', { ids: [orderId], carriers: buildCarrierMapForOrderIds([orderId]) })
     const updated = Array.isArray(res.data?.updated) ? res.data.updated : []
     const failed = Array.isArray(res.data?.failed) ? res.data.failed : []
     arrangedOrdersForPrint = updated.map((o) => ({

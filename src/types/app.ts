@@ -32,5 +32,7 @@ export type AppBindings = CloudflareBindings & {
   SPX_USER_ID?: string
   SPX_SECRET_KEY?: string
   SPX_ACCOUNT_ID?: string
+  SPX_CREATE_ORDER_ENDPOINT?: string
+  SPX_LABEL_ENDPOINT?: string
   CORS_ALLOWED_ORIGINS?: string
 }
