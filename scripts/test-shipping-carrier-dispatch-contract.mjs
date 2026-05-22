@@ -14,7 +14,9 @@ assert.match(adminOrdersSource, /function ensureOrdersCarrierBulkSelect/, 'admin
 assert.match(adminOrdersSource, /querySelectorAll\('thead th'\)[\s\S]*Đơn vị vận chuyển[\s\S]*th\.remove\(\)/, 'admin orders UI should remove the old per-row carrier column header at runtime')
 assert.match(adminOrdersSource, /function handleBulkShippingCarrierChange[\s\S]*\/api\/admin\/orders\/'\s*\+\s*id\s*\+\s*'\/shipping-carrier/, 'bulk carrier selector should persist carrier for checked orders')
 assert.doesNotMatch(adminOrdersSource, /function renderShippingCarrierSelect/, 'order rows should not render duplicate carrier selectors')
-assert.doesNotMatch(adminOrdersSource, /carrierSelect\.disabled\s*=\s*!anySelectedVisible/, 'bulk carrier selector should stay clickable and show a warning when no order is selected')
+assert.doesNotMatch(adminOrdersSource, /carrierSelect\.disabled\s*=\s*!anySelectedVisible/, 'bulk carrier selector should not depend on whether visible rows are selected')
+assert.match(adminOrdersSource, /carrierSelect\.classList\.toggle\('hidden',\s*ordersViewMode === 'waiting_ship'\)/, 'carrier selector should be hidden once orders are already waiting for shipment')
+assert.match(adminOrdersSource, /carrierSelect\.disabled = ordersViewMode === 'waiting_ship'/, 'carrier selector should not be clickable in waiting shipment mode')
 assert.match(adminOrdersSource, /if \(success\)[\s\S]*selectEl\.value = carrier/, 'bulk carrier selector should keep the selected carrier visible after a successful change')
 assert.doesNotMatch(
   adminOrdersSource.match(/if \(!ids\.length\) \{[\s\S]*?\n  \}/)?.[0] || '',

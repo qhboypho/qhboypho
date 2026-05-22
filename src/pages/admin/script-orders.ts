@@ -519,7 +519,8 @@ function updateOrderSelectionUI() {
     shipBarText.textContent = 'Đã chọn ' + checkedVisible + ' đơn'
   }
   if (carrierSelect) {
-    carrierSelect.classList.toggle('opacity-60', ordersViewMode === 'waiting_ship')
+    carrierSelect.classList.toggle('hidden', ordersViewMode === 'waiting_ship')
+    carrierSelect.disabled = ordersViewMode === 'waiting_ship'
     if (ordersViewMode === 'waiting_ship') carrierSelect.value = ''
   }
   if (selectAll) {
