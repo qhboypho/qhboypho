@@ -31,6 +31,18 @@ assert.match(
   'GHN address mapper should match against GHN NameExtension aliases'
 )
 
+assert.doesNotMatch(
+  shippingHelpersSource,
+  /from_ward_name:\s*pickup\.pickWard|from_district_name:\s*pickup\.pickDistrict|from_province_name:\s*pickup\.pickProvince/,
+  'GHN create payload should not reuse GHTK pickup place names'
+)
+
+assert.match(
+  shippingHelpersSource,
+  /GHN_UNSUPPORTED_DELIVERY_AREA/,
+  'GHN helper should return a clear unsupported-area error before calling create order'
+)
+
 assert.match(
   shippingHelpersSource,
   /v2\/a5\/gen-token/,

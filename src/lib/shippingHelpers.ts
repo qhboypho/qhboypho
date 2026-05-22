@@ -252,6 +252,13 @@ function getGhnAddressNames(row: Record<string, any>, fields: string[]) {
   return [...names, ...extensions]
 }
 
+function isGhnUnsupportedArea(row: Record<string, any>) {
+  const supportType = Number(row?.SupportType ?? row?.support_type ?? 1)
+  const status = Number(row?.Status ?? row?.status ?? 1)
+  const deliverType = Number(row?.DeliverType ?? row?.deliver_type ?? 1)
+  return supportType === 0 || deliverType === 0 || status === 2
+}
+
 export function normalizeGhnAddressToken(value: string) {
   return String(value || '')
     .toLowerCase()
@@ -285,22 +292,29 @@ async function resolveGhnRecipientAddress(config: GhnConfig, rawAddress: string)
   const ward = findGhnAddressMatch(wardRows, ['WardName', 'Name'], parsed.ward)
   const wardCode = String(ward?.WardCode || ward?.Code || '').trim()
   if (!wardCode) return null
+  if (isGhnUnsupportedArea(district) || isGhnUnsupportedArea(ward)) {
+    return {
+      ...parsed,
+      to_district_id: districtId,
+      to_ward_code: wardCode,
+      unsupported: true,
+      unsupported_area: [ward?.WardName || parsed.ward, district?.DistrictName || parsed.district, province?.ProvinceName || parsed.province].filter(Boolean).join(', ')
+    }
+  }
 
   return {
     ...parsed,
     to_district_id: districtId,
-    to_ward_code: wardCode
+    to_ward_code: wardCode,
+    to_ward_name: String(ward?.WardName || parsed.ward),
+    to_district_name: String(district?.DistrictName || parsed.district),
+    to_province_name: String(province?.ProvinceName || parsed.province)
   }
 }
 
 export async function ghnCreateShipment(env: AppBindings, db: D1Database, order: any) {
   const config = await getGhnConfig(db, env)
   if (!config.token || !config.shopId) return { ok: false, message: 'MISSING_GHN_KEYS' }
-
-  const pickup = await getGhtkPickupConfig(db, env)
-  if (!pickup.pickName || !pickup.pickTel || !pickup.pickAddress || !pickup.pickWard || !pickup.pickDistrict || !pickup.pickProvince) {
-    return { ok: false, message: 'MISSING_GHN_PICKUP_CONFIG' }
-  }
 
   let recipientAddress: any
   try {
@@ -309,6 +323,9 @@ export async function ghnCreateShipment(env: AppBindings, db: D1Database, order:
     return { ok: false, message: 'GHN_ADDRESS_LOOKUP_FAILED', detail: e?.message || e }
   }
   if (!recipientAddress) return { ok: false, message: 'GHN_ADDRESS_LOOKUP_FAILED' }
+  if (recipientAddress.unsupported) {
+    return { ok: false, message: 'GHN_UNSUPPORTED_DELIVERY_AREA', detail: recipientAddress.unsupported_area || null }
+  }
 
   const amountDue = Math.max(0, Math.round(getOrderAmountDueServer(order)))
   const productName = String(order?.product_name || 'San pham').slice(0, 120)
@@ -316,17 +333,14 @@ export async function ghnCreateShipment(env: AppBindings, db: D1Database, order:
   const payload = {
     payment_type_id: 2,
     required_note: 'CHOXEMHANGKHONGTHU',
-    from_name: pickup.pickName,
-    from_phone: pickup.pickTel,
-    from_address: pickup.pickAddress,
-    from_ward_name: pickup.pickWard,
-    from_district_name: pickup.pickDistrict,
-    from_province_name: pickup.pickProvince,
     to_name: String(order?.customer_name || '').slice(0, 120),
     to_phone: String(order?.customer_phone || ''),
     to_address: recipientAddress.detail,
     to_ward_code: recipientAddress.to_ward_code,
     to_district_id: recipientAddress.to_district_id,
+    to_ward_name: recipientAddress.to_ward_name,
+    to_district_name: recipientAddress.to_district_name,
+    to_province_name: recipientAddress.to_province_name,
     cod_amount: amountDue,
     content: productName,
     weight: numberOrDefault(config.defaultWeightGram, 500),

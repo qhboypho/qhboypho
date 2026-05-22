@@ -656,6 +656,7 @@ function mapArrangeErrorText(code) {
   if (code === 'MISSING_GHN_KEYS') return 'Thiếu cấu hình GHN'
   if (code === 'MISSING_GHN_PICKUP_CONFIG') return 'Thiếu cấu hình kho lấy hàng cho GHN'
   if (code === 'GHN_ADDRESS_LOOKUP_FAILED') return 'Không map được địa chỉ nhận hàng theo GHN'
+  if (code === 'GHN_UNSUPPORTED_DELIVERY_AREA') return 'GHN chưa hỗ trợ giao khu vực này'
   if (code === 'SHIPPING_CARRIER_NOT_AVAILABLE') return 'Đơn vị vận chuyển này đã bị tắt hoặc xóa khỏi kho hàng'
   if (code === 'SHIPPING_CARRIER_NOT_IMPLEMENTED') return 'Đơn vị vận chuyển này chưa có adapter tạo vận đơn'
   if (code === 'ORDER_ALREADY_HAS_TRACKING') return 'Đơn đã có mã vận đơn, không đổi được đơn vị vận chuyển'
@@ -704,7 +705,8 @@ function openArrangeSuccessModal(count, failedList) {
     if (hasFail) {
       failListEl.innerHTML = failed.map((f) => {
         const code = String(f.order_code || f.id || 'N/A')
-        const reason = mapArrangeErrorText(f.error)
+        const detail = f.detail ? ' (' + escapeHtml(String(f.detail)) + ')' : ''
+        const reason = mapArrangeErrorText(f.error) + detail
         return '<div>• <span class="font-semibold">' + code + '</span>: ' + reason + '</div>'
       }).join('')
     } else {
