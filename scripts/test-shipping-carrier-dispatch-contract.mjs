@@ -23,6 +23,11 @@ assert.doesNotMatch(
   /selectEl\.value = ''/,
   'carrier selector should not reset when used as the next arrange default without checked rows'
 )
+assert.match(
+  adminOrdersSource,
+  /const rawCarrier = String\(selectEl\?\.value \|\| ''\)\.trim\(\)[\s\S]*if \(!rawCarrier\) return/,
+  'carrier placeholder option should clear the override silently without showing a GHTK toast'
+)
 assert.match(adminOrdersSource, /function getActiveBulkShippingCarrier[\s\S]*ordersCarrierBulkSelect/, 'admin orders UI should expose the current carrier selector value')
 assert.match(adminOrdersSource, /function buildCarrierMapForOrderIds[\s\S]*getActiveBulkShippingCarrier[\s\S]*activeCarrier \|\| getOrderShippingCarrier/, 'arrange payload should prefer the current carrier selector over the row default')
 assert.match(adminOrdersSource, /axios\.post\('\/api\/admin\/orders\/arrange-shipping',\s*\{ ids,\s*carriers:/, 'bulk arrange should send selected carrier map')

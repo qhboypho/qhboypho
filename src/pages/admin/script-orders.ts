@@ -219,7 +219,9 @@ function buildCarrierMapForOrderIds(ids) {
 }
 
 async function handleBulkShippingCarrierChange(selectEl) {
-  const carrier = normalizeShippingCarrierValue(selectEl?.value)
+  const rawCarrier = String(selectEl?.value || '').trim()
+  if (!rawCarrier) return
+  const carrier = normalizeShippingCarrierValue(rawCarrier)
   const ids = Array.from(selectedOrderIds).map(Number).filter((id) => Number.isFinite(id) && id > 0)
   if (!ids.length) {
     showAdminToast('Đã chọn ' + carrier + ' làm đơn vị vận chuyển cho lần sắp xếp tiếp theo', 'success')
