@@ -1198,7 +1198,7 @@ function renderProductCardBrandRow(p) {
   const brand = String(p?.brand || '').trim()
   return '<div class="product-card-brand-row text-xs text-pink-500 font-medium mb-1">'
     + (brand ? '<span class="product-card-brand-text">' + escapeHtml(brand) + '</span>' : '')
-    + '<img class="shipping-carrier-logo" src="/GHTK_id8dR2ZdYY_1.svg" alt="GHTK" loading="lazy">'
+    + '<span class="shipping-carrier-logo-wrap"><img class="shipping-carrier-logo" src="/GHTK_id8dR2ZdYY_1.svg" alt="GHTK" loading="lazy"></span>'
     + '</div>'
 }
 

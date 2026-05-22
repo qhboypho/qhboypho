@@ -506,14 +506,20 @@ export function storefrontThemeRefreshStyles(): string {
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .shipping-carrier-logo {
-    display: inline-block;
+  .shipping-carrier-logo-wrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     flex: 0 0 auto;
+    line-height: 0;
+  }
+  .shipping-carrier-logo {
+    display: block;
     width: 2.5rem;
     height: auto;
     object-fit: contain;
   }
-  body[data-storefront-theme='dark'] .shipping-carrier-logo {
+  body[data-storefront-theme='dark'] .shipping-carrier-logo-wrap {
     background: rgb(63 69 108 / 79%);
     padding: 0 0.5rem;
     border-radius: 4px;
@@ -752,7 +758,7 @@ export function storefrontThemeRefreshStyles(): string {
   .favorites-products-grid .product-card .product-card-brand-text {
     display: none !important;
   }
-  .favorites-products-grid .product-card .shipping-carrier-logo {
+  .favorites-products-grid .product-card .shipping-carrier-logo-wrap {
     width: 2.5rem !important;
   }
   .favorites-products-grid .product-card h3 {
@@ -2005,8 +2011,8 @@ export function storefrontThemeRefreshStyles(): string {
     #productsModalOverlay .product-card .product-card-brand-text {
       display: none !important;
     }
-    #products .product-card .shipping-carrier-logo,
-    #productsModalOverlay .product-card .shipping-carrier-logo {
+    #products .product-card .shipping-carrier-logo-wrap,
+    #productsModalOverlay .product-card .shipping-carrier-logo-wrap {
       width: 2.5rem !important;
     }
     #products .product-card h3 {
