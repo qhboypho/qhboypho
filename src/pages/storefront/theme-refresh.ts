@@ -506,18 +506,17 @@ export function storefrontThemeRefreshStyles(): string {
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  body[data-storefront-theme='dark'] .product-card-brand-row {
-    width: fit-content;
-    background: rgb(63 69 108 / 79%);
-    padding: 0 0.5rem;
-    border-radius: 4px;
-  }
   .shipping-carrier-logo {
     display: inline-block;
     flex: 0 0 auto;
     width: 2.5rem;
     height: auto;
     object-fit: contain;
+  }
+  body[data-storefront-theme='dark'] .shipping-carrier-logo {
+    background: rgb(63 69 108 / 79%);
+    padding: 0 0.5rem;
+    border-radius: 4px;
   }
   .bs-card,
   .flash-sale-shop-card {
