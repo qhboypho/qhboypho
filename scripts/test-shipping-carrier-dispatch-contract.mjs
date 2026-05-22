@@ -40,6 +40,8 @@ assert.match(orderRoutesSource, /shipping_carrier=\?/, 'arrange endpoint should 
 assert.match(orderRoutesSource, /app\.get\('\/api\/admin\/orders\/shipping\/print-labels'/, 'backend should expose generic carrier-dispatch print endpoint')
 assert.match(orderRoutesSource, /fetchLabelPdfForCarrier[\s\S]*case 'SPX'/, 'print endpoint should dispatch SPX labels away from GHTK')
 assert.match(orderRoutesSource, /fetchLabelPdfForCarrier[\s\S]*case 'GHN'/, 'print endpoint should dispatch GHN labels away from GHTK')
+assert.match(orderRoutesSource, /fetchLabelDocumentForCarrier[\s\S]*case 'GHN'[\s\S]*ghnFetchLabelDocument/, 'generic print endpoint should dispatch GHN HTML labels through document fetch')
+assert.match(orderRoutesSource, /htmlDocs\.length === docs\.length[\s\S]*new Response\(bytes/, 'generic print endpoint should return GHN HTML labels directly')
 
 assert.match(shippingHelpersSource, /export async function spxCreateShipment/, 'SPX shipment helper should exist')
 assert.match(shippingHelpersSource, /export async function spxFetchLabelPdf/, 'SPX label helper should exist')

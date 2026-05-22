@@ -41,6 +41,7 @@ import {
   getGhnConfig,
   getSpxConfig,
   ghnCreateShipment,
+  ghnFetchLabelDocument,
   ghnFetchLabelPdf,
   ghtkCancelShipment,
   ghtkCreateShipment,
@@ -112,6 +113,7 @@ registerOrderRoutes(app, {
   spxCreateShipment,
   spxFetchLabelPdf,
   ghnCreateShipment,
+  ghnFetchLabelDocument,
   ghnFetchLabelPdf,
   getAvailableShippingCarriers,
   mergePdfBytes

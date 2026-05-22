@@ -52,9 +52,14 @@ assert.doesNotMatch(
 assert.match(
   shippingHelpersSource,
   /v2\/a5\/gen-token/,
-  'GHN label helper should generate a print token before fetching the A5 PDF'
+  'GHN label helper should generate a print token before fetching the A5 label'
 )
 assert.match(shippingHelpersSource, /printA5/, 'GHN label helper should fetch the A5 PDF URL')
+assert.match(
+  shippingHelpersSource,
+  /export async function ghnFetchLabelDocument[\s\S]*contentType[\s\S]*text\/html/,
+  'GHN label helper should preserve HTML labels returned by printA5 instead of forcing PDF'
+)
 
 assert.match(
   adminUtilityRoutesSource,

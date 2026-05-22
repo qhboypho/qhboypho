@@ -481,7 +481,7 @@ export async function ghnCreateShipment(env: AppBindings, db: D1Database, order:
   }
 }
 
-export async function ghnFetchLabelPdf(env: AppBindings, db: D1Database, trackingCode: string): Promise<Uint8Array> {
+export async function ghnFetchLabelDocument(env: AppBindings, db: D1Database, trackingCode: string): Promise<{ bytes: Uint8Array, contentType: string }> {
   const config = await getGhnConfig(db, env)
   if (!config.token || !config.shopId) throw new Error('MISSING_GHN_KEYS')
   const code = String(trackingCode || '').trim()
@@ -499,11 +499,28 @@ export async function ghnFetchLabelPdf(env: AppBindings, db: D1Database, trackin
     }
   })
   const contentType = String(resp.headers.get('content-type') || '').toLowerCase()
-  if (!resp.ok || contentType.indexOf('application/pdf') < 0) {
+  if (!resp.ok) {
     const detail = await resp.text().catch(() => '')
     throw new Error('GHN_LABEL_FETCH_FAILED:' + detail)
   }
-  return new Uint8Array(await resp.arrayBuffer())
+  const normalizedContentType = contentType.includes('application/pdf')
+    ? 'application/pdf'
+    : contentType.includes('text/html')
+      ? 'text/html; charset=UTF-8'
+      : contentType || 'application/octet-stream'
+  return {
+    bytes: new Uint8Array(await resp.arrayBuffer()),
+    contentType: normalizedContentType
+  }
+}
+
+export async function ghnFetchLabelPdf(env: AppBindings, db: D1Database, trackingCode: string): Promise<Uint8Array> {
+  const doc = await ghnFetchLabelDocument(env, db, trackingCode)
+  if (!String(doc.contentType || '').toLowerCase().includes('application/pdf')) {
+    const detail = new TextDecoder().decode(doc.bytes.slice(0, 1200))
+    throw new Error('GHN_LABEL_FETCH_FAILED:' + detail)
+  }
+  return doc.bytes
 }
 
 export function normalizeGHTKOriginal(v: any) {

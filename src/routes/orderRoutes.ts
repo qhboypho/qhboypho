@@ -15,6 +15,7 @@ type OrderRouteDeps = {
   spxFetchLabelPdf: (env: any, db: D1Database, trackingCode: string) => Promise<Uint8Array>
   ghnCreateShipment: (env: any, db: D1Database, order: any) => Promise<any>
   ghnFetchLabelPdf: (env: any, db: D1Database, trackingCode: string) => Promise<Uint8Array>
+  ghnFetchLabelDocument: (env: any, db: D1Database, trackingCode: string) => Promise<{ bytes: Uint8Array; contentType: string }>
   getAvailableShippingCarriers: (db: D1Database) => Promise<Array<{ code: string; label: string }>>
   mergePdfBytes: (files: Uint8Array[]) => Promise<Uint8Array>
 }
@@ -363,6 +364,20 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
           return deps.ghtkFetchLabelPdf(env, db, trackingCode, original, pageSize)
         }
         throw new Error('SHIPPING_CARRIER_NOT_IMPLEMENTED:' + normalizeShippingCarrier(carrier))
+    }
+  }
+
+  const fetchLabelDocumentForCarrier = async (carrier: string, env: any, db: D1Database, trackingCode: string, original?: any, pageSize?: any) => {
+    switch (normalizeShippingCarrier(carrier)) {
+      case 'GHN':
+        return deps.ghnFetchLabelDocument(env, db, trackingCode)
+      case 'SPX':
+      case 'GHTK':
+      default:
+        return {
+          bytes: await fetchLabelPdfForCarrier(carrier, env, db, trackingCode, original, pageSize),
+          contentType: 'application/pdf'
+        }
     }
   }
 
@@ -865,11 +880,28 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
         .filter((o: any) => String(o.shipping_tracking_code || '').trim())
       if (!selected.length) return c.json({ success: false, error: 'NO_SHIPPING_TRACKING_FOUND' }, 400)
 
-      const files: Uint8Array[] = []
+      const docs: Array<{ bytes: Uint8Array; contentType: string }> = []
       for (const row of selected) {
         const carrier = normalizeShippingCarrier(row.shipping_carrier || 'GHTK')
-        files.push(await fetchLabelPdfForCarrier(carrier, c.env, c.env.DB, String(row.shipping_tracking_code), c.req.query('original'), c.req.query('page_size')))
+        docs.push(await fetchLabelDocumentForCarrier(carrier, c.env, c.env.DB, String(row.shipping_tracking_code), c.req.query('original'), c.req.query('page_size')))
       }
+      const htmlDocs = docs.filter((doc) => String(doc.contentType || '').toLowerCase().includes('text/html'))
+      if (htmlDocs.length === docs.length) {
+        const bytes = htmlDocs.length === 1
+          ? htmlDocs[0].bytes
+          : new TextEncoder().encode(htmlDocs.map((doc) => new TextDecoder().decode(doc.bytes)).join('\n<div style="break-after: page; page-break-after: always;"></div>\n'))
+        return new Response(bytes, {
+          status: 200,
+          headers: {
+            'Content-Type': 'text/html; charset=UTF-8',
+            'Content-Disposition': `inline; filename="shipping-labels-${new Date().toISOString().slice(0, 10)}.html"`,
+            'Cache-Control': 'no-store'
+          }
+        })
+      }
+      const nonPdf = docs.find((doc) => !String(doc.contentType || '').toLowerCase().includes('application/pdf'))
+      if (nonPdf) return c.json({ success: false, error: 'MIXED_SHIPPING_LABEL_FORMATS' }, 400)
+      const files = docs.map((doc) => doc.bytes)
       const merged = files.length === 1 ? files[0] : await deps.mergePdfBytes(files)
       const pdfBytes = new Uint8Array(merged)
       const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' })
