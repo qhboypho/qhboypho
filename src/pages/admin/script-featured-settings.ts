@@ -183,12 +183,25 @@ function fillGhtkPickupConfig(cfg) {
   const tokenInput = document.getElementById('ghtkToken')
   const clientSourceInput = document.getElementById('ghtkClientSource')
   const credentialHint = document.getElementById('ghtkCredentialHint')
+  const spx = cfg.spx || {}
+  const spxUserIdInput = document.getElementById('spxUserId')
+  const spxSecretKeyInput = document.getElementById('spxSecretKey')
+  const spxAccountIdInput = document.getElementById('spxAccountId')
+  const spxCredentialHint = document.getElementById('spxCredentialHint')
   if (tokenInput) tokenInput.value = cfg.token || ''
   if (clientSourceInput) clientSourceInput.value = cfg.clientSource || ''
   if (credentialHint) {
     credentialHint.textContent = cfg.token && cfg.clientSource
       ? 'Đã có key GHTK lưu trong cấu hình.'
       : 'Thiếu token hoặc client source thì đồng bộ GHTK sẽ báo MISSING_GHTK_KEYS.'
+  }
+  if (spxUserIdInput) spxUserIdInput.value = spx.userId || ''
+  if (spxSecretKeyInput) spxSecretKeyInput.value = spx.secretKey || ''
+  if (spxAccountIdInput) spxAccountIdInput.value = spx.accountId || ''
+  if (spxCredentialHint) {
+    spxCredentialHint.textContent = spx.userId && spx.secretKey && spx.accountId
+      ? 'Đã có key SPX Express lưu trong cấu hình.'
+      : 'Thiếu User ID, Secret Key hoặc Account ID thì chưa thể bật tạo vận đơn SPX.'
   }
   document.getElementById('ghtkPickupAddressId').value = cfg.pickAddressId || ''
   document.getElementById('ghtkPickName').value = cfg.pickName || ''
@@ -252,6 +265,9 @@ async function saveGhtkPickupConfig() {
   const payload = {
     ghtk_token: document.getElementById('ghtkToken')?.value.trim() || '',
     ghtk_client_source: document.getElementById('ghtkClientSource')?.value.trim() || '',
+    spx_user_id: document.getElementById('spxUserId')?.value.trim() || '',
+    spx_secret_key: document.getElementById('spxSecretKey')?.value.trim() || '',
+    spx_account_id: document.getElementById('spxAccountId')?.value.trim() || '',
     pick_address_id: document.getElementById('ghtkPickupAddressId').value.trim(),
     pick_name: document.getElementById('ghtkPickName').value.trim(),
     pick_tel: document.getElementById('ghtkPickTel').value.trim(),

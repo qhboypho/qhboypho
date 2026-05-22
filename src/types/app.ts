@@ -29,5 +29,8 @@ export type AppBindings = CloudflareBindings & {
   GHTK_DEFAULT_WEIGHT_KG?: string
   GHTK_LABEL_ORIGINAL?: string
   GHTK_LABEL_PAGE_SIZE?: string
+  SPX_USER_ID?: string
+  SPX_SECRET_KEY?: string
+  SPX_ACCOUNT_ID?: string
   CORS_ALLOWED_ORIGINS?: string
 }

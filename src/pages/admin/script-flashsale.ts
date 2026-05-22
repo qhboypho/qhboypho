@@ -730,6 +730,15 @@ function loadSettingsWarehousePage() {
         '<p id="ghtkCredentialHint" class="md:col-span-2 text-xs text-gray-500">Hai key này dùng cho đồng bộ kho, tạo vận đơn và đồng bộ hoàn trả từ GHTK.</p>' +
       '</div>' +
     '</div>' +
+    '<div class="rounded-2xl border border-sky-100 bg-sky-50/70 p-4">' +
+      '<div class="mb-3"><h3 class="font-bold text-gray-800 flex items-center gap-2"><i class="fas fa-truck-fast text-sky-500"></i>SPX Express</h3><p class="text-sm text-gray-500 mt-1">Lưu thông tin tài khoản SPX để dùng làm lớp cấu hình dự phòng như GHTK.</p></div>' +
+      '<div class="grid gap-4 md:grid-cols-3">' +
+        '<div><label class="block text-sm font-semibold text-gray-700 mb-1.5">SPX User ID</label><input type="text" id="spxUserId" autocomplete="off" placeholder="Nhập User ID SPX" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-sky-400"></div>' +
+        '<div><label class="block text-sm font-semibold text-gray-700 mb-1.5">SPX Secret Key</label><input type="password" id="spxSecretKey" autocomplete="off" placeholder="Nhập Secret Key SPX" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-sky-400"></div>' +
+        '<div><label class="block text-sm font-semibold text-gray-700 mb-1.5">SPX Account ID</label><input type="text" id="spxAccountId" autocomplete="off" placeholder="Nhập Account ID SPX" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-sky-400"></div>' +
+        '<p id="spxCredentialHint" class="md:col-span-3 text-xs text-gray-500">Thiếu User ID, Secret Key hoặc Account ID thì chưa thể bật tạo vận đơn SPX.</p>' +
+      '</div>' +
+    '</div>' +
     '<div class="rounded-2xl border border-gray-200 bg-gray-50 p-4">' +
       '<div class="flex flex-wrap items-center justify-between gap-3 mb-4">' +
         '<div><h3 class="font-bold text-gray-800 flex items-center gap-2"><i class="fas fa-warehouse text-emerald-500"></i>Kho lấy hàng GHTK</h3><p class="text-sm text-gray-500 mt-1">Chọn kho đã tạo trên GHTK để dùng mặc định khi bấm sắp xếp vận chuyển.</p></div>' +

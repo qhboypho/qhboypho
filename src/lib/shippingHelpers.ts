@@ -29,11 +29,30 @@ export type GhtkPickupAddressFetchResult =
   | { ok: true, data: GhtkPickupAddress[] }
   | { ok: false, message: string, data: GhtkPickupAddress[], detail?: unknown }
 
+export type SpxConfig = {
+  userId: string
+  secretKey: string
+  accountId: string
+}
+
 export async function getGhtkApiCredentials(db: D1Database, env: AppBindings) {
   const config = await getRuntimeConfigValues(db, env, ['GHTK_TOKEN', 'GHTK_CLIENT_SOURCE'])
   return {
     token: config.GHTK_TOKEN || '',
     clientSource: config.GHTK_CLIENT_SOURCE || ''
+  }
+}
+
+export async function getSpxConfig(db: D1Database, env: AppBindings): Promise<SpxConfig> {
+  const config = await getRuntimeConfigValues(db, env, [
+    'SPX_USER_ID',
+    'SPX_SECRET_KEY',
+    'SPX_ACCOUNT_ID'
+  ])
+  return {
+    userId: config.SPX_USER_ID || '',
+    secretKey: config.SPX_SECRET_KEY || '',
+    accountId: config.SPX_ACCOUNT_ID || ''
   }
 }
 

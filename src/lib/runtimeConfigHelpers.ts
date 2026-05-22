@@ -22,7 +22,10 @@ const RUNTIME_CONFIG_KEYS = {
   GHTK_PICK_PROVINCE: 'ghtk_pick_province',
   GHTK_PICK_DISTRICT: 'ghtk_pick_district',
   GHTK_PICK_WARD: 'ghtk_pick_ward',
-  GHTK_PICK_TEL: 'ghtk_pick_tel'
+  GHTK_PICK_TEL: 'ghtk_pick_tel',
+  SPX_USER_ID: 'spx_user_id',
+  SPX_SECRET_KEY: 'spx_secret_key',
+  SPX_ACCOUNT_ID: 'spx_account_id'
 } as const
 
 type RuntimeConfigKey = keyof typeof RUNTIME_CONFIG_KEYS

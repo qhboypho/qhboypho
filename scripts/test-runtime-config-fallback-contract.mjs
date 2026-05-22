@@ -18,6 +18,9 @@ for (const key of [
   'GOOGLE_CLIENT_SECRET',
   'GHTK_TOKEN',
   'GHTK_CLIENT_SOURCE',
+  'SPX_USER_ID',
+  'SPX_SECRET_KEY',
+  'SPX_ACCOUNT_ID',
 ]) {
   assert.match(runtimeConfigSource, new RegExp(`${key}:`), `runtime config should map ${key}`)
 }

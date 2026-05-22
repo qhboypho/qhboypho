@@ -36,6 +36,7 @@ import {
 import {
   buildInternalTestOrderWhereSql,
   getGhtkPickupConfig,
+  getSpxConfig,
   ghtkCancelShipment,
   ghtkCreateShipment,
   ghtkFetchLabelPdf,
@@ -115,6 +116,7 @@ registerCustomerRoutes(app, {
 registerAdminUtilityRoutes(app, {
   initDB,
   getGhtkPickupConfig,
+  getSpxConfig,
   upsertAppSettings,
   ghtkFetchPickupAddresses
 })

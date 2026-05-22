@@ -1,7 +1,7 @@
 import type { Hono } from 'hono'
 import type { AppBindings } from '../types/app'
 import type { AppSettingEntry } from '../types/admin'
-import type { GhtkPickupConfig, GhtkPickupAddressFetchResult } from '../lib/shippingHelpers'
+import type { GhtkPickupConfig, GhtkPickupAddressFetchResult, SpxConfig } from '../lib/shippingHelpers'
 
 type HeroBannerInput = {
   image_url?: unknown
@@ -16,6 +16,9 @@ type HeroBannerInput = {
 type PickupConfigInput = {
   ghtk_token?: unknown
   ghtk_client_source?: unknown
+  spx_user_id?: unknown
+  spx_secret_key?: unknown
+  spx_account_id?: unknown
   pick_address_id?: unknown
   pick_name?: unknown
   pick_address?: unknown
@@ -71,6 +74,7 @@ function buildPublicAssetUrl(c: any, key: string): string {
 type AdminUtilityRouteDeps = {
   initDB: (db: D1Database) => Promise<void>
   getGhtkPickupConfig: (db: D1Database, env: AppBindings) => Promise<GhtkPickupConfig>
+  getSpxConfig: (db: D1Database, env: AppBindings) => Promise<SpxConfig>
   upsertAppSettings: (db: D1Database, entries: AppSettingEntry[]) => Promise<void>
   ghtkFetchPickupAddresses: (env: AppBindings, db: D1Database) => Promise<GhtkPickupAddressFetchResult>
 }
@@ -253,12 +257,18 @@ export function registerAdminUtilityRoutes(app: Hono<{ Bindings: AppBindings }>,
     try {
       await deps.initDB(c.env.DB)
       const config = await deps.getGhtkPickupConfig(c.env.DB, c.env)
+      const spxConfig = await deps.getSpxConfig(c.env.DB, c.env)
       const hasToken = !!String(c.env.GHTK_TOKEN || config.token || '').trim()
       const hasClientSource = !!String(c.env.GHTK_CLIENT_SOURCE || config.clientSource || '').trim()
+      const hasSpxKeys = !!spxConfig.userId && !!spxConfig.secretKey && !!spxConfig.accountId
       return c.json({
         success: true,
-        data: config,
-        has_ghtk_keys: hasToken && hasClientSource
+        data: {
+          ...config,
+          spx: spxConfig
+        },
+        has_ghtk_keys: hasToken && hasClientSource,
+        has_spx_keys: hasSpxKeys
       })
     } catch (e: any) {
       return c.json({ success: false, error: e.message }, 500)
@@ -273,6 +283,9 @@ export function registerAdminUtilityRoutes(app: Hono<{ Bindings: AppBindings }>,
       const payload = {
         token: sanitize(body.ghtk_token, 500),
         clientSource: sanitize(body.ghtk_client_source, 120),
+        spxUserId: sanitize(body.spx_user_id, 120),
+        spxSecretKey: sanitize(body.spx_secret_key, 500),
+        spxAccountId: sanitize(body.spx_account_id, 120),
         pickAddressId: sanitize(body.pick_address_id, 80),
         pickName: sanitize(body.pick_name, 120),
         pickAddress: sanitize(body.pick_address, 220),
@@ -284,6 +297,9 @@ export function registerAdminUtilityRoutes(app: Hono<{ Bindings: AppBindings }>,
       await deps.upsertAppSettings(c.env.DB, [
         { key: 'ghtk_token', value: payload.token },
         { key: 'ghtk_client_source', value: payload.clientSource },
+        { key: 'spx_user_id', value: payload.spxUserId },
+        { key: 'spx_secret_key', value: payload.spxSecretKey },
+        { key: 'spx_account_id', value: payload.spxAccountId },
         { key: 'ghtk_pick_address_id', value: payload.pickAddressId },
         { key: 'ghtk_pick_name', value: payload.pickName },
         { key: 'ghtk_pick_address', value: payload.pickAddress },
