@@ -20,6 +20,8 @@ export function adminLoginHTML(): string {
   .input-dark { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: white; }
   .input-dark::placeholder { color: rgba(255,255,255,0.4); }
   .input-dark:focus { border-color: #e84393; box-shadow: 0 0 0 3px rgba(232,67,147,0.15); outline: none; }
+  .turnstile-box { display: flex; justify-content: center; min-height: 65px; }
+  .turnstile-box.hidden { display: none; }
   body.login-bg { overflow: hidden; isolation: isolate; }
   body.login-bg > * { position: relative; z-index: 2147483646; }
   .login-shell { position: relative; z-index: 2147483647; pointer-events: auto; }
@@ -62,6 +64,9 @@ export function adminLoginHTML(): string {
             </button>
           </div>
         </div>
+        <div id="adminTurnstileWrap" class="turnstile-box hidden">
+          <div id="adminTurnstileWidget"></div>
+        </div>
         <button onclick="doLogin()" id="loginBtn" class="btn-login w-full text-white py-3.5 rounded-xl font-bold text-sm mt-2">
           <i class="fas fa-sign-in-alt mr-2"></i>Đăng nhập
         </button>
@@ -70,6 +75,83 @@ export function adminLoginHTML(): string {
     <p class="text-center text-gray-500 text-xs mt-6">&copy; 2026 QH Clothes. All rights reserved.</p>
   </div>
 <script>
+  let adminTurnstileEnabled = false
+  let adminTurnstileSiteKey = ''
+  let adminTurnstileToken = ''
+  let adminTurnstileWidgetId = null
+  let adminTurnstileConfigPromise = null
+  let adminTurnstileScriptPromise = null
+
+  function loadAdminTurnstileScript() {
+    if (window.turnstile) return Promise.resolve()
+    if (adminTurnstileScriptPromise) return adminTurnstileScriptPromise
+    adminTurnstileScriptPromise = new Promise((resolve, reject) => {
+      const existing = document.querySelector('script[data-turnstile-script="1"]')
+      if (existing) {
+        existing.addEventListener('load', resolve, { once: true })
+        existing.addEventListener('error', reject, { once: true })
+        return
+      }
+      const script = document.createElement('script')
+      script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'
+      script.async = true
+      script.defer = true
+      script.dataset.turnstileScript = '1'
+      script.onload = resolve
+      script.onerror = reject
+      document.head.appendChild(script)
+    })
+    return adminTurnstileScriptPromise
+  }
+
+  async function loadAdminTurnstileConfig() {
+    if (adminTurnstileConfigPromise) return adminTurnstileConfigPromise
+    adminTurnstileConfigPromise = axios.get('/api/auth/turnstile-config')
+      .then((res) => {
+        const data = res.data?.data || {}
+        adminTurnstileEnabled = data.enabled === true && !!data.site_key
+        adminTurnstileSiteKey = adminTurnstileEnabled ? String(data.site_key || '') : ''
+        return data
+      })
+      .catch(() => {
+        adminTurnstileEnabled = false
+        adminTurnstileSiteKey = ''
+        return { enabled: false, site_key: '' }
+      })
+    return adminTurnstileConfigPromise
+  }
+
+  async function renderAdminTurnstile() {
+    await loadAdminTurnstileConfig()
+    const wrap = document.getElementById('adminTurnstileWrap')
+    if (!wrap || !adminTurnstileEnabled || !adminTurnstileSiteKey) {
+      if (wrap) wrap.classList.add('hidden')
+      return
+    }
+    wrap.classList.remove('hidden')
+    await loadAdminTurnstileScript()
+    if (!window.turnstile || adminTurnstileWidgetId !== null) return
+    adminTurnstileWidgetId = window.turnstile.render('adminTurnstileWidget', {
+      sitekey: adminTurnstileSiteKey,
+      theme: 'dark',
+      action: 'admin_login',
+      callback: (token) => { adminTurnstileToken = token || '' },
+      'expired-callback': () => { adminTurnstileToken = '' },
+      'error-callback': () => { adminTurnstileToken = '' }
+    })
+  }
+
+  function getAdminTurnstileToken() {
+    return adminTurnstileEnabled ? adminTurnstileToken : ''
+  }
+
+  function resetAdminTurnstile() {
+    adminTurnstileToken = ''
+    if (window.turnstile && adminTurnstileWidgetId !== null) {
+      try { window.turnstile.reset(adminTurnstileWidgetId) } catch (_) {}
+    }
+  }
+
   function sanitizeLoginSurface() {
     const loginShell = document.querySelector('.login-shell')
     document.documentElement.style.opacity = '1'
@@ -104,6 +186,7 @@ export function adminLoginHTML(): string {
   }
 
   sanitizeLoginSurface()
+  renderAdminTurnstile()
   window.addEventListener('load', sanitizeLoginSurface)
   window.addEventListener('pageshow', sanitizeLoginSurface)
   new MutationObserver(() => sanitizeLoginSurface()).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'style'] })
@@ -135,11 +218,21 @@ export function adminLoginHTML(): string {
     btn.disabled = true
     btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Đang xử lý...'
     try {
-      await axios.post('/api/admin/login', { username, password })
+      await renderAdminTurnstile()
+      if (adminTurnstileEnabled && !getAdminTurnstileToken()) {
+        errText.textContent = 'Vui lòng xác minh bảo mật trước khi đăng nhập'
+        errEl.classList.remove('hidden')
+        return
+      }
+      await axios.post('/api/admin/login', { username, password, turnstile_token: getAdminTurnstileToken() })
       window.location.replace('/admin/dashboard')
     } catch (e) {
-      errText.textContent = 'Sai tên đăng nhập hoặc mật khẩu'
+      const code = e?.response?.data?.error
+      errText.textContent = code === 'TURNSTILE_REQUIRED' || code === 'TURNSTILE_INVALID'
+        ? 'Xác minh bảo mật không hợp lệ, vui lòng thử lại'
+        : 'Sai tên đăng nhập hoặc mật khẩu'
       errEl.classList.remove('hidden')
+      resetAdminTurnstile()
       card.classList.remove('shake'); void card.offsetWidth; card.classList.add('shake')
     } finally {
       btn.disabled = false

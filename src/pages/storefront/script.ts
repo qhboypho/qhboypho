@@ -40,6 +40,12 @@ let ckAppliedVoucher = null
 let cartSelectedPaymentMethod = ''
 let currentUser = null
 let isAdminUser = false
+let userAuthTurnstileEnabled = false
+let userAuthTurnstileSiteKey = ''
+let userAuthTurnstileToken = ''
+let userAuthTurnstileWidgetId = null
+let turnstilePublicConfigPromise = null
+let turnstileScriptPromise = null
 let cartStorageKey = 'qhclothes_cart_guest'
 const STOREFRONT_THEME_KEY = 'qhclothes_storefront_theme'
 const STOREFRONT_DEVICE_KEY = 'qhclothes_device_id'
@@ -2627,10 +2633,83 @@ function renderUserAvatarHtml(user, sizeClass, textClass, borderClass) {
   return '<div class="' + sizeClass + ' rounded-full flex items-center justify-center text-white font-bold ' + textClass + ' ' + borderClass + ' shadow-sm" style="background:' + getUserAvatarStyle(user) + '">' + escapeHtml(getUserAvatarInitial(user)) + '</div>'
 }
 
+function loadTurnstileScript() {
+  if (window.turnstile) return Promise.resolve()
+  if (turnstileScriptPromise) return turnstileScriptPromise
+  turnstileScriptPromise = new Promise((resolve, reject) => {
+    const existing = document.querySelector('script[data-turnstile-script="1"]')
+    if (existing) {
+      existing.addEventListener('load', resolve, { once: true })
+      existing.addEventListener('error', reject, { once: true })
+      return
+    }
+    const script = document.createElement('script')
+    script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit'
+    script.async = true
+    script.defer = true
+    script.dataset.turnstileScript = '1'
+    script.onload = resolve
+    script.onerror = reject
+    document.head.appendChild(script)
+  })
+  return turnstileScriptPromise
+}
+
+function loadTurnstilePublicConfig() {
+  if (turnstilePublicConfigPromise) return turnstilePublicConfigPromise
+  turnstilePublicConfigPromise = axios.get('/api/auth/turnstile-config')
+    .then((res) => {
+      const data = res.data?.data || {}
+      userAuthTurnstileEnabled = data.enabled === true && !!data.site_key
+      userAuthTurnstileSiteKey = userAuthTurnstileEnabled ? String(data.site_key || '') : ''
+      return data
+    })
+    .catch(() => {
+      userAuthTurnstileEnabled = false
+      userAuthTurnstileSiteKey = ''
+      return { enabled: false, site_key: '' }
+    })
+  return turnstilePublicConfigPromise
+}
+
+async function renderUserAuthTurnstile() {
+  await loadTurnstilePublicConfig()
+  const wrap = document.getElementById('userAuthTurnstileWrap')
+  const widget = document.getElementById('userAuthTurnstileWidget')
+  if (!wrap || !widget || !userAuthTurnstileEnabled || !userAuthTurnstileSiteKey) {
+    if (wrap) wrap.classList.add('hidden')
+    return
+  }
+  wrap.classList.remove('hidden')
+  await loadTurnstileScript()
+  if (!window.turnstile || userAuthTurnstileWidgetId !== null) return
+  userAuthTurnstileWidgetId = window.turnstile.render('userAuthTurnstileWidget', {
+    sitekey: userAuthTurnstileSiteKey,
+    theme: document.body.dataset.storefrontTheme === 'dark' ? 'dark' : 'light',
+    action: 'storefront_auth',
+    callback: (token) => { userAuthTurnstileToken = token || '' },
+    'expired-callback': () => { userAuthTurnstileToken = '' },
+    'error-callback': () => { userAuthTurnstileToken = '' }
+  })
+}
+
+function getUserAuthTurnstileToken() {
+  return userAuthTurnstileEnabled ? userAuthTurnstileToken : ''
+}
+
+function resetUserAuthTurnstile() {
+  userAuthTurnstileToken = ''
+  if (window.turnstile && userAuthTurnstileWidgetId !== null) {
+    try { window.turnstile.reset(userAuthTurnstileWidgetId) } catch (_) {}
+  }
+}
+
 function renderUserAuthForm(mode = 'login') {
   const content = document.getElementById('userMenuContent')
   if (!content || currentUser) return
   const isRegister = mode === 'register'
+  userAuthTurnstileToken = ''
+  userAuthTurnstileWidgetId = null
   const submitFn = isRegister ? 'submitUserRegister(event)' : 'submitUserLogin(event)'
   const title = isRegister ? 'Tạo tài khoản nhanh' : 'Đăng nhập tài khoản'
   const action = isRegister ? 'Đăng ký' : 'Đăng nhập'
@@ -2651,11 +2730,13 @@ function renderUserAuthForm(mode = 'login') {
     + '<div class="relative"><input id="authPassword" type="password" autocomplete="' + (isRegister ? 'new-password' : 'current-password') + '" maxlength="64" placeholder="Tối thiểu 6 ký tự" class="w-full border border-gray-200 rounded-xl px-4 py-3 pr-11 text-sm outline-none focus:border-pink-400 focus:ring-2 focus:ring-pink-100 transition">'
     + '<button type="button" onclick="toggleAuthPasswordVisibility()" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-pink-500" aria-label="Ẩn hiện mật khẩu"><i id="authPasswordEye" class="fas fa-eye"></i></button></div></div>'
     + (phoneField ? '<div>' + phoneField + '</div>' : '')
+    + '<div id="userAuthTurnstileWrap" class="hidden flex justify-center min-h-[65px]"><div id="userAuthTurnstileWidget"></div></div>'
     + '<p id="userAuthError" class="hidden text-sm font-semibold text-red-500"></p>'
     + '<button id="userAuthSubmitBtn" type="submit" class="w-full btn-primary text-white py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2"><i class="fas fa-shield-alt"></i>' + action + '</button>'
     + '</form>'
     + '<div class="w-full text-center text-sm font-semibold"><span class="text-gray-500">' + switchText + '</span> <button type="button" onclick="renderUserAuthForm(\\'' + switchMode + '\\')" class="text-pink-500 hover:text-pink-600 transition">' + switchLabel + '</button></div>'
     + '</div>'
+  setTimeout(() => { renderUserAuthTurnstile() }, 0)
 }
 
 function setUserAuthError(message) {
@@ -2689,8 +2770,14 @@ function getUserAuthPayload(includePhone) {
     setUserAuthError('Số điện thoại không hợp lệ.')
     return null
   }
+  if (userAuthTurnstileEnabled && !getUserAuthTurnstileToken()) {
+    setUserAuthError('Vui lòng xác minh bảo mật trước khi tiếp tục.')
+    return null
+  }
   setUserAuthError('')
-  return includePhone ? { username, password, phone } : { username, password }
+  return includePhone
+    ? { username, password, phone, turnstile_token: getUserAuthTurnstileToken() }
+    : { username, password, turnstile_token: getUserAuthTurnstileToken() }
 }
 
 function applyAuthenticatedUser(user) {
@@ -2705,6 +2792,7 @@ function applyAuthenticatedUser(user) {
 
 async function submitUserLogin(event) {
   event.preventDefault()
+  await renderUserAuthTurnstile()
   const payload = getUserAuthPayload(false)
   if (!payload) return
   setUserAuthBusy(true)
@@ -2713,7 +2801,11 @@ async function submitUserLogin(event) {
     applyAuthenticatedUser(res.data.data)
     showToast('Đăng nhập thành công', 'success', 2500)
   } catch (err) {
-    setUserAuthError('Sai username hoặc mật khẩu.')
+    const code = err.response?.data?.error
+    setUserAuthError(code === 'TURNSTILE_REQUIRED' || code === 'TURNSTILE_INVALID'
+      ? 'Xác minh bảo mật không hợp lệ, vui lòng thử lại.'
+      : 'Sai username hoặc mật khẩu.')
+    resetUserAuthTurnstile()
   } finally {
     setUserAuthBusy(false)
   }
@@ -2721,6 +2813,7 @@ async function submitUserLogin(event) {
 
 async function submitUserRegister(event) {
   event.preventDefault()
+  await renderUserAuthTurnstile()
   const payload = getUserAuthPayload(true)
   if (!payload) return
   setUserAuthBusy(true)
@@ -2739,7 +2832,9 @@ async function submitUserRegister(event) {
       showBlockedCustomerModal(reason || 'Bạn không thể tạo tài khoản do bom hàng nhiều lần, liên hệ shop để được hỗ trợ nhanh.')
     }
     else if (code === 'ACCOUNT_LIMIT_REACHED') setUserAuthError(reason || 'Bạn chỉ có thể tạo tối đa 3 tài khoản. Liên hệ shop nếu cần hỗ trợ.')
+    else if (code === 'TURNSTILE_REQUIRED' || code === 'TURNSTILE_INVALID') setUserAuthError('Xác minh bảo mật không hợp lệ, vui lòng thử lại.')
     else setUserAuthError('Không thể đăng ký. Vui lòng thử lại.')
+    resetUserAuthTurnstile()
   } finally {
     setUserAuthBusy(false)
   }

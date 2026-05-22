@@ -140,6 +140,60 @@ function getClientIp(c: any) {
   return forwarded || ''
 }
 
+async function getTurnstileConfig(c: any) {
+  const config = await getRuntimeConfigValues(c.env.DB, c.env, [
+    'TURNSTILE_SITE_KEY',
+    'TURNSTILE_SECRET_KEY'
+  ])
+  const siteKey = String(config.TURNSTILE_SITE_KEY || '').trim()
+  const secretKey = String(config.TURNSTILE_SECRET_KEY || '').trim()
+  return {
+    siteKey,
+    secretKey,
+    enabled: !!siteKey && !!secretKey
+  }
+}
+
+function getTurnstileToken(body: any) {
+  return String(body?.turnstile_token || body?.['cf-turnstile-response'] || '').trim()
+}
+
+async function verifyTurnstileToken(secretKey: string, token: string, remoteIp: string) {
+  if (!secretKey || !token) return false
+  const form = new FormData()
+  form.set('secret', secretKey)
+  form.set('response', token)
+  if (remoteIp) form.set('remoteip', remoteIp)
+  try {
+    const res = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+      method: 'POST',
+      body: form
+    })
+    if (!res.ok) return false
+    const data = await res.json() as { success?: boolean }
+    return data.success === true
+  } catch (e) {
+    console.error('[auth] turnstile verify failed', e)
+    return false
+  }
+}
+
+async function enforceTurnstile(c: any, body: any, action: string) {
+  const config = await getTurnstileConfig(c)
+  if (!config.enabled) return { ok: true }
+  const token = getTurnstileToken(body)
+  if (!token) {
+    console.warn('[auth] turnstile token missing for', action)
+    return { ok: false, status: 400, error: 'TURNSTILE_REQUIRED' }
+  }
+  const verified = await verifyTurnstileToken(config.secretKey, token, getClientIp(c))
+  if (!verified) {
+    console.warn('[auth] turnstile token invalid for', action)
+    return { ok: false, status: 403, error: 'TURNSTILE_INVALID' }
+  }
+  return { ok: true }
+}
+
 async function buildRegistrationIdentities(c: any, phone: string) {
   const identities: Array<{ type: 'phone' | 'ip_hash', value: string }> = []
   const identityPhone = normalizeIdentityPhone(phone)
@@ -269,6 +323,18 @@ async function getGoogleOAuthConfig(c: any) {
 }
 
 export function registerAuthRoutes(app: Hono<{ Bindings: AppBindings }>, deps: AuthRouteDeps) {
+  app.get('/api/auth/turnstile-config', async (c) => {
+    await deps.initDB(c.env.DB)
+    const config = await getTurnstileConfig(c)
+    return c.json({
+      success: true,
+      data: {
+        enabled: config.enabled,
+        site_key: config.enabled ? config.siteKey : ''
+      }
+    })
+  })
+
   app.get('/api/admin/profile', async (c) => {
     try {
       await deps.initDB(c.env.DB)
@@ -338,6 +404,10 @@ export function registerAuthRoutes(app: Hono<{ Bindings: AppBindings }>, deps: A
   app.post('/api/admin/login', async (c) => {
     await deps.initDB(c.env.DB)
     const body = await c.req.json()
+    const turnstile = await enforceTurnstile(c, body, 'admin_login')
+    if (!turnstile.ok) {
+      return c.json({ success: false, error: turnstile.error }, turnstile.status as any)
+    }
     const username = String(body?.username || '')
     const password = String(body?.password || '')
     const adminKey = deps.normalizeAdminUserKey(username)
@@ -414,6 +484,10 @@ export function registerAuthRoutes(app: Hono<{ Bindings: AppBindings }>, deps: A
   app.post('/api/auth/register', async (c) => {
     await deps.initDB(c.env.DB)
     const body: any = await c.req.json().catch(() => ({}))
+    const turnstile = await enforceTurnstile(c, body, 'user_register')
+    if (!turnstile.ok) {
+      return c.json({ success: false, error: turnstile.error }, turnstile.status as any)
+    }
     const username = normalizeStorefrontUsername(body.username)
     const password = String(body.password || '')
     const phone = normalizeStorefrontPhone(body.phone)
@@ -465,6 +539,10 @@ export function registerAuthRoutes(app: Hono<{ Bindings: AppBindings }>, deps: A
   app.post('/api/auth/login', async (c) => {
     await deps.initDB(c.env.DB)
     const body: any = await c.req.json().catch(() => ({}))
+    const turnstile = await enforceTurnstile(c, body, 'user_login')
+    if (!turnstile.ok) {
+      return c.json({ success: false, error: turnstile.error }, turnstile.status as any)
+    }
     const username = normalizeStorefrontUsername(body.username)
     const password = String(body.password || '')
     if (!isValidStorefrontUsername(username) || !password) {

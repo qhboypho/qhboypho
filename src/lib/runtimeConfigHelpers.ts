@@ -4,6 +4,8 @@ const RUNTIME_CONFIG_KEYS = {
   GOOGLE_CLIENT_ID: 'google_client_id',
   GOOGLE_CLIENT_SECRET: 'google_client_secret',
   GOOGLE_REDIRECT_URI: 'google_redirect_uri',
+  TURNSTILE_SITE_KEY: 'turnstile_site_key',
+  TURNSTILE_SECRET_KEY: 'turnstile_secret_key',
   CASSO_SECURE_TOKEN: 'casso_secure_token',
   PAYOS_CLIENT_ID: 'payos_client_id',
   PAYOS_API_KEY: 'payos_api_key',

@@ -4,6 +4,8 @@ export type AppBindings = CloudflareBindings & {
   GOOGLE_CLIENT_ID?: string
   GOOGLE_CLIENT_SECRET?: string
   GOOGLE_REDIRECT_URI?: string
+  TURNSTILE_SITE_KEY?: string
+  TURNSTILE_SECRET_KEY?: string
   CASSO_SECURE_TOKEN?: string
   PAYOS_CLIENT_ID?: string
   PAYOS_API_KEY?: string
