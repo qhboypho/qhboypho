@@ -1,6 +1,7 @@
 export function adminFeaturedSettingsScript(): string {
   return `let allProductsForFeatured = []
 let featuredOrderMap = {} // { productId: displayOrder }
+let customShippingCarriers = []
 
 async function loadFeaturedAdmin() {
   const listEl = document.getElementById('featuredProductsList')
@@ -188,6 +189,11 @@ function fillGhtkPickupConfig(cfg) {
   const spxSecretKeyInput = document.getElementById('spxSecretKey')
   const spxAccountIdInput = document.getElementById('spxAccountId')
   const spxCredentialHint = document.getElementById('spxCredentialHint')
+  const ghn = cfg.ghn || {}
+  const ghnTokenInput = document.getElementById('ghnToken')
+  const ghnShopIdInput = document.getElementById('ghnShopId')
+  const ghnClientIdInput = document.getElementById('ghnClientId')
+  const ghnCredentialHint = document.getElementById('ghnCredentialHint')
   if (tokenInput) tokenInput.value = cfg.token || ''
   if (clientSourceInput) clientSourceInput.value = cfg.clientSource || ''
   if (credentialHint) {
@@ -203,6 +209,15 @@ function fillGhtkPickupConfig(cfg) {
       ? 'Đã có key SPX Express lưu trong cấu hình.'
       : 'Thiếu User ID, Secret Key hoặc Account ID thì chưa thể bật tạo vận đơn SPX.'
   }
+  if (ghnTokenInput) ghnTokenInput.value = ghn.token || ''
+  if (ghnShopIdInput) ghnShopIdInput.value = ghn.shopId || ''
+  if (ghnClientIdInput) ghnClientIdInput.value = ghn.clientId || ''
+  if (ghnCredentialHint) {
+    ghnCredentialHint.textContent = ghn.token && ghn.shopId
+      ? 'Đã có key GHN lưu trong cấu hình.'
+      : 'Thiếu API token hoặc Shop ID thì chưa thể tạo vận đơn GHN.'
+  }
+  renderShippingCarrierRegistry(cfg.shipping_carriers || [])
   document.getElementById('ghtkPickupAddressId').value = cfg.pickAddressId || ''
   document.getElementById('ghtkPickName').value = cfg.pickName || ''
   document.getElementById('ghtkPickTel').value = cfg.pickTel || ''
@@ -268,6 +283,11 @@ async function saveGhtkPickupConfig() {
     spx_user_id: document.getElementById('spxUserId')?.value.trim() || '',
     spx_secret_key: document.getElementById('spxSecretKey')?.value.trim() || '',
     spx_account_id: document.getElementById('spxAccountId')?.value.trim() || '',
+    ghn_token: document.getElementById('ghnToken')?.value.trim() || '',
+    ghn_shop_id: document.getElementById('ghnShopId')?.value.trim() || '',
+    ghn_client_id: document.getElementById('ghnClientId')?.value.trim() || '',
+    shipping_carrier_enabled_codes: getEnabledShippingCarrierCodes(),
+    shipping_carrier_custom_definitions: customShippingCarriers,
     pick_address_id: document.getElementById('ghtkPickupAddressId').value.trim(),
     pick_name: document.getElementById('ghtkPickName').value.trim(),
     pick_tel: document.getElementById('ghtkPickTel').value.trim(),
@@ -280,12 +300,13 @@ async function saveGhtkPickupConfig() {
   btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang lưu...'
   try {
     await axios.put('/api/admin/ghtk/pickup-config', payload)
-    showAdminToast('Đã lưu cấu hình kho GHTK', 'success')
+    if (typeof shippingCarrierOptionsLoaded !== 'undefined') shippingCarrierOptionsLoaded = false
+    showAdminToast('Đã lưu cấu hình kho vận chuyển', 'success')
   } catch (e) {
     showAdminToast('Lưu cấu hình kho thất bại', 'error')
   } finally {
     btn.disabled = false
-    btn.innerHTML = '<i class="fas fa-save"></i>Lưu cấu hình kho GHTK'
+    btn.innerHTML = '<i class="fas fa-save"></i>Lưu cấu hình kho vận chuyển'
   }
 }
 
@@ -346,6 +367,89 @@ async function saveSocialSettings() {
     btn.disabled = false
     btn.innerHTML = '<i class=\"fas fa-save\"></i>Lưu cấu hình MXH'
   }
+}
+
+function normalizeAdminCarrierCode(value) {
+  return String(value || '').trim().toUpperCase().replace(/[^A-Z0-9_]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 24)
+}
+
+function escapeCarrierHtml(text) {
+  const div = document.createElement('div')
+  div.textContent = String(text || '')
+  return div.innerHTML
+}
+
+function renderShippingCarrierRegistry(carriers) {
+  const list = document.getElementById('shippingCarrierRegistryList')
+  if (!list) return
+  const rows = Array.isArray(carriers) && carriers.length
+    ? carriers
+    : [
+      { code: 'GHTK', label: 'GHTK', enabled: true, builtIn: true },
+      { code: 'SPX', label: 'SPX Express', enabled: true, builtIn: true },
+      { code: 'GHN', label: 'GHN', enabled: true, builtIn: true }
+    ]
+  customShippingCarriers = rows.filter(item => !item.builtIn).map(item => ({
+    code: normalizeAdminCarrierCode(item.code),
+    label: String(item.label || item.code || '').trim(),
+    enabled: item.enabled !== false
+  }))
+  list.innerHTML = rows.map(item => {
+    const code = normalizeAdminCarrierCode(item.code)
+    const checked = item.enabled !== false ? 'checked' : ''
+    const removable = item.builtIn ? '' : '<button type="button" onclick="removeCustomShippingCarrier(\\'' + code + '\\')" class="text-xs font-semibold text-red-500 hover:text-red-600">Xóa</button>'
+    return '<div class="flex items-center justify-between gap-3 rounded-xl border border-gray-200 bg-white px-3 py-2">' +
+      '<label class="flex items-center gap-3 min-w-0">' +
+        '<input type="checkbox" id="shippingCarrierEnabled_' + code + '" class="rounded border-gray-300 text-pink-500 focus:ring-pink-400" ' + checked + '>' +
+        '<span class="min-w-0"><span class="block text-sm font-bold text-gray-800">' + escapeCarrierHtml(item.label || code) + '</span><span class="block text-xs text-gray-400">' + code + (item.adapter === false ? ' · chưa có adapter API' : '') + '</span></span>' +
+      '</label>' +
+      removable +
+    '</div>'
+  }).join('')
+}
+
+function getEnabledShippingCarrierCodes() {
+  const boxes = Array.from(document.querySelectorAll('[id^="shippingCarrierEnabled_"]'))
+  return boxes.filter(box => box.checked).map(box => normalizeAdminCarrierCode(String(box.id || '').replace('shippingCarrierEnabled_', ''))).filter(Boolean)
+}
+
+function addCustomShippingCarrier() {
+  const codeInput = document.getElementById('customShippingCarrierCode')
+  const labelInput = document.getElementById('customShippingCarrierLabel')
+  const code = normalizeAdminCarrierCode(codeInput?.value || '')
+  const label = String(labelInput?.value || '').trim()
+  if (!code || !label) {
+    showAdminToast('Nhập mã và tên đơn vị vận chuyển trước', 'warning')
+    return
+  }
+  if (['GHTK', 'SPX', 'GHN'].includes(code) || customShippingCarriers.some(item => item.code === code)) {
+    showAdminToast('Mã đơn vị vận chuyển đã tồn tại', 'warning')
+    return
+  }
+  customShippingCarriers.push({ code, label, enabled: true })
+  const builtIns = ['GHTK', 'SPX', 'GHN'].map(code => ({
+    code,
+    label: code === 'SPX' ? 'SPX Express' : code,
+    enabled: !!document.getElementById('shippingCarrierEnabled_' + code)?.checked,
+    builtIn: true,
+    adapter: true
+  }))
+  renderShippingCarrierRegistry(builtIns.concat(customShippingCarriers))
+  if (codeInput) codeInput.value = ''
+  if (labelInput) labelInput.value = ''
+}
+
+function removeCustomShippingCarrier(code) {
+  const normalized = normalizeAdminCarrierCode(code)
+  customShippingCarriers = customShippingCarriers.filter(item => item.code !== normalized)
+  const rows = ['GHTK', 'SPX', 'GHN'].map(code => ({
+    code,
+    label: code === 'SPX' ? 'SPX Express' : code,
+    enabled: !!document.getElementById('shippingCarrierEnabled_' + code)?.checked,
+    builtIn: true,
+    adapter: true
+  })).concat(customShippingCarriers)
+  renderShippingCarrierRegistry(rows)
 }
 
 const DEFAULT_MARQUEE_NOTIFICATION_TEXT = 'Mua hàng tại đây không qua sàn thương mại nên giá thành sản phẩm sẽ rẻ hơn rất nhiều và bảo hành hoàn trả trong vòng 7 ngày nếu sản phẩm bị lỗi nên quý khách yên tâm mua sắm nhé.Bảo hành đổi trả nhắn qua trang facebook : QH Boypho. Chúc quý khách có trải nghiệm mua sắm tốt tại QH Clothes'

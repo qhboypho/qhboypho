@@ -1,7 +1,7 @@
 import type { Hono } from 'hono'
 import type { AppBindings } from '../types/app'
 import type { AppSettingEntry } from '../types/admin'
-import type { GhtkPickupConfig, GhtkPickupAddressFetchResult, SpxConfig } from '../lib/shippingHelpers'
+import type { GhtkPickupConfig, GhtkPickupAddressFetchResult, GhnConfig, ShippingCarrierDefinition, SpxConfig } from '../lib/shippingHelpers'
 
 type HeroBannerInput = {
   image_url?: unknown
@@ -19,6 +19,11 @@ type PickupConfigInput = {
   spx_user_id?: unknown
   spx_secret_key?: unknown
   spx_account_id?: unknown
+  ghn_token?: unknown
+  ghn_shop_id?: unknown
+  ghn_client_id?: unknown
+  shipping_carrier_enabled_codes?: unknown
+  shipping_carrier_custom_definitions?: unknown
   pick_address_id?: unknown
   pick_name?: unknown
   pick_address?: unknown
@@ -75,6 +80,9 @@ type AdminUtilityRouteDeps = {
   initDB: (db: D1Database) => Promise<void>
   getGhtkPickupConfig: (db: D1Database, env: AppBindings) => Promise<GhtkPickupConfig>
   getSpxConfig: (db: D1Database, env: AppBindings) => Promise<SpxConfig>
+  getGhnConfig: (db: D1Database, env: AppBindings) => Promise<GhnConfig>
+  getAllShippingCarriers: (db: D1Database) => Promise<ShippingCarrierDefinition[]>
+  getAvailableShippingCarriers: (db: D1Database) => Promise<ShippingCarrierDefinition[]>
   upsertAppSettings: (db: D1Database, entries: AppSettingEntry[]) => Promise<void>
   ghtkFetchPickupAddresses: (env: AppBindings, db: D1Database) => Promise<GhtkPickupAddressFetchResult>
 }
@@ -253,22 +261,38 @@ export function registerAdminUtilityRoutes(app: Hono<{ Bindings: AppBindings }>,
     return c.json({ success: true })
   })
 
+  app.get('/api/admin/shipping/carriers', async (c) => {
+    try {
+      await deps.initDB(c.env.DB)
+      const carriers = await deps.getAvailableShippingCarriers(c.env.DB)
+      return c.json({ success: true, data: carriers })
+    } catch (e: any) {
+      return c.json({ success: false, error: e.message }, 500)
+    }
+  })
+
   app.get('/api/admin/ghtk/pickup-config', async (c) => {
     try {
       await deps.initDB(c.env.DB)
       const config = await deps.getGhtkPickupConfig(c.env.DB, c.env)
       const spxConfig = await deps.getSpxConfig(c.env.DB, c.env)
+      const ghnConfig = await deps.getGhnConfig(c.env.DB, c.env)
+      const shippingCarriers = await deps.getAllShippingCarriers(c.env.DB)
       const hasToken = !!String(c.env.GHTK_TOKEN || config.token || '').trim()
       const hasClientSource = !!String(c.env.GHTK_CLIENT_SOURCE || config.clientSource || '').trim()
       const hasSpxKeys = !!spxConfig.userId && !!spxConfig.secretKey && !!spxConfig.accountId
+      const hasGhnKeys = !!ghnConfig.token && !!ghnConfig.shopId
       return c.json({
         success: true,
         data: {
           ...config,
-          spx: spxConfig
+          spx: spxConfig,
+          ghn: ghnConfig,
+          shipping_carriers: shippingCarriers
         },
         has_ghtk_keys: hasToken && hasClientSource,
-        has_spx_keys: hasSpxKeys
+        has_spx_keys: hasSpxKeys,
+        has_ghn_keys: hasGhnKeys
       })
     } catch (e: any) {
       return c.json({ success: false, error: e.message }, 500)
@@ -280,12 +304,32 @@ export function registerAdminUtilityRoutes(app: Hono<{ Bindings: AppBindings }>,
       await deps.initDB(c.env.DB)
       const body: PickupConfigInput = await c.req.json<PickupConfigInput>().catch(() => ({} as PickupConfigInput))
       const sanitize = (value: unknown, max = 200) => String(value || '').trim().slice(0, max)
+      const sanitizeCarrierCodes = (value: unknown) => {
+        const raw = Array.isArray(value) ? value : []
+        const codes = raw.map((item) => String(item || '').trim().toUpperCase().replace(/[^A-Z0-9_]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 24)).filter(Boolean)
+        return JSON.stringify(Array.from(new Set(codes)))
+      }
+      const sanitizeCustomCarriers = (value: unknown) => {
+        const raw = Array.isArray(value) ? value : []
+        const items = raw.map((item: any) => {
+          const code = String(item?.code || '').trim().toUpperCase().replace(/[^A-Z0-9_]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 24)
+          const label = sanitize(item?.label || code, 80)
+          if (!code || ['GHTK', 'SPX', 'GHN'].includes(code)) return null
+          return { code, label: label || code, enabled: item?.enabled !== false }
+        }).filter(Boolean)
+        return JSON.stringify(items)
+      }
       const payload = {
         token: sanitize(body.ghtk_token, 500),
         clientSource: sanitize(body.ghtk_client_source, 120),
         spxUserId: sanitize(body.spx_user_id, 120),
         spxSecretKey: sanitize(body.spx_secret_key, 500),
         spxAccountId: sanitize(body.spx_account_id, 120),
+        ghnToken: sanitize(body.ghn_token, 500),
+        ghnShopId: sanitize(body.ghn_shop_id, 120),
+        ghnClientId: sanitize(body.ghn_client_id, 120),
+        enabledCarrierCodes: sanitizeCarrierCodes(body.shipping_carrier_enabled_codes),
+        customCarrierDefinitions: sanitizeCustomCarriers(body.shipping_carrier_custom_definitions),
         pickAddressId: sanitize(body.pick_address_id, 80),
         pickName: sanitize(body.pick_name, 120),
         pickAddress: sanitize(body.pick_address, 220),
@@ -300,6 +344,11 @@ export function registerAdminUtilityRoutes(app: Hono<{ Bindings: AppBindings }>,
         { key: 'spx_user_id', value: payload.spxUserId },
         { key: 'spx_secret_key', value: payload.spxSecretKey },
         { key: 'spx_account_id', value: payload.spxAccountId },
+        { key: 'ghn_token', value: payload.ghnToken },
+        { key: 'ghn_shop_id', value: payload.ghnShopId },
+        { key: 'ghn_client_id', value: payload.ghnClientId },
+        { key: 'shipping_carrier_enabled_codes', value: payload.enabledCarrierCodes },
+        { key: 'shipping_carrier_custom_definitions', value: payload.customCarrierDefinitions },
         { key: 'ghtk_pick_address_id', value: payload.pickAddressId },
         { key: 'ghtk_pick_name', value: payload.pickName },
         { key: 'ghtk_pick_address', value: payload.pickAddress },

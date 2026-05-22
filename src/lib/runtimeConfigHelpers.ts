@@ -27,7 +27,14 @@ const RUNTIME_CONFIG_KEYS = {
   SPX_SECRET_KEY: 'spx_secret_key',
   SPX_ACCOUNT_ID: 'spx_account_id',
   SPX_CREATE_ORDER_ENDPOINT: 'spx_create_order_endpoint',
-  SPX_LABEL_ENDPOINT: 'spx_label_endpoint'
+  SPX_LABEL_ENDPOINT: 'spx_label_endpoint',
+  GHN_TOKEN: 'ghn_token',
+  GHN_SHOP_ID: 'ghn_shop_id',
+  GHN_CLIENT_ID: 'ghn_client_id',
+  GHN_DEFAULT_WEIGHT_GRAM: 'ghn_default_weight_gram',
+  GHN_DEFAULT_LENGTH_CM: 'ghn_default_length_cm',
+  GHN_DEFAULT_WIDTH_CM: 'ghn_default_width_cm',
+  GHN_DEFAULT_HEIGHT_CM: 'ghn_default_height_cm'
 } as const
 
 type RuntimeConfigKey = keyof typeof RUNTIME_CONFIG_KEYS

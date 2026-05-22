@@ -35,8 +35,13 @@ import {
 } from './lib/paymentHelpers'
 import {
   buildInternalTestOrderWhereSql,
+  getAllShippingCarriers,
+  getAvailableShippingCarriers,
   getGhtkPickupConfig,
+  getGhnConfig,
   getSpxConfig,
+  ghnCreateShipment,
+  ghnFetchLabelPdf,
   ghtkCancelShipment,
   ghtkCreateShipment,
   ghtkFetchLabelPdf,
@@ -106,6 +111,9 @@ registerOrderRoutes(app, {
   ghtkFetchLabelPdf,
   spxCreateShipment,
   spxFetchLabelPdf,
+  ghnCreateShipment,
+  ghnFetchLabelPdf,
+  getAvailableShippingCarriers,
   mergePdfBytes
 })
 
@@ -121,6 +129,9 @@ registerAdminUtilityRoutes(app, {
   initDB,
   getGhtkPickupConfig,
   getSpxConfig,
+  getGhnConfig,
+  getAllShippingCarriers,
+  getAvailableShippingCarriers,
   upsertAppSettings,
   ghtkFetchPickupAddresses
 })

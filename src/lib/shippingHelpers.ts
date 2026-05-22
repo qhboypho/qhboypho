@@ -37,6 +37,104 @@ export type SpxConfig = {
   labelEndpoint: string
 }
 
+export type GhnConfig = {
+  token: string
+  shopId: string
+  clientId: string
+  defaultWeightGram: string
+  defaultLengthCm: string
+  defaultWidthCm: string
+  defaultHeightCm: string
+}
+
+export type ShippingCarrierDefinition = {
+  code: string
+  label: string
+  enabled: boolean
+  builtIn: boolean
+  adapter: boolean
+}
+
+const SHIPPING_CARRIER_ENABLED_CODES_KEY = 'shipping_carrier_enabled_codes'
+const SHIPPING_CARRIER_CUSTOM_DEFINITIONS_KEY = 'shipping_carrier_custom_definitions'
+
+const BUILT_IN_SHIPPING_CARRIERS: ShippingCarrierDefinition[] = [
+  { code: 'GHTK', label: 'GHTK', enabled: true, builtIn: true, adapter: true },
+  { code: 'SPX', label: 'SPX Express', enabled: true, builtIn: true, adapter: true },
+  { code: 'GHN', label: 'GHN', enabled: true, builtIn: true, adapter: true }
+]
+
+export function normalizeShippingCarrierCode(value: unknown) {
+  const code = String(value || '').trim().toUpperCase().replace(/[^A-Z0-9_]+/g, '_').replace(/^_+|_+$/g, '')
+  return code.slice(0, 24) || 'GHTK'
+}
+
+function parseJsonArray(value: unknown): any[] {
+  try {
+    const parsed = JSON.parse(String(value || '[]'))
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+function normalizeEnabledCarrierCodes(value: unknown) {
+  const raw = String(value || '').trim()
+  if (!raw) return new Set(BUILT_IN_SHIPPING_CARRIERS.map((item) => item.code))
+  const codes = parseJsonArray(raw).map(normalizeShippingCarrierCode).filter(Boolean)
+  return new Set(codes)
+}
+
+function normalizeCustomShippingCarriers(value: unknown): ShippingCarrierDefinition[] {
+  return parseJsonArray(value)
+    .map((item) => {
+      const code = normalizeShippingCarrierCode(item?.code)
+      const label = String(item?.label || code).trim().slice(0, 80)
+      if (!code || BUILT_IN_SHIPPING_CARRIERS.some((carrier) => carrier.code === code)) return null
+      return {
+        code,
+        label: label || code,
+        enabled: item?.enabled !== false,
+        builtIn: false,
+        adapter: false
+      }
+    })
+    .filter(Boolean) as ShippingCarrierDefinition[]
+}
+
+async function getShippingCarrierSettings(db: D1Database) {
+  const rows = await db.prepare(`
+    SELECT key, value
+    FROM app_settings
+    WHERE key IN (?, ?)
+  `).bind(SHIPPING_CARRIER_ENABLED_CODES_KEY, SHIPPING_CARRIER_CUSTOM_DEFINITIONS_KEY).all()
+  const map = new Map<string, string>()
+  for (const row of (rows.results || []) as any[]) {
+    map.set(String(row.key || ''), String(row.value || '').trim())
+  }
+  return {
+    enabledCodes: normalizeEnabledCarrierCodes(map.get(SHIPPING_CARRIER_ENABLED_CODES_KEY)),
+    customCarriers: normalizeCustomShippingCarriers(map.get(SHIPPING_CARRIER_CUSTOM_DEFINITIONS_KEY))
+  }
+}
+
+export async function getAllShippingCarriers(db: D1Database): Promise<ShippingCarrierDefinition[]> {
+  const settings = await getShippingCarrierSettings(db)
+  const builtIns = BUILT_IN_SHIPPING_CARRIERS.map((carrier) => ({
+    ...carrier,
+    enabled: settings.enabledCodes.has(carrier.code)
+  }))
+  const custom = settings.customCarriers.map((carrier) => ({
+    ...carrier,
+    enabled: carrier.enabled && settings.enabledCodes.has(carrier.code)
+  }))
+  return [...builtIns, ...custom]
+}
+
+export async function getAvailableShippingCarriers(db: D1Database): Promise<ShippingCarrierDefinition[]> {
+  return (await getAllShippingCarriers(db)).filter((carrier) => carrier.enabled)
+}
+
 export async function getGhtkApiCredentials(db: D1Database, env: AppBindings) {
   const config = await getRuntimeConfigValues(db, env, ['GHTK_TOKEN', 'GHTK_CLIENT_SOURCE'])
   return {
@@ -62,6 +160,27 @@ export async function getSpxConfig(db: D1Database, env: AppBindings): Promise<Sp
   }
 }
 
+export async function getGhnConfig(db: D1Database, env: AppBindings): Promise<GhnConfig> {
+  const config = await getRuntimeConfigValues(db, env, [
+    'GHN_TOKEN',
+    'GHN_SHOP_ID',
+    'GHN_CLIENT_ID',
+    'GHN_DEFAULT_WEIGHT_GRAM',
+    'GHN_DEFAULT_LENGTH_CM',
+    'GHN_DEFAULT_WIDTH_CM',
+    'GHN_DEFAULT_HEIGHT_CM'
+  ])
+  return {
+    token: config.GHN_TOKEN || '',
+    shopId: config.GHN_SHOP_ID || '',
+    clientId: config.GHN_CLIENT_ID || '',
+    defaultWeightGram: config.GHN_DEFAULT_WEIGHT_GRAM || '500',
+    defaultLengthCm: config.GHN_DEFAULT_LENGTH_CM || '20',
+    defaultWidthCm: config.GHN_DEFAULT_WIDTH_CM || '15',
+    defaultHeightCm: config.GHN_DEFAULT_HEIGHT_CM || '5'
+  }
+}
+
 export async function spxCreateShipment(env: AppBindings, db: D1Database, order: any) {
   const config = await getSpxConfig(db, env)
   if (!config.userId || !config.secretKey || !config.accountId) {
@@ -80,7 +199,7 @@ export async function spxCreateShipment(env: AppBindings, db: D1Database, order:
   }
 }
 
-export async function spxFetchLabelPdf(env: AppBindings, db: D1Database, trackingCode: string) {
+export async function spxFetchLabelPdf(env: AppBindings, db: D1Database, trackingCode: string): Promise<Uint8Array> {
   const config = await getSpxConfig(db, env)
   if (!config.userId || !config.secretKey || !config.accountId) {
     throw new Error('MISSING_SPX_KEYS')
@@ -89,6 +208,167 @@ export async function spxFetchLabelPdf(env: AppBindings, db: D1Database, trackin
     throw new Error('SPX_LABEL_ENDPOINT_NOT_CONFIGURED')
   }
   throw new Error('SPX_LABEL_FETCH_NOT_IMPLEMENTED:' + String(trackingCode || '').trim())
+}
+
+const GHN_API_BASE_URL = 'https://online-gateway.ghn.vn/shiip/public-api'
+const GHN_PRINT_A5_URL = 'https://online-gateway.ghn.vn/a5/public-api/printA5'
+
+function numberOrDefault(value: unknown, fallback: number) {
+  const n = Number(value)
+  return Number.isFinite(n) && n > 0 ? n : fallback
+}
+
+async function ghnFetchJson(path: string, config: GhnConfig, body?: Record<string, unknown>) {
+  const resp = await fetch(GHN_API_BASE_URL + path, {
+    method: body ? 'POST' : 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      'Token': config.token,
+      'ShopId': config.shopId
+    },
+    body: body ? JSON.stringify(body) : undefined
+  })
+  const data: any = await resp.json().catch(() => ({}))
+  if (!resp.ok || Number(data?.code || 0) >= 300) {
+    throw new Error(String(data?.message || data?.code_message_value || 'GHN_API_FAILED'))
+  }
+  return data
+}
+
+function findGhnAddressMatch<T extends Record<string, any>>(rows: T[], fields: string[], target: string) {
+  const normalizedTarget = normalizeAddressToken(target)
+  if (!normalizedTarget) return null
+  return rows.find((row) => fields.some((field) => normalizeAddressToken(String(row?.[field] || '')) === normalizedTarget))
+    || rows.find((row) => fields.some((field) => {
+      const source = normalizeAddressToken(String(row?.[field] || ''))
+      return source && (source.includes(normalizedTarget) || normalizedTarget.includes(source))
+    }))
+    || null
+}
+
+async function resolveGhnRecipientAddress(config: GhnConfig, rawAddress: string) {
+  const parsed = parseVietnamAddress(rawAddress)
+  if (!parsed) return null
+
+  const provinces = await ghnFetchJson('/master-data/province', config)
+  const provinceRows = Array.isArray(provinces?.data) ? provinces.data : []
+  const province = findGhnAddressMatch(provinceRows, ['ProvinceName', 'Name'], parsed.province)
+  const provinceId = Number(province?.ProvinceID || province?.ProvinceId || province?.ID || 0)
+  if (!provinceId) return null
+
+  const districts = await ghnFetchJson('/master-data/district', config, { province_id: provinceId })
+  const districtRows = Array.isArray(districts?.data) ? districts.data : []
+  const district = findGhnAddressMatch(districtRows, ['DistrictName', 'Name'], parsed.district)
+  const districtId = Number(district?.DistrictID || district?.DistrictId || district?.ID || 0)
+  if (!districtId) return null
+
+  const wards = await ghnFetchJson('/master-data/ward', config, { district_id: districtId })
+  const wardRows = Array.isArray(wards?.data) ? wards.data : []
+  const ward = findGhnAddressMatch(wardRows, ['WardName', 'Name'], parsed.ward)
+  const wardCode = String(ward?.WardCode || ward?.Code || '').trim()
+  if (!wardCode) return null
+
+  return {
+    ...parsed,
+    to_district_id: districtId,
+    to_ward_code: wardCode
+  }
+}
+
+export async function ghnCreateShipment(env: AppBindings, db: D1Database, order: any) {
+  const config = await getGhnConfig(db, env)
+  if (!config.token || !config.shopId) return { ok: false, message: 'MISSING_GHN_KEYS' }
+
+  const pickup = await getGhtkPickupConfig(db, env)
+  if (!pickup.pickName || !pickup.pickTel || !pickup.pickAddress || !pickup.pickWard || !pickup.pickDistrict || !pickup.pickProvince) {
+    return { ok: false, message: 'MISSING_GHN_PICKUP_CONFIG' }
+  }
+
+  let recipientAddress: any
+  try {
+    recipientAddress = await resolveGhnRecipientAddress(config, String(order?.customer_address || ''))
+  } catch (e: any) {
+    return { ok: false, message: 'GHN_ADDRESS_LOOKUP_FAILED', detail: e?.message || e }
+  }
+  if (!recipientAddress) return { ok: false, message: 'GHN_ADDRESS_LOOKUP_FAILED' }
+
+  const amountDue = Math.max(0, Math.round(getOrderAmountDueServer(order)))
+  const productName = String(order?.product_name || 'San pham').slice(0, 120)
+  const quantity = Math.max(1, Number(order?.quantity || 1) || 1)
+  const payload = {
+    payment_type_id: 2,
+    required_note: 'CHOXEMHANGKHONGTHU',
+    from_name: pickup.pickName,
+    from_phone: pickup.pickTel,
+    from_address: pickup.pickAddress,
+    from_ward_name: pickup.pickWard,
+    from_district_name: pickup.pickDistrict,
+    from_province_name: pickup.pickProvince,
+    to_name: String(order?.customer_name || '').slice(0, 120),
+    to_phone: String(order?.customer_phone || ''),
+    to_address: recipientAddress.detail,
+    to_ward_code: recipientAddress.to_ward_code,
+    to_district_id: recipientAddress.to_district_id,
+    cod_amount: amountDue,
+    content: productName,
+    weight: numberOrDefault(config.defaultWeightGram, 500),
+    length: numberOrDefault(config.defaultLengthCm, 20),
+    width: numberOrDefault(config.defaultWidthCm, 15),
+    height: numberOrDefault(config.defaultHeightCm, 5),
+    service_type_id: 2,
+    items: [
+      {
+        name: productName,
+        quantity,
+        price: Math.max(0, Math.round(Number(order?.total_price || 0))),
+        weight: numberOrDefault(config.defaultWeightGram, 500)
+      }
+    ],
+    note: String(order?.note || '').slice(0, 500)
+  }
+
+  try {
+    const body = await ghnFetchJson('/v2/shipping-order/create', config, payload)
+    const data = body?.data || {}
+    const orderCode = String(data.order_code || data.tracking_code || '').trim()
+    if (!orderCode) return { ok: false, message: 'GHN_TRACKING_EMPTY', detail: data }
+    return {
+      ok: true,
+      data: {
+        ...data,
+        label: orderCode,
+        tracking_id: orderCode,
+        fee: Number(data.total_fee || data.fee || 0) || 0
+      }
+    }
+  } catch (e: any) {
+    return { ok: false, message: String(e?.message || 'GHN_CREATE_ORDER_FAILED') }
+  }
+}
+
+export async function ghnFetchLabelPdf(env: AppBindings, db: D1Database, trackingCode: string): Promise<Uint8Array> {
+  const config = await getGhnConfig(db, env)
+  if (!config.token || !config.shopId) throw new Error('MISSING_GHN_KEYS')
+  const code = String(trackingCode || '').trim()
+  if (!code) throw new Error('MISSING_GHN_TRACKING_CODE')
+
+  const tokenRes = await ghnFetchJson('/v2/a5/gen-token', config, { order_codes: [code] })
+  const token = String(tokenRes?.data?.token || '').trim()
+  if (!token) throw new Error('GHN_PRINT_TOKEN_EMPTY')
+
+  const resp = await fetch(GHN_PRINT_A5_URL + '?token=' + encodeURIComponent(token), {
+    method: 'GET',
+    headers: {
+      'Token': config.token,
+      'ShopId': config.shopId
+    }
+  })
+  const contentType = String(resp.headers.get('content-type') || '').toLowerCase()
+  if (!resp.ok || contentType.indexOf('application/pdf') < 0) {
+    const detail = await resp.text().catch(() => '')
+    throw new Error('GHN_LABEL_FETCH_FAILED:' + detail)
+  }
+  return new Uint8Array(await resp.arrayBuffer())
 }
 
 export function normalizeGHTKOriginal(v: any) {

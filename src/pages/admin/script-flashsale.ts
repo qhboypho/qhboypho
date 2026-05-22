@@ -739,6 +739,25 @@ function loadSettingsWarehousePage() {
         '<p id="spxCredentialHint" class="md:col-span-3 text-xs text-gray-500">Thiếu User ID, Secret Key hoặc Account ID thì chưa thể bật tạo vận đơn SPX.</p>' +
       '</div>' +
     '</div>' +
+    '<div class="rounded-2xl border border-orange-100 bg-orange-50/70 p-4">' +
+      '<div class="mb-3"><h3 class="font-bold text-gray-800 flex items-center gap-2"><i class="fas fa-truck-ramp-box text-orange-500"></i>GHN</h3><p class="text-sm text-gray-500 mt-1">Cấu hình GHN để tạo vận đơn và in nhãn A5 theo đơn vị vận chuyển đã chọn.</p></div>' +
+      '<div class="grid gap-4 md:grid-cols-3">' +
+        '<div><label class="block text-sm font-semibold text-gray-700 mb-1.5">GHN API Token</label><input type="password" id="ghnToken" autocomplete="off" placeholder="Nhập API token GHN" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-orange-400"></div>' +
+        '<div><label class="block text-sm font-semibold text-gray-700 mb-1.5">GHN Shop ID</label><input type="text" id="ghnShopId" autocomplete="off" placeholder="Nhập Shop ID GHN" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-orange-400"></div>' +
+        '<div><label class="block text-sm font-semibold text-gray-700 mb-1.5">GHN Client ID</label><input type="text" id="ghnClientId" autocomplete="off" placeholder="Nhập Client ID GHN" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-orange-400"></div>' +
+        '<p id="ghnCredentialHint" class="md:col-span-3 text-xs text-gray-500">Thiếu API token hoặc Shop ID thì chưa thể tạo vận đơn GHN.</p>' +
+      '</div>' +
+    '</div>' +
+    '<div class="rounded-2xl border border-purple-100 bg-purple-50/60 p-4">' +
+      '<div class="mb-3"><h3 class="font-bold text-gray-800 flex items-center gap-2"><i class="fas fa-route text-purple-500"></i>Đơn vị vận chuyển khả dụng</h3><p class="text-sm text-gray-500 mt-1">Bỏ chọn hoặc xóa ở đây thì đơn vị đó không còn hiện trong dropdown điều đơn mới.</p></div>' +
+      '<div id="shippingCarrierRegistryList" class="grid gap-2 md:grid-cols-3 mb-4"></div>' +
+      '<div class="grid gap-3 md:grid-cols-[160px_1fr_auto]">' +
+        '<input type="text" id="customShippingCarrierCode" placeholder="Mã VD: JNT" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-purple-400">' +
+        '<input type="text" id="customShippingCarrierLabel" placeholder="Tên đơn vị vận chuyển" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-purple-400">' +
+        '<button type="button" onclick="addCustomShippingCarrier()" class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2.5 rounded-xl text-sm font-semibold transition"><i class="fas fa-plus mr-1"></i>Thêm</button>' +
+      '</div>' +
+      '<p class="text-xs text-gray-500 mt-2">Carrier tùy chỉnh sẽ hiện để chọn ngay; phần tạo vận đơn/in PDF cần thêm adapter API nếu hãng đó dùng payload riêng.</p>' +
+    '</div>' +
     '<div class="rounded-2xl border border-gray-200 bg-gray-50 p-4">' +
       '<div class="flex flex-wrap items-center justify-between gap-3 mb-4">' +
         '<div><h3 class="font-bold text-gray-800 flex items-center gap-2"><i class="fas fa-warehouse text-emerald-500"></i>Kho lấy hàng GHTK</h3><p class="text-sm text-gray-500 mt-1">Chọn kho đã tạo trên GHTK để dùng mặc định khi bấm sắp xếp vận chuyển.</p></div>' +

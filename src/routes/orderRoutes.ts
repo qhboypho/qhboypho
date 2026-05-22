@@ -13,6 +13,9 @@ type OrderRouteDeps = {
   ghtkFetchLabelPdf: (env: any, db: D1Database, trackingCode: string, original?: any, pageSize?: any) => Promise<Uint8Array>
   spxCreateShipment: (env: any, db: D1Database, order: any) => Promise<any>
   spxFetchLabelPdf: (env: any, db: D1Database, trackingCode: string) => Promise<Uint8Array>
+  ghnCreateShipment: (env: any, db: D1Database, order: any) => Promise<any>
+  ghnFetchLabelPdf: (env: any, db: D1Database, trackingCode: string) => Promise<Uint8Array>
+  getAvailableShippingCarriers: (db: D1Database) => Promise<Array<{ code: string; label: string }>>
   mergePdfBytes: (files: Uint8Array[]) => Promise<Uint8Array>
 }
 
@@ -22,11 +25,17 @@ type OrderHistoryUser = {
 }
 
 const NORMALIZED_CUSTOMER_PHONE_SQL = "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(TRIM(COALESCE(customer_phone, '')), ' ', ''), '-', ''), '.', ''), '(', ''), ')', ''), '+', '')"
-const SHIPPING_CARRIERS = new Set(['GHTK', 'SPX'])
+const SUPPORTED_BUILT_IN_SHIPPING_CARRIERS = new Set(['GHTK', 'SPX', 'GHN'])
 
 function normalizeShippingCarrier(value: unknown) {
-  const carrier = String(value || '').trim().toUpperCase()
-  return SHIPPING_CARRIERS.has(carrier) ? carrier : 'GHTK'
+  const carrier = String(value || '').trim().toUpperCase().replace(/[^A-Z0-9_]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 24)
+  return carrier || 'GHTK'
+}
+
+async function getAvailableCarrierCodeSet(db: D1Database, deps: OrderRouteDeps) {
+  const carriers = await deps.getAvailableShippingCarriers(db)
+  const codes = new Set((carriers || []).map((carrier) => normalizeShippingCarrier(carrier.code)))
+  return codes
 }
 
 function buildRequestedCarrierMap(raw: unknown) {
@@ -320,9 +329,14 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
     switch (normalizeShippingCarrier(carrier)) {
       case 'SPX':
         return deps.spxCreateShipment(env, db, order)
+      case 'GHN':
+        return deps.ghnCreateShipment(env, db, order)
       case 'GHTK':
       default:
-        return deps.ghtkCreateShipment(env, db, order)
+        if (SUPPORTED_BUILT_IN_SHIPPING_CARRIERS.has(normalizeShippingCarrier(carrier))) {
+          return deps.ghtkCreateShipment(env, db, order)
+        }
+        return { ok: false, message: 'SHIPPING_CARRIER_NOT_IMPLEMENTED' }
     }
   }
 
@@ -330,9 +344,14 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
     switch (normalizeShippingCarrier(carrier)) {
       case 'SPX':
         return deps.spxFetchLabelPdf(env, db, trackingCode)
+      case 'GHN':
+        return deps.ghnFetchLabelPdf(env, db, trackingCode)
       case 'GHTK':
       default:
-        return deps.ghtkFetchLabelPdf(env, db, trackingCode, original, pageSize)
+        if (SUPPORTED_BUILT_IN_SHIPPING_CARRIERS.has(normalizeShippingCarrier(carrier))) {
+          return deps.ghtkFetchLabelPdf(env, db, trackingCode, original, pageSize)
+        }
+        throw new Error('SHIPPING_CARRIER_NOT_IMPLEMENTED:' + normalizeShippingCarrier(carrier))
     }
   }
 
@@ -683,6 +702,10 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
       if (!Number.isFinite(id) || id <= 0) return c.json({ success: false, error: 'INVALID_ORDER_ID' }, 400)
       const body = await c.req.json().catch(() => ({} as any))
       const carrier = normalizeShippingCarrier(body?.carrier)
+      const availableCarrierCodes = await getAvailableCarrierCodeSet(c.env.DB, deps)
+      if (!availableCarrierCodes.has(carrier)) {
+        return c.json({ success: false, error: 'SHIPPING_CARRIER_NOT_AVAILABLE' }, 400)
+      }
       const existing = await c.env.DB.prepare(`
         SELECT id, shipping_tracking_code, shipping_carrier
         FROM orders
@@ -713,6 +736,7 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
       const ids = Array.isArray(body.ids) ? body.ids.map((v: any) => Number(v)).filter((v: number) => Number.isFinite(v) && v > 0) : []
       const requestedCarriers = buildRequestedCarrierMap(body.carriers)
       if (!ids.length) return c.json({ success: false, error: 'NO_ORDER_IDS' }, 400)
+      const availableCarrierCodes = await getAvailableCarrierCodeSet(c.env.DB, deps)
 
       const orderQuery = `
         SELECT id, order_code, customer_name, customer_phone, customer_address, product_name,
@@ -738,6 +762,10 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
           continue
         }
         const targetCarrier = normalizeShippingCarrier(requestedCarriers.get(id) || order.shipping_carrier || 'GHTK')
+        if (!availableCarrierCodes.has(targetCarrier)) {
+          failed.push({ id, order_code: order.order_code, carrier: targetCarrier, error: 'SHIPPING_CARRIER_NOT_AVAILABLE' })
+          continue
+        }
 
         let trackingCode = String(order.shipping_tracking_code || '').trim()
         const existingCarrier = normalizeShippingCarrier(order.shipping_carrier || targetCarrier)

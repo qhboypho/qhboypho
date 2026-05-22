@@ -34,5 +34,12 @@ export type AppBindings = CloudflareBindings & {
   SPX_ACCOUNT_ID?: string
   SPX_CREATE_ORDER_ENDPOINT?: string
   SPX_LABEL_ENDPOINT?: string
+  GHN_TOKEN?: string
+  GHN_SHOP_ID?: string
+  GHN_CLIENT_ID?: string
+  GHN_DEFAULT_WEIGHT_GRAM?: string
+  GHN_DEFAULT_LENGTH_CM?: string
+  GHN_DEFAULT_WIDTH_CM?: string
+  GHN_DEFAULT_HEIGHT_CM?: string
   CORS_ALLOWED_ORIGINS?: string
 }

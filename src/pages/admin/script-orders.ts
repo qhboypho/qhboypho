@@ -5,10 +5,12 @@ export function adminOrdersScript(): string {
   return div.innerHTML
 }
 
-const SHIPPING_CARRIERS = [
+let SHIPPING_CARRIERS = [
   { value: 'GHTK', label: 'GHTK' },
-  { value: 'SPX', label: 'SPX Express' }
+  { value: 'SPX', label: 'SPX Express' },
+  { value: 'GHN', label: 'GHN' }
 ]
+let shippingCarrierOptionsLoaded = false
 
 function normalizeShippingCarrierValue(value) {
   const carrier = String(value || '').trim().toUpperCase()
@@ -25,9 +27,14 @@ function ensureOrdersCarrierBulkSelect() {
     const select = document.createElement('select')
     select.id = 'ordersCarrierBulkSelect'
     select.className = 'border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-pink-400 min-w-[180px] bg-white text-gray-700 font-semibold'
-    select.innerHTML = '<option value="">Đơn vị vận chuyển</option>' + SHIPPING_CARRIERS.map(item => '<option value="' + item.value + '">' + item.label + '</option>').join('')
     select.onchange = function() { handleBulkShippingCarrierChange(select) }
     modeSelect.insertAdjacentElement('afterend', select)
+  }
+  const select = document.getElementById('ordersCarrierBulkSelect')
+  if (select) {
+    const current = select.value
+    select.innerHTML = '<option value="">Đơn vị vận chuyển</option>' + SHIPPING_CARRIERS.map(item => '<option value="' + item.value + '">' + item.label + '</option>').join('')
+    if (SHIPPING_CARRIERS.some(item => item.value === current)) select.value = current
   }
 
   document.querySelectorAll('thead th').forEach((th) => {
@@ -35,7 +42,27 @@ function ensureOrdersCarrierBulkSelect() {
   })
 }
 
+async function loadShippingCarrierOptions() {
+  if (shippingCarrierOptionsLoaded) return
+  try {
+    const res = await axios.get('/api/admin/shipping/carriers')
+    const rows = Array.isArray(res.data.data) ? res.data.data : []
+    const options = rows
+      .filter(item => item && item.enabled !== false)
+      .map(item => ({
+        value: String(item.code || '').trim().toUpperCase(),
+        label: String(item.label || item.code || '').trim()
+      }))
+      .filter(item => item.value && item.label)
+    if (options.length) SHIPPING_CARRIERS = options
+    shippingCarrierOptionsLoaded = true
+  } catch (_) {
+    shippingCarrierOptionsLoaded = true
+  }
+}
+
 async function loadAdminOrders() {
+  await loadShippingCarrierOptions()
   ensureOrdersCarrierBulkSelect()
   document.getElementById('ordersTable').innerHTML = '<tr><td colspan="6" class="text-center py-12 text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></td></tr>'
   document.getElementById('ordersMobileList').innerHTML = '<div class="py-12 text-center text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></div>'
@@ -626,11 +653,17 @@ function mapArrangeErrorText(code) {
   if (code === 'MISSING_SPX_KEYS') return 'Thiếu cấu hình SPX Express'
   if (code === 'SPX_CREATE_ORDER_ENDPOINT_NOT_CONFIGURED') return 'Chưa cấu hình endpoint tạo vận đơn SPX'
   if (code === 'SPX_LABEL_ENDPOINT_NOT_CONFIGURED') return 'Chưa cấu hình endpoint in nhãn SPX'
+  if (code === 'MISSING_GHN_KEYS') return 'Thiếu cấu hình GHN'
+  if (code === 'MISSING_GHN_PICKUP_CONFIG') return 'Thiếu cấu hình kho lấy hàng cho GHN'
+  if (code === 'GHN_ADDRESS_LOOKUP_FAILED') return 'Không map được địa chỉ nhận hàng theo GHN'
+  if (code === 'SHIPPING_CARRIER_NOT_AVAILABLE') return 'Đơn vị vận chuyển này đã bị tắt hoặc xóa khỏi kho hàng'
+  if (code === 'SHIPPING_CARRIER_NOT_IMPLEMENTED') return 'Đơn vị vận chuyển này chưa có adapter tạo vận đơn'
   if (code === 'ORDER_ALREADY_HAS_TRACKING') return 'Đơn đã có mã vận đơn, không đổi được đơn vị vận chuyển'
   if (code === 'ORDER_ALREADY_HAS_DIFFERENT_CARRIER_TRACKING') return 'Đơn đã có mã vận đơn ở đơn vị vận chuyển khác'
   if (code === 'INVALID_CUSTOMER_ADDRESS_FORMAT') return 'Địa chỉ khách chưa hợp lệ và không có fallback'
   if (code === 'GHTK_TRACKING_EMPTY') return 'GHTK không trả mã vận đơn'
   if (code === 'SPX_TRACKING_EMPTY') return 'SPX không trả mã vận đơn'
+  if (code === 'GHN_TRACKING_EMPTY') return 'GHN không trả mã vận đơn'
   return String(code || 'Lỗi không xác định')
 }
 

@@ -21,6 +21,9 @@ for (const key of [
   'SPX_USER_ID',
   'SPX_SECRET_KEY',
   'SPX_ACCOUNT_ID',
+  'GHN_TOKEN',
+  'GHN_SHOP_ID',
+  'GHN_CLIENT_ID',
 ]) {
   assert.match(runtimeConfigSource, new RegExp(`${key}:`), `runtime config should map ${key}`)
 }
