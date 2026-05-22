@@ -60,6 +60,11 @@ assert.match(
   /export async function ghnFetchLabelDocument[\s\S]*contentType[\s\S]*text\/html/,
   'GHN label helper should preserve HTML labels returned by printA5 instead of forcing PDF'
 )
+assert.match(
+  shippingHelpersSource,
+  /GHN_LABEL_PRINT_FIX_STYLE[\s\S]*page-break-after:\s*auto[\s\S]*break-after:\s*auto[\s\S]*normalizeGhnLabelHtml/,
+  'GHN HTML label helper should suppress the trailing blank print page'
+)
 
 assert.match(
   adminUtilityRoutesSource,

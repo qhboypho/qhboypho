@@ -218,6 +218,16 @@ const addressKitProvinceCache = new Map<string, any[]>()
 const addressKitCommuneCache = new Map<string, any[]>()
 const addressKitLegacyCommuneByCodeCache = new Map<string, any | null>()
 const addressKitLatestCommuneByNameCache = new Map<string, any | null>()
+const GHN_LABEL_PRINT_FIX_STYLE = `<style id="qh-ghn-print-page-fix">
+@media print {
+  .content.page-break:last-of-type,
+  .content.page-break:last-child,
+  body > .page-break:last-child {
+    page-break-after: auto !important;
+    break-after: auto !important;
+  }
+}
+</style>`
 
 function numberOrDefault(value: unknown, fallback: number) {
   const n = Number(value)
@@ -263,6 +273,21 @@ function isGhnUnsupportedArea(row: Record<string, any>) {
   const status = Number(row?.Status ?? row?.status ?? 1)
   const isEnable = Number(row?.IsEnable ?? row?.is_enable ?? 1)
   return supportType === 0 || status === 2 || isEnable === 0
+}
+
+function normalizeGhnLabelHtml(html: string) {
+  let normalized = String(html || '')
+  const lastPageBreakClassIndex = normalized.lastIndexOf('class="content page-break"')
+  if (lastPageBreakClassIndex >= 0) {
+    normalized = normalized.slice(0, lastPageBreakClassIndex)
+      + 'class="content"'
+      + normalized.slice(lastPageBreakClassIndex + 'class="content page-break"'.length)
+  }
+  if (normalized.includes('id="qh-ghn-print-page-fix"')) return normalized
+  if (normalized.includes('</head>')) {
+    return normalized.replace('</head>', GHN_LABEL_PRINT_FIX_STYLE + '</head>')
+  }
+  return GHN_LABEL_PRINT_FIX_STYLE + normalized
 }
 
 export function normalizeGhnAddressToken(value: string) {
@@ -508,8 +533,16 @@ export async function ghnFetchLabelDocument(env: AppBindings, db: D1Database, tr
     : contentType.includes('text/html')
       ? 'text/html; charset=UTF-8'
       : contentType || 'application/octet-stream'
+  const rawBytes = new Uint8Array(await resp.arrayBuffer())
+  if (normalizedContentType.includes('text/html')) {
+    const html = new TextDecoder().decode(rawBytes)
+    return {
+      bytes: new TextEncoder().encode(normalizeGhnLabelHtml(html)),
+      contentType: normalizedContentType
+    }
+  }
   return {
-    bytes: new Uint8Array(await resp.arrayBuffer()),
+    bytes: rawBytes,
     contentType: normalizedContentType
   }
 }
