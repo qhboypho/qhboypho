@@ -211,12 +211,14 @@ async function handleBulkShippingCarrierChange(selectEl) {
         })
       }
     }))
-    if (success) showAdminToast('Đã chuyển ' + success + ' đơn sang ' + carrier, 'success')
+    if (success) {
+      showAdminToast('Đã chuyển ' + success + ' đơn sang ' + carrier, 'success')
+      selectEl.value = carrier
+    }
     if (failed.length) showAdminToast('Có ' + failed.length + ' đơn chưa đổi được: ' + mapArrangeErrorText(failed[0].error), 'error')
     renderOrdersTable(paginatedAdminOrders)
   } finally {
     selectEl.disabled = false
-    selectEl.value = ''
   }
 }
 

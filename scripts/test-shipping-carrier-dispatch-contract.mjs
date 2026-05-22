@@ -13,6 +13,7 @@ assert.match(adminOrdersSource, /querySelectorAll\('thead th'\)[\s\S]*Đơn vị
 assert.match(adminOrdersSource, /function handleBulkShippingCarrierChange[\s\S]*\/api\/admin\/orders\/'\s*\+\s*id\s*\+\s*'\/shipping-carrier/, 'bulk carrier selector should persist carrier for checked orders')
 assert.doesNotMatch(adminOrdersSource, /function renderShippingCarrierSelect/, 'order rows should not render duplicate carrier selectors')
 assert.doesNotMatch(adminOrdersSource, /carrierSelect\.disabled\s*=\s*!anySelectedVisible/, 'bulk carrier selector should stay clickable and show a warning when no order is selected')
+assert.match(adminOrdersSource, /if \(success\)[\s\S]*selectEl\.value = carrier/, 'bulk carrier selector should keep the selected carrier visible after a successful change')
 assert.match(adminOrdersSource, /axios\.post\('\/api\/admin\/orders\/arrange-shipping',\s*\{ ids,\s*carriers:/, 'bulk arrange should send selected carrier map')
 assert.match(adminOrdersSource, /axios\.post\('\/api\/admin\/orders\/arrange-shipping',\s*\{ ids: \[orderId\],\s*carriers:/, 'single arrange should send selected carrier')
 assert.match(adminOrdersSource, /\/api\/admin\/orders\/shipping\/print-labels/, 'print action should use generic carrier-dispatch label endpoint')
