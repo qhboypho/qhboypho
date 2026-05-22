@@ -634,16 +634,39 @@ function mapArrangeErrorText(code) {
   return String(code || 'Lỗi không xác định')
 }
 
+function getFailedCarriersLabel(failedList) {
+  const list = Array.isArray(failedList) ? failedList : []
+  const carriers = Array.from(new Set(list.map((f) => normalizeShippingCarrierValue(f.carrier || f.shipping_carrier || 'GHTK'))))
+  if (!carriers.length) return ''
+  return carriers.join(', ')
+}
+
 function openArrangeSuccessModal(count, failedList) {
   const text = document.getElementById('arrangeSuccessText')
   const failed = Array.isArray(failedList) ? failedList : []
-  if (text) text.textContent = 'Đã sắp xếp vận chuyển thành công ' + count + ' đơn hàng.'
+  const hasFail = failed.length > 0
+  const statusIcon = document.getElementById('arrangeStatusIcon')
+  if (statusIcon) {
+    const isFullFail = count <= 0 && hasFail
+    statusIcon.className = 'mx-auto mb-3 w-14 h-14 rounded-full flex items-center justify-center ' + (isFullFail ? 'bg-amber-100 text-amber-600' : 'bg-emerald-100 text-emerald-600')
+    statusIcon.innerHTML = '<i class="fas ' + (isFullFail ? 'fa-triangle-exclamation' : 'fa-check') + ' text-xl"></i>'
+  }
+  if (text) {
+    if (count > 0 && hasFail) text.textContent = 'Đã sắp xếp vận chuyển thành công ' + count + ' đơn, có ' + failed.length + ' đơn lỗi.'
+    else if (count > 0) text.textContent = 'Đã sắp xếp vận chuyển thành công ' + count + ' đơn hàng.'
+    else if (hasFail) text.textContent = 'Chưa sắp xếp được đơn nào. Vui lòng kiểm tra lỗi bên dưới.'
+    else text.textContent = 'Không có đơn nào được sắp xếp.'
+  }
   const printBtn = document.getElementById('arrangeModalPrintBtn')
   if (printBtn) printBtn.classList.toggle('hidden', count <= 0)
   const failWrap = document.getElementById('arrangeFailedWrap')
   const failListEl = document.getElementById('arrangeFailedList')
+  const failTitle = document.getElementById('arrangeFailedTitle')
+  if (failTitle) {
+    const label = getFailedCarriersLabel(failed)
+    failTitle.textContent = 'Đơn lỗi khi tạo vận đơn' + (label ? ' ' + label : '')
+  }
   if (failWrap && failListEl) {
-    const hasFail = failed.length > 0
     failWrap.classList.toggle('hidden', !hasFail)
     if (hasFail) {
       failListEl.innerHTML = failed.map((f) => {

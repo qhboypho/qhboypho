@@ -5,6 +5,7 @@ const orderRoutesSource = await readFile(new URL('../src/routes/orderRoutes.ts',
 const shippingHelpersSource = await readFile(new URL('../src/lib/shippingHelpers.ts', import.meta.url), 'utf8')
 const adminOrdersSource = await readFile(new URL('../src/pages/admin/script-orders.ts', import.meta.url), 'utf8')
 const adminSectionsSource = await readFile(new URL('../src/pages/admin/sections.ts', import.meta.url), 'utf8')
+const adminModalsSource = await readFile(new URL('../src/pages/admin/modals.ts', import.meta.url), 'utf8')
 
 assert.doesNotMatch(adminSectionsSource, /w-\[170px\] min-w-\[170px\]\">Đơn vị vận chuyển/, 'orders table should not reserve a per-row carrier column')
 assert.match(adminOrdersSource, /const SHIPPING_CARRIERS[\s\S]*GHTK[\s\S]*SPX/, 'admin orders UI should list selectable carriers')
@@ -17,6 +18,10 @@ assert.match(adminOrdersSource, /if \(success\)[\s\S]*selectEl\.value = carrier/
 assert.match(adminOrdersSource, /axios\.post\('\/api\/admin\/orders\/arrange-shipping',\s*\{ ids,\s*carriers:/, 'bulk arrange should send selected carrier map')
 assert.match(adminOrdersSource, /axios\.post\('\/api\/admin\/orders\/arrange-shipping',\s*\{ ids: \[orderId\],\s*carriers:/, 'single arrange should send selected carrier')
 assert.match(adminOrdersSource, /\/api\/admin\/orders\/shipping\/print-labels/, 'print action should use generic carrier-dispatch label endpoint')
+assert.match(adminModalsSource, /id="arrangeFailedTitle"[\s\S]*Đơn lỗi khi tạo vận đơn/, 'arrange modal should expose a dynamic failed-carrier title')
+assert.match(adminOrdersSource, /function getFailedCarriersLabel[\s\S]*normalizeShippingCarrierValue/, 'arrange modal should derive failed carrier labels dynamically')
+assert.doesNotMatch(adminModalsSource, /Đơn lỗi khi tạo vận đơn GHTK/, 'arrange modal should not hardcode GHTK in the failed title')
+assert.match(adminOrdersSource, /Chưa sắp xếp được đơn nào/, 'arrange modal should not report success when all selected orders fail')
 
 assert.match(orderRoutesSource, /const SHIPPING_CARRIERS = new Set\(\['GHTK', 'SPX'\]\)/, 'backend should validate supported shipping carriers')
 assert.match(orderRoutesSource, /app\.patch\('\/api\/admin\/orders\/:id\/shipping-carrier'/, 'backend should expose carrier persistence endpoint')

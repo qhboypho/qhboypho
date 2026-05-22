@@ -184,7 +184,7 @@ export function adminModalsSection(): string {
       </button>
     </div>
     <div class="px-6 py-6 text-center">
-      <div class="mx-auto mb-3 w-14 h-14 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
+      <div id="arrangeStatusIcon" class="mx-auto mb-3 w-14 h-14 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
         <i class="fas fa-check text-xl"></i>
       </div>
       <p id="arrangeSuccessText" class="text-gray-800 font-semibold">Đã sắp xếp vận chuyển thành công 0 đơn hàng.</p>
@@ -192,7 +192,7 @@ export function adminModalsSection(): string {
         <i class="fas fa-print"></i>In đơn
       </button>
       <div id="arrangeFailedWrap" class="hidden mt-4 text-left bg-amber-50 border border-amber-200 rounded-xl p-3">
-        <p class="text-xs font-semibold text-amber-700 mb-2">Đơn lỗi khi tạo vận đơn GHTK</p>
+        <p id="arrangeFailedTitle" class="text-xs font-semibold text-amber-700 mb-2">Đơn lỗi khi tạo vận đơn</p>
         <div id="arrangeFailedList" class="max-h-32 overflow-auto space-y-1 text-xs text-amber-800"></div>
       </div>
     </div>
