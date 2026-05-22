@@ -19,8 +19,25 @@ function getOrderShippingCarrier(order) {
   return normalizeShippingCarrierValue(order?.shipping_carrier || order?.carrier || 'GHTK')
 }
 
+function ensureOrdersCarrierBulkSelect() {
+  const modeSelect = document.getElementById('ordersViewModeSelect')
+  if (modeSelect && !document.getElementById('ordersCarrierBulkSelect')) {
+    const select = document.createElement('select')
+    select.id = 'ordersCarrierBulkSelect'
+    select.className = 'border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-pink-400 min-w-[180px] bg-white text-gray-700 font-semibold'
+    select.innerHTML = '<option value="">Đơn vị vận chuyển</option>' + SHIPPING_CARRIERS.map(item => '<option value="' + item.value + '">' + item.label + '</option>').join('')
+    select.onchange = function() { handleBulkShippingCarrierChange(select) }
+    modeSelect.insertAdjacentElement('afterend', select)
+  }
+
+  document.querySelectorAll('thead th').forEach((th) => {
+    if (String(th.textContent || '').trim() === 'Đơn vị vận chuyển') th.remove()
+  })
+}
+
 async function loadAdminOrders() {
-  document.getElementById('ordersTable').innerHTML = '<tr><td colspan="7" class="text-center py-12 text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></td></tr>'
+  ensureOrdersCarrierBulkSelect()
+  document.getElementById('ordersTable').innerHTML = '<tr><td colspan="6" class="text-center py-12 text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></td></tr>'
   document.getElementById('ordersMobileList').innerHTML = '<div class="py-12 text-center text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></div>'
   try {
     const params = new URLSearchParams()
@@ -37,7 +54,7 @@ async function loadAdminOrders() {
       return
     }
     const msg = e?.response?.data?.error || e?.message || 'Lỗi tải dữ liệu'
-    document.getElementById('ordersTable').innerHTML = '<tr><td colspan="7" class="text-center py-8 text-red-400">Lỗi tải dữ liệu</td></tr>'
+    document.getElementById('ordersTable').innerHTML = '<tr><td colspan="6" class="text-center py-8 text-red-400">Lỗi tải dữ liệu</td></tr>'
     document.getElementById('ordersMobileList').innerHTML = '<div class="py-8 text-center text-red-400">Lỗi tải dữ liệu</div>'
     showAdminToast(msg, 'error')
     console.error('loadAdminOrders error:', e)
@@ -69,6 +86,7 @@ function updateOrdersModeButtons(counters) {
 }
 
 function filterOrders() {
+  ensureOrdersCarrierBulkSelect()
   const status = document.getElementById('orderStatusFilter').value
   const q = String((document.getElementById('orderSearch') || {}).value || '').toLowerCase()
   const sourceOrders = adminOrders.filter(o => !isInternalTestOrder(o))
@@ -157,29 +175,6 @@ function getRowPrimaryActionMeta() {
   }
 }
 
-function renderShippingCarrierSelect(order, compact = false) {
-  const orderId = Number(order?.id)
-  const current = getOrderShippingCarrier(order)
-  const tracking = String(order?.shipping_tracking_code || order?.tracking_code || '').trim()
-  const disabled = !!tracking
-  const options = SHIPPING_CARRIERS.map(item =>
-    '<option value="' + item.value + '"' + (item.value === current ? ' selected' : '') + '>' + item.label + '</option>'
-  ).join('')
-  const label = compact
-    ? '<label class="text-[11px] font-semibold text-gray-500">Đơn vị vận chuyển</label>'
-    : ''
-  return ''
-    + '<div class="' + (compact ? 'space-y-1' : 'w-full') + '">'
-    +   label
-    +   '<select onchange="handleOrderCarrierChange(' + orderId + ', this)"'
-    +     (disabled ? ' disabled' : '')
-    +     ' class="w-full min-w-0 text-xs border rounded-lg px-2 py-2 focus:outline-none bg-white text-gray-700 border-gray-300 ' + (disabled ? 'opacity-70 cursor-not-allowed' : 'focus:border-pink-400') + '">'
-    +     options
-    +   '</select>'
-    +   (disabled ? '<p class="mt-1 text-[10px] text-gray-400">Đã có mã vận đơn</p>' : '')
-    + '</div>'
-}
-
 function buildCarrierMapForOrderIds(ids) {
   const map = {}
   ;(ids || []).forEach(id => {
@@ -189,23 +184,39 @@ function buildCarrierMapForOrderIds(ids) {
   return map
 }
 
-async function handleOrderCarrierChange(id, selectEl) {
-  const orderId = Number(id)
+async function handleBulkShippingCarrierChange(selectEl) {
   const carrier = normalizeShippingCarrierValue(selectEl?.value)
-  const order = adminOrders.find(o => Number(o.id) === orderId)
-  const previous = getOrderShippingCarrier(order)
-  if (!order || carrier === previous) return
+  const ids = Array.from(selectedOrderIds).map(Number).filter((id) => Number.isFinite(id) && id > 0)
+  if (!ids.length) {
+    showAdminToast('Chọn đơn hàng trước khi đổi đơn vị vận chuyển', 'warning')
+    if (selectEl) selectEl.value = ''
+    return
+  }
   selectEl.disabled = true
+  let success = 0
+  const failed = []
   try {
-    await axios.patch('/api/admin/orders/' + id + '/shipping-carrier', { carrier })
-    order.shipping_carrier = carrier
-    showAdminToast('Đã chọn đơn vị vận chuyển ' + carrier, 'success')
-  } catch (e) {
-    selectEl.value = previous
-    const code = e?.response?.data?.error || e?.message || 'UPDATE_CARRIER_FAILED'
-    showAdminToast(mapArrangeErrorText(code), 'error')
+    await Promise.all(ids.map(async (id) => {
+      const order = adminOrders.find(o => Number(o.id) === Number(id))
+      if (!order) return
+      try {
+        await axios.patch('/api/admin/orders/' + id + '/shipping-carrier', { carrier })
+        order.shipping_carrier = carrier
+        success += 1
+      } catch (e) {
+        failed.push({
+          id,
+          order_code: order.order_code || id,
+          error: e?.response?.data?.error || e?.message || 'UPDATE_CARRIER_FAILED'
+        })
+      }
+    }))
+    if (success) showAdminToast('Đã chuyển ' + success + ' đơn sang ' + carrier, 'success')
+    if (failed.length) showAdminToast('Có ' + failed.length + ' đơn chưa đổi được: ' + mapArrangeErrorText(failed[0].error), 'error')
+    renderOrdersTable(paginatedAdminOrders)
   } finally {
     selectEl.disabled = false
+    selectEl.value = ''
   }
 }
 
@@ -305,9 +316,6 @@ function renderOrdersTable(orders) {
     <td class="px-4 py-3 text-center hidden lg:table-cell w-[120px] min-w-[120px]">
       \${o.voucher_code ? \`<span class="font-mono text-xs bg-green-50 text-green-700 border border-green-200 px-2 py-0.5 rounded-lg font-semibold">\${o.voucher_code}</span>\` : '<span class="text-gray-300 text-xs">—</span>'}
     </td>
-    <td class="px-4 py-3 text-center align-top w-[170px] min-w-[170px]">
-      \${renderShippingCarrierSelect(o)}
-    </td>
     <td class="px-4 py-3 text-center align-top w-[240px] min-w-[240px]">
       \${renderOrderRowActionControls(o)}
     </td>
@@ -365,9 +373,6 @@ function renderOrdersMobileList(orders) {
                     </div>\`
                   : ''}
               </div>
-            </div>
-            <div class="mobile-order-carrier min-w-0">
-              \${renderShippingCarrierSelect(o, true)}
             </div>
             <div class="mobile-order-actions min-w-0">
               \${renderOrderRowActionControls(o, true)}
@@ -444,6 +449,7 @@ function updateOrderSelectionUI() {
   const selectAll = document.getElementById('ordersSelectAll')
   const shipBar = document.getElementById('shippingBulkActionBar')
   const shipBarText = document.getElementById('shippingBulkSelectedText')
+  const carrierSelect = document.getElementById('ordersCarrierBulkSelect')
   const visibleIds = paginatedAdminOrders.map(o => Number(o.id))
   const checkedVisible = visibleIds.filter(id => selectedOrderIds.has(id)).length
   const anySelectedVisible = checkedVisible > 0
@@ -476,6 +482,10 @@ function updateOrderSelectionUI() {
   }
   if (shipBarText) {
     shipBarText.textContent = 'Đã chọn ' + checkedVisible + ' đơn'
+  }
+  if (carrierSelect) {
+    carrierSelect.disabled = !anySelectedVisible || ordersViewMode === 'waiting_ship'
+    if (!anySelectedVisible || ordersViewMode === 'waiting_ship') carrierSelect.value = ''
   }
   if (selectAll) {
     const allVisibleChecked = visibleIds.length > 0 && checkedVisible === visibleIds.length
