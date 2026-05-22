@@ -484,8 +484,8 @@ function updateOrderSelectionUI() {
     shipBarText.textContent = 'Đã chọn ' + checkedVisible + ' đơn'
   }
   if (carrierSelect) {
-    carrierSelect.disabled = !anySelectedVisible || ordersViewMode === 'waiting_ship'
-    if (!anySelectedVisible || ordersViewMode === 'waiting_ship') carrierSelect.value = ''
+    carrierSelect.classList.toggle('opacity-60', ordersViewMode === 'waiting_ship')
+    if (ordersViewMode === 'waiting_ship') carrierSelect.value = ''
   }
   if (selectAll) {
     const allVisibleChecked = visibleIds.length > 0 && checkedVisible === visibleIds.length
