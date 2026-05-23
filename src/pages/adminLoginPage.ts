@@ -10,9 +10,9 @@ export function adminLoginHTML(): string {
 <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
   * { font-family: 'Inter', sans-serif; }
-  .font-display { font-family: 'Playfair Display', serif; }
+  .font-display { font-family: 'Outfit', sans-serif; letter-spacing: -0.01em; }
   .login-bg { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 40%, #0f3460 100%); min-height: 100vh; }
   .glass-card { background: rgba(255,255,255,0.05); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.1); }
   .btn-login { background: linear-gradient(135deg, #e84393, #c0392b); transition: all 0.3s; }
@@ -30,17 +30,24 @@ export function adminLoginHTML(): string {
   .fade-up { animation: fadeUp 0.6s ease; }
   @keyframes shake { 0%,100%{transform:translateX(0)} 15%{transform:translateX(-8px)} 30%{transform:translateX(8px)} 45%{transform:translateX(-6px)} 60%{transform:translateX(6px)} 75%{transform:translateX(-3px)} 90%{transform:translateX(3px)} }
   .shake { animation: shake 0.5s ease; }
+  @keyframes spinSlow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  .logo-spinner { position:relative; display:inline-flex; align-items:center; justify-content:center; }
+  .logo-spinner::before { content:''; position:absolute; inset:-3px; border-radius:50%; background:conic-gradient(from 0deg, #6366f1, #8b5cf6, #a855f7, #6366f1); animation: spinSlow 8s linear infinite; z-index:0; }
+  .logo-spinner::after { content:''; position:absolute; inset:-3px; border-radius:50%; background:conic-gradient(from 0deg, #6366f1, #8b5cf6, #a855f7, #6366f1); animation: spinSlow 8s linear infinite; filter:blur(8px); opacity:0.6; z-index:0; }
+  .logo-spinner img { position:relative; z-index:1; border-radius:50%; width:64px; height:64px; object-fit:cover; animation: spinSlow 12s linear infinite; background:white; }
 </style>
 </head>
 <body class="login-bg flex items-center justify-center p-4">
   <div class="login-shell fade-up w-full max-w-md">
     <!-- Logo -->
     <div class="text-center mb-8">
-      <div class="w-16 h-16 rounded-full bg-white flex items-center justify-center mx-auto mb-4 shadow-xl overflow-hidden">
-        <img src="/qh-logo.png" alt="QH" class="w-full h-full object-cover">
+      <div class="flex flex-col items-center gap-3">
+        <span class="logo-spinner">
+          <img src="/qh-logo.png" alt="QH Clothes" class="rounded-full object-cover bg-white">
+        </span>
+        <h1 class="font-display text-3xl font-bold text-white"><span class="text-pink-400">Clothes</span></h1>
+        <p class="text-gray-400 text-sm">Admin Panel</p>
       </div>
-      <h1 class="font-display text-3xl font-bold text-white">QH<span class="text-pink-400">Clothes</span></h1>
-      <p class="text-gray-400 mt-2 text-sm">Admin Panel</p>
     </div>
     <!-- Login Card -->
     <div class="glass-card rounded-3xl p-8" id="loginCard">
