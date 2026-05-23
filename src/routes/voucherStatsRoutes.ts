@@ -331,7 +331,7 @@ export function registerVoucherStatsRoutes(app: Hono<{ Bindings: AppBindings }>,
       const frontendVisitorFilter = buildDashboardVisitorWhereSql(range)
       const frontendVisitors = await c.env.DB.prepare(`
         SELECT COUNT(DISTINCT visitor_id) as count
-        FROM frontend_product_visits
+        FROM product_daily_viewers
         WHERE ${frontendVisitorFilter.sql}
       `).bind(...frontendVisitorFilter.params).first() as any
       const completedOrders = await c.env.DB.prepare(`SELECT COUNT(*) as count FROM orders WHERE status='done' AND ${orderFilter.sql}`).bind(...orderFilter.params).first() as any

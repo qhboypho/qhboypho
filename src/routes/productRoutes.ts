@@ -2,7 +2,7 @@ import { getCookie } from 'hono/cookie'
 import type { Hono } from 'hono'
 import type { AppBindings } from '../types/app'
 import { validateAdminSessionToken } from '../lib/adminHelpers'
-import { getVietnamDateKey, isLikelyHumanBrowser, recordFrontendProductVisit } from '../lib/frontendVisitorHelpers'
+import { ensureFrontendVisitorId, getVietnamDateKey, isLikelyHumanBrowser, recordFrontendProductVisit } from '../lib/frontendVisitorHelpers'
 import { shapeFlashSaleProduct, loadActiveFlashSaleProductMap } from '../lib/flashSaleHelpers.ts'
 import { attachSkuStateToProduct } from '../lib/productFlashSaleView.ts'
 import { loadProductSkusByProductIds, syncProductSkus } from '../lib/productSkuHelpers.ts'
@@ -139,6 +139,23 @@ async function recordProductDetailView(c: any, productId: number): Promise<boole
     .first()
   if (!row) return false
 
+  const visitorId = await ensureFrontendVisitorId(c)
+  const viewDate = getVietnamDateKey()
+  const inserted = await c.env.DB.prepare(`
+    INSERT OR IGNORE INTO product_daily_viewers (product_id, visitor_id, view_date, first_seen_at, last_seen_at)
+    VALUES (?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+  `).bind(productId, visitorId, viewDate).run() as any
+  const counted = Number(inserted?.meta?.changes || 0) > 0
+
+  if (!counted) {
+    await c.env.DB.prepare(`
+      UPDATE product_daily_viewers
+      SET last_seen_at = CURRENT_TIMESTAMP
+      WHERE product_id = ? AND visitor_id = ? AND view_date = ?
+    `).bind(productId, visitorId, viewDate).run()
+    return false
+  }
+
   await c.env.DB.prepare(`
     INSERT INTO product_daily_views (product_id, view_date, view_count, updated_at)
     VALUES (?, ?, 1, CURRENT_TIMESTAMP)
@@ -147,7 +164,7 @@ async function recordProductDetailView(c: any, productId: number): Promise<boole
       updated_at = CURRENT_TIMESTAMP
   `).bind(
     productId,
-    getVietnamDateKey()
+    viewDate
   ).run()
   return true
 }
