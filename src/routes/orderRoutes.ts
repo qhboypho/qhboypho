@@ -2,6 +2,7 @@ import { getCookie } from 'hono/cookie'
 import type { Hono } from 'hono'
 import type { AppBindings } from '../types/app'
 import { validateAdminSessionToken } from '../lib/adminHelpers'
+import { refreshCustomerAutoBlock } from '../lib/customerBlockHelpers'
 import { getUserSessionUserId } from '../lib/userSessionHelpers'
 
 type OrderRouteDeps = {
@@ -259,83 +260,6 @@ async function linkGuestOrdersToUser(db: D1Database, user: OrderHistoryUser | nu
   `).bind(userId, email).run()
 }
 
-async function checkAndAutoBlockCustomer(db: D1Database, userId: number | null, customerPhone: string | null) {
-  if (!userId && !customerPhone) return
-  
-  // Count cancelled orders
-  let query = 'SELECT COUNT(*) as cancelled_count FROM orders WHERE status = ? AND ('
-  const params: any[] = ['cancelled']
-  
-  if (userId) {
-    query += 'user_id = ?'
-    params.push(userId)
-  }
-  
-  if (customerPhone) {
-    if (userId) query += ' OR '
-    query += 'customer_phone = ?'
-    params.push(customerPhone)
-  }
-  
-  query += ')'
-  
-  const result = await db.prepare(query).bind(...params).first() as any
-  const cancelledCount = Number(result?.cancelled_count || 0)
-  
-  if (cancelledCount >= 3) {
-    // Auto-block this customer
-    const reason = `Tự động chặn: Đã hủy ${cancelledCount} đơn hàng`
-    
-    if (userId) {
-      await db.prepare(`
-        UPDATE users 
-        SET is_blocked = 1, 
-            blocked_reason = ?,
-            blocked_at = CURRENT_TIMESTAMP
-        WHERE id = ?
-      `).bind(reason, userId).run()
-    }
-    
-    // Insert/update blocked_customers table
-    if (userId) {
-      await db.prepare(`
-        INSERT INTO blocked_customers (user_id, customer_phone, blocked_reason, blocked_by, is_active)
-        VALUES (?, ?, ?, 'system', 1)
-        ON CONFLICT(user_id, customer_phone) DO UPDATE SET
-          is_active = 1,
-          blocked_reason = excluded.blocked_reason,
-          blocked_by = 'system',
-          blocked_at = CURRENT_TIMESTAMP,
-          unblocked_at = NULL
-      `).bind(userId, customerPhone, reason).run()
-    } else if (customerPhone) {
-      // Guest checkout - check if already exists
-      const existing = await db.prepare(
-        'SELECT id FROM blocked_customers WHERE customer_phone = ? AND user_id IS NULL'
-      ).bind(customerPhone).first()
-      
-      if (existing) {
-        await db.prepare(`
-          UPDATE blocked_customers 
-          SET is_active = 1,
-              blocked_reason = ?,
-              blocked_by = 'system',
-              blocked_at = CURRENT_TIMESTAMP,
-              unblocked_at = NULL
-          WHERE customer_phone = ? AND user_id IS NULL
-        `).bind(reason, customerPhone).run()
-      } else {
-        await db.prepare(`
-          INSERT INTO blocked_customers (user_id, customer_phone, blocked_reason, blocked_by, is_active)
-          VALUES (NULL, ?, ?, 'system', 1)
-        `).bind(customerPhone, reason).run()
-      }
-    }
-    
-    console.log(`Auto-blocked customer: userId=${userId}, phone=${customerPhone}, cancelled=${cancelledCount}`)
-  }
-}
-
 export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: OrderRouteDeps) {
   const createShipmentForCarrier = async (carrier: string, env: any, db: D1Database, order: any) => {
     switch (normalizeShippingCarrier(carrier)) {
@@ -433,6 +357,8 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
       const sessionUserId = await getUserSessionUserId(c)
       const user = sessionUserId ? await getOrderHistoryUser(c.env.DB, sessionUserId) : null
       const userId = normalizeOrderUserId(user?.id)
+
+      await refreshCustomerAutoBlock(c.env.DB, userId, normalizedCustomerPhone)
 
       // Check if customer is blocked
       let isBlocked = false
@@ -661,6 +587,10 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
       }
 
       if (nextStatus === 'cancelled') {
+        if (currentStatus === 'shipping') {
+          return c.json({ success: false, error: 'ORDER_ALREADY_IN_SHIPPING' }, 400)
+        }
+
         const carrier = String(existing.shipping_carrier || '').trim().toUpperCase()
         const trackingCode = String(existing.shipping_tracking_code || '').trim()
         if (carrier === 'GHTK' && trackingCode) {
@@ -684,7 +614,7 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
         // Check for auto-block after cancellation
         const order = await c.env.DB.prepare('SELECT user_id, customer_phone FROM orders WHERE id = ?').bind(id).first() as any
         if (order) {
-          await checkAndAutoBlockCustomer(c.env.DB, order.user_id, order.customer_phone)
+          await refreshCustomerAutoBlock(c.env.DB, order.user_id, order.customer_phone)
         }
         
         return c.json({ success: true, status: nextStatus, cancelled_by: 'shop' })
@@ -708,7 +638,7 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
       if (nextStatus === 'cancelled') {
         const order = await c.env.DB.prepare('SELECT user_id, customer_phone FROM orders WHERE id = ?').bind(id).first() as any
         if (order) {
-          await checkAndAutoBlockCustomer(c.env.DB, order.user_id, order.customer_phone)
+          await refreshCustomerAutoBlock(c.env.DB, order.user_id, order.customer_phone)
         }
       }
       

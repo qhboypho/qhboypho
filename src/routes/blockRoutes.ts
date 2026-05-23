@@ -1,5 +1,6 @@
 import type { Hono } from 'hono'
 import type { AppBindings } from '../types/app'
+import { refreshCustomerAutoBlock } from '../lib/customerBlockHelpers'
 
 type BlockRouteDeps = {
   initDB: (db: D1Database) => Promise<void>
@@ -25,6 +26,8 @@ export function registerBlockRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
       if (!userId && !phone) {
         return c.json({ success: false, error: 'user_id or phone required' }, 400)
       }
+
+      await refreshCustomerAutoBlock(c.env.DB, userId, phone)
       
       let isBlocked = false
       let reason = ''
@@ -196,7 +199,7 @@ export function registerBlockRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
     }
   })
 
-  // Check and auto-block customers with 3+ cancelled orders
+  // Check and auto-block customers with 3+ customer-fault delivery failures
   app.post('/api/admin/customers/check-auto-block', async (c) => {
     try {
       await deps.initDB(c.env.DB)
@@ -208,64 +211,22 @@ export function registerBlockRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
       if (!userId && !phone) {
         return c.json({ success: false, error: 'user_id or customer_phone required' }, 400)
       }
-      
-      // Count cancelled orders
-      let query = 'SELECT COUNT(*) as cancelled_count FROM orders WHERE status = ? AND ('
-      const params: any[] = ['cancelled']
-      
-      if (userId) {
-        query += 'user_id = ?'
-        params.push(userId)
-      }
-      
-      if (phone) {
-        if (userId) query += ' OR '
-        query += 'customer_phone = ?'
-        params.push(phone)
-      }
-      
-      query += ')'
-      
-      const result = await c.env.DB.prepare(query).bind(...params).first() as any
-      const cancelledCount = Number(result?.cancelled_count || 0)
-      
-      if (cancelledCount >= 3) {
-        // Auto-block this customer
-        const reason = `Tự động chặn: Đã hủy ${cancelledCount} đơn hàng`
-        
-        if (userId) {
-          await c.env.DB.prepare(`
-            UPDATE users 
-            SET is_blocked = 1, 
-                blocked_reason = ?,
-                blocked_at = CURRENT_TIMESTAMP
-            WHERE id = ?
-          `).bind(reason, userId).run()
-        }
-        
-        await c.env.DB.prepare(`
-          INSERT INTO blocked_customers (user_id, customer_phone, blocked_reason, blocked_by, is_active)
-          VALUES (?, ?, ?, 'system', 1)
-          ON CONFLICT(user_id, customer_phone) DO UPDATE SET
-            is_active = 1,
-            blocked_reason = excluded.blocked_reason,
-            blocked_by = 'system',
-            blocked_at = CURRENT_TIMESTAMP,
-            unblocked_at = NULL
-        `).bind(userId, phone, reason).run()
+
+      const result = await refreshCustomerAutoBlock(c.env.DB, userId, phone)
+      if (result.autoBlocked) {
         
         return c.json({ 
           success: true, 
           auto_blocked: true,
-          cancelled_count: cancelledCount,
-          message: reason
+          cancelled_count: result.cancelledCount,
+          message: result.reason
         })
       }
       
       return c.json({ 
         success: true, 
         auto_blocked: false,
-        cancelled_count: cancelledCount
+        cancelled_count: result.cancelledCount
       })
     } catch (e: any) {
       console.error('Check auto-block error:', e)
