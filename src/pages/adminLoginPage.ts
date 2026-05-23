@@ -140,6 +140,10 @@ export function adminLoginHTML(): string {
       if (wrap) wrap.classList.add('hidden')
       return
     }
+    if (isAdminTurnstileLocalDev()) {
+      wrap.classList.add('hidden')
+      return
+    }
     wrap.classList.remove('hidden')
     await loadAdminTurnstileScript()
     if (!window.turnstile || adminTurnstileWidgetId !== null) return

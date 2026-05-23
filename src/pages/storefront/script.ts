@@ -2681,6 +2681,10 @@ async function renderUserAuthTurnstile() {
     if (wrap) wrap.classList.add('hidden')
     return
   }
+  if (isUserAuthTurnstileLocalDev()) {
+    wrap.classList.add('hidden')
+    return
+  }
   wrap.classList.remove('hidden')
   await loadTurnstileScript()
   if (!window.turnstile || userAuthTurnstileWidgetId !== null) return

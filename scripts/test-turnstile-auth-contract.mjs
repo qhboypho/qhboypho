@@ -31,10 +31,12 @@ assert.match(adminLoginSource, /https:\/\/challenges\.cloudflare\.com\/turnstile
 assert.match(adminLoginSource, /turnstile\.render\('adminTurnstileWidget'/, 'admin login should render the Turnstile widget')
 assert.match(adminLoginSource, /turnstile_token: getAdminTurnstileToken\(\)/, 'admin login payload should include the Turnstile token')
 assert.match(adminLoginSource, /isAdminTurnstileLocalDev\(\)/, 'admin login should allow local test-key submit even if the widget token is empty')
+assert.match(adminLoginSource, /if \(isAdminTurnstileLocalDev\(\)\)[\s\S]*wrap\.classList\.add\('hidden'\)[\s\S]*return/, 'admin login should not wait for the Cloudflare script when using local test keys')
 
 assert.match(storefrontScriptSource, /function loadTurnstilePublicConfig\(/, 'storefront should load Turnstile public config lazily')
 assert.match(storefrontScriptSource, /id="userAuthTurnstileWidget"/, 'storefront auth form should include a Turnstile widget slot')
 assert.match(storefrontScriptSource, /turnstile_token: getUserAuthTurnstileToken\(\)/, 'storefront login/register payloads should include the Turnstile token')
 assert.match(storefrontScriptSource, /isUserAuthTurnstileLocalDev\(\)/, 'storefront auth should allow local test-key submit even if the widget token is empty')
+assert.match(storefrontScriptSource, /if \(isUserAuthTurnstileLocalDev\(\)\)[\s\S]*wrap\.classList\.add\('hidden'\)[\s\S]*return/, 'storefront auth should not wait for the Cloudflare script when using local test keys')
 
 console.log('turnstile auth contract passed')
