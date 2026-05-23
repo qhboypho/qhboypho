@@ -27,25 +27,57 @@ function getShippingCarrierLabel(value) {
   return found ? found.label : (carrier || 'GHTK')
 }
 
+function buildShippingCarrierOptionsHtml(placeholder) {
+  return '<option value="">' + placeholder + '</option>' + SHIPPING_CARRIERS.map(item => '<option value="' + item.value + '">' + item.label + '</option>').join('')
+}
+
 function getActiveBulkShippingCarrier() {
   const select = document.getElementById('ordersCarrierBulkSelect')
   const value = String(select?.value || '').trim()
   return value ? normalizeShippingCarrierValue(value) : ''
 }
 
+function getActiveOrdersCarrierFilter() {
+  if (ordersViewMode !== 'waiting_ship') return ''
+  const select = document.getElementById('ordersCarrierFilterSelect')
+  const value = String(select?.value || '').trim()
+  return value ? normalizeShippingCarrierValue(value) : ''
+}
+
+function handleOrdersCarrierFilterChange() {
+  currentOrdersPage = 1
+  selectedOrderIds.clear()
+  filterOrders()
+}
+
 function ensureOrdersCarrierBulkSelect() {
   const modeSelect = document.getElementById('ordersViewModeSelect')
+  if (modeSelect && !document.getElementById('ordersCarrierFilterSelect')) {
+    const filterSelect = document.createElement('select')
+    filterSelect.id = 'ordersCarrierFilterSelect'
+    filterSelect.className = 'hidden border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-pink-400 min-w-[160px] bg-white text-gray-700 font-semibold'
+    filterSelect.onchange = function() { handleOrdersCarrierFilterChange() }
+    modeSelect.insertAdjacentElement('afterend', filterSelect)
+  }
+  const filterSelect = document.getElementById('ordersCarrierFilterSelect')
+  if (filterSelect) {
+    const current = filterSelect.value
+    filterSelect.innerHTML = buildShippingCarrierOptionsHtml('Tất cả ĐVVC')
+    if (SHIPPING_CARRIERS.some(item => item.value === current)) filterSelect.value = current
+  }
+
   if (modeSelect && !document.getElementById('ordersCarrierBulkSelect')) {
     const select = document.createElement('select')
     select.id = 'ordersCarrierBulkSelect'
     select.className = 'border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-pink-400 min-w-[180px] bg-white text-gray-700 font-semibold'
     select.onchange = function() { handleBulkShippingCarrierChange(select) }
-    modeSelect.insertAdjacentElement('afterend', select)
+    const insertAfter = document.getElementById('ordersCarrierFilterSelect') || modeSelect
+    insertAfter.insertAdjacentElement('afterend', select)
   }
   const select = document.getElementById('ordersCarrierBulkSelect')
   if (select) {
     const current = select.value
-    select.innerHTML = '<option value="">Đơn vị vận chuyển</option>' + SHIPPING_CARRIERS.map(item => '<option value="' + item.value + '">' + item.label + '</option>').join('')
+    select.innerHTML = buildShippingCarrierOptionsHtml('Đơn vị vận chuyển')
     if (SHIPPING_CARRIERS.some(item => item.value === current)) select.value = current
   }
 
@@ -114,6 +146,10 @@ function setOrdersViewMode(mode) {
   ordersViewMode = mode === 'waiting_ship' ? 'waiting_ship' : 'to_arrange'
   const modeSelect = document.getElementById('ordersViewModeSelect')
   if (modeSelect) modeSelect.value = ordersViewMode
+  if (ordersViewMode !== 'waiting_ship') {
+    const carrierFilterSelect = document.getElementById('ordersCarrierFilterSelect')
+    if (carrierFilterSelect) carrierFilterSelect.value = ''
+  }
   currentOrdersPage = 1
   selectedOrderIds.clear()
   filterOrders()
@@ -157,12 +193,16 @@ function filterOrders() {
   const byStatus = status === 'all'
     ? byView
     : byView.filter(o => String(o.status || '').toLowerCase() === status)
-  const filtered = q ? byStatus.filter(o =>
+  const carrierFilter = getActiveOrdersCarrierFilter()
+  const byCarrier = carrierFilter
+    ? byStatus.filter(o => getOrderShippingCarrier(o) === carrierFilter)
+    : byStatus
+  const filtered = q ? byCarrier.filter(o =>
     String(o.customer_name || '').toLowerCase().includes(q) ||
     String(o.customer_phone || '').includes(q) ||
     String(o.order_code || '').toLowerCase().includes(q) ||
     String(o.product_name || '').toLowerCase().includes(q)
-  ) : byStatus
+  ) : byCarrier
   
   filteredAdminOrders = filtered
   const totalPages = Math.max(1, Math.ceil(filtered.length / ORDERS_PAGE_SIZE))
@@ -173,7 +213,8 @@ function filterOrders() {
   renderOrdersPagination(filtered.length, totalPages)
   const total = filtered.reduce((s,o) => s + getOrderAmountDue(o), 0)
   const modeLabel = ordersViewMode === 'waiting_ship' ? 'Đang chờ vận chuyển' : 'Sắp xếp vận chuyển'
-  document.getElementById('orderStats').textContent = \`\${modeLabel}: \${filtered.length} đơn – Tổng: \${fmtPrice(total)}\`
+  const carrierLabel = carrierFilter ? (' - ' + getShippingCarrierLabel(carrierFilter)) : ''
+  document.getElementById('orderStats').textContent = \`\${modeLabel}\${carrierLabel}: \${filtered.length} đơn – Tổng: \${fmtPrice(total)}\`
   updateOrderSelectionUI()
 }
 
@@ -508,6 +549,7 @@ function updateOrderSelectionUI() {
   const shipBar = document.getElementById('shippingBulkActionBar')
   const shipBarText = document.getElementById('shippingBulkSelectedText')
   const carrierSelect = document.getElementById('ordersCarrierBulkSelect')
+  const carrierFilterSelect = document.getElementById('ordersCarrierFilterSelect')
   const carrierColumnHeader = document.getElementById('ordersCarrierColumnHeader')
   const visibleIds = paginatedAdminOrders.map(o => Number(o.id))
   const checkedVisible = visibleIds.filter(id => selectedOrderIds.has(id)).length
@@ -546,6 +588,12 @@ function updateOrderSelectionUI() {
     carrierSelect.classList.toggle('hidden', ordersViewMode === 'waiting_ship')
     carrierSelect.disabled = ordersViewMode === 'waiting_ship'
     if (ordersViewMode === 'waiting_ship') carrierSelect.value = ''
+  }
+  if (carrierFilterSelect) {
+    const showCarrierFilter = ordersViewMode === 'waiting_ship'
+    carrierFilterSelect.classList.toggle('hidden', !showCarrierFilter)
+    carrierFilterSelect.disabled = !showCarrierFilter
+    if (!showCarrierFilter) carrierFilterSelect.value = ''
   }
   if (carrierColumnHeader) {
     carrierColumnHeader.classList.toggle('hidden', ordersViewMode !== 'waiting_ship')
