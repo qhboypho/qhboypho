@@ -145,7 +145,15 @@ function getClientIp(c: any) {
 function isLocalTurnstileRequest(c: any) {
   try {
     const hostname = new URL(c.req.url).hostname
-    return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1'
+    return hostname === 'localhost'
+      || hostname === '127.0.0.1'
+      || hostname === '::1'
+      || hostname === '0.0.0.0'
+      || hostname === 'host.docker.internal'
+      || /^192\.168\.\d{1,3}\.\d{1,3}$/.test(hostname)
+      || /^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname)
+      || /^172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}$/.test(hostname)
+      || /^169\.254\.\d{1,3}\.\d{1,3}$/.test(hostname)
   } catch {
     return false
   }
@@ -158,7 +166,7 @@ async function getTurnstileConfig(c: any) {
   ])
   let siteKey = String(config.TURNSTILE_SITE_KEY || '').trim()
   let secretKey = String(config.TURNSTILE_SECRET_KEY || '').trim()
-  if ((!siteKey || !secretKey) && isLocalTurnstileRequest(c)) {
+  if (isLocalTurnstileRequest(c)) {
     siteKey = TURNSTILE_LOCAL_TEST_SITE_KEY
     secretKey = TURNSTILE_LOCAL_TEST_SECRET_KEY
   }

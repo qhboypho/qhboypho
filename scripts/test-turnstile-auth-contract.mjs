@@ -18,7 +18,7 @@ assert.match(authRoutesSource, /function getTurnstileConfig[\s\S]*getRuntimeConf
 assert.match(authRoutesSource, /TURNSTILE_LOCAL_TEST_SITE_KEY = '1x00000000000000000000AA'/, 'local dev should use Cloudflare visible always-pass test sitekey')
 assert.match(authRoutesSource, /TURNSTILE_LOCAL_TEST_SECRET_KEY = '1x0000000000000000000000000000000AA'/, 'local dev should use Cloudflare always-pass test secret')
 assert.match(authRoutesSource, /function isLocalTurnstileRequest[\s\S]*localhost[\s\S]*127\.0\.0\.1/, 'Turnstile test keys should only be available for local requests')
-assert.match(authRoutesSource, /if \(\(!siteKey \|\| !secretKey\) && isLocalTurnstileRequest\(c\)\)/, 'local dev should show Turnstile even before real keys are configured')
+assert.match(authRoutesSource, /if \(isLocalTurnstileRequest\(c\)\)/, 'local dev should always use Turnstile test keys so localhost auth does not depend on production hostnames')
 assert.match(authRoutesSource, /function verifyTurnstileToken[\s\S]*https:\/\/challenges\.cloudflare\.com\/turnstile\/v0\/siteverify/, 'backend should validate Turnstile tokens with Cloudflare Siteverify')
 assert.match(authRoutesSource, /secret[\s\S]*response[\s\S]*remoteip/, 'Siteverify payload should include secret, token response, and client IP when available')
 assert.match(authRoutesSource, /app\.post\('\/api\/admin\/login'[\s\S]*enforceTurnstile\(c,\s*body,\s*'admin_login'\)/, 'admin login should enforce Turnstile before password verification')
