@@ -128,6 +128,25 @@ function buildDashboardVisitorWhereSql(range: DashboardStatsRange): { sql: strin
   }
 }
 
+async function countDashboardProductViewers(db: D1Database, range: DashboardStatsRange) {
+  const frontendVisitorFilter = buildDashboardVisitorWhereSql(range)
+  try {
+    const row = await db.prepare(`
+      SELECT COUNT(DISTINCT visitor_id) as count
+      FROM product_daily_viewers
+      WHERE ${frontendVisitorFilter.sql}
+    `).bind(...frontendVisitorFilter.params).first<{ count?: number }>()
+    return Number(row?.count || 0)
+  } catch (error: any) {
+    const message = String(error?.message || error || '').toLowerCase()
+    if (message.includes('product_daily_viewers') && message.includes('no such table')) {
+      console.warn('[analytics] product viewer table missing; returning 0 for dashboard product viewers')
+      return 0
+    }
+    throw error
+  }
+}
+
 function buildDashboardOrderWhereSql(
   deps: VoucherStatsRouteDeps,
   range: DashboardStatsRange,
@@ -328,12 +347,7 @@ export function registerVoucherStatsRoutes(app: Hono<{ Bindings: AppBindings }>,
         FROM orders
         WHERE ${cancelledOrFailedFilterSql}
       `).bind(...orderFilter.params).first() as any
-      const frontendVisitorFilter = buildDashboardVisitorWhereSql(range)
-      const frontendVisitors = await c.env.DB.prepare(`
-        SELECT COUNT(DISTINCT visitor_id) as count
-        FROM product_daily_viewers
-        WHERE ${frontendVisitorFilter.sql}
-      `).bind(...frontendVisitorFilter.params).first() as any
+      const frontendVisitorCount = await countDashboardProductViewers(c.env.DB, range)
       const completedOrders = await c.env.DB.prepare(`SELECT COUNT(*) as count FROM orders WHERE status='done' AND ${orderFilter.sql}`).bind(...orderFilter.params).first() as any
       const unpaidOrders = await c.env.DB.prepare(`
         SELECT COUNT(*) as count
@@ -381,7 +395,7 @@ export function registerVoucherStatsRoutes(app: Hono<{ Bindings: AppBindings }>,
           returnedOrders: returnedOrders?.count || 0,
           cancelledOrFailedOrders: cancelledOrFailedOrders?.count || 0,
           unpaidOrders: unpaidOrders?.count || 0,
-          frontendVisitors: frontendVisitors?.count || 0,
+          frontendVisitors: frontendVisitorCount,
           avgOrderValue: Number(deliveredOrders?.count || 0) > 0 ? deliveredRevenue / Number(deliveredOrders?.count || 1) : 0,
           statusBreakdown: statusBreakdownRes.results || [],
           revenue: deliveredRevenue,

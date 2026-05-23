@@ -49,6 +49,12 @@ assert.match(
 
 assert.match(
   voucherStatsRoutesSource,
+  /product viewer table missing[\s\S]*returning 0/,
+  'dashboard product viewers should not break data loading if the analytics migration has not been applied yet'
+)
+
+assert.match(
+  voucherStatsRoutesSource,
   /COUNT\(DISTINCT visitor_id\)/,
   'dashboard product viewers should count unique visitors, not product-view pairs'
 )
