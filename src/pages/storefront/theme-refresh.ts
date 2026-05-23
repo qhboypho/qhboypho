@@ -18,6 +18,9 @@ export function storefrontThemeRefreshStyles(): string {
     --qh-chip-bg: rgba(241,245,249,0.92);
     --qh-chip-border: rgba(203,213,225,0.9);
     --qh-price-gradient: linear-gradient(135deg, #8e5dff 0%, #c768ff 42%, #ff63d5 100%);
+    --qh-action-radius: 0.72rem;
+    --qh-action-gradient: linear-gradient(135deg, #337cff, #8d55ff 45%, #ec4fbe);
+    --qh-action-shadow: 0 10px 22px rgba(59,130,246,0.24), 0 8px 20px rgba(236,63,173,0.18);
   }
   body[data-storefront-theme='dark'] {
     --qh-bg: #020b1a;
@@ -36,6 +39,7 @@ export function storefrontThemeRefreshStyles(): string {
     --qh-product-card-bg-hover: radial-gradient(circle at 92% 12%, rgba(119,49,191,0.38), transparent 40%) padding-box, linear-gradient(135deg, rgba(3,17,40,0.99) 0%, rgba(5,17,43,0.99) 58%, rgba(29,17,64,0.97) 100%) padding-box, linear-gradient(135deg, rgba(94,231,255,1) 0%, rgba(52,139,255,0.72) 30%, rgba(139,85,255,0.6) 58%, rgba(255,91,220,1) 100%) border-box;
     --qh-chip-bg: linear-gradient(180deg, rgba(122,177,246,0.45), rgba(44,86,139,0.55));
     --qh-chip-border: rgba(159,203,255,0.56);
+    --qh-action-shadow: 0 10px 22px rgba(59,130,246,0.26), 0 8px 20px rgba(236,63,173,0.2);
   }
   body[data-storefront-theme] {
     background:
@@ -1226,7 +1230,7 @@ export function storefrontThemeRefreshStyles(): string {
     min-width: 0;
     height: 2.05rem;
     padding: 0 0.9rem !important;
-    border-radius: 0.72rem !important;
+    border-radius: var(--qh-action-radius) !important;
     white-space: nowrap;
   }
   .flash-sale-shop-cart-btn {
@@ -1237,8 +1241,22 @@ export function storefrontThemeRefreshStyles(): string {
     justify-content: center;
     height: 2.05rem;
     padding: 0 !important;
-    border-radius: 0.72rem !important;
+    border-radius: var(--qh-action-radius) !important;
     color: #fff;
+  }
+  .flash-sale-shop-actions--blocked {
+    width: 100%;
+    align-self: stretch;
+  }
+  .flash-sale-shop-actions--blocked .blocked-order-btn,
+  .flash-sale-shop-blocked-btn {
+    flex: 1 1 100% !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    height: 2.05rem !important;
+    padding: 0 0.9rem !important;
+    border-radius: var(--qh-action-radius) !important;
   }
   .detail-action-bar {
     position: sticky;
@@ -1263,7 +1281,9 @@ export function storefrontThemeRefreshStyles(): string {
     text-align: center;
     padding-left: 1rem !important;
     padding-right: 1rem !important;
-    border-radius: 0.75rem !important;
+    border-radius: var(--qh-action-radius) !important;
+    background: var(--qh-action-gradient) !important;
+    box-shadow: var(--qh-action-shadow) !important;
   }
   .detail-action-bar .btn-primary {
     flex: 1 1 0;
@@ -1372,9 +1392,10 @@ export function storefrontThemeRefreshStyles(): string {
     align-items: center;
     justify-content: center;
     min-height: 3.25rem;
-    border-radius: 0.75rem !important;
+    border-radius: var(--qh-action-radius) !important;
     line-height: 1.1;
-    box-shadow: 0 14px 28px rgba(79,70,229,0.16), 0 12px 24px rgba(236,72,153,0.12);
+    background: var(--qh-action-gradient) !important;
+    box-shadow: var(--qh-action-shadow) !important;
   }
   #orderPopupCard .order-cart-btn {
     flex: 0 0 auto;
@@ -2158,7 +2179,7 @@ export function storefrontThemeRefreshStyles(): string {
       min-width: 100% !important;
       max-width: none !important;
       height: 1.52rem !important;
-      border-radius: 0.62rem !important;
+      border-radius: var(--qh-action-radius) !important;
       padding-left: 0.46rem !important;
       padding-right: 0.46rem !important;
     }
@@ -2334,13 +2355,19 @@ export function storefrontThemeRefreshStyles(): string {
     .flash-sale-shop-buy-btn {
       height: 1.8rem;
       padding: 0 0.62rem !important;
-      border-radius: 0.75rem !important;
+      border-radius: var(--qh-action-radius) !important;
     }
     .flash-sale-shop-cart-btn {
       flex: 0 0 60px;
       min-width: 60px;
       height: 1.8rem;
-      border-radius: 0.75rem !important;
+      border-radius: var(--qh-action-radius) !important;
+    }
+    .flash-sale-shop-actions--blocked .blocked-order-btn,
+    .flash-sale-shop-blocked-btn {
+      height: 1.8rem !important;
+      padding: 0 0.62rem !important;
+      border-radius: var(--qh-action-radius) !important;
     }
     .bs-card {
       height: 100% !important;
