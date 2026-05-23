@@ -56,6 +56,8 @@ function buildLocalUserEmail(username: string) {
 const ADMIN_LOGIN_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000
 const ADMIN_LOGIN_RATE_LIMIT_MAX_ATTEMPTS = 8
 const ADMIN_LOGIN_LOCK_MS = 15 * 60 * 1000
+const TURNSTILE_LOCAL_TEST_SITE_KEY = '1x00000000000000000000AA'
+const TURNSTILE_LOCAL_TEST_SECRET_KEY = '1x0000000000000000000000000000000AA'
 
 type LoginAttemptState = {
   count: number
@@ -140,13 +142,26 @@ function getClientIp(c: any) {
   return forwarded || ''
 }
 
+function isLocalTurnstileRequest(c: any) {
+  try {
+    const hostname = new URL(c.req.url).hostname
+    return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1'
+  } catch {
+    return false
+  }
+}
+
 async function getTurnstileConfig(c: any) {
   const config = await getRuntimeConfigValues(c.env.DB, c.env, [
     'TURNSTILE_SITE_KEY',
     'TURNSTILE_SECRET_KEY'
   ])
-  const siteKey = String(config.TURNSTILE_SITE_KEY || '').trim()
-  const secretKey = String(config.TURNSTILE_SECRET_KEY || '').trim()
+  let siteKey = String(config.TURNSTILE_SITE_KEY || '').trim()
+  let secretKey = String(config.TURNSTILE_SECRET_KEY || '').trim()
+  if ((!siteKey || !secretKey) && isLocalTurnstileRequest(c)) {
+    siteKey = TURNSTILE_LOCAL_TEST_SITE_KEY
+    secretKey = TURNSTILE_LOCAL_TEST_SECRET_KEY
+  }
   return {
     siteKey,
     secretKey,
