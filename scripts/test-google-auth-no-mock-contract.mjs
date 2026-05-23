@@ -16,11 +16,16 @@ assert.match(
   'Google auth should require an OAuth client ID, not a Google API key'
 )
 assert.match(source, /function getGoogleRedirectUri\(/, 'Google auth should centralize redirect URI resolution')
-assert.match(source, /c\.env\.GOOGLE_REDIRECT_URI/, 'Google auth should support configured redirect URI for real OAuth clients')
+assert.match(source, /'GOOGLE_REDIRECT_URI'/, 'Google auth should support configured redirect URI for real OAuth clients')
 assert.match(
   source,
-  /redirect_uri=\$\{encodeURIComponent\(redirectUri\)\}/,
+  /new URLSearchParams\(\{[\s\S]*redirect_uri: redirectUri/,
   'Google auth URL should use the resolved redirect URI'
+)
+assert.match(
+  source,
+  /isLocalOAuthHostname\(request\.hostname\)[\s\S]*isLocalOAuthHostname\(configuredUrl\.hostname\)[\s\S]*request\.host !== configuredUrl\.host[\s\S]*return fallback/,
+  'Local Google OAuth should fall back to the current request origin when the configured localhost port is different'
 )
 assert.match(
   source,

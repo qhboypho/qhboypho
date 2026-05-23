@@ -25,6 +25,33 @@ function isGoogleOAuthClientId(clientId: string) {
   return /^[0-9A-Za-z_-]+\.apps\.googleusercontent\.com$/.test(String(clientId || '').trim())
 }
 
+function isLocalOAuthHostname(hostname: string) {
+  return hostname === 'localhost'
+    || hostname === '127.0.0.1'
+    || hostname === '::1'
+    || hostname === '0.0.0.0'
+}
+
+function getGoogleRedirectUri(requestUrl: string, configuredRedirectUri: string) {
+  const fallback = new URL('/api/auth/callback', requestUrl).toString()
+  const configured = String(configuredRedirectUri || '').trim()
+  if (!configured) return fallback
+  try {
+    const request = new URL(requestUrl)
+    const configuredUrl = new URL(configured)
+    if (
+      isLocalOAuthHostname(request.hostname)
+      && isLocalOAuthHostname(configuredUrl.hostname)
+      && request.host !== configuredUrl.host
+    ) {
+      return fallback
+    }
+    return configuredUrl.toString()
+  } catch {
+    return fallback
+  }
+}
+
 function normalizeStorefrontUsername(raw: unknown) {
   return String(raw || '').trim().toLowerCase()
 }
@@ -342,7 +369,7 @@ async function getGoogleOAuthConfig(c: any) {
   return {
     clientId: String(config.GOOGLE_CLIENT_ID || '').trim(),
     clientSecret: String(config.GOOGLE_CLIENT_SECRET || '').trim(),
-    redirectUri: configured || new URL('/api/auth/callback', c.req.url).toString()
+    redirectUri: getGoogleRedirectUri(c.req.url, configured)
   }
 }
 
