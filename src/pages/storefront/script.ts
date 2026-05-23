@@ -47,6 +47,7 @@ let userAuthTurnstileWidgetId = null
 let turnstilePublicConfigPromise = null
 let turnstileScriptPromise = null
 let cartStorageKey = 'qhclothes_cart_guest'
+const TURNSTILE_LOCAL_TEST_SITE_KEY = '1x00000000000000000000AA'
 const STOREFRONT_THEME_KEY = 'qhclothes_storefront_theme'
 const STOREFRONT_DEVICE_KEY = 'qhclothes_device_id'
 const STOREFRONT_FAVORITES_KEY = 'qhclothes_storefront_favorites'
@@ -2697,6 +2698,10 @@ function getUserAuthTurnstileToken() {
   return userAuthTurnstileEnabled ? userAuthTurnstileToken : ''
 }
 
+function isUserAuthTurnstileLocalDev() {
+  return userAuthTurnstileSiteKey === TURNSTILE_LOCAL_TEST_SITE_KEY
+}
+
 function resetUserAuthTurnstile() {
   userAuthTurnstileToken = ''
   if (window.turnstile && userAuthTurnstileWidgetId !== null) {
@@ -2770,7 +2775,7 @@ function getUserAuthPayload(includePhone) {
     setUserAuthError('Số điện thoại không hợp lệ.')
     return null
   }
-  if (userAuthTurnstileEnabled && !getUserAuthTurnstileToken()) {
+  if (userAuthTurnstileEnabled && !getUserAuthTurnstileToken() && !isUserAuthTurnstileLocalDev()) {
     setUserAuthError('Vui lòng xác minh bảo mật trước khi tiếp tục.')
     return null
   }

@@ -88,6 +88,11 @@ export function adminLoginHTML(): string {
   let adminTurnstileWidgetId = null
   let adminTurnstileConfigPromise = null
   let adminTurnstileScriptPromise = null
+  const ADMIN_TURNSTILE_LOCAL_TEST_SITE_KEY = '1x00000000000000000000AA'
+
+  function isAdminTurnstileLocalDev() {
+    return adminTurnstileSiteKey === ADMIN_TURNSTILE_LOCAL_TEST_SITE_KEY
+  }
 
   function loadAdminTurnstileScript() {
     if (window.turnstile) return Promise.resolve()
@@ -226,7 +231,7 @@ export function adminLoginHTML(): string {
     btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Đang xử lý...'
     try {
       await renderAdminTurnstile()
-      if (adminTurnstileEnabled && !getAdminTurnstileToken()) {
+      if (adminTurnstileEnabled && !getAdminTurnstileToken() && !isAdminTurnstileLocalDev()) {
         errText.textContent = 'Vui lòng xác minh bảo mật trước khi đăng nhập'
         errEl.classList.remove('hidden')
         return

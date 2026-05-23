@@ -204,6 +204,7 @@ async function verifyTurnstileToken(secretKey: string, token: string, remoteIp: 
 async function enforceTurnstile(c: any, body: any, action: string) {
   const config = await getTurnstileConfig(c)
   if (!config.enabled) return { ok: true }
+  if (isLocalTurnstileRequest(c) && config.siteKey === TURNSTILE_LOCAL_TEST_SITE_KEY) return { ok: true }
   const token = getTurnstileToken(body)
   if (!token) {
     console.warn('[auth] turnstile token missing for', action)

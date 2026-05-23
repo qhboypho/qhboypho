@@ -21,6 +21,7 @@ assert.match(authRoutesSource, /function isLocalTurnstileRequest[\s\S]*localhost
 assert.match(authRoutesSource, /if \(isLocalTurnstileRequest\(c\)\)/, 'local dev should always use Turnstile test keys so localhost auth does not depend on production hostnames')
 assert.match(authRoutesSource, /function verifyTurnstileToken[\s\S]*https:\/\/challenges\.cloudflare\.com\/turnstile\/v0\/siteverify/, 'backend should validate Turnstile tokens with Cloudflare Siteverify')
 assert.match(authRoutesSource, /secret[\s\S]*response[\s\S]*remoteip/, 'Siteverify payload should include secret, token response, and client IP when available')
+assert.match(authRoutesSource, /isLocalTurnstileRequest\(c\)[\s\S]*config\.siteKey === TURNSTILE_LOCAL_TEST_SITE_KEY[\s\S]*return \{ ok: true \}/, 'local dev should not block auth when the Turnstile widget cannot produce a token')
 assert.match(authRoutesSource, /app\.post\('\/api\/admin\/login'[\s\S]*enforceTurnstile\(c,\s*body,\s*'admin_login'\)/, 'admin login should enforce Turnstile before password verification')
 assert.match(authRoutesSource, /app\.post\('\/api\/auth\/register'[\s\S]*enforceTurnstile\(c,\s*body,\s*'user_register'\)/, 'storefront registration should enforce Turnstile')
 assert.match(authRoutesSource, /app\.post\('\/api\/auth\/login'[\s\S]*enforceTurnstile\(c,\s*body,\s*'user_login'\)/, 'storefront local login should enforce Turnstile')
@@ -29,9 +30,11 @@ assert.match(adminLoginSource, /\/api\/auth\/turnstile-config/, 'admin login pag
 assert.match(adminLoginSource, /https:\/\/challenges\.cloudflare\.com\/turnstile\/v0\/api\.js\?render=explicit/, 'admin login page should load Turnstile explicit renderer')
 assert.match(adminLoginSource, /turnstile\.render\('adminTurnstileWidget'/, 'admin login should render the Turnstile widget')
 assert.match(adminLoginSource, /turnstile_token: getAdminTurnstileToken\(\)/, 'admin login payload should include the Turnstile token')
+assert.match(adminLoginSource, /isAdminTurnstileLocalDev\(\)/, 'admin login should allow local test-key submit even if the widget token is empty')
 
 assert.match(storefrontScriptSource, /function loadTurnstilePublicConfig\(/, 'storefront should load Turnstile public config lazily')
 assert.match(storefrontScriptSource, /id="userAuthTurnstileWidget"/, 'storefront auth form should include a Turnstile widget slot')
 assert.match(storefrontScriptSource, /turnstile_token: getUserAuthTurnstileToken\(\)/, 'storefront login/register payloads should include the Turnstile token')
+assert.match(storefrontScriptSource, /isUserAuthTurnstileLocalDev\(\)/, 'storefront auth should allow local test-key submit even if the widget token is empty')
 
 console.log('turnstile auth contract passed')
