@@ -117,8 +117,8 @@ function buildDashboardVisitorWhereSql(range: DashboardStatsRange): { sql: strin
   const params: string[] = []
 
   if (range.fromDate && range.toDate) {
-    clauses.push('visit_date >= ?')
-    clauses.push('visit_date <= ?')
+    clauses.push('view_date >= ?')
+    clauses.push('view_date <= ?')
     params.push(range.fromDate, range.toDate)
   }
 

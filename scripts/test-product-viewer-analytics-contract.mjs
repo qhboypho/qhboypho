@@ -59,4 +59,16 @@ assert.match(
   'dashboard product viewers should count unique visitors, not product-view pairs'
 )
 
+assert.match(
+  voucherStatsRoutesSource,
+  /view_date\s*>=\s*\?/,
+  'dashboard product viewer date filter should use product_daily_viewers.view_date'
+)
+
+assert.doesNotMatch(
+  voucherStatsRoutesSource,
+  /product_daily_viewers[\s\S]{0,240}visit_date/,
+  'dashboard product viewer query must not use the old frontend_product_visits.visit_date column'
+)
+
 console.log('product viewer analytics contract passed')
