@@ -1318,7 +1318,7 @@ function renderDashboardStatusBreakdown(rows, totalOrders) {
     acc[String(row.status || 'pending').toLowerCase()] = Number(row.count || 0)
     return acc
   }, {})
-  const total = Math.max(1, normalized.reduce((sum, row) => sum + Number(row.count || 0), 0), Number(totalOrders || 0))
+  const total = Math.max(1, normalized.reduce((sum, row) => sum + Number(row.count || 0), 0))
 
   if (!normalized.length) {
     wrap.innerHTML = '<div class="text-sm text-gray-400">Không có đơn trong khoảng này</div>'

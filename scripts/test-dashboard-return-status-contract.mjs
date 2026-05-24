@@ -24,6 +24,24 @@ assert.match(
 
 assert.match(
   routeSource,
+  /WHEN \$\{actionableShippingSql\} AND COALESCE\(CAST\(shipping_arranged AS INTEGER\), 0\) != 1 THEN 'pending'/,
+  'dashboard status breakdown pending row should mean orders waiting for shipping arrangement'
+)
+
+assert.match(
+  routeSource,
+  /WHEN \$\{actionableShippingSql\} AND COALESCE\(CAST\(shipping_arranged AS INTEGER\), 0\) = 1 THEN 'confirmed'/,
+  'dashboard status breakdown confirmed row should mean arranged orders waiting for shipment'
+)
+
+assert.match(
+  routeSource,
+  /\$\{customerFaultReturnSql\}[\s\S]*OR \$\{actionableShippingSql\}[\s\S]*OR LOWER\(COALESCE\(status, ''\)\) IN \('shipping', 'done'\)/,
+  'dashboard status breakdown should exclude unpaid or non-actionable pending orders'
+)
+
+assert.match(
+  routeSource,
   /LOWER\(COALESCE\(status, ''\)\) = 'cancelled'[\s\S]*AND NOT \$\{customerFaultReturnSql\}/,
   'dashboard status breakdown should exclude normal pre-shipping cancellations'
 )
@@ -44,6 +62,18 @@ assert.match(
   adminSource,
   /delivery_failed:'Bom \/ trả về'/,
   'dashboard status label should support delivery_failed'
+)
+
+assert.match(
+  adminSource,
+  /const total = Math\.max\(1, normalized\.reduce\(\(sum, row\) => sum \+ Number\(row\.count \|\| 0\), 0\)\)/,
+  'dashboard status breakdown percentages should use the selected-range breakdown total'
+)
+
+assert.doesNotMatch(
+  adminSource,
+  /normalized\.reduce\(\(sum, row\)[\s\S]*Number\(totalOrders \|\| 0\)/,
+  'dashboard status breakdown must not use all-time totalOrders as its percentage denominator'
 )
 
 console.log('dashboard return status contract passed')
