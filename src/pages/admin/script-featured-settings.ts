@@ -577,6 +577,26 @@ function getQuickOrderRiskNoteInputText() {
   return String(document.getElementById('quickOrderRiskNoteText')?.value || '').slice(0, 800)
 }
 
+function getTextUiSettingInputs() {
+  return Array.from(document.querySelectorAll('[data-setting-key]'))
+}
+
+function getTextUiInputDefault(input) {
+  return String(input?.dataset?.defaultText || '')
+}
+
+function getTextUiPayload() {
+  const payload = {
+    quick_order_risk_note_text: getQuickOrderRiskNoteInputText().trim()
+  }
+  getTextUiSettingInputs().forEach(input => {
+    const key = input.dataset.settingKey
+    if (!key) return
+    payload[key] = String(input.value || '').trim()
+  })
+  return payload
+}
+
 function getQuickOrderRiskNoteDefaultText() {
   return String(document.getElementById('quickOrderRiskNoteText')?.dataset.defaultText || '')
 }
@@ -594,6 +614,11 @@ function fillTextUiSettings(cfg) {
   if (input) {
     input.value = String(cfg?.quick_order_risk_note_text || getQuickOrderRiskNoteDefaultText()).slice(0, 800)
   }
+  getTextUiSettingInputs().forEach(input => {
+    const key = input.dataset.settingKey
+    if (!key) return
+    input.value = String(cfg?.[key] || getTextUiInputDefault(input)).slice(0, Number(input.maxLength) > 0 ? Number(input.maxLength) : 800)
+  })
   previewTextUiSettings()
 }
 
@@ -617,9 +642,7 @@ function resetQuickOrderRiskNoteDefault() {
 
 async function saveTextUiSettings() {
   const btn = document.getElementById('saveTextUiSettingsBtn')
-  const payload = {
-    quick_order_risk_note_text: getQuickOrderRiskNoteInputText().trim()
-  }
+  const payload = getTextUiPayload()
   if (btn) {
     btn.disabled = true
     btn.innerHTML = '<i class="fas fa-spinner fa-spin text-pink-500"></i>Đang lưu...'

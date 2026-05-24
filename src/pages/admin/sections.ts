@@ -1,4 +1,7 @@
-import { DEFAULT_QUICK_ORDER_RISK_NOTE_TEXT } from '../../lib/textUiSettings'
+import {
+  DEFAULT_QUICK_ORDER_RISK_NOTE_TEXT,
+  DEFAULT_TEXT_UI_SETTINGS,
+} from '../../lib/textUiSettings'
 
 function escapeAdminHtml(value: unknown): string {
   return String(value ?? '').replace(/[&<>"']/g, (ch) => ({
@@ -187,6 +190,7 @@ export function adminSettingsPage(): string {
 
 export function adminTextUiSettingsPage(): string {
   const defaultRiskNote = escapeAdminHtml(DEFAULT_QUICK_ORDER_RISK_NOTE_TEXT)
+  const defaults = DEFAULT_TEXT_UI_SETTINGS
   return `<!-- SETTINGS TEXT UI PAGE -->
   <div id="page-settings-text-ui" class="p-3 md:p-6 hidden">
     <div class="mb-5 rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-950 via-slate-900 to-pink-950 p-5 md:p-6 text-white shadow-sm overflow-hidden relative">
@@ -205,6 +209,59 @@ export function adminTextUiSettingsPage(): string {
         </button>
       </div>
     </div>
+
+    <section class="mb-5 rounded-3xl border border-gray-200 bg-white p-5 md:p-6 shadow-sm">
+      <div class="mb-5 flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+        <div>
+          <p class="text-xs font-bold uppercase tracking-[0.18em] text-cyan-500">First view storefront</p>
+          <h3 class="mt-1 text-xl font-extrabold text-gray-900">Hero đầu trang</h3>
+          <p class="mt-1 text-sm text-gray-500">Cấu hình phần chữ đầu tiên khách nhìn thấy trên trang chủ.</p>
+        </div>
+        <span class="hidden sm:inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-50 text-cyan-500">
+          <i class="fas fa-display"></i>
+        </span>
+      </div>
+      <div class="grid gap-4 xl:grid-cols-2">
+        <label class="block">
+          <span class="block text-sm font-semibold text-gray-700 mb-1.5">Dòng badge nhỏ</span>
+          <input id="heroBadgeText" data-setting-key="hero_badge_text" data-default-text="${escapeAdminHtml(defaults.hero_badge_text)}" type="text" maxlength="220" oninput="previewTextUiSettings()" class="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-pink-400 focus:ring-4 focus:ring-pink-100">
+        </label>
+        <label class="block">
+          <span class="block text-sm font-semibold text-gray-700 mb-1.5">Tiêu đề chính</span>
+          <input id="heroTitleText" data-setting-key="hero_title_text" data-default-text="${escapeAdminHtml(defaults.hero_title_text)}" type="text" maxlength="220" oninput="previewTextUiSettings()" class="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-pink-400 focus:ring-4 focus:ring-pink-100">
+        </label>
+        <label class="block xl:col-span-2">
+          <span class="block text-sm font-semibold text-gray-700 mb-1.5">Text auto typing</span>
+          <input id="heroTypedTextSetting" data-setting-key="hero_typed_text" data-default-text="${escapeAdminHtml(defaults.hero_typed_text)}" type="text" maxlength="220" oninput="previewTextUiSettings()" class="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-pink-400 focus:ring-4 focus:ring-pink-100">
+          <p class="mt-1.5 text-xs text-gray-400">Nhập nhiều câu bằng dấu |, ví dụ: Cho Cả Nam Nữ|Phong Cách Boypho</p>
+        </label>
+        <label class="block xl:col-span-2">
+          <span class="block text-sm font-semibold text-gray-700 mb-1.5">Mô tả desktop</span>
+          <textarea id="heroDescriptionText" data-setting-key="hero_description_text" data-default-text="${escapeAdminHtml(defaults.hero_description_text)}" maxlength="800" rows="3" oninput="previewTextUiSettings()" class="w-full resize-y rounded-2xl border border-gray-200 px-4 py-3 text-sm leading-relaxed outline-none focus:border-pink-400 focus:ring-4 focus:ring-pink-100"></textarea>
+        </label>
+        <label class="block xl:col-span-2">
+          <span class="block text-sm font-semibold text-gray-700 mb-1.5">Mô tả mobile</span>
+          <textarea id="heroMobileSubtitleText" data-setting-key="hero_mobile_subtitle_text" data-default-text="${escapeAdminHtml(defaults.hero_mobile_subtitle_text)}" maxlength="220" rows="2" oninput="previewTextUiSettings()" class="w-full resize-y rounded-2xl border border-gray-200 px-4 py-3 text-sm leading-relaxed outline-none focus:border-pink-400 focus:ring-4 focus:ring-pink-100"></textarea>
+        </label>
+      </div>
+      <div class="mt-5 grid gap-3 md:grid-cols-3">
+        <div class="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+          <p class="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-gray-400">Chỉ số 1</p>
+          <input id="heroStat1Value" data-setting-key="hero_stat_1_value" data-default-text="${escapeAdminHtml(defaults.hero_stat_1_value)}" type="text" maxlength="80" oninput="previewTextUiSettings()" class="mb-2 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm font-bold outline-none focus:border-pink-400">
+          <input id="heroStat1Label" data-setting-key="hero_stat_1_label" data-default-text="${escapeAdminHtml(defaults.hero_stat_1_label)}" type="text" maxlength="80" oninput="previewTextUiSettings()" class="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none focus:border-pink-400">
+        </div>
+        <div class="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+          <p class="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-gray-400">Chỉ số 2</p>
+          <input id="heroStat2Value" data-setting-key="hero_stat_2_value" data-default-text="${escapeAdminHtml(defaults.hero_stat_2_value)}" type="text" maxlength="80" oninput="previewTextUiSettings()" class="mb-2 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm font-bold outline-none focus:border-pink-400">
+          <input id="heroStat2Label" data-setting-key="hero_stat_2_label" data-default-text="${escapeAdminHtml(defaults.hero_stat_2_label)}" type="text" maxlength="80" oninput="previewTextUiSettings()" class="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none focus:border-pink-400">
+        </div>
+        <div class="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+          <p class="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-gray-400">Chỉ số 3</p>
+          <input id="heroStat3Value" data-setting-key="hero_stat_3_value" data-default-text="${escapeAdminHtml(defaults.hero_stat_3_value)}" type="text" maxlength="80" oninput="previewTextUiSettings()" class="mb-2 w-full rounded-xl border border-gray-200 px-3 py-2 text-sm font-bold outline-none focus:border-pink-400">
+          <input id="heroStat3Label" data-setting-key="hero_stat_3_label" data-default-text="${escapeAdminHtml(defaults.hero_stat_3_label)}" type="text" maxlength="80" oninput="previewTextUiSettings()" class="w-full rounded-xl border border-gray-200 px-3 py-2 text-sm outline-none focus:border-pink-400">
+        </div>
+      </div>
+    </section>
 
     <div class="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
       <section class="rounded-3xl border border-gray-200 bg-white p-5 md:p-6 shadow-sm">

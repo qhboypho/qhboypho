@@ -58,6 +58,17 @@ type NotificationSettingsInput = {
 
 type TextUiSettingsInput = {
   quick_order_risk_note_text?: unknown
+  hero_badge_text?: unknown
+  hero_title_text?: unknown
+  hero_typed_text?: unknown
+  hero_description_text?: unknown
+  hero_mobile_subtitle_text?: unknown
+  hero_stat_1_value?: unknown
+  hero_stat_1_label?: unknown
+  hero_stat_2_value?: unknown
+  hero_stat_2_label?: unknown
+  hero_stat_3_value?: unknown
+  hero_stat_3_label?: unknown
 }
 
 const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
@@ -494,10 +505,19 @@ export function registerAdminUtilityRoutes(app: Hono<{ Bindings: AppBindings }>,
       const body: TextUiSettingsInput = await c.req.json<TextUiSettingsInput>().catch(() => ({} as TextUiSettingsInput))
       const payload = {
         quick_order_risk_note_text: sanitizeTextUiSetting(body.quick_order_risk_note_text) || DEFAULT_QUICK_ORDER_RISK_NOTE_TEXT,
+        hero_badge_text: sanitizeTextUiSetting(body.hero_badge_text, 220),
+        hero_title_text: sanitizeTextUiSetting(body.hero_title_text, 220),
+        hero_typed_text: sanitizeTextUiSetting(body.hero_typed_text, 220),
+        hero_description_text: sanitizeTextUiSetting(body.hero_description_text, 800),
+        hero_mobile_subtitle_text: sanitizeTextUiSetting(body.hero_mobile_subtitle_text, 220),
+        hero_stat_1_value: sanitizeTextUiSetting(body.hero_stat_1_value, 80),
+        hero_stat_1_label: sanitizeTextUiSetting(body.hero_stat_1_label, 80),
+        hero_stat_2_value: sanitizeTextUiSetting(body.hero_stat_2_value, 80),
+        hero_stat_2_label: sanitizeTextUiSetting(body.hero_stat_2_label, 80),
+        hero_stat_3_value: sanitizeTextUiSetting(body.hero_stat_3_value, 80),
+        hero_stat_3_label: sanitizeTextUiSetting(body.hero_stat_3_label, 80),
       }
-      await deps.upsertAppSettings(c.env.DB, [
-        { key: 'quick_order_risk_note_text', value: payload.quick_order_risk_note_text },
-      ])
+      await deps.upsertAppSettings(c.env.DB, Object.entries(payload).map(([key, value]) => ({ key, value })))
       return c.json({ success: true, data: payload })
     } catch (e: any) {
       return c.json({ success: false, error: e.message }, 500)

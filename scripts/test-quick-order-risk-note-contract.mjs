@@ -20,6 +20,9 @@ const checks = [
   ['admin text ui page', adminSectionsSource.includes('page-settings-text-ui')],
   ['admin text ui nav', adminScriptSource.includes('settings-text-ui')],
   ['admin text ui loader', adminSettingsScriptSource.includes('loadTextUiSettings')],
+  ['hero text ui defaults', textUiSource.includes('hero_title_text')],
+  ['hero uses text ui settings', adminSectionsSource.includes('heroTitleText') && pageRoutesSource.includes('readTextUiSettings')],
+  ['product list tags transparent', stylesSource.includes('#products .product-card span.text-xs.bg-gray-100') && stylesSource.includes('background: transparent !important')],
   ['warning base styles', stylesSource.includes('.order-risk-note {')],
   ['warning dark theme styles', stylesSource.includes("body[data-storefront-theme='dark'] .order-risk-note")],
 ];

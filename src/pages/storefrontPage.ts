@@ -57,7 +57,7 @@ ${storefrontBodyOpen()}
 
 ${storefrontNavbarSection()}
 
-${storefrontHeroSection()}
+${storefrontHeroSection(options.textUiSettings)}
 
 ${storefrontBestsellersSection()}
 
