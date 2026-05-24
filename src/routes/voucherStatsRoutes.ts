@@ -298,8 +298,6 @@ export function registerVoucherStatsRoutes(app: Hono<{ Bindings: AppBindings }>,
       const goodsVatRate = 0.01
       const goodsPitRate = 0.005
       const totalProducts = await c.env.DB.prepare(`SELECT COUNT(*) as count FROM products WHERE is_active=1`).first() as any
-      const totalOrders = await c.env.DB.prepare(`SELECT COUNT(*) as count FROM orders WHERE ${activeOrderFilterSql}`).bind(...orderFilter.params).first() as any
-      const pendingOrders = await c.env.DB.prepare(`SELECT COUNT(*) as count FROM orders WHERE status='pending' AND ${activeOrderFilterSql}`).bind(...orderFilter.params).first() as any
       const undeliveredOrders = await c.env.DB.prepare(`SELECT COUNT(*) as count FROM orders WHERE ${undeliveredOrderFilterSql}`).bind(...orderFilter.params).first() as any
       const sidebarUndeliveredOrders = await c.env.DB.prepare(`
         SELECT COUNT(*) as count
@@ -317,8 +315,9 @@ export function registerVoucherStatsRoutes(app: Hono<{ Bindings: AppBindings }>,
       const shippingQueueOrders = await c.env.DB.prepare(`
         SELECT COUNT(*) as count
         FROM orders
-        WHERE ${activeOrderFilterSql}
-          AND status NOT IN ('shipping', 'done', 'cancelled')
+        WHERE ${allOrderFilter.sql}
+          AND LOWER(COALESCE(status, '')) NOT IN ('shipping', 'done', 'cancelled')
+          AND COALESCE(CAST(shipping_arranged AS INTEGER), 0) != 1
           AND (
             UPPER(COALESCE(payment_method, '')) = 'COD'
             OR (
@@ -326,7 +325,7 @@ export function registerVoucherStatsRoutes(app: Hono<{ Bindings: AppBindings }>,
               AND LOWER(COALESCE(payment_status, '')) = 'paid'
             )
           )
-      `).bind(...orderFilter.params).first() as any
+      `).bind(...allOrderFilter.params).first() as any
       const revenue = await c.env.DB.prepare(`
         SELECT SUM(COALESCE(total_price, 0)) as total
         FROM orders
@@ -385,8 +384,8 @@ export function registerVoucherStatsRoutes(app: Hono<{ Bindings: AppBindings }>,
         data: {
           range,
           totalProducts: totalProducts?.count || 0,
-          totalOrders: totalOrders?.count || 0,
-          pendingOrders: pendingOrders?.count || 0,
+          totalOrders: sidebarUndeliveredOrders?.count || 0,
+          pendingOrders: shippingQueueOrders?.count || 0,
           undeliveredOrders: undeliveredOrders?.count || 0,
           sidebarUndeliveredOrders: sidebarUndeliveredOrders?.count || 0,
           shippingQueueOrders: shippingQueueOrders?.count || 0,
