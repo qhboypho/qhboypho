@@ -1262,7 +1262,7 @@ function renderDashboardInsights(d) {
   const metrics = [
     { label: 'Đơn nhận thành công', value: deliveredOrders.toLocaleString('vi-VN'), tone: 'border-emerald-100 bg-emerald-50 text-emerald-700' },
     { label: 'Hoàn hàng', value: returnedOrders.toLocaleString('vi-VN'), tone: 'border-rose-100 bg-rose-50 text-rose-700' },
-    { label: 'Hủy / thất bại', value: cancelledOrFailedOrders.toLocaleString('vi-VN'), tone: 'border-amber-100 bg-amber-50 text-amber-700' },
+    { label: 'Bom / trả về', value: cancelledOrFailedOrders.toLocaleString('vi-VN'), tone: 'border-amber-100 bg-amber-50 text-amber-700' },
     { label: 'Giá trị đơn TB', value: fmtPrice(avgOrderValue), tone: 'border-slate-100 bg-slate-50 text-slate-700' },
   ]
   const formulaHtml = formulaCards.map((item, index) => {
@@ -1285,7 +1285,7 @@ function renderDashboardInsights(d) {
       '</div>' +
       '<div class="flex flex-col gap-3 rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50 to-slate-50 px-4 py-3 md:flex-row md:items-center md:justify-between">' +
         '<div class="inline-flex items-center gap-3 text-blue-600">' +
-          '<span class="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-blue-200 bg-white shadow-sm"><i class="fas fa-badge-percent"></i></span>' +
+          '<span class="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-blue-200 bg-white shadow-sm"><i class="fas fa-percent"></i></span>' +
           '<div>' +
             '<p class="text-sm font-black">Tỷ lệ thuế áp dụng: ' + escapeDashboardHtml((Math.round(totalRate * 1000) / 10).toLocaleString('vi-VN')) + '%</p>' +
             '<p class="text-xs text-blue-500">VAT ' + escapeDashboardHtml((Math.round(vatRate * 1000) / 10).toLocaleString('vi-VN')) + '% + TNCN ' + escapeDashboardHtml((Math.round(pitRate * 1000) / 10).toLocaleString('vi-VN')) + '%</p>' +
@@ -1313,7 +1313,7 @@ function renderDashboardStatusBreakdown(rows, totalOrders) {
   const wrap = document.getElementById('dashboardStatusBreakdown')
   if (!wrap) return
   const normalized = Array.isArray(rows) ? rows : []
-  const order = ['pending', 'confirmed', 'shipping', 'done', 'cancelled']
+  const order = ['pending', 'confirmed', 'shipping', 'done', 'delivery_failed']
   const map = normalized.reduce((acc, row) => {
     acc[String(row.status || 'pending').toLowerCase()] = Number(row.count || 0)
     return acc
@@ -1348,6 +1348,7 @@ function dashboardStatusBarClass(status) {
   if (key === 'confirmed') return 'bg-blue-500'
   if (key === 'shipping') return 'bg-violet-500'
   if (key === 'done') return 'bg-emerald-500'
+  if (key === 'delivery_failed') return 'bg-red-400'
   if (key === 'cancelled') return 'bg-red-400'
   return 'bg-gray-400'
 }
@@ -2510,7 +2511,7 @@ async function copyOrderCode(orderCode) {
 }
 function safeJson(v) { try { return JSON.parse(v||'[]') } catch { return [] } }
 function catLabel(c) { return {unisex:'Unisex',male:'Nam',female:'Nữ'}[c]||c }
-function statusLabel(s) { return {pending:'Chờ xử lý',confirmed:'Xác nhận',shipping:'Đang giao',done:'Hoàn thành',cancelled:'Đã hủy'}[s]||s }
+function statusLabel(s) { return {pending:'Chờ xử lý',confirmed:'Xác nhận',shipping:'Đang giao',done:'Hoàn thành',cancelled:'Đã hủy',delivery_failed:'Bom / trả về'}[s]||s }
 
 function showAdminToast(msg, type='success') {
   const c = document.getElementById('adminToast')

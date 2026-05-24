@@ -289,11 +289,18 @@ export function registerVoucherStatsRoutes(app: Hono<{ Bindings: AppBindings }>,
       const activeOrderFilterSql = `${orderFilter.sql} AND LOWER(COALESCE(status, '')) != 'cancelled'`
       const undeliveredOrderFilterSql = `${orderFilter.sql} AND LOWER(COALESCE(status, '')) NOT IN ('done', 'cancelled')`
       const returnedOrderFilterSql = `${orderFilter.sql} AND LOWER(COALESCE(return_status, '')) = 'returned'`
-      const cancelledOrFailedFilterSql = `${orderFilter.sql}
-        AND (
-          LOWER(COALESCE(status, '')) = 'cancelled'
-          OR LOWER(COALESCE(return_status, '')) IN ('cancelled', 'delivery_failed')
-        )`
+      const customerFaultReturnSql = `(
+        LOWER(COALESCE(return_status, '')) = 'delivery_failed'
+        OR (
+          (LOWER(COALESCE(status, '')) = 'cancelled' OR LOWER(COALESCE(return_status, '')) = 'cancelled')
+          AND LOWER(COALESCE(cancelled_by, '')) = 'customer'
+          AND (
+            COALESCE(CAST(shipping_arranged AS INTEGER), 0) = 1
+            OR TRIM(COALESCE(shipping_tracking_code, '')) != ''
+          )
+        )
+      )`
+      const cancelledOrFailedFilterSql = `${orderFilter.sql} AND ${customerFaultReturnSql}`
       const recentOrderFilterSql = `${orderFilterAlias.sql} AND LOWER(COALESCE(o.status, '')) != 'cancelled'`
       const goodsVatRate = 0.01
       const goodsPitRate = 0.005
@@ -355,10 +362,23 @@ export function registerVoucherStatsRoutes(app: Hono<{ Bindings: AppBindings }>,
           AND LOWER(COALESCE(payment_status, '')) != 'paid'
       `).bind(...orderFilter.params).first() as any
       const statusBreakdownRes = await c.env.DB.prepare(`
-        SELECT LOWER(COALESCE(status, 'pending')) as status, COUNT(*) as count
+        SELECT
+          CASE
+            WHEN ${customerFaultReturnSql} THEN 'delivery_failed'
+            ELSE LOWER(COALESCE(status, 'pending'))
+          END as status,
+          COUNT(*) as count
         FROM orders
         WHERE ${orderFilter.sql}
-        GROUP BY LOWER(COALESCE(status, 'pending'))
+          AND NOT (
+            LOWER(COALESCE(status, '')) = 'cancelled'
+            AND NOT ${customerFaultReturnSql}
+          )
+        GROUP BY
+          CASE
+            WHEN ${customerFaultReturnSql} THEN 'delivery_failed'
+            ELSE LOWER(COALESCE(status, 'pending'))
+          END
       `).bind(...orderFilter.params).all()
       const recentOrdersRes = await c.env.DB.prepare(`
         SELECT o.*,
