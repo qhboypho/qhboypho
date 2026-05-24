@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises'
 
 const routeSource = await readFile(new URL('../src/routes/voucherStatsRoutes.ts', import.meta.url), 'utf8')
 const adminSource = await readFile(new URL('../src/pages/admin/script.ts', import.meta.url), 'utf8')
+const sectionsSource = await readFile(new URL('../src/pages/admin/sections.ts', import.meta.url), 'utf8')
 
 assert.match(
   routeSource,
@@ -42,6 +43,12 @@ assert.match(
 
 assert.match(
   routeSource,
+  /const statusBreakdownRes = await c\.env\.DB\.prepare\(`[\s\S]*WHERE \$\{allOrderFilter\.sql\}[\s\S]*`\)\.bind\(\.\.\.allOrderFilter\.params\)\.all\(\)/,
+  'dashboard status breakdown should use the same all-time operational scope as the order count cards'
+)
+
+assert.match(
+  routeSource,
   /LOWER\(COALESCE\(status, ''\)\) = 'cancelled'[\s\S]*AND NOT \$\{customerFaultReturnSql\}/,
   'dashboard status breakdown should exclude normal pre-shipping cancellations'
 )
@@ -74,6 +81,12 @@ assert.doesNotMatch(
   adminSource,
   /normalized\.reduce\(\(sum, row\)[\s\S]*Number\(totalOrders \|\| 0\)/,
   'dashboard status breakdown must not use all-time totalOrders as its percentage denominator'
+)
+
+assert.match(
+  sectionsSource,
+  /Cùng logic với tổng đơn vận hành/,
+  'dashboard status breakdown subtitle should match the operational all-time scope'
 )
 
 console.log('dashboard return status contract passed')

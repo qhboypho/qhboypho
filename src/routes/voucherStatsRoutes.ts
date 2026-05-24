@@ -365,7 +365,7 @@ export function registerVoucherStatsRoutes(app: Hono<{ Bindings: AppBindings }>,
           END as status,
           COUNT(*) as count
         FROM orders
-        WHERE ${orderFilter.sql}
+        WHERE ${allOrderFilter.sql}
           AND (
             ${customerFaultReturnSql}
             OR ${actionableShippingSql}
@@ -382,7 +382,7 @@ export function registerVoucherStatsRoutes(app: Hono<{ Bindings: AppBindings }>,
             WHEN ${actionableShippingSql} AND COALESCE(CAST(shipping_arranged AS INTEGER), 0) = 1 THEN 'confirmed'
             ELSE LOWER(COALESCE(status, 'pending'))
           END
-      `).bind(...orderFilter.params).all()
+      `).bind(...allOrderFilter.params).all()
       const recentOrdersRes = await c.env.DB.prepare(`
         SELECT o.*,
                p.thumbnail AS product_thumbnail,

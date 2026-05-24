@@ -98,7 +98,7 @@ export function adminDashboardPage(): string {
         <div class="flex items-start justify-between gap-3 mb-4">
           <div>
             <h2 class="font-bold text-gray-800">Trạng thái đơn hàng</h2>
-            <p class="text-xs text-gray-400 mt-1">Tính theo thời gian đang chọn</p>
+            <p class="text-xs text-gray-400 mt-1">Cùng logic với tổng đơn vận hành</p>
           </div>
           <span class="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-pink-50 text-pink-600"><i class="fas fa-bars-progress"></i></span>
         </div>
