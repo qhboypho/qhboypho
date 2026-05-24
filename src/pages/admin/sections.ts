@@ -1,3 +1,15 @@
+import { DEFAULT_QUICK_ORDER_RISK_NOTE_TEXT } from '../../lib/textUiSettings'
+
+function escapeAdminHtml(value: unknown): string {
+  return String(value ?? '').replace(/[&<>"']/g, (ch) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  }[ch] || ch))
+}
+
 export function adminBodyOpen(): string {
   return "<body class=\"bg-gray-50 flex\">"
 }
@@ -171,6 +183,74 @@ export function adminFlashSalePage(): string {
 
 export function adminSettingsPage(): string {
   return "<!-- SETTINGS SOCIAL PAGE -->\n  <div id=\"page-settings-social\" class=\"p-6 hidden\">\n    <div class=\"bg-white rounded-2xl shadow-sm border p-6\">\n      <div class=\"flex items-center justify-between gap-4 mb-6\">\n        <div>\n          <h2 class=\"text-xl font-extrabold text-gray-900 tracking-tight\">Cấu hình MXH</h2>\n          <p class=\"text-sm text-gray-500 mt-1\">Chỉ nhập ID hoặc handle. Link và icon ngoài frontend chỉ hiện sau khi đã lưu cấu hình.</p>\n        </div>\n      </div>\n      <div class=\"grid gap-4 md:grid-cols-2\">\n        <div class=\"rounded-2xl border border-gray-200 bg-gray-50 p-4\">\n          <label class=\"block text-sm font-semibold text-gray-700 mb-1.5\">TikTok handle</label>\n          <input type=\"text\" id=\"socialTiktokHandle\" placeholder=\"qhclothesvn\" oninput=\"previewSocialUrl('tiktok')\" class=\"w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400\">\n          <p class=\"text-xs text-gray-500 mt-2\">Preview: <a id=\"socialTiktokPreview\" href=\"#\" target=\"_blank\" class=\"text-pink-600 hover:underline\">Chưa cấu hình</a></p>\n        </div>\n        <div class=\"rounded-2xl border border-gray-200 bg-gray-50 p-4\">\n          <label class=\"block text-sm font-semibold text-gray-700 mb-1.5\">Shopee handle</label>\n          <input type=\"text\" id=\"socialShopeeHandle\" placeholder=\"qhclothes.vn\" oninput=\"previewSocialUrl('shopee')\" class=\"w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400\">\n          <p class=\"text-xs text-gray-500 mt-2\">Preview: <a id=\"socialShopeePreview\" href=\"#\" target=\"_blank\" class=\"text-pink-600 hover:underline\">Chưa cấu hình</a></p>\n        </div>\n        <div class=\"rounded-2xl border border-gray-200 bg-gray-50 p-4\">\n          <label class=\"block text-sm font-semibold text-gray-700 mb-1.5\">Facebook handle</label>\n          <input type=\"text\" id=\"socialFacebookHandle\" placeholder=\"qhclothes\" oninput=\"previewSocialUrl('facebook')\" class=\"w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400\">\n          <p class=\"text-xs text-gray-500 mt-2\">Preview: <a id=\"socialFacebookPreview\" href=\"#\" target=\"_blank\" class=\"text-pink-600 hover:underline\">Chưa cấu hình</a></p>\n        </div>\n        <div class=\"rounded-2xl border border-gray-200 bg-gray-50 p-4\">\n          <label class=\"block text-sm font-semibold text-gray-700 mb-1.5\">Threads handle</label>\n          <input type=\"text\" id=\"socialThreadsHandle\" placeholder=\"qhclothesvn\" oninput=\"previewSocialUrl('threads')\" class=\"w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400\">\n          <p class=\"text-xs text-gray-500 mt-2\">Preview: <a id=\"socialThreadsPreview\" href=\"#\" target=\"_blank\" class=\"text-pink-600 hover:underline\">Chưa cấu hình</a></p>\n        </div>\n      </div>\n      <div class=\"mt-6 flex justify-end\">\n        <button onclick=\"saveSocialSettings()\" id=\"saveSocialSettingsBtn\" class=\"btn-pink text-white px-5 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2\">\n          <i class=\"fas fa-save\"></i>Lưu cấu hình MXH\n        </button>\n      </div>\n    </div>\n  </div>\n\n  <!-- SETTINGS WAREHOUSE PAGE -->\n  <div id=\"page-settings-warehouse\" class=\"p-6 hidden\">\n    <div class=\"bg-white rounded-2xl shadow-sm border p-6\">\n      <div class=\"flex items-center justify-between gap-4 mb-4\">\n        <div>\n          <h2 class=\"text-xl font-extrabold text-gray-900 tracking-tight\">Cài đặt kho hàng</h2>\n          <p class=\"text-sm text-gray-500 mt-1\">Cấu hình địa chỉ lấy hàng và tài khoản GHTK cho hệ thống.</p>\n        </div>\n      </div>\n      <div id=\"settingsWarehouseContent\" class=\"rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-6 text-gray-500\">\n        <div class=\"flex items-center gap-3\">\n          <i class=\"fas fa-warehouse text-2xl text-emerald-500\"></i>\n          <div>\n            <p class=\"font-semibold text-gray-800\">Khu cài đặt kho hàng</p>\n            <p class=\"text-sm text-gray-500\">Phần này đã tồn tại trong hệ thống, chỉ đang được hiển thị tách ra để dễ mở rộng.</p>\n          </div>\n        </div>\n      </div>\n    </div>\n  </div>"
+}
+
+export function adminTextUiSettingsPage(): string {
+  const defaultRiskNote = escapeAdminHtml(DEFAULT_QUICK_ORDER_RISK_NOTE_TEXT)
+  return `<!-- SETTINGS TEXT UI PAGE -->
+  <div id="page-settings-text-ui" class="p-3 md:p-6 hidden">
+    <div class="mb-5 rounded-3xl border border-slate-200 bg-gradient-to-br from-slate-950 via-slate-900 to-pink-950 p-5 md:p-6 text-white shadow-sm overflow-hidden relative">
+      <div class="absolute -right-16 -top-16 h-44 w-44 rounded-full bg-pink-500/20 blur-3xl"></div>
+      <div class="absolute -bottom-20 left-20 h-52 w-52 rounded-full bg-cyan-400/10 blur-3xl"></div>
+      <div class="relative flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+        <div>
+          <p class="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold text-pink-100">
+            <i class="fas fa-language"></i>Quản lý nội dung UI
+          </p>
+          <h2 class="mt-4 text-2xl md:text-3xl font-extrabold tracking-tight">Text UI</h2>
+          <p class="mt-2 max-w-2xl text-sm text-slate-300">Cấu hình các đoạn text hiển thị ngoài storefront để không phải sửa code thủ công.</p>
+        </div>
+        <button id="saveTextUiSettingsBtn" onclick="saveTextUiSettings()" class="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-bold text-slate-950 shadow-lg shadow-black/20 hover:bg-pink-50 transition">
+          <i class="fas fa-save text-pink-500"></i>Lưu Text UI
+        </button>
+      </div>
+    </div>
+
+    <div class="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
+      <section class="rounded-3xl border border-gray-200 bg-white p-5 md:p-6 shadow-sm">
+        <div class="flex items-start justify-between gap-3 mb-5">
+          <div>
+            <p class="text-xs font-bold uppercase tracking-[0.18em] text-pink-500">Modal đặt hàng nhanh</p>
+            <h3 class="mt-1 text-xl font-extrabold text-gray-900">Cảnh báo trước khi đặt</h3>
+            <p class="mt-1 text-sm text-gray-500">Đoạn này hiển thị dưới tổng tiền trong modal đặt hàng nhanh.</p>
+          </div>
+          <span class="hidden sm:inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-50 text-amber-500">
+            <i class="fas fa-triangle-exclamation"></i>
+          </span>
+        </div>
+
+        <label class="block">
+          <span class="block text-sm font-semibold text-gray-700 mb-1.5">Nội dung cảnh báo</span>
+          <textarea id="quickOrderRiskNoteText" data-default-text="${defaultRiskNote}" maxlength="800" rows="7" oninput="previewTextUiSettings()" class="w-full resize-y rounded-2xl border border-gray-200 px-4 py-3 text-sm leading-relaxed outline-none focus:border-pink-400 focus:ring-4 focus:ring-pink-100"></textarea>
+        </label>
+        <div class="mt-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <p id="quickOrderRiskNoteCounter" class="text-xs font-semibold text-gray-400">0/800</p>
+          <button type="button" onclick="resetQuickOrderRiskNoteDefault()" class="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition">
+            <i class="fas fa-rotate-left"></i>Khôi phục mặc định
+          </button>
+        </div>
+      </section>
+
+      <section class="rounded-3xl border border-gray-200 bg-white p-5 md:p-6 shadow-sm">
+        <div class="mb-5">
+          <p class="text-xs font-bold uppercase tracking-[0.18em] text-amber-500">Preview</p>
+          <h3 class="mt-1 text-xl font-extrabold text-gray-900">Hiển thị trên modal</h3>
+          <p class="mt-1 text-sm text-gray-500">Preview dùng cùng cấu trúc cảnh báo ngoài storefront.</p>
+        </div>
+        <div class="rounded-3xl border border-slate-200 bg-slate-950 p-4">
+          <div class="order-risk-note flex items-start gap-3 rounded-2xl border border-amber-300/25 bg-amber-300/10 p-3.5 text-amber-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+            <div class="order-risk-note-icon inline-flex h-8 w-8 flex-none items-center justify-center rounded-full bg-amber-300/15 text-amber-300" aria-hidden="true">
+              <i class="fas fa-triangle-exclamation"></i>
+            </div>
+            <div class="min-w-0">
+              <div class="order-risk-note-title text-sm font-extrabold leading-tight text-amber-100"><strong>Chú ý !</strong></div>
+              <div id="quickOrderRiskNotePreview" class="order-risk-note-text mt-1 text-[13px] leading-relaxed text-amber-100/80"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>`
 }
 
 export function adminImageSettingsPage(): string {

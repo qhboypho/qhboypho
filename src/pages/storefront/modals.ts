@@ -1,3 +1,22 @@
+import {
+  DEFAULT_QUICK_ORDER_RISK_NOTE_TEXT,
+  type TextUiSettings
+} from '../../lib/textUiSettings'
+
+function escapeStorefrontModalHtml(value: unknown): string {
+  return String(value ?? '').replace(/[&<>"']/g, (ch) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  }[ch] || ch))
+}
+
+function resolveQuickOrderRiskNoteText(textUiSettings?: Partial<TextUiSettings>): string {
+  return String(textUiSettings?.quick_order_risk_note_text || '').trim() || DEFAULT_QUICK_ORDER_RISK_NOTE_TEXT
+}
+
 function checkoutPaymentOptions(scope: 'order' | 'ck', bankHint: string): string {
   return `
         <div id="${scope === 'ck' ? 'ckFieldPaymentMethod' : 'fieldPaymentMethod'}">
@@ -64,7 +83,8 @@ function checkoutPaymentOptions(scope: 'order' | 'ck', bankHint: string): string
         </div>`
 }
 
-export function storefrontModalsSection(): string {
+export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>): string {
+  const quickOrderRiskNoteText = escapeStorefrontModalHtml(resolveQuickOrderRiskNoteText(textUiSettings))
   return `
 <div id="orderOverlay" class="fixed inset-0 overlay z-50 hidden flex items-center justify-center p-4">
   <div class="popup-card bg-white rounded-3xl shadow-2xl w-full max-w-md md:max-w-[56rem] max-h-[90vh] overflow-y-auto" id="orderPopupCard">
@@ -228,7 +248,7 @@ export function storefrontModalsSection(): string {
               <strong>Chú ý !</strong>
             </div>
             <div class="order-risk-note-text">
-              Hãy chắc bạn muốn mua và nhận được hàng trước khi đặt để tránh phát sinh phí hoàn và bị hệ thống ghi nhận lịch sử bom hàng. Bạn sẽ không thể đặt hàng nếu số lần không nhận được vượt quá 2 lần
+              ${quickOrderRiskNoteText}
             </div>
           </div>
         </div>

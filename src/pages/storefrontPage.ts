@@ -15,8 +15,13 @@ import { storefrontModalsSection } from './storefront/modals'
 import { storefrontInlineScript } from './storefront/script'
 import { storefrontPurchaseToastScript } from './storefront/script-purchase-toast'
 import autoTypingScript from 'autotyping/dist/AutoTyping.min.js?raw'
+import type { TextUiSettings } from '../lib/textUiSettings'
 
-export function storefrontHTML(): string {
+type StorefrontPageOptions = {
+  textUiSettings?: Partial<TextUiSettings>
+}
+
+export function storefrontHTML(options: StorefrontPageOptions = {}): string {
   return `<!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -66,7 +71,7 @@ ${storefrontFooterSection()}
 
 <div id="purchaseToastContainer" style="position:fixed;bottom:24px;left:24px;z-index:60;display:flex;flex-direction:column;gap:8px;pointer-events:none;max-width:320px;"></div>
 
-${storefrontModalsSection()}
+${storefrontModalsSection(options.textUiSettings)}
 
 <script>
 ${storefrontInlineScript()}

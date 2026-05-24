@@ -15,6 +15,7 @@ import {
   adminFeaturedPage,
   adminFlashSalePage,
   adminSettingsPage,
+  adminTextUiSettingsPage,
   adminImageSettingsPage,
   adminNotificationSettingsPage,
   adminBannersPage,
@@ -72,6 +73,8 @@ ${adminFeaturedPage()}
 ${adminFlashSalePage()}
 
 ${adminSettingsPage()}
+
+${adminTextUiSettingsPage()}
 
 ${adminImageSettingsPage()}
 

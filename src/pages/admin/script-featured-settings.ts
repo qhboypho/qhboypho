@@ -573,6 +573,71 @@ async function saveNotificationSettings() {
   }
 }
 
+function getQuickOrderRiskNoteInputText() {
+  return String(document.getElementById('quickOrderRiskNoteText')?.value || '').slice(0, 800)
+}
+
+function getQuickOrderRiskNoteDefaultText() {
+  return String(document.getElementById('quickOrderRiskNoteText')?.dataset.defaultText || '')
+}
+
+function previewTextUiSettings() {
+  const text = getQuickOrderRiskNoteInputText()
+  const counter = document.getElementById('quickOrderRiskNoteCounter')
+  const preview = document.getElementById('quickOrderRiskNotePreview')
+  if (counter) counter.textContent = String(text.length) + '/800'
+  if (preview) preview.textContent = text.trim() || getQuickOrderRiskNoteDefaultText()
+}
+
+function fillTextUiSettings(cfg) {
+  const input = document.getElementById('quickOrderRiskNoteText')
+  if (input) {
+    input.value = String(cfg?.quick_order_risk_note_text || getQuickOrderRiskNoteDefaultText()).slice(0, 800)
+  }
+  previewTextUiSettings()
+}
+
+async function loadTextUiSettings() {
+  try {
+    const res = await axios.get('/api/admin/settings/text-ui')
+    fillTextUiSettings(res.data.data || {})
+  } catch (e) {
+    fillTextUiSettings({})
+    showAdminToast('Lỗi tải Text UI', 'error')
+  }
+}
+
+function resetQuickOrderRiskNoteDefault() {
+  const input = document.getElementById('quickOrderRiskNoteText')
+  if (!input) return
+  input.value = getQuickOrderRiskNoteDefaultText()
+  previewTextUiSettings()
+  input.focus()
+}
+
+async function saveTextUiSettings() {
+  const btn = document.getElementById('saveTextUiSettingsBtn')
+  const payload = {
+    quick_order_risk_note_text: getQuickOrderRiskNoteInputText().trim()
+  }
+  if (btn) {
+    btn.disabled = true
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin text-pink-500"></i>Đang lưu...'
+  }
+  try {
+    await axios.put('/api/admin/settings/text-ui', payload)
+    showAdminToast('Đã lưu Text UI', 'success')
+    await loadTextUiSettings()
+  } catch (e) {
+    showAdminToast('Lưu Text UI thất bại', 'error')
+  } finally {
+    if (btn) {
+      btn.disabled = false
+      btn.innerHTML = '<i class="fas fa-save text-pink-500"></i>Lưu Text UI'
+    }
+  }
+}
+
 function getImageSettingUrl(idBase) {
   return String(document.getElementById(idBase + 'Url')?.value || '').trim()
 }

@@ -5,6 +5,7 @@ import { storefrontHTML } from '../pages/storefrontPage'
 import { adminHTML } from '../pages/adminPage'
 import { adminLoginHTML } from '../pages/adminLoginPage'
 import { validateAdminSessionToken } from '../lib/adminHelpers'
+import { readTextUiSettings } from '../lib/textUiSettings'
 
 export function registerPageRoutes(app: Hono<{ Bindings: AppBindings }>) {
   app.get('/admin', (c) => c.redirect('/admin/dashboard'))
@@ -21,7 +22,12 @@ export function registerPageRoutes(app: Hono<{ Bindings: AppBindings }>) {
     return c.html(adminHTML())
   })
 
-  app.get('/', (c) => c.html(storefrontHTML()))
+  async function renderStorefront(c: any) {
+    const textUiSettings = await readTextUiSettings(c.env.DB).catch(() => undefined)
+    return c.html(storefrontHTML({ textUiSettings }))
+  }
 
-  app.get('*', (c) => c.html(storefrontHTML()))
+  app.get('/', renderStorefront)
+
+  app.get('*', renderStorefront)
 }

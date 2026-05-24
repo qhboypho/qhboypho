@@ -2,6 +2,11 @@ import type { Hono } from 'hono'
 import type { AppBindings } from '../types/app'
 import type { AppSettingEntry } from '../types/admin'
 import type { GhtkPickupConfig, GhtkPickupAddressFetchResult, GhnConfig, ShippingCarrierDefinition, SpxConfig } from '../lib/shippingHelpers'
+import {
+  DEFAULT_QUICK_ORDER_RISK_NOTE_TEXT,
+  readTextUiSettings,
+  sanitizeTextUiSetting
+} from '../lib/textUiSettings'
 
 type HeroBannerInput = {
   image_url?: unknown
@@ -49,6 +54,10 @@ type ImageSettingsInput = {
 type NotificationSettingsInput = {
   marquee_text?: unknown
   marquee_speed_seconds?: unknown
+}
+
+type TextUiSettingsInput = {
+  quick_order_risk_note_text?: unknown
 }
 
 const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
@@ -462,6 +471,32 @@ export function registerAdminUtilityRoutes(app: Hono<{ Bindings: AppBindings }>,
       await deps.upsertAppSettings(c.env.DB, [
         { key: 'marquee_text', value: payload.marquee_text },
         { key: 'marquee_speed_seconds', value: payload.marquee_speed_seconds },
+      ])
+      return c.json({ success: true, data: payload })
+    } catch (e: any) {
+      return c.json({ success: false, error: e.message }, 500)
+    }
+  })
+
+  app.get('/api/admin/settings/text-ui', async (c) => {
+    try {
+      await deps.initDB(c.env.DB)
+      const settings = await readTextUiSettings(c.env.DB)
+      return c.json({ success: true, data: settings })
+    } catch (e: any) {
+      return c.json({ success: false, error: e.message }, 500)
+    }
+  })
+
+  app.put('/api/admin/settings/text-ui', async (c) => {
+    try {
+      await deps.initDB(c.env.DB)
+      const body: TextUiSettingsInput = await c.req.json<TextUiSettingsInput>().catch(() => ({} as TextUiSettingsInput))
+      const payload = {
+        quick_order_risk_note_text: sanitizeTextUiSetting(body.quick_order_risk_note_text) || DEFAULT_QUICK_ORDER_RISK_NOTE_TEXT,
+      }
+      await deps.upsertAppSettings(c.env.DB, [
+        { key: 'quick_order_risk_note_text', value: payload.quick_order_risk_note_text },
       ])
       return c.json({ success: true, data: payload })
     } catch (e: any) {

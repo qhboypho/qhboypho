@@ -662,7 +662,7 @@ function getDashboardStatsParams() {
 function showPage(pageName) {
   pageName = String(pageName || 'dashboard')
   ensureSettingsImagesNavItem()
-  const adminPages = ['dashboard','products','orders','returns','customers','reviews','vouchers','featured','settings','settings-social','settings-images','settings-notifications','settings-warehouse','flashsale']
+  const adminPages = ['dashboard','products','orders','returns','customers','reviews','vouchers','featured','settings','settings-social','settings-text-ui','settings-images','settings-notifications','settings-warehouse','flashsale']
   adminPages.forEach(p => {
     const section = document.getElementById('page-'+p)
     if (section) section.classList.toggle('hidden', p !== pageName)
@@ -673,17 +673,18 @@ function showPage(pageName) {
   document.querySelectorAll('.nav-sub-item').forEach(b => {
     b.classList.toggle('active', b.dataset.subPage === settingsActiveSubPage || b.dataset.subPage === marketingActiveSubPage)
   })
-  if (pageName === 'settings' || pageName === 'settings-social' || pageName === 'settings-images' || pageName === 'settings-notifications' || pageName === 'settings-warehouse') {
+  if (pageName === 'settings' || pageName === 'settings-social' || pageName === 'settings-text-ui' || pageName === 'settings-images' || pageName === 'settings-notifications' || pageName === 'settings-warehouse') {
     const settingsBtn = document.getElementById('settingsMenuBtn')
     if (settingsBtn) settingsBtn.classList.add('active')
     setSettingsSubmenuOpen(true)
     if (pageName === 'settings-social') settingsActiveSubPage = 'settings-social'
+    if (pageName === 'settings-text-ui') settingsActiveSubPage = 'settings-text-ui'
     if (pageName === 'settings-images') settingsActiveSubPage = 'settings-images'
     if (pageName === 'settings-notifications') settingsActiveSubPage = 'settings-notifications'
     if (pageName === 'settings-warehouse') settingsActiveSubPage = 'settings-warehouse'
   } else {
     setSettingsSubmenuOpen(false)
-    if (pageName !== 'settings-social' && pageName !== 'settings-images' && pageName !== 'settings-notifications' && pageName !== 'settings-warehouse') settingsActiveSubPage = ''
+    if (pageName !== 'settings-social' && pageName !== 'settings-text-ui' && pageName !== 'settings-images' && pageName !== 'settings-notifications' && pageName !== 'settings-warehouse') settingsActiveSubPage = ''
   }
   if (pageName === 'flashsale') {
     const marketingBtn = document.getElementById('marketingMenuBtn')
@@ -701,7 +702,7 @@ function showPage(pageName) {
   if (marketingActiveSubPage) {
     document.querySelectorAll('.nav-sub-item[data-sub-page="' + marketingActiveSubPage + '"]').forEach(b => b.classList.add('active'))
   }
-  const titles = {dashboard:'Dashboard', products:'Quản lý Sản phẩm', orders:'Quản lý Đơn hàng', returns:'Quản lý hoàn trả', customers:'Quản lý Khách hàng', reviews:'Quản lý Đánh giá', vouchers:'Quản lý Voucher', featured:'Sản phẩm Nổi Bật', settings:'Setting', 'settings-social':'Cấu hình MXH', 'settings-images':'Cài đặt ảnh', 'settings-notifications':'Cài đặt thông báo', 'settings-warehouse':'Cài đặt kho hàng', flashsale:'Quản lý Flashsale'}
+  const titles = {dashboard:'Dashboard', products:'Quản lý Sản phẩm', orders:'Quản lý Đơn hàng', returns:'Quản lý hoàn trả', customers:'Quản lý Khách hàng', reviews:'Quản lý Đánh giá', vouchers:'Quản lý Voucher', featured:'Sản phẩm Nổi Bật', settings:'Setting', 'settings-social':'Cấu hình MXH', 'settings-text-ui':'Text UI', 'settings-images':'Cài đặt ảnh', 'settings-notifications':'Cài đặt thông báo', 'settings-warehouse':'Cài đặt kho hàng', flashsale:'Quản lý Flashsale'}
   document.body.dataset.adminPage = pageName
   document.getElementById('pageTitle').textContent = titles[pageName] || pageName
 
@@ -715,6 +716,7 @@ function showPage(pageName) {
   else if (pageName === 'featured') loadFeaturedAdmin()
   else if (pageName === 'settings') loadSettingsAdmin()
   else if (pageName === 'settings-social') loadSocialSettings()
+  else if (pageName === 'settings-text-ui') loadTextUiSettings()
   else if (pageName === 'settings-images') loadImageSettings()
   else if (pageName === 'settings-notifications') loadNotificationSettings()
   else if (pageName === 'settings-warehouse') loadSettingsWarehousePage()
@@ -858,6 +860,16 @@ function toggleSettingsMenu() {
 function ensureSettingsImagesNavItem() {
   const submenu = document.getElementById('settingsSubmenu')
   if (!submenu) return
+  if (!submenu.querySelector('[data-sub-page="settings-text-ui"]')) {
+    const btn = document.createElement('button')
+    btn.type = 'button'
+    btn.className = 'nav-sub-item w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg text-gray-400 text-sm font-medium'
+    btn.dataset.subPage = 'settings-text-ui'
+    btn.onclick = openSettingsTextUi
+    btn.innerHTML = '<i class="fas fa-language w-4"></i><span class="sidebar-sub-label">Text UI</span>'
+    const warehouseBtn = submenu.querySelector('[data-sub-page="settings-warehouse"]')
+    submenu.insertBefore(btn, warehouseBtn || null)
+  }
   if (!submenu.querySelector('[data-sub-page="settings-images"]')) {
     const btn = document.createElement('button')
     btn.type = 'button'
@@ -877,6 +889,14 @@ function ensureSettingsImagesNavItem() {
   btn.innerHTML = '<i class="fas fa-bullhorn w-4"></i><span class="sidebar-sub-label">Thông báo</span>'
   const warehouseBtn = submenu.querySelector('[data-sub-page="settings-warehouse"]')
   submenu.insertBefore(btn, warehouseBtn || null)
+}
+
+function openSettingsTextUi() {
+  settingsActiveSubPage = 'settings-text-ui'
+  marketingActiveSubPage = ''
+  setSettingsSubmenuOpen(true)
+  setMarketingSubmenuOpen(false)
+  showPage('settings-text-ui')
 }
 
 function openSettingsNotifications() {
