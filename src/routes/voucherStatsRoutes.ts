@@ -297,17 +297,8 @@ export function registerVoucherStatsRoutes(app: Hono<{ Bindings: AppBindings }>,
         )
       )`
       const actionableShippingSql = `LOWER(COALESCE(status, '')) NOT IN ('shipping', 'done', 'cancelled') AND ${shippingReadySql}`
-      const customerFaultReturnSql = `(
-        LOWER(COALESCE(return_status, '')) = 'delivery_failed'
-        OR (
-          (LOWER(COALESCE(status, '')) = 'cancelled' OR LOWER(COALESCE(return_status, '')) = 'cancelled')
-          AND LOWER(COALESCE(cancelled_by, '')) = 'customer'
-          AND (
-            COALESCE(CAST(shipping_arranged AS INTEGER), 0) = 1
-            OR TRIM(COALESCE(shipping_tracking_code, '')) != ''
-          )
-        )
-      )`
+      const shippedEvidenceSql = `(COALESCE(CAST(shipping_arranged AS INTEGER), 0) = 1 OR TRIM(COALESCE(shipping_tracking_code, '')) != '')`
+      const customerFaultReturnSql = `LOWER(COALESCE(return_status, '')) = 'delivery_failed'`
       const cancelledOrFailedFilterSql = `${orderFilter.sql} AND ${customerFaultReturnSql}`
       const recentOrderFilterSql = `${orderFilterAlias.sql} AND LOWER(COALESCE(o.status, '')) != 'cancelled'`
       const goodsVatRate = 0.01
@@ -361,6 +352,7 @@ export function registerVoucherStatsRoutes(app: Hono<{ Bindings: AppBindings }>,
             WHEN ${customerFaultReturnSql} THEN 'delivery_failed'
             WHEN ${actionableShippingSql} AND COALESCE(CAST(shipping_arranged AS INTEGER), 0) != 1 THEN 'pending'
             WHEN ${actionableShippingSql} AND COALESCE(CAST(shipping_arranged AS INTEGER), 0) = 1 THEN 'confirmed'
+            WHEN LOWER(COALESCE(status, '')) = 'shipping' AND ${shippedEvidenceSql} THEN 'shipping'
             ELSE LOWER(COALESCE(status, 'pending'))
           END as status,
           COUNT(*) as count
@@ -369,7 +361,8 @@ export function registerVoucherStatsRoutes(app: Hono<{ Bindings: AppBindings }>,
           AND (
             ${customerFaultReturnSql}
             OR ${actionableShippingSql}
-            OR LOWER(COALESCE(status, '')) IN ('shipping', 'done')
+            OR (LOWER(COALESCE(status, '')) = 'shipping' AND ${shippedEvidenceSql})
+            OR LOWER(COALESCE(status, '')) = 'done'
           )
           AND NOT (
             LOWER(COALESCE(status, '')) = 'cancelled'
@@ -380,6 +373,7 @@ export function registerVoucherStatsRoutes(app: Hono<{ Bindings: AppBindings }>,
             WHEN ${customerFaultReturnSql} THEN 'delivery_failed'
             WHEN ${actionableShippingSql} AND COALESCE(CAST(shipping_arranged AS INTEGER), 0) != 1 THEN 'pending'
             WHEN ${actionableShippingSql} AND COALESCE(CAST(shipping_arranged AS INTEGER), 0) = 1 THEN 'confirmed'
+            WHEN LOWER(COALESCE(status, '')) = 'shipping' AND ${shippedEvidenceSql} THEN 'shipping'
             ELSE LOWER(COALESCE(status, 'pending'))
           END
       `).bind(...allOrderFilter.params).all()

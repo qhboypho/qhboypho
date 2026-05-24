@@ -7,8 +7,14 @@ const sectionsSource = await readFile(new URL('../src/pages/admin/sections.ts', 
 
 assert.match(
   routeSource,
-  /const customerFaultReturnSql = `\([\s\S]*return_status[\s\S]*delivery_failed[\s\S]*cancelled_by[\s\S]*customer[\s\S]*shipping_arranged[\s\S]*shipping_tracking_code[\s\S]*\)`/,
-  'dashboard failed-return metric should only count delivery_failed or customer-fault shipped cancellations'
+  /const customerFaultReturnSql = `LOWER\(COALESCE\(return_status, ''\)\) = 'delivery_failed'`/,
+  'dashboard failed-return metric should only count explicit delivery_failed orders'
+)
+
+assert.doesNotMatch(
+  routeSource,
+  /const customerFaultReturnSql[\s\S]*cancelled_by/,
+  'dashboard failed-return metric must not infer bom orders from legacy cancelled_by rows'
 )
 
 assert.match(
@@ -37,7 +43,19 @@ assert.match(
 
 assert.match(
   routeSource,
-  /\$\{customerFaultReturnSql\}[\s\S]*OR \$\{actionableShippingSql\}[\s\S]*OR LOWER\(COALESCE\(status, ''\)\) IN \('shipping', 'done'\)/,
+  /const shippedEvidenceSql = `\(COALESCE\(CAST\(shipping_arranged AS INTEGER\), 0\) = 1 OR TRIM\(COALESCE\(shipping_tracking_code, ''\)\) != ''\)`/,
+  'dashboard shipping status should require arranged or tracking evidence'
+)
+
+assert.match(
+  routeSource,
+  /WHEN LOWER\(COALESCE\(status, ''\)\) = 'shipping' AND \$\{shippedEvidenceSql\} THEN 'shipping'/,
+  'dashboard status breakdown should not count stale shipping rows without shipment evidence'
+)
+
+assert.match(
+  routeSource,
+  /\$\{customerFaultReturnSql\}[\s\S]*OR \$\{actionableShippingSql\}[\s\S]*OR \(LOWER\(COALESCE\(status, ''\)\) = 'shipping' AND \$\{shippedEvidenceSql\}\)[\s\S]*OR LOWER\(COALESCE\(status, ''\)\) = 'done'/,
   'dashboard status breakdown should exclude unpaid or non-actionable pending orders'
 )
 
