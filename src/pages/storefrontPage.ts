@@ -8,7 +8,7 @@ import {
   storefrontFlashSaleShopSection,
   storefrontProductsSection,
   storefrontFeaturesSection,
-  storefrontFooterSection,
+  storefrontFooterWithPolicySection,
   storefrontBodyClose,
 } from './storefront/sections'
 import { storefrontModalsSection } from './storefront/modals'
@@ -67,7 +67,7 @@ ${storefrontProductsSection()}
 
 ${storefrontFeaturesSection()}
 
-${storefrontFooterSection()}
+${storefrontFooterWithPolicySection()}
 
 <div id="purchaseToastContainer" style="position:fixed;bottom:24px;left:24px;z-index:60;display:flex;flex-direction:column;gap:8px;pointer-events:none;max-width:320px;"></div>
 
