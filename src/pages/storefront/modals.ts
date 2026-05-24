@@ -219,6 +219,20 @@ export function storefrontModalsSection(): string {
           </div>
         </div>
 
+        <div class="order-risk-note">
+          <div class="order-risk-note-icon" aria-hidden="true">
+            <i class="fas fa-triangle-exclamation"></i>
+          </div>
+          <div class="min-w-0">
+            <div class="order-risk-note-title">
+              <strong>Chú ý !</strong>
+            </div>
+            <div class="order-risk-note-text">
+              Hãy chắc bạn muốn mua và nhận được hàng trước khi đặt để tránh phát sinh phí hoàn và bị hệ thống ghi nhận lịch sử bom hàng. Bạn sẽ không thể đặt hàng nếu số lần không nhận được vượt quá 2 lần
+            </div>
+          </div>
+        </div>
+
         <div class="order-action-bar flex gap-2">
           <button onclick="addCurrentToCart()" id="addToCartBtn"
             class="add-to-cart-btn order-cart-btn flex-shrink-0 flex items-center justify-center gap-2 text-white px-4 py-3.5 rounded-xl font-semibold text-sm transition">
