@@ -240,7 +240,7 @@ export function adminModalsSection(): string {
         <i class="fas fa-times text-gray-600"></i>
       </button>
     </div>
-    <form onsubmit="saveAdminReview(event)" class="px-6 py-5 space-y-4">
+    <form onsubmit="saveAdminReview(event)" novalidate class="px-6 py-5 space-y-4">
       <input type="hidden" id="adminReviewId">
       <div class="grid md:grid-cols-2 gap-4">
         <div class="md:col-span-2">
@@ -255,7 +255,7 @@ export function adminModalsSection(): string {
         </div>
         <div>
           <label class="block text-sm font-semibold text-gray-700 mb-1.5">Ảnh đại diện (URL)</label>
-          <input type="url" id="adminReviewReviewerAvatar" placeholder="https://..." class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
+          <input type="text" id="adminReviewReviewerAvatar" placeholder="https://..." class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
         </div>
         <div>
           <label class="block text-sm font-semibold text-gray-700 mb-1.5">Mã đơn (tuỳ chọn)</label>
@@ -283,7 +283,7 @@ export function adminModalsSection(): string {
               <i class="fas fa-camera"></i>Tải ảnh
               <input type="file" id="adminReviewImagesInput" accept="image/*" multiple class="hidden" onchange="handleAdminReviewImages(this)">
             </label>
-            <input type="url" id="adminReviewImageUrl" placeholder="Dán URL ảnh..." class="flex-1 min-w-[220px] border rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-pink-400">
+            <input type="text" id="adminReviewImageUrl" placeholder="Dán URL ảnh..." class="flex-1 min-w-[220px] border rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-pink-400">
             <button type="button" onclick="addAdminReviewImageUrl()" class="px-4 py-2 rounded-xl border border-gray-200 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition">Thêm URL</button>
           </div>
         </div>
@@ -326,5 +326,5 @@ export function adminModalsSection(): string {
 </div>
 
 <!-- TOAST -->
-<div id="adminToast" class="fixed top-6 right-6 z-50 flex flex-col gap-2 pointer-events-none"></div>`
+<div id="adminToast" class="fixed top-6 right-6 z-[120] flex flex-col gap-2 pointer-events-none"></div>`
 }

@@ -2233,9 +2233,42 @@ function removeAdminReviewImage(idx) {
   renderAdminReviewImagePreviews()
 }
 
+function isAdminReviewImageSource(value, allowDataImage = true) {
+  const raw = String(value || '').trim()
+  if (!raw) return true
+  if (allowDataImage && /^data:image\\/(png|jpe?g|webp|gif);base64,/i.test(raw)) return true
+  try {
+    const parsed = new URL(raw, window.location.origin)
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:'
+  } catch (_) {
+    return false
+  }
+}
+
+function getAdminReviewSaveErrorMessage(errorCode) {
+  const code = String(errorCode || '').trim()
+  const map = {
+    INVALID_BODY: 'Dữ liệu đánh giá không hợp lệ',
+    MISSING_PRODUCT_ID: 'Vui lòng chọn sản phẩm',
+    PRODUCT_NOT_FOUND: 'Sản phẩm đã chọn không tồn tại',
+    MISSING_REVIEWER_NAME: 'Vui lòng nhập tên người đánh giá',
+    INVALID_RATING: 'Vui lòng chọn số sao hợp lệ',
+    INVALID_IMAGE_FORMAT: 'Ảnh đánh giá phải là URL hoặc ảnh hợp lệ',
+    IMAGE_TOO_LARGE: 'Ảnh đánh giá quá lớn, vui lòng chọn ảnh nhỏ hơn',
+    ORDER_NOT_FOUND: 'Không tìm thấy đơn hàng đã nhập',
+    ORDER_NOT_ELIGIBLE: 'Chỉ gắn đánh giá với đơn đã hoàn thành',
+    ORDER_PRODUCT_MISMATCH: 'Đơn hàng không khớp với sản phẩm đã chọn',
+    ALREADY_REVIEWED: 'Đơn hàng này đã có đánh giá',
+    REVIEW_NOT_FOUND: 'Không tìm thấy đánh giá cần cập nhật',
+    UNAUTHORIZED: 'Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại',
+  }
+  return map[code] || code || 'Không lưu được đánh giá'
+}
+
 async function saveAdminReview(e) {
   e.preventDefault()
   const id = String(document.getElementById('adminReviewId').value || '').trim()
+  const pendingImageUrl = String(document.getElementById('adminReviewImageUrl')?.value || '').trim()
   const payload = {
     product_id: Number(document.getElementById('adminReviewProductId').value || 0),
     reviewer_name: String(document.getElementById('adminReviewReviewerName').value || '').trim(),
@@ -2247,17 +2280,44 @@ async function saveAdminReview(e) {
   }
   if (!payload.product_id) { showAdminToast('Vui lòng chọn sản phẩm', 'error'); return }
   if (!payload.reviewer_name) { showAdminToast('Vui lòng nhập tên người đánh giá', 'error'); return }
+  if (payload.rating < 1 || payload.rating > 5) { showAdminToast('Vui lòng chọn số sao hợp lệ', 'error'); return }
+  if (payload.reviewer_avatar && !isAdminReviewImageSource(payload.reviewer_avatar, true)) {
+    showAdminToast('Ảnh đại diện phải là URL hợp lệ', 'error')
+    return
+  }
+  if (pendingImageUrl) {
+    if (!isAdminReviewImageSource(pendingImageUrl, false)) {
+      showAdminToast('URL ảnh đánh giá không hợp lệ', 'error')
+      return
+    }
+    if (adminReviewFormImages.length >= 3) {
+      showAdminToast('Tối đa 3 ảnh cho mỗi đánh giá', 'warning')
+      return
+    }
+    adminReviewFormImages.push(pendingImageUrl)
+    document.getElementById('adminReviewImageUrl').value = ''
+    renderAdminReviewImagePreviews()
+    payload.images = adminReviewFormImages.slice(0, 3)
+  }
+  if (payload.images.some((src) => !isAdminReviewImageSource(src, true))) {
+    showAdminToast('Ảnh đánh giá phải là URL hoặc ảnh hợp lệ', 'error')
+    return
+  }
 
   const btn = document.getElementById('adminReviewSaveBtn')
   btn.disabled = true
   try {
-    if (id) await axios.patch('/api/admin/reviews/' + id, payload)
-    else await axios.post('/api/admin/reviews', payload)
+    const res = id
+      ? await axios.patch('/api/admin/reviews/' + id, payload)
+      : await axios.post('/api/admin/reviews', payload)
+    if (res.data && res.data.success === false) {
+      throw { response: { data: res.data } }
+    }
     closeAdminReviewModal()
     await loadAdminReviews()
     showAdminToast(id ? 'Đã cập nhật đánh giá' : 'Đã thêm đánh giá', 'success')
   } catch (err) {
-    showAdminToast(err.response?.data?.error || 'Không lưu được đánh giá', 'error')
+    showAdminToast(getAdminReviewSaveErrorMessage(err?.response?.data?.error || err?.message), 'error')
   } finally {
     btn.disabled = false
   }

@@ -36,6 +36,26 @@ assert(
 )
 
 assert(
+  /id="adminToast"[^>]*z-\[(?:9\d|1\d{2,})\]/.test(modals),
+  'Expected admin toast container to render above admin review modal overlays'
+)
+
+assert(
+  /<form[^>]*onsubmit="saveAdminReview\(event\)"[^>]*novalidate/.test(modals),
+  'Expected admin review form to use scripted validation so save failures show a toast'
+)
+
+assert(
+  /<input(?=[^>]*id="adminReviewReviewerAvatar")(?=[^>]*type="text")[^>]*>/.test(modals),
+  'Expected optional reviewer avatar field not to block save with native URL validation'
+)
+
+assert(
+  /<input(?=[^>]*id="adminReviewImageUrl")(?=[^>]*type="text")[^>]*>/.test(modals),
+  'Expected optional review image URL field not to block save with native URL validation'
+)
+
+assert(
   reviewRoutes.includes("app.get('/api/admin/reviews'"),
   'Expected backend route for listing admin reviews'
 )
@@ -58,6 +78,16 @@ assert(
 assert(
   adminScript.includes('saveAdminReview'),
   'Expected admin script to support saving reviews from admin UI'
+)
+
+assert(
+  adminScript.includes('getAdminReviewSaveErrorMessage'),
+  'Expected admin review save failures to map API/browser errors to user-facing toast messages'
+)
+
+assert(
+  adminScript.includes('^data:image\\\\/'),
+  'Expected data image validation regex to remain escaped after admin script template rendering'
 )
 
 assert(
