@@ -2150,7 +2150,7 @@ function renderCollapsedBanners(banners) {
   const wrapper = document.getElementById('heroBannersWrapper')
   const mobileMode = isMobileHeroLayout()
   lastHeroMobileMode = mobileMode
-  if (wrapper) wrapper.style.justifyContent = mobileMode ? 'flex-start' : 'flex-end'
+  if (wrapper) wrapper.style.justifyContent = mobileMode ? 'center' : 'flex-end'
   container.removeAttribute('title')
   stopHeroCarouselAutoPlay()
   if (!banners.length) {
@@ -2170,8 +2170,10 @@ function renderCollapsedBanners(banners) {
   const hasSettingBannerOnly = banners.length === 1 && banners[0]?.is_setting_banner
   if (wrapper) wrapper.style.cursor = 'default'
   container.onclick = null
-  container.style.width = hasSettingBannerOnly ? (mobileMode ? 'min(100%, 320px)' : '360px') : (mobileMode ? '100%' : '430px')
+  container.style.width = hasSettingBannerOnly ? (mobileMode ? 'min(100%, 320px)' : '360px') : (mobileMode ? 'min(100%, 342px)' : '430px')
   container.style.height = hasSettingBannerOnly ? (mobileMode ? 'min(82vw, 320px)' : '360px') : (mobileMode ? '356px' : '548px')
+  container.style.marginLeft = mobileMode ? 'auto' : ''
+  container.style.marginRight = mobileMode ? 'auto' : ''
   container.style.paddingBottom = '0'
   if (hasSettingBannerOnly) {
     const b = banners[0]

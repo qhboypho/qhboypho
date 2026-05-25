@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 
 const storefrontStylesSource = await readFile(new URL('../src/pages/storefront/styles.ts', import.meta.url), 'utf8')
+const storefrontScriptSource = await readFile(new URL('../src/pages/storefront/script.ts', import.meta.url), 'utf8')
 
 assert.match(
   storefrontStylesSource,
@@ -16,15 +17,21 @@ assert.match(
 )
 
 assert.match(
-  storefrontStylesSource,
-  /@media \(max-width: 768px\) \{[\s\S]*#heroBannersWrapper \{[\s\S]*justify-content: center !important;[\s\S]*overflow: hidden !important;[\s\S]*#heroBannersCollapsed \{[\s\S]*place-items: center !important;[\s\S]*#heroBannersCollapsed \.hero-3d-carousel \{[\s\S]*width: min\(calc\(100vw - 4\.2rem\), 326px\) !important;[\s\S]*transform: none !important;/,
-  'mobile hero carousel must use a centered fixed-width frame rather than translated offsets',
+  storefrontScriptSource,
+  /wrapper\.style\.justifyContent = mobileMode \? 'center' : 'flex-end'/,
+  'mobile hero carousel wrapper should be centered by the render function',
 )
 
 assert.match(
+  storefrontScriptSource,
+  /container\.style\.width = hasSettingBannerOnly \? \(mobileMode \? 'min\(100%, 320px\)' : '360px'\) : \(mobileMode \? 'min\(100%, 342px\)' : '430px'\)/,
+  'mobile hero carousel should use a constrained centered container instead of full-width drift',
+)
+
+assert.doesNotMatch(
   storefrontStylesSource,
-  /#heroBannersCollapsed \.hero-carousel-stage \{[\s\S]*left: 50% !important;[\s\S]*transform: translateX\(-50%\) !important;[\s\S]*#heroBannersCollapsed \.hero-carousel-card\[data-offset='1'\] \{[\s\S]*translate3d\(32%, 8px, -42px\)/,
-  'mobile hero carousel active stage must be centered and side cards must stay near the frame center',
+  /#heroBannersCollapsed \.hero-carousel-stage|#heroBannersCollapsed \.hero-carousel-card\[data-offset=/,
+  'global storefront styles should not override hero carousel stage/card transforms',
 )
 
 console.log('Storefront mobile modal layout contract passed.')
