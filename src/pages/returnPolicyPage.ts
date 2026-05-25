@@ -10,10 +10,10 @@ export function returnPolicyHTML(): string {
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
     * { box-sizing: border-box; }
     body { font-family: 'Inter', sans-serif; background: #070b16; color: #e5e7eb; }
-    h1, h2, .font-display { font-family: 'Outfit', sans-serif; letter-spacing: -0.01em; }
+    h1, h2, .font-display { font-family: 'Be Vietnam Pro', 'Inter', sans-serif; letter-spacing: -0.015em; }
     .policy-shell { background: radial-gradient(circle at 18% 6%, rgba(56,189,248,0.16), transparent 30%), radial-gradient(circle at 86% 0%, rgba(236,72,153,0.16), transparent 28%), linear-gradient(180deg, #070b16 0%, #0b1020 48%, #070b16 100%); }
     .policy-panel { background: rgba(15,23,42,0.72); border: 1px solid rgba(148,163,184,0.18); box-shadow: inset 0 1px 0 rgba(255,255,255,0.06), 0 28px 80px rgba(0,0,0,0.28); }
     .policy-section { border-top: 1px solid rgba(148,163,184,0.14); padding-top: 1.5rem; }

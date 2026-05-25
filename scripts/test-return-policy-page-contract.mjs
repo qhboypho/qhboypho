@@ -5,6 +5,7 @@ const policyPageSource = readFileSync('src/pages/returnPolicyPage.ts', 'utf8');
 const privacyPolicyPageSource = readFileSync('src/pages/privacyPolicyPage.ts', 'utf8');
 const storefrontPageSource = readFileSync('src/pages/storefrontPage.ts', 'utf8');
 const sectionsSource = readFileSync('src/pages/storefront/sections.ts', 'utf8');
+const storefrontStylesSource = readFileSync('src/pages/storefront/styles.ts', 'utf8');
 
 const checks = [
   ['return policy route exists', pageRoutesSource.includes('/chinh-sach-doi-tra')],
@@ -12,15 +13,18 @@ const checks = [
   ['privacy policy route exists', pageRoutesSource.includes('/chinh-sach-bao-mat')],
   ['privacy policy alias exists', pageRoutesSource.includes('/privacy-policy')],
   ['policy page renders title', policyPageSource.includes('Chính sách đổi trả')],
+  ['policy page uses Vietnamese heading font', policyPageSource.includes('Be Vietnam Pro')],
   ['policy page includes three day window', policyPageSource.includes('3 ngày')],
   ['policy page includes supported cases section', policyPageSource.includes('Các trường hợp được hỗ trợ đổi trả')],
   ['policy page includes process section', policyPageSource.includes('Quy trình đổi trả')],
   ['privacy policy page renders title', privacyPolicyPageSource.includes('Chính sách bảo mật')],
+  ['privacy policy page uses Vietnamese heading font', privacyPolicyPageSource.includes('Be Vietnam Pro')],
   ['privacy policy page includes collected information section', privacyPolicyPageSource.includes('Thông tin chúng tôi thu thập')],
   ['privacy policy page includes customer rights section', privacyPolicyPageSource.includes('Quyền của khách hàng')],
   ['storefront uses policy footer', storefrontPageSource.includes('storefrontFooterWithPolicySection')],
   ['footer policy link points to page', sectionsSource.includes('/chinh-sach-doi-tra')],
   ['footer privacy policy link points to page', sectionsSource.includes('/chinh-sach-bao-mat')],
+  ['storefront headings use Vietnamese heading font', storefrontStylesSource.includes('Be Vietnam Pro')],
 ];
 
 const failed = checks.filter(([, passed]) => !passed);

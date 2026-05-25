@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises'
 
 const storefrontScriptSource = await readFile(new URL('../src/pages/storefront/script.ts', import.meta.url), 'utf8')
 const storefrontThemeRefreshSource = await readFile(new URL('../src/pages/storefront/theme-refresh.ts', import.meta.url), 'utf8')
+const storefrontStylesSource = await readFile(new URL('../src/pages/storefront/styles.ts', import.meta.url), 'utf8')
 
 assert.match(
   storefrontScriptSource,
@@ -38,6 +39,18 @@ assert.match(
   storefrontThemeRefreshSource,
   /\.detail-action-bar \.btn-primary,[\s\S]*\.detail-action-bar \.add-to-cart-btn[\s\S]*background: var\(--qh-action-gradient\)/,
   'product detail modal buttons should use the shared purchase action styling',
+)
+
+assert.match(
+  storefrontStylesSource,
+  /#orderModalHeader \{[^}]*z-index: 120/,
+  'quick-order modal header should stay above address dropdowns while scrolling',
+)
+
+assert.match(
+  storefrontStylesSource,
+  /#orderPopupCard #orderProvinceMenu,[\s\S]*#orderPopupCard #orderCommuneMenu,[\s\S]*#orderPopupCard #ckProvinceMenu,[\s\S]*#orderPopupCard #ckCommuneMenu \{[^}]*z-index: 40 !important/,
+  'quick-order address dropdown menus should render below the sticky modal header',
 )
 
 console.log('storefront purchase actions contract passed')
