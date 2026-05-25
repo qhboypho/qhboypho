@@ -53,4 +53,16 @@ assert.match(
   'quick-order address dropdown menus should render below the sticky modal header',
 )
 
+assert.match(
+  storefrontStylesSource,
+  /\.bs-card \.flash-sale-shop-buy-btn \{[\s\S]*flex: auto !important[\s\S]*max-width: calc\(100% - 60px - 0\.5rem\) !important/,
+  'bestseller quick-order button should take the remaining width like product list cards',
+)
+
+assert.match(
+  storefrontStylesSource,
+  /\.bs-card \.flash-sale-shop-cart-btn \{[\s\S]*flex: 0 0 60px !important[\s\S]*width: 60px !important/,
+  'bestseller cart button should keep the same 60px width as product list cards',
+)
+
 console.log('storefront purchase actions contract passed')
