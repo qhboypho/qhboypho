@@ -28,6 +28,12 @@ assert.match(
   'mobile hero carousel should use a constrained centered container instead of full-width drift',
 )
 
+assert.match(
+  storefrontScriptSource,
+  /\.hero-carousel-stage\{width:min\(52vw,214px\);height:326px;transform:translateX\(-1\.25rem\)\}/,
+  'mobile hero carousel stage should compensate the visual right drift inside the runtime carousel CSS',
+)
+
 assert.doesNotMatch(
   storefrontStylesSource,
   /#heroBannersCollapsed \.hero-carousel-stage|#heroBannersCollapsed \.hero-carousel-card\[data-offset=/,

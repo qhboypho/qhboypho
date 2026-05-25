@@ -2235,7 +2235,7 @@ function ensureHeroCarouselRuntimeStyle() {
     .hero-carousel-next{right:0}
     @media (max-width:768px){
       .hero-3d-carousel{width:100%;height:348px;overflow:hidden;perspective:820px}
-      .hero-carousel-stage{width:min(52vw,214px);height:326px}
+      .hero-carousel-stage{width:min(52vw,214px);height:326px;transform:translateX(-1.25rem)}
       .hero-carousel-card{border-radius:20px;display:flex;flex-direction:column}
       .hero-carousel-media{height:min(52vw,214px);aspect-ratio:auto;flex:0 0 auto}
       .hero-carousel-card[data-offset="-1"]{transform:translate3d(-42%,8px,-42px) scale(.8);opacity:.66}
