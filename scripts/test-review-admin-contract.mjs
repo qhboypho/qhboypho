@@ -13,10 +13,11 @@ function assert(condition, message) {
   }
 }
 
-const [reviewRoutes, orderRoutes, storefrontScript] = await Promise.all([
+const [reviewRoutes, orderRoutes, storefrontScript, storefrontDetailScript] = await Promise.all([
   read('src/routes/reviewRoutes.ts'),
   read('src/routes/orderRoutes.ts'),
   read('src/pages/storefront/script.ts'),
+  read('src/pages/storefront/script-detail-order.ts'),
 ])
 
 assert(
@@ -67,6 +68,21 @@ assert(
 assert(
   storefrontScript.includes('isAdminUser'),
   'Expected storefront review management to be gated for admins'
+)
+
+assert(
+  !/detailReviewsSection" class="review-section\s+\$\{currentUser/.test(storefrontDetailScript),
+  'Expected product detail reviews section to remain visible for guest shoppers'
+)
+
+assert(
+  /loadProductReviews\(Number\(p\.id\)\)/.test(storefrontDetailScript),
+  'Expected product detail modal to load public reviews without requiring login'
+)
+
+assert(
+  !/if \(!section \|\| !content \|\| !currentUser\) return/.test(storefrontScript),
+  'Expected public product reviews loader not to return early for guest shoppers'
 )
 
 console.log('review admin contract passed')

@@ -34,8 +34,7 @@ async function showDetail(id, options) {
           <img src="\${escapeHtml(img)}" alt="" class="w-full h-16 object-cover rounded-lg border-2 border-transparent hover:border-pink-400"
             onclick="document.getElementById('mainDetailImg').src='\${escapeJsString(img)}'">\`).join('')}
         </div>
-        <!-- Reviews section - only shown when logged in -->
-        <div id="detailReviewsSection" class="review-section \${currentUser ? '' : 'hidden'}">
+        <div id="detailReviewsSection" class="review-section">
           <div id="detailReviewsContent"><div class="flex items-center gap-2 py-3"><i class="fas fa-spinner fa-spin text-violet-400 text-sm"></i><span class="text-sm text-gray-400">Đang tải đánh giá...</span></div></div>
         </div>
       </div>
@@ -114,8 +113,7 @@ async function showDetail(id, options) {
     if (detailOptions.focusVariants) {
       setTimeout(scrollDetailToVariantPicker, 120)
     }
-    // Load reviews (only if user is logged in)
-    if (typeof currentUser !== 'undefined' && currentUser) loadProductReviews(Number(p.id))
+    loadProductReviews(Number(p.id))
   } catch(e) { showToast('Không thể tải chi tiết sản phẩm', 'error') }
 }
 

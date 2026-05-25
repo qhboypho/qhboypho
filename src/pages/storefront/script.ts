@@ -824,7 +824,7 @@ let _reviewState = { productId: 0, orderId: 0, rating: 5, images: [], submitting
 async function loadProductReviews(productId) {
   const section = document.getElementById('detailReviewsSection')
   const content = document.getElementById('detailReviewsContent')
-  if (!section || !content || !currentUser) return
+  if (!section || !content) return
   section.classList.remove('hidden')
   try {
     const res = await axios.get('/api/reviews?productId=' + productId)
