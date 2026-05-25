@@ -94,10 +94,15 @@ export function storefrontFooterSection(): string {
 }
 
 export function storefrontFooterWithPolicySection(): string {
-  return storefrontFooterSection().replace(
-    'href="#" class="hover:text-pink-400 transition">Chính sách đổi trả',
-    'href="/chinh-sach-doi-tra" class="hover:text-pink-400 transition">Chính sách đổi trả'
-  )
+  return storefrontFooterSection()
+    .replace(
+      'href="#" class="hover:text-pink-400 transition">Chính sách đổi trả',
+      'href="/chinh-sach-doi-tra" class="hover:text-pink-400 transition">Chính sách đổi trả'
+    )
+    .replace(
+      'href="#" class="hover:text-pink-400 transition">Chính sách bảo mật',
+      'href="/chinh-sach-bao-mat" class="hover:text-pink-400 transition">Chính sách bảo mật'
+    )
 }
 
 export function storefrontBodyClose(): string {

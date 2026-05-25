@@ -2,6 +2,7 @@ import { getCookie } from 'hono/cookie'
 import type { Hono } from 'hono'
 import type { AppBindings } from '../types/app'
 import { storefrontHTML } from '../pages/storefrontPage'
+import { privacyPolicyHTML } from '../pages/privacyPolicyPage'
 import { returnPolicyHTML } from '../pages/returnPolicyPage'
 import { adminHTML } from '../pages/adminPage'
 import { adminLoginHTML } from '../pages/adminLoginPage'
@@ -32,6 +33,8 @@ export function registerPageRoutes(app: Hono<{ Bindings: AppBindings }>) {
 
   app.get('/chinh-sach-doi-tra', (c) => c.html(returnPolicyHTML()))
   app.get('/return-policy', (c) => c.redirect('/chinh-sach-doi-tra'))
+  app.get('/chinh-sach-bao-mat', (c) => c.html(privacyPolicyHTML()))
+  app.get('/privacy-policy', (c) => c.redirect('/chinh-sach-bao-mat'))
 
   app.get('*', renderStorefront)
 }
