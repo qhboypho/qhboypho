@@ -17,14 +17,14 @@ assert.match(
 
 assert.match(
   storefrontStylesSource,
-  /@media \(max-width: 768px\) \{[\s\S]*#heroBannersWrapper \{[\s\S]*justify-content: center !important;[\s\S]*overflow: visible !important;[\s\S]*#heroBannersCollapsed \.hero-3d-carousel \{[\s\S]*width: min\(100%, 342px\) !important;[\s\S]*overflow: visible !important;[\s\S]*transform: none !important;/,
-  'mobile hero carousel must be centered with a visible safe area instead of clipping side cards',
+  /@media \(max-width: 768px\) \{[\s\S]*#heroBannersWrapper \{[\s\S]*justify-content: center !important;[\s\S]*overflow: hidden !important;[\s\S]*#heroBannersCollapsed \{[\s\S]*place-items: center !important;[\s\S]*#heroBannersCollapsed \.hero-3d-carousel \{[\s\S]*width: min\(calc\(100vw - 4\.2rem\), 326px\) !important;[\s\S]*transform: none !important;/,
+  'mobile hero carousel must use a centered fixed-width frame rather than translated offsets',
 )
 
 assert.match(
   storefrontStylesSource,
-  /#heroBannersCollapsed \.hero-carousel-stage \{[\s\S]*width: min\(48vw, 196px\) !important;[\s\S]*#heroBannersCollapsed \.hero-carousel-card\[data-offset='1'\] \{[\s\S]*translate3d\(38%, 8px, -42px\)/,
-  'mobile hero carousel side cards must stay inside the visible frame',
+  /#heroBannersCollapsed \.hero-carousel-stage \{[\s\S]*left: 50% !important;[\s\S]*transform: translateX\(-50%\) !important;[\s\S]*#heroBannersCollapsed \.hero-carousel-card\[data-offset='1'\] \{[\s\S]*translate3d\(32%, 8px, -42px\)/,
+  'mobile hero carousel active stage must be centered and side cards must stay near the frame center',
 )
 
 console.log('Storefront mobile modal layout contract passed.')
