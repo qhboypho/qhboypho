@@ -2061,11 +2061,19 @@ async function loadSettings() {
 
     const trendingRes = await axios.get('/api/trending-products').catch(() => ({ data: { data: [] } }))
     const trendingProducts = (trendingRes.data && trendingRes.data.data) ? trendingRes.data.data : []
-    heroBannersData = sortHeroCards(mapTrendingProductsToHeroCards(trendingProducts))
+    const fallbackProducts = trendingProducts.length ? [] : await loadHeroFallbackProducts()
+    heroBannersData = sortHeroCards(mapTrendingProductsToHeroCards(trendingProducts.length ? trendingProducts : fallbackProducts))
     renderCollapsedBanners(heroBannersData)
   } catch (e) {
     console.error('Failed to load banners', e)
   }
+}
+
+async function loadHeroFallbackProducts() {
+  if (Array.isArray(allProducts) && allProducts.length) return allProducts.slice(0, 6)
+  const productsRes = await axios.get('/api/products').catch(() => ({ data: { data: [] } }))
+  const products = (productsRes.data && productsRes.data.data) ? productsRes.data.data : []
+  return Array.isArray(products) ? products.slice(0, 6) : []
 }
 
 function ensureBestsellerRuntimeStyle() {

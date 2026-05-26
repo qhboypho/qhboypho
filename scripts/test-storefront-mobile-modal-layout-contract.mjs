@@ -31,6 +31,18 @@ assert.match(
 
 assert.match(
   storefrontScriptSource,
+  /const fallbackProducts = trendingProducts\.length \? \[\] : await loadHeroFallbackProducts\(\)/,
+  'hero carousel should fall back to regular products when production has no configured banner or trending products',
+)
+
+assert.match(
+  storefrontScriptSource,
+  /async function loadHeroFallbackProducts\(\) \{[\s\S]*axios\.get\('\/api\/products'\)[\s\S]*products\.slice\(0, 6\)/,
+  'hero fallback should use the public products endpoint and keep the carousel bounded',
+)
+
+assert.match(
+  storefrontScriptSource,
   /\.hero-carousel-stage\{width:min\(52vw,214px\);height:326px\}/,
   'mobile hero carousel stage should stay naturally centered without a device-specific translate compensation',
 )
