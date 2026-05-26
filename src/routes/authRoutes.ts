@@ -373,6 +373,45 @@ async function getGoogleOAuthConfig(c: any) {
   }
 }
 
+async function getUsersColumnSet(db: D1Database) {
+  const info = await db.prepare('PRAGMA table_info(users)').all()
+  return new Set(((info.results || []) as any[]).map((row) => String(row.name || '').trim()).filter(Boolean))
+}
+
+async function findGoogleAuthUser(db: D1Database, columns: Set<string>, googleId: string, email: string) {
+  if (columns.has('google_id') && googleId) {
+    return await db.prepare("SELECT id FROM users WHERE google_id=? OR email=? LIMIT 1").bind(googleId, email).first() as any
+  }
+  return await db.prepare("SELECT id FROM users WHERE email=? LIMIT 1").bind(email).first() as any
+}
+
+async function createGoogleAuthUser(db: D1Database, columns: Set<string>, userData: any) {
+  const googleId = String(userData.id || userData.sub || '').trim()
+  const email = String(userData.email || '').trim()
+  const name = String(userData.name || email || 'Google User').trim()
+  const avatar = userData.picture || null
+  if (columns.has('google_id')) {
+    return await db.prepare("INSERT INTO users (google_id, email, name, avatar, balance) VALUES (?, ?, ?, ?, 0)")
+      .bind(googleId || email, email, name, avatar)
+      .run()
+  }
+  return await db.prepare("INSERT INTO users (email, name, avatar, balance) VALUES (?, ?, ?, 0)")
+    .bind(email, name, avatar)
+    .run()
+}
+
+async function updateGoogleAuthUser(db: D1Database, columns: Set<string>, userId: number, userData: any) {
+  const googleId = String(userData.id || userData.sub || '').trim()
+  const email = String(userData.email || '').trim()
+  const name = String(userData.name || email || 'Google User').trim()
+  const avatar = userData.picture || null
+  if (columns.has('google_id') && googleId) {
+    await db.prepare("UPDATE users SET google_id=?, name=?, avatar=? WHERE id=?").bind(googleId, name, avatar, userId).run()
+    return
+  }
+  await db.prepare("UPDATE users SET name=?, avatar=? WHERE id=?").bind(name, avatar, userId).run()
+}
+
 export function registerAuthRoutes(app: Hono<{ Bindings: AppBindings }>, deps: AuthRouteDeps) {
   app.get('/api/auth/turnstile-config', async (c) => {
     await deps.initDB(c.env.DB)
@@ -697,15 +736,22 @@ export function registerAuthRoutes(app: Hono<{ Bindings: AppBindings }>, deps: A
         headers: { Authorization: `Bearer ${tokenData.access_token}` }
       })
       const userData = await userRes.json() as any
+      const googleEmail = String(userData.email || '').trim()
+      const googleId = String(userData.id || userData.sub || '').trim()
+      if (!googleEmail) {
+        console.error('[auth] google profile email missing')
+        return c.redirect('/?login=error&step=profile&error=AUTH_PROVIDER_PROFILE_INVALID')
+      }
 
       let user = null
       try {
-        user = await c.env.DB.prepare("SELECT id FROM users WHERE email=?").bind(userData.email).first() as any
+        const usersColumns = await getUsersColumnSet(c.env.DB)
+        user = await findGoogleAuthUser(c.env.DB, usersColumns, googleId, googleEmail)
         if (!user) {
-          const res = await c.env.DB.prepare("INSERT INTO users (email, name, avatar, balance) VALUES (?, ?, ?, 0)").bind(userData.email, userData.name, userData.picture || null).run()
+          const res = await createGoogleAuthUser(c.env.DB, usersColumns, userData)
           user = { id: res.meta.last_row_id }
         } else {
-          await c.env.DB.prepare("UPDATE users SET name=?, avatar=? WHERE id=?").bind(userData.name, userData.picture || null, user.id).run()
+          await updateGoogleAuthUser(c.env.DB, usersColumns, Number(user.id), userData)
         }
       } catch (dbErr: any) {
         console.error('[auth] db sync error', dbErr)

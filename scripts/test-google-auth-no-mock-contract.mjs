@@ -17,6 +17,18 @@ assert.match(
 )
 assert.match(source, /function getGoogleRedirectUri\(/, 'Google auth should centralize redirect URI resolution')
 assert.match(source, /'GOOGLE_REDIRECT_URI'/, 'Google auth should support configured redirect URI for real OAuth clients')
+assert.match(source, /PRAGMA table_info\(users\)/, 'Google auth should inspect users schema before syncing OAuth users')
+assert.match(source, /google_id/, 'Google auth should persist the provider id when the production users table requires google_id')
+assert.match(
+  source,
+  /findGoogleAuthUser\(c\.env\.DB,\s*usersColumns,\s*googleId,\s*googleEmail\)/,
+  'Google callback should find users by google_id when available before falling back to email'
+)
+assert.match(
+  source,
+  /INSERT INTO users \(google_id, email, name, avatar, balance\)/,
+  'Google callback should insert google_id for production users schema'
+)
 assert.match(
   source,
   /new URLSearchParams\(\{[\s\S]*redirect_uri: redirectUri/,
