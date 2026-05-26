@@ -1909,6 +1909,17 @@ export function storefrontThemeRefreshStyles(): string {
       margin-left: 0.75rem;
       margin-right: 0.75rem;
     }
+    #hero .hero-layout {
+      width: 100% !important;
+      max-width: 100% !important;
+      min-width: 0 !important;
+      box-sizing: border-box !important;
+    }
+    #hero .hero-copy-block,
+    #heroBannersWrapper {
+      width: 100% !important;
+      min-width: 0 !important;
+    }
     #filterBar {
       top: 5rem !important;
       border-radius: 1rem;

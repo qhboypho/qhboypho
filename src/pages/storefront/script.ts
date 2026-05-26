@@ -2170,7 +2170,7 @@ function renderCollapsedBanners(banners) {
   const hasSettingBannerOnly = banners.length === 1 && banners[0]?.is_setting_banner
   if (wrapper) wrapper.style.cursor = 'default'
   container.onclick = null
-  container.style.width = hasSettingBannerOnly ? (mobileMode ? 'min(100%, 320px)' : '360px') : (mobileMode ? 'min(100%, 342px)' : '430px')
+  container.style.width = hasSettingBannerOnly ? (mobileMode ? 'min(100%, 320px)' : '360px') : (mobileMode ? '100%' : '430px')
   container.style.height = hasSettingBannerOnly ? (mobileMode ? 'min(82vw, 320px)' : '360px') : (mobileMode ? '356px' : '548px')
   container.style.marginLeft = mobileMode ? 'auto' : ''
   container.style.marginRight = mobileMode ? 'auto' : ''
@@ -2235,7 +2235,7 @@ function ensureHeroCarouselRuntimeStyle() {
     .hero-carousel-next{right:0}
     @media (max-width:768px){
       .hero-3d-carousel{width:100%;height:348px;overflow:hidden;perspective:820px}
-      .hero-carousel-stage{width:min(52vw,214px);height:326px;transform:translateX(-1.25rem)}
+      .hero-carousel-stage{width:min(52vw,214px);height:326px}
       .hero-carousel-card{border-radius:20px;display:flex;flex-direction:column}
       .hero-carousel-media{height:min(52vw,214px);aspect-ratio:auto;flex:0 0 auto}
       .hero-carousel-card[data-offset="-1"]{transform:translate3d(-42%,8px,-42px) scale(.8);opacity:.66}

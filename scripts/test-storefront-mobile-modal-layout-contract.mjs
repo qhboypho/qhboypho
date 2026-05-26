@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises'
 
 const storefrontStylesSource = await readFile(new URL('../src/pages/storefront/styles.ts', import.meta.url), 'utf8')
 const storefrontScriptSource = await readFile(new URL('../src/pages/storefront/script.ts', import.meta.url), 'utf8')
+const storefrontThemeRefreshSource = await readFile(new URL('../src/pages/storefront/theme-refresh.ts', import.meta.url), 'utf8')
 
 assert.match(
   storefrontStylesSource,
@@ -24,14 +25,32 @@ assert.match(
 
 assert.match(
   storefrontScriptSource,
-  /container\.style\.width = hasSettingBannerOnly \? \(mobileMode \? 'min\(100%, 320px\)' : '360px'\) : \(mobileMode \? 'min\(100%, 342px\)' : '430px'\)/,
-  'mobile hero carousel should use a constrained centered container instead of full-width drift',
+  /container\.style\.width = hasSettingBannerOnly \? \(mobileMode \? 'min\(100%, 320px\)' : '360px'\) : \(mobileMode \? '100%' : '430px'\)/,
+  'mobile hero carousel should use the fluid hero column width instead of a device-specific fixed width',
 )
 
 assert.match(
   storefrontScriptSource,
-  /\.hero-carousel-stage\{width:min\(52vw,214px\);height:326px;transform:translateX\(-1\.25rem\)\}/,
-  'mobile hero carousel stage should compensate the visual right drift inside the runtime carousel CSS',
+  /\.hero-carousel-stage\{width:min\(52vw,214px\);height:326px\}/,
+  'mobile hero carousel stage should stay naturally centered without a device-specific translate compensation',
+)
+
+assert.doesNotMatch(
+  storefrontScriptSource,
+  /hero-carousel-stage\{[^}]*translateX\(/,
+  'mobile hero carousel must not use fixed translateX offsets to fake centering',
+)
+
+assert.match(
+  storefrontThemeRefreshSource,
+  /#hero \.hero-layout \{[\s\S]*width: 100% !important;[\s\S]*max-width: 100% !important;[\s\S]*min-width: 0 !important;[\s\S]*box-sizing: border-box !important;/,
+  'mobile hero layout must fill its own section instead of expanding past the card edge',
+)
+
+assert.match(
+  storefrontThemeRefreshSource,
+  /#hero \.hero-copy-block,\s*#heroBannersWrapper \{[\s\S]*width: 100% !important;[\s\S]*min-width: 0 !important;/,
+  'mobile hero copy and carousel wrapper should share the same fluid column width',
 )
 
 assert.doesNotMatch(
