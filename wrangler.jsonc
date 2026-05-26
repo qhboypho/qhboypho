@@ -22,11 +22,6 @@
     }
   ],
   "vars": {
-    "PRODUCT_IMAGES_PUBLIC_BASE_URL": "",
-    "GOOGLE_CLIENT_ID": "",
-    "GOOGLE_CLIENT_SECRET": "",
-    "CASSO_SECURE_TOKEN": "",
-    "ZALOPAY_APP_ID": "",
-    "ZALOPAY_CALLBACK_URL": ""
+    "PRODUCT_IMAGES_PUBLIC_BASE_URL": ""
   }
 }
