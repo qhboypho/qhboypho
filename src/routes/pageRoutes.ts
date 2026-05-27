@@ -26,7 +26,10 @@ export function registerPageRoutes(app: Hono<{ Bindings: AppBindings }>) {
 
   async function renderStorefront(c: any) {
     const textUiSettings = await readTextUiSettings(c.env.DB).catch(() => undefined)
-    return c.html(storefrontHTML({ textUiSettings }))
+    const requestUrl = new URL(c.req.url)
+    const canonicalUrl = requestUrl.origin + '/'
+    const ogImageUrl = requestUrl.origin + '/og/qh-clothes-share-16x9.png'
+    return c.html(storefrontHTML({ textUiSettings, canonicalUrl, ogImageUrl }))
   }
 
   app.get('/', renderStorefront)
