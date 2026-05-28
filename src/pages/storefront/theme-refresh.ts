@@ -21,6 +21,10 @@ export function storefrontThemeRefreshStyles(): string {
     --qh-action-radius: 0.72rem;
     --qh-action-gradient: linear-gradient(135deg, #337cff, #8d55ff 45%, #ec4fbe);
     --qh-action-shadow: 0 10px 22px rgba(59,130,246,0.24), 0 8px 20px rgba(236,63,173,0.18);
+    --qh-card-shadow: 0 12px 34px rgba(15,23,42,0.06), 0 1px 3px rgba(15,23,42,0.02);
+    --qh-card-shadow-hover: 0 20px 40px rgba(15,23,42,0.1), 0 2px 8px rgba(15,23,42,0.04);
+    --qh-img-bg: rgba(241,245,249,0.72);
+    --qh-scrollbar-thumb: #cbd5e1;
   }
   body[data-storefront-theme='dark'] {
     --qh-bg: #020b1a;
@@ -40,6 +44,10 @@ export function storefrontThemeRefreshStyles(): string {
     --qh-chip-bg: linear-gradient(180deg, rgba(122,177,246,0.45), rgba(44,86,139,0.55));
     --qh-chip-border: rgba(159,203,255,0.56);
     --qh-action-shadow: 0 10px 22px rgba(59,130,246,0.26), 0 8px 20px rgba(236,63,173,0.2);
+    --qh-card-shadow: 0 18px 48px rgba(0,0,0,0.42), 0 0 30px rgba(57,149,255,0.17), 0 0 32px rgba(236,91,255,0.12), inset 0 0 0 1px rgba(255,255,255,0.06), inset 0 1px 0 rgba(255,255,255,0.08);
+    --qh-card-shadow-hover: 0 24px 64px rgba(0,0,0,0.48), 0 0 40px rgba(77,163,255,0.24), 0 0 38px rgba(236,91,255,0.18), inset 0 0 0 1px rgba(255,255,255,0.08);
+    --qh-img-bg: rgba(255,255,255,0.05);
+    --qh-scrollbar-thumb: rgba(255,255,255,0.22);
   }
   body[data-storefront-theme] {
     background:
@@ -131,6 +139,9 @@ export function storefrontThemeRefreshStyles(): string {
     margin-left: auto;
     margin-right: auto;
     border-radius: 1.35rem;
+  }
+  footer {
+    margin-top: 1rem;
   }
   #bestsellersSection {
     margin-top: 1rem;
@@ -490,7 +501,7 @@ export function storefrontThemeRefreshStyles(): string {
   .flash-sale-shop-card {
     background: var(--qh-product-card-bg) !important;
     border: 1px solid transparent !important;
-    box-shadow: 0 18px 48px rgba(0,0,0,0.42), 0 0 30px rgba(57,149,255,0.17), 0 0 32px rgba(236,91,255,0.12), inset 0 0 0 1px rgba(255,255,255,0.06), inset 0 1px 0 rgba(255,255,255,0.08) !important;
+    box-shadow: var(--qh-card-shadow) !important;
     isolation: isolate;
     position: relative;
   }
@@ -525,7 +536,7 @@ export function storefrontThemeRefreshStyles(): string {
   }
   body[data-storefront-theme='dark'] .shipping-carrier-logo-wrap {
     background: rgb(63 69 108 / 79%);
-    padding: 0 0.5rem;
+    padding: 0.1rem;
     border-radius: 4px;
   }
   .bs-card,
@@ -646,7 +657,7 @@ export function storefrontThemeRefreshStyles(): string {
   .flash-sale-shop-card:hover {
     border-color: transparent !important;
     background: var(--qh-product-card-bg-hover) !important;
-    box-shadow: 0 24px 64px rgba(0,0,0,0.48), 0 0 40px rgba(77,163,255,0.24), 0 0 38px rgba(236,91,255,0.18), inset 0 0 0 1px rgba(255,255,255,0.08) !important;
+    box-shadow: var(--qh-card-shadow-hover) !important;
   }
   .product-card h3,
   .bs-name,
@@ -1822,9 +1833,17 @@ export function storefrontThemeRefreshStyles(): string {
   body[data-storefront-theme='dark'] .review-modal-panel h2,
   body[data-storefront-theme='dark'] .review-modal-panel h3,
   body[data-storefront-theme='dark'] .popup-card .text-gray-900,
+  body[data-storefront-theme='dark'] .popup-card .text-gray-800,
+  body[data-storefront-theme='dark'] .popup-card .text-gray-700,
   body[data-storefront-theme='dark'] .cart-modal .text-gray-900,
+  body[data-storefront-theme='dark'] .cart-modal .text-gray-800,
+  body[data-storefront-theme='dark'] .cart-modal .text-gray-700,
   body[data-storefront-theme='dark'] .user-menu-panel .text-gray-900,
-  body[data-storefront-theme='dark'] .review-modal-panel .text-gray-900 {
+  body[data-storefront-theme='dark'] .user-menu-panel .text-gray-800,
+  body[data-storefront-theme='dark'] .user-menu-panel .text-gray-700,
+  body[data-storefront-theme='dark'] .review-modal-panel .text-gray-900,
+  body[data-storefront-theme='dark'] .review-modal-panel .text-gray-800,
+  body[data-storefront-theme='dark'] .review-modal-panel .text-gray-700 {
     color: #f8fbff !important;
   }
   body[data-storefront-theme='dark'] .popup-card p,
@@ -2409,5 +2428,23 @@ export function storefrontThemeRefreshStyles(): string {
       padding-left: 0.7rem !important;
       padding-right: 0.7rem !important;
     }
-  }`
+  }
+
+  /* Custom UI & UX improvements */
+  ::-webkit-scrollbar-thumb {
+    background: var(--qh-scrollbar-thumb) !important;
+  }
+  .relative.overflow-hidden.bg-gray-100 {
+    background-color: var(--qh-img-bg) !important;
+  }
+  body[data-storefront-theme='dark'] button[onclick*="close"] {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: #cbd5e1 !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+  }
+  body[data-storefront-theme='dark'] button[onclick*="close"]:hover {
+    background: rgba(255, 255, 255, 0.16) !important;
+    color: #fff !important;
+  }
+  `
 }
