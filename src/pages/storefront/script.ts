@@ -1359,9 +1359,11 @@ function applyProductsFilters() {
     if (activeProductType !== 'all') {
       const n = p.name.toLowerCase()
       if (activeProductType === 'tshirt') matchType = n.includes('áo phông') || n.includes('áo thun') || n.includes('t-shirt') || n.includes('tshirt')
-      else if (activeProductType === 'jacket') matchType = n.includes('áo khoác') || n.includes('jacket') || n.includes('hoodie') || n.includes('sweater')
+      else if (activeProductType === 'jacket') matchType = n.includes('áo khoác') || n.includes('jacket')
+      else if (activeProductType === 'hoodie') matchType = n.includes('hoodie') || n.includes('sweater') || n.includes('nỉ')
       else if (activeProductType === 'polo') matchType = n.includes('polo')
-      else if (activeProductType === 'jeans') matchType = n.includes('quần jean') || n.includes('quần bò') || n.includes('quần dài') || n.includes('quần short') || n.includes('jeans')
+      else if (activeProductType === 'pants') matchType = n.includes('quần')
+      else if (activeProductType === 'jeans') matchType = n.includes('quần jean') || n.includes('quần bò') || n.includes('jeans')
       else if (activeProductType === 'dress') matchType = n.includes('váy') || n.includes('đầm')
       else if (activeProductType === 'set') matchType = n.includes('bộ') || n.includes('set')
     }

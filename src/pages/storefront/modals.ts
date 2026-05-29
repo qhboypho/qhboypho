@@ -715,6 +715,8 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
           <button class="filter-modal-chip" data-val="tshirt" onclick="selectFilterModalType('tshirt', this)">Áo phông / thun</button>
           <button class="filter-modal-chip" data-val="polo" onclick="selectFilterModalType('polo', this)">Áo Polo</button>
           <button class="filter-modal-chip" data-val="jacket" onclick="selectFilterModalType('jacket', this)">Áo khoác</button>
+          <button class="filter-modal-chip" data-val="hoodie" onclick="selectFilterModalType('hoodie', this)">Hoodie / Sweater</button>
+          <button class="filter-modal-chip" data-val="pants" onclick="selectFilterModalType('pants', this)">Quần</button>
           <button class="filter-modal-chip" data-val="jeans" onclick="selectFilterModalType('jeans', this)">Quần Jean</button>
           <button class="filter-modal-chip" data-val="dress" onclick="selectFilterModalType('dress', this)">Váy / Đầm</button>
           <button class="filter-modal-chip" data-val="set" onclick="selectFilterModalType('set', this)">Bộ đồ</button>
