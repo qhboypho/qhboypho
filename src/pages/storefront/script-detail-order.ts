@@ -40,7 +40,12 @@ async function showDetail(id, options) {
       </div>
       <div>
         \${p.brand ? \`<p class="text-sm text-pink-500 font-medium mb-1">\${escapeHtml(p.brand)}</p>\` : ''}
-        <h2 class="font-display text-2xl font-bold text-gray-900 mb-3">\${escapeHtml(p.name)}</h2>
+        <div class="flex items-start justify-between gap-2 mb-3">
+          <h2 class="font-display text-2xl font-bold text-gray-900">\${escapeHtml(p.name)}</h2>
+          <button type="button" onclick="copyProductLink()" class="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-pink-50 hover:text-pink-500 transition shadow-sm" title="Copy Link Sản Phẩm">
+            <i class="fas fa-share-alt"></i>
+          </button>
+        </div>
         \${p.has_flash_sale ? \`<div class="flex flex-wrap items-center gap-2 mb-3"><span class="flash-sale-badge"><i class="fas fa-bolt"></i> Flash Sale</span><span class="flash-sale-countdown" data-flash-sale-ends-at="\${escapeHtml(flashMeta?.endsAt || '')}">\${formatFlashSaleCountdown(flashMeta?.endsAt || '')}</span></div>\` : ''}
         <div class="flex items-baseline gap-3 mb-4">
           <span class="text-3xl font-bold text-gradient-price">\${fmtPrice(detailDisplayPrice)}</span>
@@ -94,6 +99,13 @@ async function showDetail(id, options) {
     document.body.style.overflow = 'hidden'
     trackProductDetailView(p.id || id)
     startFlashSaleCountdownTicker()
+    
+    if (!history.state || history.state.modal !== 'product_detail' || history.state.id !== (p.id || id)) {
+      const newUrl = new URL(window.location.href)
+      newUrl.searchParams.set('product', p.id || id)
+      history.pushState({ modal: 'product_detail', id: p.id || id, openedFromSite: true }, '', newUrl.toString())
+    }
+
     if (detailColorOptions.length) {
       const selectedColor = String(detailOptions.selectedColor || '').trim().toLowerCase()
       const matchedColorIndex = selectedColor ? detailColorOptions.findIndex((item) => String(item.name || '').trim().toLowerCase() === selectedColor) : -1
@@ -142,10 +154,42 @@ function scrollDetailToVariantPicker() {
   const target = document.getElementById('detailColorGrid') || document.querySelector('#detailContent .size-btn')
   if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' })
 }
-function closeDetail() {
-  document.getElementById('detailOverlay').classList.add('hidden')
+function closeDetail(skipHistory) {
+  const overlay = document.getElementById('detailOverlay')
+  if (overlay) overlay.classList.add('hidden')
   cartVariantEditId = ''
   document.body.style.overflow = ''
+  
+  if (!skipHistory) {
+    const newUrl = new URL(window.location.href)
+    if (newUrl.searchParams.has('product')) {
+      if (history.state && history.state.openedFromSite) {
+        history.back()
+      } else {
+        newUrl.searchParams.delete('product')
+        history.pushState(null, '', newUrl.toString())
+      }
+    }
+  }
+}
+
+function copyProductLink() {
+  const url = window.location.href;
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(url).then(() => {
+      showToast('Đã copy link sản phẩm!', 'success', 2500);
+    }).catch(() => {
+      showToast('Không thể copy link', 'error');
+    });
+  } else {
+    const input = document.createElement('input');
+    input.value = url;
+    document.body.appendChild(input);
+    input.select();
+    document.execCommand('copy');
+    document.body.removeChild(input);
+    showToast('Đã copy link sản phẩm!', 'success', 2500);
+  }
 }
 
 function addDetailToCart() {

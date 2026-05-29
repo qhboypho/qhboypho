@@ -815,9 +815,22 @@ async function loadProducts() {
     allProducts = res.data.data || []
     applyProductsFilters()
     loadFlashSaleShop()
+    checkUrlDeepLink()
   } catch(e) {
     document.getElementById('productsGrid').innerHTML = '<div class="col-span-full text-center text-gray-400 py-12"><i class="fas fa-exclamation-circle text-4xl mb-3"></i><p>Không thể tải sản phẩm</p></div>'
   }
+}
+
+function checkUrlDeepLink() {
+  try {
+    const params = new URLSearchParams(window.location.search)
+    const productId = params.get('product')
+    if (productId) {
+      if (!document.getElementById('detailOverlay') || document.getElementById('detailOverlay').classList.contains('hidden')) {
+        showDetail(productId)
+      }
+    }
+  } catch(e) {}
 }
 
 // ── REVIEWS ─────────────────────────────────────────
@@ -2497,6 +2510,21 @@ async function loadNotificationSettings() {
     renderStorefrontMarquee(DEFAULT_MARQUEE_NOTIFICATION_TEXT, 48)
   }
 }
+
+window.addEventListener('popstate', function (event) {
+  const params = new URLSearchParams(window.location.search)
+  const productId = params.get('product')
+  if (productId) {
+    if (!document.getElementById('detailOverlay') || document.getElementById('detailOverlay').classList.contains('hidden')) {
+      showDetail(productId)
+    }
+  } else {
+    const overlay = document.getElementById('detailOverlay')
+    if (overlay && !overlay.classList.contains('hidden')) {
+      if (typeof closeDetail === 'function') closeDetail(true)
+    }
+  }
+})
 
 window.addEventListener('resize', () => {
   const mobileMode = isMobileHeroLayout()
