@@ -1391,15 +1391,30 @@ function openFilterModal() {
       b.classList.toggle('active', b.getAttribute('data-val') === activeProductType)
     })
     document.body.style.overflow = 'hidden'
+
+    // Animate slide up
+    const panel = document.getElementById('filterModalPanel')
+    if (panel) {
+      setTimeout(() => {
+        panel.classList.remove('translate-y-full')
+        panel.classList.add('translate-y-0')
+      }, 10)
+    }
   }
 }
 
 function closeFilterModal() {
   const modal = document.getElementById('filterModalOverlay')
-  if (modal) {
-    modal.classList.add('hidden')
-    modal.classList.remove('flex')
-    document.body.style.overflow = ''
+  const panel = document.getElementById('filterModalPanel')
+  if (modal && panel) {
+    // Animate slide down
+    panel.classList.remove('translate-y-0')
+    panel.classList.add('translate-y-full')
+    setTimeout(() => {
+      modal.classList.add('hidden')
+      modal.classList.remove('flex')
+      document.body.style.overflow = ''
+    }, 300)
   }
 }
 
