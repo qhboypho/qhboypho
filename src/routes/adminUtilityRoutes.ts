@@ -207,7 +207,9 @@ export function registerAdminUtilityRoutes(app: Hono<{ Bindings: AppBindings }>,
     const object = await bucket.get(key)
     if (!object) return c.notFound()
     const headers = new Headers()
-    object.writeHttpMetadata(headers)
+    if (object.httpMetadata?.contentType) {
+      headers.set('content-type', object.httpMetadata.contentType)
+    }
     headers.set('etag', object.httpEtag)
     headers.set('cache-control', 'public, max-age=31536000, immutable')
     return new Response(object.body, { headers })
@@ -232,7 +234,7 @@ export function registerAdminUtilityRoutes(app: Hono<{ Bindings: AppBindings }>,
     const folder = normalizeAssetFolder(form.get('folder'))
     const ext = extensionFromMime(contentType)
     const key = `${folder}/${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID()}.${ext}`
-    await bucket.put(key, file.stream(), {
+    await bucket.put(key, await file.arrayBuffer(), {
       httpMetadata: {
         contentType,
         cacheControl: 'public, max-age=31536000, immutable',

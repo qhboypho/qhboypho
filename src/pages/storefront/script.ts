@@ -1566,12 +1566,12 @@ function renderCartStep1() {
     const chk = item.checked ? 'checked' : ''
     const variantLabel = [col, sz].filter(Boolean).join(', ') || 'Chọn màu, size'
     return '<div class="cart-item rounded-xl border border-gray-200 bg-white" data-cart-id="' + item.cartId + '">'
-      + '<div class="cart-item-delete-bg cart-del-btn" data-id="' + item.cartId + '"><i class="fas fa-trash"></i></div>'
       + '<div class="cart-item-inner rounded-xl p-3" data-cart-id="' + item.cartId + '">'
+      + '<button type="button" class="cart-inline-delete-btn cart-del-btn" data-id="' + item.cartId + '" title="Xoá sản phẩm" aria-label="Xoá sản phẩm"><i class="fas fa-trash"></i></button>'
       + '<div class="flex gap-3 items-start">'
       + '<div class="flex-shrink-0 pt-1"><input type="checkbox" ' + chk + ' data-toggle-id="' + item.cartId + '" class="cart-chk w-4 h-4 accent-pink-500 cursor-pointer mt-0.5"></div>'
       + '<img src="' + escapeHtml(item.thumbnail) + '" alt="' + escapeHtml(item.name) + '" class="w-16 h-20 object-cover rounded-lg flex-shrink-0" onerror="this.src=&quot;https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&quot;">'
-      + '<div class="flex-1 min-w-0">'
+      + '<div class="flex-1 min-w-0 pr-8">'
       + '<p class="font-semibold text-gray-900 text-sm line-clamp-1 mb-0.5">' + escapeHtml(item.name) + '</p>'
       + '<p class="text-xs text-gray-400 mb-1">' + escapeHtml(item.sku) + '</p>'
       + '<button type="button" class="cart-variant-selector" data-cart-id="' + item.cartId + '"><span>' + escapeHtml(variantLabel) + '</span><i class="fas fa-chevron-down"></i></button>'
@@ -1603,8 +1603,6 @@ function renderCartStep1() {
     })
   })
 
-  // Setup swipe-to-delete for each item
-  setupSwipeToDelete()
   updateCartSummary()
   updateCartHeaderSubtitle()
 }

@@ -43,7 +43,7 @@ export function adminModalsSection(): string {
                 </div>
               </div>
               <input type="file" id="thumbnailInput" accept="image/*" multiple class="hidden" onchange="handleThumbnailFile(this)">
-              <input type="url" id="pThumbnail" placeholder="Dán URL ảnh chính..." class="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-pink-400 mt-2" oninput="previewThumbnail(this.value)">
+              <input type="text" id="pThumbnail" placeholder="Dán URL ảnh chính..." class="w-full border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-pink-400 mt-2" oninput="previewThumbnail(this.value)">
             </div>
             <div class="md:col-span-2">
               <div class="grid grid-cols-2 sm:grid-cols-3 gap-3" id="galleryGrid">
@@ -51,7 +51,7 @@ export function adminModalsSection(): string {
               </div>
               <p class="text-xs text-gray-400 mt-2">Nhấn vào từng ô để thêm ảnh phụ hoặc dán URL nhanh bên dưới.</p>
               <div class="mt-2 flex gap-2">
-                <input type="url" id="galleryUrlInput" placeholder="Dán URL ảnh phụ..." class="flex-1 border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-pink-400">
+                <input type="text" id="galleryUrlInput" placeholder="Dán URL ảnh phụ..." class="flex-1 border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-pink-400">
                 <button type="button" onclick="addGalleryUrl()" class="btn-pink text-white px-4 py-2 rounded-xl text-sm font-semibold">Thêm</button>
               </div>
             </div>
