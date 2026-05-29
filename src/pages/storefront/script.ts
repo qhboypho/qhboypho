@@ -22,9 +22,11 @@ let detailSelectedColor = ''
 let detailSelectedColorImage = ''
 let detailSelectedColorIndex = -1
 let detailSelectedSize = ''
+let detailQty = 1
 let detailSelectedProductId = null
 let cartVariantEditId = ''
 let activeProductCategory = 'all'
+let activeProductType = 'all'
 let activeProductSearch = ''
 let activeProductSort = 'newest'
 let mobileProductsLayout = 'list'
@@ -1352,7 +1354,19 @@ function applyProductsFilters() {
   filteredProducts = sortProductsList(allProducts.filter((p) => {
     const matchCat = activeProductCategory === 'all' || p.category === activeProductCategory
     const matchSearch = !activeProductSearch || p.name.toLowerCase().includes(activeProductSearch) || (p.brand || '').toLowerCase().includes(activeProductSearch)
-    return matchCat && matchSearch
+    
+    let matchType = true
+    if (activeProductType !== 'all') {
+      const n = p.name.toLowerCase()
+      if (activeProductType === 'tshirt') matchType = n.includes('áo phông') || n.includes('áo thun') || n.includes('t-shirt') || n.includes('tshirt')
+      else if (activeProductType === 'jacket') matchType = n.includes('áo khoác') || n.includes('jacket') || n.includes('hoodie') || n.includes('sweater')
+      else if (activeProductType === 'polo') matchType = n.includes('polo')
+      else if (activeProductType === 'jeans') matchType = n.includes('quần jean') || n.includes('quần bò') || n.includes('quần dài') || n.includes('quần short') || n.includes('jeans')
+      else if (activeProductType === 'dress') matchType = n.includes('váy') || n.includes('đầm')
+      else if (activeProductType === 'set') matchType = n.includes('bộ') || n.includes('set')
+    }
+
+    return matchCat && matchSearch && matchType
   }))
   renderProducts(filteredProducts)
 }
@@ -1361,7 +1375,68 @@ function filterProducts(cat, btn) {
   document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'))
   btn.classList.add('active')
   activeProductCategory = cat
+  activeProductType = 'all'
   applyProductsFilters()
+}
+
+function openFilterModal() {
+  const modal = document.getElementById('filterModalOverlay')
+  if (modal) {
+    modal.classList.remove('hidden')
+    modal.classList.add('flex')
+    document.querySelectorAll('#filterModalGenderRow .filter-modal-chip').forEach(b => {
+      b.classList.toggle('active', b.getAttribute('data-val') === activeProductCategory)
+    })
+    document.querySelectorAll('#filterModalTypeRow .filter-modal-chip').forEach(b => {
+      b.classList.toggle('active', b.getAttribute('data-val') === activeProductType)
+    })
+    document.body.style.overflow = 'hidden'
+  }
+}
+
+function closeFilterModal() {
+  const modal = document.getElementById('filterModalOverlay')
+  if (modal) {
+    modal.classList.add('hidden')
+    modal.classList.remove('flex')
+    document.body.style.overflow = ''
+  }
+}
+
+function selectFilterModalGender(val, btn) {
+  document.querySelectorAll('#filterModalGenderRow .filter-modal-chip').forEach(b => b.classList.remove('active'))
+  btn.classList.add('active')
+}
+
+function selectFilterModalType(val, btn) {
+  document.querySelectorAll('#filterModalTypeRow .filter-modal-chip').forEach(b => b.classList.remove('active'))
+  btn.classList.add('active')
+}
+
+function resetFilterModal() {
+  document.querySelectorAll('#filterModalGenderRow .filter-modal-chip').forEach(b => {
+    b.classList.toggle('active', b.getAttribute('data-val') === 'all')
+  })
+  document.querySelectorAll('#filterModalTypeRow .filter-modal-chip').forEach(b => {
+    b.classList.toggle('active', b.getAttribute('data-val') === 'all')
+  })
+}
+
+function applyFilterModal() {
+  const activeGenderBtn = document.querySelector('#filterModalGenderRow .filter-modal-chip.active')
+  const activeTypeBtn = document.querySelector('#filterModalTypeRow .filter-modal-chip.active')
+  
+  if (activeGenderBtn) activeProductCategory = activeGenderBtn.getAttribute('data-val') || 'all'
+  if (activeTypeBtn) activeProductType = activeTypeBtn.getAttribute('data-val') || 'all'
+  
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'))
+  const matchingDesktopChip = document.querySelector('.filter-btn[data-cat=\"' + activeProductCategory + '\"]')
+  if (matchingDesktopChip && activeProductType === 'all') {
+    matchingDesktopChip.classList.add('active')
+  }
+
+  applyProductsFilters()
+  closeFilterModal()
 }
 
 function searchProducts(q) {

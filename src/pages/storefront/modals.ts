@@ -690,5 +690,47 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
   </div>
 </div>
 
-<div id="toastContainer" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2 pointer-events-none"></div>`
+<div id=\"filterModalOverlay\" class=\"fixed inset-0 overlay hidden flex items-end justify-center sm:items-center p-0 sm:p-4 z-[10010]\" onclick=\"if(event.target===this) closeFilterModal()\">
+  <div class=\"bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-md overflow-hidden transform transition-transform translate-y-full sm:translate-y-0 duration-300\" id=\"filterModalPanel\">
+    <div class=\"px-6 py-4 border-b border-gray-100 flex items-center justify-between\">
+      <h3 class=\"font-display text-lg font-bold text-gray-900\"><i class=\"fas fa-sliders-h text-pink-500 mr-2\"></i>Bộ lọc sản phẩm</h3>
+      <button type=\"button\" onclick=\"closeFilterModal()\" class=\"w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition\">
+        <i class=\"fas fa-times text-gray-600\"></i>
+      </button>
+    </div>
+    <div class=\"px-6 py-5 space-y-6 max-h-[65vh] overflow-y-auto\">
+      <div>
+        <h4 class=\"text-sm font-semibold text-gray-900 mb-3\">Dành cho</h4>
+        <div class=\"flex flex-wrap gap-2\" id=\"filterModalGenderRow\">
+          <button class=\"filter-modal-chip active\" data-val=\"all\" onclick=\"selectFilterModalGender('all', this)\">Tất cả</button>
+          <button class=\"filter-modal-chip\" data-val=\"unisex\" onclick=\"selectFilterModalGender('unisex', this)\">Unisex</button>
+          <button class=\"filter-modal-chip\" data-val=\"male\" onclick=\"selectFilterModalGender('male', this)\">Nam</button>
+          <button class=\"filter-modal-chip\" data-val=\"female\" onclick=\"selectFilterModalGender('female', this)\">Nữ</button>
+        </div>
+      </div>
+      <div>
+        <h4 class=\"text-sm font-semibold text-gray-900 mb-3\">Loại sản phẩm</h4>
+        <div class=\"flex flex-wrap gap-2\" id=\"filterModalTypeRow\">
+          <button class=\"filter-modal-chip active\" data-val=\"all\" onclick=\"selectFilterModalType('all', this)\">Tất cả</button>
+          <button class=\"filter-modal-chip\" data-val=\"tshirt\" onclick=\"selectFilterModalType('tshirt', this)\">Áo phông / thun</button>
+          <button class=\"filter-modal-chip\" data-val=\"polo\" onclick=\"selectFilterModalType('polo', this)\">Áo Polo</button>
+          <button class=\"filter-modal-chip\" data-val=\"jacket\" onclick=\"selectFilterModalType('jacket', this)\">Áo khoác</button>
+          <button class=\"filter-modal-chip\" data-val=\"jeans\" onclick=\"selectFilterModalType('jeans', this)\">Quần Jean</button>
+          <button class=\"filter-modal-chip\" data-val=\"dress\" onclick=\"selectFilterModalType('dress', this)\">Váy / Đầm</button>
+          <button class=\"filter-modal-chip\" data-val=\"set\" onclick=\"selectFilterModalType('set', this)\">Bộ đồ</button>
+        </div>
+      </div>
+    </div>
+    <div class=\"px-6 py-4 border-t border-gray-100 flex gap-3\">
+      <button type=\"button\" onclick=\"resetFilterModal()\" class=\"w-1/3 border border-gray-200 text-gray-700 py-3 rounded-xl font-semibold text-sm hover:bg-gray-50 transition\">
+        Mặc định
+      </button>
+      <button type=\"button\" onclick=\"applyFilterModal()\" class=\"btn-primary flex-1 text-white py-3 rounded-xl font-semibold text-sm shadow-md\">
+        Áp dụng lọc
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id=\"toastContainer\" class=\"fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2 pointer-events-none\"></div>`
 }

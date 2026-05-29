@@ -442,6 +442,32 @@ export function storefrontThemeRefreshStyles(): string {
     color: #cbd5e1 !important;
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
   }
+  .filter-modal-chip {
+    padding: 0.5rem 1rem;
+    border-radius: 9999px;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    color: #64748b;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.2s;
+  }
+  .filter-modal-chip.active {
+    background: linear-gradient(135deg, #a855f7, #ec4899);
+    color: white;
+    border-color: transparent;
+    box-shadow: 0 4px 12px rgba(236,72,153,0.2);
+  }
+  body[data-storefront-theme='dark'] .filter-modal-chip {
+    background: #1e293b;
+    border-color: #334155;
+    color: #94a3b8;
+  }
+  body[data-storefront-theme='dark'] .filter-modal-chip.active {
+    background: linear-gradient(135deg, #a855f7, #ec4899);
+    color: white;
+    border-color: transparent;
+  }
   @media (min-width: 769px) {
     #filterBar {
       display: flex;
