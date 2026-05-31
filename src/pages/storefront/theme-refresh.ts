@@ -292,6 +292,10 @@ export function storefrontThemeRefreshStyles(): string {
   .filter-search-row {
     display: flex;
     align-items: center;
+    min-width: 0;
+  }
+  .filter-search-row > div {
+    min-width: 0;
   }
   .filter-search-wrap {
     position: relative;
@@ -329,6 +333,8 @@ export function storefrontThemeRefreshStyles(): string {
   .filter-chip-row {
     display: flex;
     gap: 0.75rem;
+    width: 100%;
+    min-width: 0;
     overflow-x: auto;
     overflow-y: hidden;
     scrollbar-width: none;
@@ -364,6 +370,7 @@ export function storefrontThemeRefreshStyles(): string {
     justify-content: space-between;
     gap: 1rem;
     width: 100%;
+    min-width: 0;
     margin-top: 0.7rem;
     padding: 0 0.15rem 0.1rem;
   }
@@ -380,12 +387,14 @@ export function storefrontThemeRefreshStyles(): string {
     display: inline-flex;
     align-items: center;
     gap: 0.55rem;
+    flex: 0 1 auto;
     min-width: 0;
   }
   .filter-sort-wrap {
     position: relative;
     display: inline-flex;
     align-items: center;
+    flex: 0 1 auto;
     min-width: 0;
   }
   .filter-sort-wrap > i {
@@ -398,6 +407,7 @@ export function storefrontThemeRefreshStyles(): string {
     pointer-events: none;
   }
   .filter-sort-select {
+    width: 100%;
     min-width: 8.75rem;
     height: 2.4rem;
     padding: 0 2rem 0 2.1rem;
@@ -2071,6 +2081,7 @@ export function storefrontThemeRefreshStyles(): string {
       margin-left: 0;
       margin-right: 0;
       max-width: 100%;
+      overflow: hidden;
     }
     #products,
     #bestsellersSection,
@@ -2093,14 +2104,72 @@ export function storefrontThemeRefreshStyles(): string {
       padding-left: 0.75rem !important;
       padding-right: 0.75rem !important;
     }
+    #products > .text-center.mb-12 {
+      margin-bottom: 1.9rem !important;
+    }
+    #products > .text-center.mb-12 > p:first-child {
+      font-size: 0.72rem !important;
+      letter-spacing: 0.24em !important;
+    }
+    #products h2 {
+      font-size: 2rem !important;
+      line-height: 1.08 !important;
+    }
+    #products > .text-center.mb-12 > p.text-gray-500 {
+      max-width: 15rem;
+      margin-left: auto;
+      margin-right: auto;
+      font-size: 0.96rem !important;
+      line-height: 1.45 !important;
+    }
     body[data-storefront-theme='dark'] #products {
       background:
         radial-gradient(circle at 88% 12%, rgba(122, 73, 224, 0.28), transparent 34%),
         radial-gradient(circle at 14% 12%, rgba(28, 123, 255, 0.14), transparent 28%),
         linear-gradient(135deg, rgba(2, 12, 29, 0.99) 0%, rgba(4, 18, 43, 0.98) 50%, rgba(27, 15, 61, 0.96) 100%) !important;
     }
+    .filter-shell {
+      gap: 0.7rem;
+      padding: 0.9rem 0.9rem 0.75rem;
+      overflow: hidden;
+    }
+    .filter-search-row {
+      gap: 0.65rem !important;
+    }
+    .filter-search-input {
+      height: 3.15rem;
+      font-size: 0.95rem;
+    }
+    .filter-chip-row {
+      gap: 0.5rem;
+      padding-right: 0.05rem;
+    }
+    .filter-chip-row .filter-btn {
+      min-height: 2.4rem;
+      padding: 0 1rem;
+      font-size: 0.88rem;
+    }
+    .filter-meta-row {
+      gap: 0.65rem;
+      padding-left: 0;
+      padding-right: 0;
+    }
+    .filter-product-count {
+      gap: 0.4rem;
+      font-size: 0.88rem;
+    }
     .filter-meta-actions {
+      flex: 1 1 auto;
+      justify-content: flex-end;
       gap: 0.45rem;
+    }
+    .filter-sort-wrap {
+      flex: 1 1 auto;
+    }
+    .filter-sort-select {
+      min-width: 0;
+      max-width: 9rem;
+      font-size: 0.86rem;
     }
     .filter-label {
       display: none;
@@ -2108,6 +2177,9 @@ export function storefrontThemeRefreshStyles(): string {
     .filter-view-toggle {
       display: inline-flex;
       flex: 0 0 auto;
+      width: 2.2rem;
+      min-width: 2.2rem;
+      height: 2.2rem;
     }
     #productsGrid {
       grid-template-columns: minmax(0, 1fr) !important;
@@ -2620,6 +2692,50 @@ export function storefrontThemeRefreshStyles(): string {
   body[data-storefront-theme='dark'] #filterModalPanel .hover\:bg-gray-100:hover,
   body[data-storefront-theme='dark'] #variantModalPanel .hover\:bg-gray-100:hover {
     background: rgba(148,163,184,0.16) !important;
+  }
+  @media (max-width: 420px) {
+    #products h2 {
+      font-size: 1.72rem !important;
+    }
+    #products > .text-center.mb-12 > p.text-gray-500 {
+      max-width: 13.5rem;
+      font-size: 0.9rem !important;
+    }
+    .filter-shell {
+      padding: 0.82rem 0.78rem 0.7rem;
+    }
+    .filter-search-input {
+      height: 3rem;
+      padding-left: 2.55rem;
+      font-size: 0.9rem;
+    }
+    .filter-chip-row {
+      display: grid !important;
+      grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+      gap: 0.42rem;
+      overflow: visible !important;
+    }
+    .filter-chip-row .filter-btn {
+      min-height: 2.2rem;
+      width: 100%;
+      min-width: 0;
+      padding: 0 0.4rem;
+      font-size: 0.82rem;
+    }
+    .filter-product-count {
+      font-size: 0.82rem;
+    }
+    .filter-sort-wrap > i {
+      left: 0.72rem;
+      font-size: 0.76rem;
+    }
+    .filter-sort-select {
+      max-width: 8.2rem;
+      height: 2.2rem;
+      padding-left: 1.9rem;
+      padding-right: 1.5rem;
+      font-size: 0.82rem;
+    }
   }
 `
 }
