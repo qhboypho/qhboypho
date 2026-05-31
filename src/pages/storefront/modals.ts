@@ -255,12 +255,12 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
 
         <div class="order-action-bar flex gap-2">
           <button onclick="addCurrentToCart()" id="addToCartBtn"
-            class="add-to-cart-btn order-cart-btn flex-1 flex items-center justify-center gap-2 text-white px-4 py-3.5 rounded-xl font-semibold text-sm transition">
+            class="add-to-cart-btn order-cart-btn flex-1 flex items-center justify-center gap-2 text-white px-4 py-3.5 rounded-xl font-bold text-base transition">
             <i class="fas fa-cart-plus"></i><span>Thêm vào giỏ</span>
           </button>
           <button onclick="submitOrder()" id="submitOrderBtn"
             class="btn-primary order-submit-btn flex-1 flex items-center justify-center gap-2 text-white px-4 py-3.5 rounded-xl font-bold text-base">
-            <i class="fas fa-bolt"></i>Đặt ngay
+            <i class="fas fa-shopping-cart"></i><span>Đặt ngay</span>
           </button>
         </div>
       </div>

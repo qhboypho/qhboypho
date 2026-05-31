@@ -1429,16 +1429,25 @@ export function storefrontThemeRefreshStyles(): string {
     flex: 1 1 0;
     align-items: center;
     justify-content: center;
+    gap: 0.6rem;
     min-width: 0;
     min-height: 3.25rem;
+    text-align: center;
+    white-space: nowrap;
     border-radius: var(--qh-action-radius) !important;
-    line-height: 1.1;
+    line-height: 1.15;
     background: var(--qh-action-gradient) !important;
     box-shadow: var(--qh-action-shadow) !important;
   }
   #orderPopupCard .order-cart-btn {
     padding-left: 1rem !important;
     padding-right: 1rem !important;
+  }
+  #orderPopupCard .order-submit-btn i,
+  #orderPopupCard .order-cart-btn i {
+    flex: 0 0 auto;
+    margin: 0 !important;
+    font-size: 0.95rem;
   }
   body[data-storefront-theme='dark'] #orderPopupCard {
     background: linear-gradient(180deg, rgba(9,24,48,0.98), rgba(4,13,29,0.98)) !important;
