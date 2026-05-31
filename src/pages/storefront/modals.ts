@@ -253,17 +253,17 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
           </div>
         </div>
 
-        <div class="order-action-bar flex gap-2">
-          <button onclick="addCurrentToCart()" id="addToCartBtn"
-            class="add-to-cart-btn order-cart-btn flex-1 flex items-center justify-center gap-2 text-white px-4 py-3.5 rounded-xl font-bold text-base transition">
-            <i class="fas fa-cart-plus"></i><span>Thêm vào giỏ</span>
-          </button>
-          <button onclick="submitOrder()" id="submitOrderBtn"
-            class="btn-primary order-submit-btn flex-1 flex items-center justify-center gap-2 text-white px-4 py-3.5 rounded-xl font-bold text-base">
-            <i class="fas fa-shopping-cart"></i><span>Đặt ngay</span>
-          </button>
-        </div>
       </div>
+    </div>
+    <div id="orderActionBarContainer" class="sticky bottom-0 bg-white rounded-b-3xl border-t px-6 py-4 w-full flex gap-3 detail-action-bar" style="z-index: 10; flex-shrink: 0;">
+      <button onclick="addCurrentToCart()" id="addToCartBtn"
+        class="add-to-cart-btn order-cart-btn flex-1 flex items-center justify-center gap-2 text-white px-4 py-3.5 rounded-xl font-bold text-base transition">
+        <i class="fas fa-cart-plus"></i><span>Thêm vào giỏ</span>
+      </button>
+      <button onclick="submitOrder()" id="submitOrderBtn"
+        class="btn-primary order-submit-btn flex-1 flex items-center justify-center gap-2 text-white px-4 py-3.5 rounded-xl font-bold text-base">
+        <i class="fas fa-shopping-cart"></i><span>Đặt ngay</span>
+      </button>
     </div>
   </div>
 </div>

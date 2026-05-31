@@ -1413,20 +1413,18 @@ export function storefrontThemeRefreshStyles(): string {
   #orderPopupCard .order-total-card #orderDiscount {
     color: #0f9f6e !important;
   }
-  #orderPopupCard .order-action-bar {
-    position: sticky;
-    bottom: 0;
-    z-index: 8;
-    display: flex;
+  #orderActionBarContainer {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 0.75rem;
-    margin: 1rem -0.25rem -0.25rem;
-    padding: 0.85rem 0.25rem 0.25rem;
-    background: linear-gradient(180deg, rgba(247,250,255,0), rgba(247,250,255,0.94) 24%, rgba(247,250,255,0.98) 100%);
+    background: #fff !important;
+    border-color: rgba(77,138,213,0.16) !important;
+    box-shadow: 0 -12px 26px rgba(15,23,42,0.08);
   }
   #orderPopupCard .order-submit-btn,
   #orderPopupCard .order-cart-btn {
     display: inline-flex;
-    flex: 1 1 0;
+    width: 100%;
     align-items: center;
     justify-content: center;
     gap: 0.6rem;
@@ -1517,8 +1515,11 @@ export function storefrontThemeRefreshStyles(): string {
     border-color: rgba(80,160,220,0.26) !important;
     color: #f8fbff !important;
   }
-  body[data-storefront-theme='dark'] #orderPopupCard .order-action-bar {
-    background: linear-gradient(180deg, rgba(9,24,48,0), rgba(9,24,48,0.96) 24%, rgba(9,24,48,0.98) 100%);
+  body[data-storefront-theme='dark'] #orderActionBarContainer {
+    display: grid !important;
+    background: #071426 !important;
+    border-color: rgba(80,160,220,0.24) !important;
+    box-shadow: 0 -14px 30px rgba(0,0,0,0.36);
   }
   .popup-card .size-btn,
   .cart-modal .size-btn {
