@@ -1251,7 +1251,7 @@ function renderStorefrontProductCard(p) {
       \${!p.has_flash_sale && discount > 0 ? \`<span class="absolute top-3 left-3 badge-sale text-white text-xs font-bold px-2 py-1 rounded-full">-\${discount}%</span>\` : ''}
       -->
       \${p.is_featured ? \`<span class="absolute top-3 right-3 product-featured-badge bg-amber-400 text-white text-xs font-bold px-2 py-1 rounded-full">⭐ Hot</span>\` : ''}
-      <div class="absolute inset-0 bg-black/0 hover:bg-black/10 transition flex items-center justify-center opacity-0 hover:opacity-100">
+      <div class="absolute inset-0 hidden bg-black/0 transition items-center justify-center opacity-0 hover:bg-black/10 hover:opacity-100 md:flex">
         <span class="bg-white/90 text-gray-800 px-3 py-1 rounded-full text-xs font-semibold">Xem chi tiết</span>
       </div>
     </div>
