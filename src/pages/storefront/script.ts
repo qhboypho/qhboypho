@@ -33,6 +33,8 @@ let mobileProductsLayout = 'list'
 let favoriteProductIds = []
 let activeUserMenuView = ''
 let userOrderHistoryCache = []
+let lastMobileBottomNavScrollY = 0
+let mobileBottomNavHidden = false
 
 // ── CART STATE ─────────────────────────────────────
 // cart = [{ cartId, productId, name, sku, thumbnail, price, color, size, qty, checked }]
@@ -113,10 +115,17 @@ function applyStorefrontTheme(theme) {
   document.body.dataset.storefrontTheme = theme
   const icon = document.getElementById('storefrontThemeIcon')
   const btn = document.getElementById('storefrontThemeToggle')
+  const mobileIcon = document.getElementById('storefrontThemeIconMobile')
+  const mobileBtn = document.getElementById('storefrontThemeToggleMobile')
   if (icon) icon.className = theme === 'dark' ? 'fas fa-sun text-lg' : 'fas fa-moon text-lg'
+  if (mobileIcon) mobileIcon.className = theme === 'dark' ? 'fas fa-sun text-[16px]' : 'fas fa-moon text-[16px]'
   if (btn) {
     btn.setAttribute('aria-label', theme === 'dark' ? 'Chuyển giao diện sáng' : 'Chuyển giao diện tối')
     btn.setAttribute('title', theme === 'dark' ? 'Chuyển giao diện sáng' : 'Chuyển giao diện tối')
+  }
+  if (mobileBtn) {
+    mobileBtn.setAttribute('aria-label', theme === 'dark' ? 'Chuyển giao diện sáng' : 'Chuyển giao diện tối')
+    mobileBtn.setAttribute('title', theme === 'dark' ? 'Chuyển giao diện sáng' : 'Chuyển giao diện tối')
   }
 }
 
@@ -1198,6 +1207,36 @@ function maybeLoadMoreMobileProducts() {
   if (!nearSectionEnd) return
   mobileProductsVisibleCount = Math.min(filteredProducts.length, mobileProductsVisibleCount + MOBILE_PRODUCT_PAGE_SIZE)
   renderProducts(filteredProducts)
+}
+
+function setMobileBottomNavHidden(hidden) {
+  const nav = document.getElementById('mobileBottomNav')
+  if (!nav) return
+  mobileBottomNavHidden = !!hidden
+  nav.classList.toggle('is-hidden', mobileBottomNavHidden)
+}
+
+function updateMobileBottomNavOnScroll() {
+  const nav = document.getElementById('mobileBottomNav')
+  if (!nav || window.innerWidth >= 768) return
+  const currentY = Math.max(0, window.scrollY || window.pageYOffset || 0)
+  const delta = currentY - lastMobileBottomNavScrollY
+
+  if (currentY < 96) {
+    setMobileBottomNavHidden(false)
+  } else if (delta > 8) {
+    setMobileBottomNavHidden(true)
+  } else if (delta < -8) {
+    setMobileBottomNavHidden(false)
+  }
+
+  lastMobileBottomNavScrollY = currentY
+}
+
+function initMobileBottomNavBehavior() {
+  lastMobileBottomNavScrollY = Math.max(0, window.scrollY || window.pageYOffset || 0)
+  setMobileBottomNavHidden(false)
+  updateMobileBottomNavOnScroll()
 }
 
 function renderProductRatingStars(product, className) {
@@ -2568,12 +2607,16 @@ window.addEventListener('resize', () => {
 })
 
 window.addEventListener('scroll', () => {
-  window.requestAnimationFrame(maybeLoadMoreMobileProducts)
+  window.requestAnimationFrame(() => {
+    maybeLoadMoreMobileProducts()
+    updateMobileBottomNavOnScroll()
+  })
 }, { passive: true })
 
 // Init
 initStorefrontMarquee()
 applyStorefrontTheme(loadStorefrontThemePreference())
+initMobileBottomNavBehavior()
 initHeroTypedText()
 bindAddressSearchableDropdowns()
 loadNotificationSettings()

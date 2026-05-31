@@ -105,6 +105,41 @@ export function storefrontThemeRefreshStyles(): string {
   body[data-storefront-theme='dark'] .navbar-blur button {
     color: #f8fbff !important;
   }
+  .mobile-bottom-nav {
+    transition: transform 0.24s ease, opacity 0.24s ease, background-color 0.24s ease, border-color 0.24s ease, box-shadow 0.24s ease;
+    box-shadow: 0 -10px 30px rgba(15,23,42,0.08);
+  }
+  .mobile-bottom-nav.is-hidden {
+    transform: translateY(calc(100% + env(safe-area-inset-bottom)));
+    opacity: 0.01;
+    pointer-events: none;
+  }
+  .mobile-bottom-nav-link {
+    color: #64748b;
+  }
+  .mobile-bottom-nav-link i,
+  .mobile-bottom-nav-link span {
+    color: inherit;
+    transition: color 0.2s ease, opacity 0.2s ease;
+  }
+  .mobile-bottom-nav-link.is-active {
+    color: #881337;
+  }
+  body[data-storefront-theme='dark'] .mobile-bottom-nav {
+    background: rgba(2,12,30,0.72) !important;
+    border-color: rgba(80,160,220,0.36) !important;
+    box-shadow: 0 -16px 34px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.04);
+    backdrop-filter: blur(12px);
+  }
+  body[data-storefront-theme='dark'] .mobile-bottom-nav-link {
+    color: #94a3b8 !important;
+  }
+  body[data-storefront-theme='dark'] .mobile-bottom-nav-link.is-active {
+    color: #f472b6 !important;
+  }
+  body[data-storefront-theme='dark'] .mobile-bottom-nav-link:hover {
+    color: #e2e8f0 !important;
+  }
   .storefront-marquee-bar {
     background: rgba(2,8,18,0.94) !important;
     border-color: var(--qh-border) !important;
