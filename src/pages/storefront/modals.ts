@@ -86,7 +86,7 @@ function checkoutPaymentOptions(scope: 'order' | 'ck', bankHint: string): string
 export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>): string {
   const quickOrderRiskNoteText = escapeStorefrontModalHtml(resolveQuickOrderRiskNoteText(textUiSettings))
   return `
-<div id="orderOverlay" class="fixed inset-0 overlay z-50 hidden flex items-center justify-center p-4">
+<div id="orderOverlay" class="fixed inset-0 overlay z-[1006] hidden flex items-center justify-center p-4">
   <div class="popup-card bg-white rounded-3xl shadow-2xl w-full max-w-md md:max-w-[56rem] max-h-[90vh] overflow-y-auto" id="orderPopupCard">
     <div id="orderModalHeader" class="sticky top-0 bg-white rounded-t-3xl border-b px-6 py-4 flex items-center justify-between">
       <h3 class="font-display text-xl font-bold text-gray-900">Đặt hàng nhanh</h3>

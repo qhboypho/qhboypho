@@ -92,7 +92,7 @@ async function showDetail(id, options) {
       ? renderBlockedPurchaseActions('w-full py-3.5 rounded-xl font-bold text-base')
       : \`<button onclick="openOrderFromDetail(\${p.id})" style="border-radius: 0.75rem !important;" class="hidden md:flex btn-primary flex-1 justify-center items-center gap-2 text-white py-3.5 font-bold text-base"><i class="fas fa-shopping-cart"></i><span class="quick-order-label-desktop">Đặt hàng ngay</span></button>
          <button onclick="addDetailToCart()" id="detailAddToCartBtn" style="border-radius: 0.75rem !important;" class="hidden md:flex add-to-cart-btn detail-cart-btn flex-1 justify-center items-center gap-2 text-white py-3.5 font-bold text-base">\${detailOptions.cartItemId ? '<i class="fas fa-check"></i><span>Cập nhật lựa chọn</span>' : '<i class="fas fa-cart-plus"></i><span class="quick-order-label-desktop">Thêm vào giỏ hàng</span>'}</button>
-         <button onclick="openVariantModal(\${p.id}, 'buy_now')" style="border-radius: 0.75rem !important;" class="flex md:hidden btn-primary flex-1 justify-center items-center gap-2 text-white py-3.5 font-bold text-base"><i class="fas fa-shopping-cart"></i><span class="quick-order-label-mobile">Đặt ngay</span></button>
+         <button onclick="openOrderFromDetail(\${p.id})" style="border-radius: 0.75rem !important;" class="flex md:hidden btn-primary flex-1 justify-center items-center gap-2 text-white py-3.5 font-bold text-base"><i class="fas fa-shopping-cart"></i><span class="quick-order-label-mobile">Đặt ngay</span></button>
          <button onclick="openVariantModal(\${p.id}, 'add_to_cart', \${detailOptions.cartItemId ? \\\`'\${detailOptions.cartItemId}'\\\` : 'null'})" id="detailAddToCartBtnMobile" style="border-radius: 0.75rem !important;" class="flex md:hidden add-to-cart-btn detail-cart-btn flex-1 justify-center items-center gap-2 text-white py-3.5 font-bold text-base">\${detailOptions.cartItemId ? '<i class="fas fa-check"></i><span>Cập nhật lựa chọn</span>' : '<i class="fas fa-cart-plus"></i><span class="quick-order-label-mobile">Thêm vào giỏ</span>'}</button>\`
       
     if (detailOptions.cartItemId) {
@@ -237,21 +237,23 @@ function updateCartItemVariant(cartId, color, size) {
   saveCart()
 }
 
-function openOrderFromDetail(id) {
+function openOrderFromDetail(id, options) {
   closeDetail()
-  return openOrder(id)
+  return openOrder(id, options)
 }
 
 // ── ORDER POPUP ────────────────────────────────────
-async function openOrder(id) {
+async function openOrder(id, options) {
   try {
+    const orderOptions = options || {}
+    const prefill = orderOptions.prefill && typeof orderOptions.prefill === 'object' ? orderOptions.prefill : null
     if (!assertCustomerCanShop()) return
     await ensureAddressKitReady()
     const res = await axios.get('/api/products/' + id)
     currentProduct = res.data.data
-    orderQty = 1
+    orderQty = Math.max(1, Math.min(99, Number(prefill?.qty || 1) || 1))
     selectedColor = ''
-    selectedColorImage = String(currentProduct.thumbnail || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400')
+    selectedColorImage = String(prefill?.colorImage || currentProduct.thumbnail || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400')
     selectedSize = ''
     selectedPaymentMethod = ''
     appliedVoucher = null
@@ -259,7 +261,7 @@ async function openOrder(id) {
     document.getElementById('orderProductImg').src = selectedColorImage
     document.getElementById('orderProductName').textContent = currentProduct.name
     document.getElementById('orderProductPrice').textContent = fmtPrice(currentProduct.price)
-    document.getElementById('qtyDisplay').textContent = '1'
+    document.getElementById('qtyDisplay').textContent = String(orderQty)
     document.getElementById('orderName').value = ''
     document.getElementById('orderPhone').value = ''
     await applySavedAddressToScope('order')
@@ -286,9 +288,11 @@ async function openOrder(id) {
         <span>\${escapeHtml(item.name)}</span>
       </button>
     \`).join('') : '<p class="text-gray-400 text-sm">Không có lựa chọn màu</p>'
-    const shouldPrefillFromDetail = Number(detailSelectedProductId || 0) === Number(currentProduct?.id || 0) && detailSelectedColor
-    if (shouldPrefillFromDetail) {
-      const matchedIndex = orderColorOptions.findIndex((item) => String(item.name || '').trim().toLowerCase() === String(detailSelectedColor || '').trim().toLowerCase())
+    const prefillColor = String(prefill?.color || '').trim()
+    const detailPrefillColor = Number(detailSelectedProductId || 0) === Number(currentProduct?.id || 0) ? String(detailSelectedColor || '').trim() : ''
+    const targetColor = prefillColor || detailPrefillColor
+    if (targetColor) {
+      const matchedIndex = orderColorOptions.findIndex((item) => String(item.name || '').trim().toLowerCase() === targetColor.toLowerCase())
       if (matchedIndex >= 0) {
         const btn = colorDiv.querySelectorAll('.color-btn')[matchedIndex]
         selectOrderColorByIndex(matchedIndex, btn || null)
@@ -302,9 +306,11 @@ async function openOrder(id) {
       <button class="size-btn px-3 py-1.5 border rounded-lg text-sm font-medium hover:border-pink-400 transition" onclick="selectOrderSize('\${escapeJsString(s)}',this)">\${escapeHtml(s)}</button>
     \`).join('') : '<p class="text-gray-400 text-sm">Không có size</p>'
     document.getElementById('sizeSection').style.display = sizes.length ? '' : 'none'
-    const shouldPrefillSizeFromDetail = Number(detailSelectedProductId || 0) === Number(currentProduct?.id || 0) && detailSelectedSize
-    if (shouldPrefillSizeFromDetail) {
-      const matchedSizeIndex = sizes.findIndex((s) => String(s || '').trim().toLowerCase() === String(detailSelectedSize || '').trim().toLowerCase())
+    const prefillSize = String(prefill?.size || '').trim()
+    const detailPrefillSize = Number(detailSelectedProductId || 0) === Number(currentProduct?.id || 0) ? String(detailSelectedSize || '').trim() : ''
+    const targetSize = prefillSize || detailPrefillSize
+    if (targetSize) {
+      const matchedSizeIndex = sizes.findIndex((s) => String(s || '').trim().toLowerCase() === targetSize.toLowerCase())
       if (matchedSizeIndex >= 0) {
         const btn = sizeDiv.querySelectorAll('.size-btn')[matchedSizeIndex]
         selectOrderSize(String(sizes[matchedSizeIndex] || ''), btn || null)
@@ -914,7 +920,7 @@ function selectVariantSize(s, btn) {
   if (label) label.textContent = selectedSize
 }
 
-function changeVariantQty(delta) {
+function updateVariantQty(delta) {
   orderQty = Math.max(1, Math.min(99, orderQty + delta))
   document.getElementById('variantQtyDisplay').textContent = orderQty
 }
@@ -987,34 +993,18 @@ function submitVariantModal() {
       showToast('Đã thêm "' + currentProduct.name + '" vào giỏ hàng!', 'success', 2500)
     }
   } else {
-    // Buy now flow
+    const prefill = {
+      color: selectedColor,
+      colorImage: selectedColorImage,
+      size: selectedSize,
+      qty: orderQty
+    }
     closeVariantModal()
-    openOrderFromDetail(currentProduct.id).then(() => {
-      // openOrder internally fetches again and clears orderQty, selectedColor, etc.
-      // So we have to set them again. 
-      // But openOrder is async and resets them! We need to pass state.
-      // Actually, since openOrder resets state, let's just push to openOrder with prefilled state.
-      setTimeout(() => {
-        const sizesObj = safeJson(currentProduct.sizes)
-        if (selectedColor) {
-           const matchedIndex = orderColorOptions.findIndex((item) => String(item.name || '').trim().toLowerCase() === String(selectedColor || '').trim().toLowerCase())
-           if (matchedIndex >= 0) {
-             const btn = document.getElementById('colorOptions')?.querySelectorAll('.color-btn')[matchedIndex]
-             selectOrderColorByIndex(matchedIndex, btn || null)
-           }
-        }
-        if (selectedSize) {
-           const matchedSizeIndex = sizesObj.findIndex((s) => String(s || '').trim().toLowerCase() === String(selectedSize || '').trim().toLowerCase())
-           if (matchedSizeIndex >= 0) {
-             const btn = document.getElementById('sizeOptions')?.querySelectorAll('.size-btn')[matchedSizeIndex]
-             selectOrderSize(String(sizesObj[matchedSizeIndex] || ''), btn || null)
-           }
-        }
-        // set qty
-        const qtyDiff = orderQty - 1
-        if (qtyDiff > 0) changeQty(qtyDiff)
-      }, 500) // slight delay to allow openOrder to finish rendering
-    })
+    if (document.getElementById('detailOverlay')?.classList.contains('hidden')) {
+      openOrder(currentProduct.id, { prefill })
+    } else {
+      openOrderFromDetail(currentProduct.id, { prefill })
+    }
   }
 }
 

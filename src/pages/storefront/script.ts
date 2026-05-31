@@ -1297,14 +1297,7 @@ function openProductDetailFromCard(productId) {
 
 async function openOrderFromProductCard(productId) {
   if (!document.getElementById('productsModalOverlay')?.classList.contains('hidden')) closeProductsModal()
-  try {
-    const res = await axios.get('/api/products/' + productId)
-    if (productRequiresSkuSelection(res.data.data)) {
-      openVariantModal(productId, 'buy_now')
-    } else {
-      openOrder(productId)
-    }
-  } catch(e) {}
+  try { await openOrder(productId) } catch(e) {}
 }
 
 function addToCartFromProductCard(event, productId) {
