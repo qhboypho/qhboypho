@@ -477,6 +477,55 @@ export function storefrontThemeRefreshStyles(): string {
     color: #cbd5e1 !important;
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
   }
+  .detail-reviews-stack {
+    position: relative;
+  }
+  .detail-reviews-toggle-wrap {
+    position: relative;
+    margin-top: -0.75rem;
+    padding-top: 2.75rem;
+    display: flex;
+    justify-content: center;
+  }
+  .detail-reviews-toggle-wrap.is-expanded {
+    margin-top: 0.85rem;
+    padding-top: 0;
+  }
+  .detail-reviews-fade {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 4.75rem;
+    background: linear-gradient(180deg, rgba(247,249,252,0) 0%, rgba(247,249,252,0.92) 58%, rgba(247,249,252,1) 100%);
+    pointer-events: none;
+  }
+  .detail-reviews-toggle-btn {
+    position: relative;
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 2.5rem;
+    padding: 0.65rem 1rem;
+    border-radius: 9999px;
+    border: 1px solid rgba(203,213,225,0.92);
+    background: rgba(255,255,255,0.96);
+    color: #334155;
+    font-size: 0.84rem;
+    font-weight: 700;
+    box-shadow: 0 12px 24px rgba(15,23,42,0.08);
+  }
+  body[data-storefront-theme='dark'] .detail-reviews-fade {
+    background: linear-gradient(180deg, rgba(2,11,26,0) 0%, rgba(2,11,26,0.88) 58%, rgba(2,11,26,1) 100%);
+  }
+  body[data-storefront-theme='dark'] .detail-reviews-toggle-btn {
+    background: rgba(8,22,48,0.94);
+    border-color: rgba(80,160,220,0.28);
+    color: #dbeafe;
+    box-shadow: 0 16px 30px rgba(0,0,0,0.34);
+  }
   .filter-modal-chip {
     padding: 0.5rem 1rem;
     border-radius: 9999px;

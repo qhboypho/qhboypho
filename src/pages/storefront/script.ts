@@ -852,6 +852,68 @@ function checkUrlDeepLink() {
 
 // ── REVIEWS ─────────────────────────────────────────
 let _reviewState = { productId: 0, orderId: 0, rating: 5, images: [], submitting: false }
+let detailReviewCache = {}
+let detailReviewExpandedState = {}
+
+function renderDetailReviewsContent(productId) {
+  const contents = document.querySelectorAll('.detail-reviews-content')
+  if (!contents.length) return
+  const reviewData = detailReviewCache[String(productId || '')]
+  if (!reviewData || !Array.isArray(reviewData.reviews) || !reviewData.reviews.length) return
+  const reviews = reviewData.reviews
+  const avg = Number(reviewData.avg || 0)
+  const total = Number(reviewData.total || reviews.length || 0)
+  const expanded = !!detailReviewExpandedState[String(productId || '')]
+  const visibleReviews = expanded ? reviews : reviews.slice(0, 3)
+  const hiddenCount = Math.max(0, reviews.length - 3)
+  const stars = (n) => '★'.repeat(Math.round(n)) + '☆'.repeat(5 - Math.round(n))
+  const renderReviewCard = (r) => {
+    const avatarHtml = r.user_avatar
+      ? \`<img src="\${escapeHtml(r.user_avatar)}" class="review-avatar" onerror="this.src=''">\`
+      : \`<div class="review-avatar bg-violet-100 flex items-center justify-center text-violet-500 text-xs font-bold">\${escapeHtml((r.user_name || '?')[0].toUpperCase())}</div>\`
+    const imgHtml = Array.isArray(r.images) && r.images.length
+      ? \`<div class="flex gap-1.5 mt-2 flex-wrap">\${r.images.map(img => \`<img src="\${escapeHtml(img)}" class="review-img-thumb" onclick="window.open('\${escapeHtml(img)}','_blank')">\`).join('')}</div>\`
+      : ''
+    return \`<div class="review-card">
+      <div class="flex items-center gap-2 mb-1.5">
+        \${avatarHtml}
+        <div>
+          <p class="text-xs font-semibold text-gray-700">\${escapeHtml(r.user_name || 'Khách hàng')}</p>
+          <span class="review-stars">\${'★'.repeat(Number(r.rating))}\${'☆'.repeat(5 - Number(r.rating))}</span>
+        </div>
+        <span class="ml-auto text-xs text-gray-400">\${new Date(r.created_at).toLocaleDateString('vi-VN')}</span>
+      </div>
+      \${r.comment ? \`<p class="text-sm text-gray-600 leading-relaxed">\${escapeHtml(r.comment)}</p>\` : ''}
+      \${imgHtml}
+    </div>\`
+  }
+  const html = \`
+    <div class="flex items-center gap-2 mb-3">
+      <span class="review-avg-stars text-lg">\${stars(avg)}</span>
+      <span class="font-bold text-gray-800 text-sm">\${avg.toFixed(1)}</span>
+      <span class="text-gray-400 text-xs">(\${total} đánh giá)</span>
+    </div>
+    <div class="detail-reviews-stack relative">
+      <div class="space-y-3">
+        \${visibleReviews.map(renderReviewCard).join('')}
+      </div>
+      \${hiddenCount > 0 ? \`
+        <div class="detail-reviews-toggle-wrap \${expanded ? 'is-expanded' : ''}">
+          <div class="detail-reviews-fade \${expanded ? 'hidden' : ''}" aria-hidden="true"></div>
+          <button type="button" class="detail-reviews-toggle-btn" onclick="toggleDetailReviews(\${Number(productId)})">
+            <i class="fas \${expanded ? 'fa-chevron-up' : 'fa-chevron-down'}" aria-hidden="true"></i>
+            <span>\${expanded ? 'Thu gọn đánh giá' : 'Xem thêm đánh giá (' + hiddenCount + ')'}</span>
+          </button>
+        </div>\` : ''}
+    </div>\`
+  contents.forEach(c => c.innerHTML = html)
+}
+
+function toggleDetailReviews(productId) {
+  const key = String(productId || '')
+  detailReviewExpandedState[key] = !detailReviewExpandedState[key]
+  renderDetailReviewsContent(productId)
+}
 
 async function loadProductReviews(productId) {
   const sections = document.querySelectorAll('.detail-reviews-section')
@@ -867,36 +929,11 @@ async function loadProductReviews(productId) {
       contents.forEach(c => c.innerHTML = '<p class="text-gray-400 text-sm py-2">Chưa có đánh giá nào. Hãy là người đầu tiên!</p>')
       return
     }
-    const stars = (n) => '★'.repeat(Math.round(n)) + '☆'.repeat(5 - Math.round(n))
-    const html = \`
-      <div class="flex items-center gap-2 mb-3">
-        <span class="review-avg-stars text-lg">\${stars(avg)}</span>
-        <span class="font-bold text-gray-800 text-sm">\${avg.toFixed(1)}</span>
-        <span class="text-gray-400 text-xs">(\${total} đánh giá)</span>
-      </div>
-      <div class="space-y-3">
-        \${reviews.slice(0, 5).map(r => {
-          const avatarHtml = r.user_avatar
-            ? \`<img src="\${escapeHtml(r.user_avatar)}" class="review-avatar" onerror="this.src=''">\`
-            : \`<div class="review-avatar bg-violet-100 flex items-center justify-center text-violet-500 text-xs font-bold">\${escapeHtml((r.user_name||'?')[0].toUpperCase())}</div>\`
-          const imgHtml = Array.isArray(r.images) && r.images.length
-            ? \`<div class="flex gap-1.5 mt-2 flex-wrap">\${r.images.map(img => \`<img src="\${escapeHtml(img)}" class="review-img-thumb" onclick="window.open('\${escapeHtml(img)}','_blank')">\`).join('')}</div>\`
-            : ''
-          return \`<div class="review-card">
-            <div class="flex items-center gap-2 mb-1.5">
-              \${avatarHtml}
-              <div>
-                <p class="text-xs font-semibold text-gray-700">\${escapeHtml(r.user_name || 'Khách hàng')}</p>
-                <span class="review-stars">\${'★'.repeat(Number(r.rating))}\${'☆'.repeat(5-Number(r.rating))}</span>
-              </div>
-              <span class="ml-auto text-xs text-gray-400">\${new Date(r.created_at).toLocaleDateString('vi-VN')}</span>
-            </div>
-            \${r.comment ? \`<p class="text-sm text-gray-600 leading-relaxed">\${escapeHtml(r.comment)}</p>\` : ''}
-            \${imgHtml}
-          </div>\`
-        }).join('')}
-      </div>\`
-    contents.forEach(c => c.innerHTML = html)
+    detailReviewCache[String(productId)] = { reviews, avg, total }
+    if (detailReviewExpandedState[String(productId)] === undefined) {
+      detailReviewExpandedState[String(productId)] = false
+    }
+    renderDetailReviewsContent(productId)
   } catch(e) {
     sections.forEach(s => s.classList.add('hidden'))
   }
