@@ -1626,10 +1626,14 @@ function toggleMobileMenu() {
 }
 
 function focusProductsSearch() {
+  const navbar = document.querySelector('nav.navbar-blur')
   const filterBar = document.getElementById('filterBar')
   const input = document.getElementById('searchInput')
   if (!filterBar || !input) return
-  filterBar.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  const navbarHeight = navbar ? navbar.getBoundingClientRect().height : 0
+  const filterRect = filterBar.getBoundingClientRect()
+  const targetTop = Math.max(0, window.scrollY + filterRect.top - navbarHeight - 12)
+  window.scrollTo({ top: targetTop, behavior: 'smooth' })
   setTimeout(() => {
     try {
       input.focus({ preventScroll: true })
