@@ -1426,8 +1426,10 @@ export function storefrontThemeRefreshStyles(): string {
   #orderPopupCard .order-submit-btn,
   #orderPopupCard .order-cart-btn {
     display: inline-flex;
+    flex: 1 1 0;
     align-items: center;
     justify-content: center;
+    min-width: 0;
     min-height: 3.25rem;
     border-radius: var(--qh-action-radius) !important;
     line-height: 1.1;
@@ -1435,8 +1437,6 @@ export function storefrontThemeRefreshStyles(): string {
     box-shadow: var(--qh-action-shadow) !important;
   }
   #orderPopupCard .order-cart-btn {
-    flex: 0 0 auto;
-    min-width: 11.5rem;
     padding-left: 1rem !important;
     padding-right: 1rem !important;
   }
