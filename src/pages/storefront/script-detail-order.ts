@@ -186,22 +186,25 @@ function copyProductLink() {
 function addDetailToCart() {
   if (!currentProduct) return
   if (!assertCustomerCanShop()) return
-  const colorOptions = getProductColorOptions(currentProduct)
-  if (colorOptions.length && !detailSelectedColor) {
-    showToast('Vui lòng chọn màu sản phẩm', 'error')
-    document.getElementById('detailColorGrid')?.classList.add('shake')
-    setTimeout(() => document.getElementById('detailColorGrid')?.classList.remove('shake'), 450)
-    return
-  }
+  const detailSelection = validateRequiredProductSelection(currentProduct, {
+    color: detailSelectedColor,
+    size: detailSelectedSize
+  }, {
+    colorMessage: 'Vui lòng chọn màu sản phẩm',
+    sizeMessage: 'Vui lòng chọn size sản phẩm',
+    shakeColor: () => {
+      document.getElementById('detailColorGrid')?.classList.add('shake')
+      setTimeout(() => document.getElementById('detailColorGrid')?.classList.remove('shake'), 450)
+    },
+    shakeSize: () => {
+      const sizeGroup = document.querySelector('#detailContent .size-btn')?.closest('.flex')
+      sizeGroup?.classList.add('shake')
+      setTimeout(() => sizeGroup?.classList.remove('shake'), 450)
+    }
+  })
+  if (!detailSelection.ok) return
+
   const color = detailSelectedColor || ''
-  const sizes = safeJson(currentProduct.sizes)
-  if (sizes.length && !detailSelectedSize) {
-    showToast('Vui lòng chọn size sản phẩm', 'error')
-    const sizeGroup = document.querySelector('#detailContent .size-btn')?.closest('.flex')
-    sizeGroup?.classList.add('shake')
-    setTimeout(() => sizeGroup?.classList.remove('shake'), 450)
-    return
-  }
   const size = detailSelectedSize || ''
   if (cartVariantEditId) {
     updateCartItemVariant(cartVariantEditId, color, size)
@@ -463,6 +466,28 @@ function animateFlyToCart(imgUrl, sourceEl) {
 
 function productRequiresSkuSelection(product) {
   return getProductColorOptions(product).length > 0 || safeJson(product?.sizes).length > 0
+}
+
+function validateRequiredProductSelection(product, selection, options) {
+  const cfg = options || {}
+  const color = String(selection?.color || '').trim()
+  const size = String(selection?.size || '').trim()
+  const hasColorOptions = getProductColorOptions(product).length > 0
+  const hasSizeOptions = safeJson(product?.sizes).length > 0
+
+  if (hasColorOptions && !color) {
+    showToast(cfg.colorMessage || 'Vui lòng chọn màu sản phẩm', 'error')
+    if (typeof cfg.shakeColor === 'function') cfg.shakeColor()
+    return { ok: false, missing: 'color' }
+  }
+
+  if (hasSizeOptions && !size) {
+    showToast(cfg.sizeMessage || 'Vui lòng chọn size sản phẩm', 'error')
+    if (typeof cfg.shakeSize === 'function') cfg.shakeSize()
+    return { ok: false, missing: 'size' }
+  }
+
+  return { ok: true }
 }
 
 // Add to cart from product card. Products with SKU options must go through variant modal.
@@ -778,6 +803,16 @@ async function submitOrder() {
 function addCurrentToCart() {
   if (!currentProduct) return
   if (!assertCustomerCanShop()) return
+  const orderSelection = validateRequiredProductSelection(currentProduct, {
+    color: selectedColor,
+    size: selectedSize
+  }, {
+    colorMessage: 'Vui lòng chọn màu sản phẩm',
+    sizeMessage: 'Vui lòng chọn size sản phẩm',
+    shakeColor: () => shakeField('fieldColor'),
+    shakeSize: () => shakeField('sizeSection')
+  })
+  if (!orderSelection.ok) return
   animateFlyToCart(resolveFlyImage(currentProduct), document.getElementById('addToCartBtn'))
   if (addToCart(currentProduct, selectedColor, selectedSize, orderQty)) {
     closeOrder()
@@ -954,23 +989,23 @@ function closeVariantModal() {
 function submitVariantModal() {
   if (!currentProduct) return
   if (!assertCustomerCanShop()) return
-  
-  const hasColorOptions = Array.isArray(orderColorOptions) ? orderColorOptions.length > 0 : false
-  const sizes = safeJson(currentProduct?.sizes)
-  const hasSizeOptions = Array.isArray(sizes) ? sizes.length > 0 : false
 
-  if (hasColorOptions && !selectedColor) {
-    showToast('Vui lòng chọn Màu sắc', 'error')
-    document.getElementById('variantModalColorOptions')?.classList.add('shake')
-    setTimeout(() => document.getElementById('variantModalColorOptions')?.classList.remove('shake'), 450)
-    return
-  }
-  if (hasSizeOptions && !selectedSize) {
-    showToast('Vui lòng chọn Size', 'error')
-    document.getElementById('variantModalSizeOptions')?.closest('div').classList.add('shake')
-    setTimeout(() => document.getElementById('variantModalSizeOptions')?.closest('div').classList.remove('shake'), 450)
-    return
-  }
+  const variantSelection = validateRequiredProductSelection(currentProduct, {
+    color: selectedColor,
+    size: selectedSize
+  }, {
+    colorMessage: 'Vui lòng chọn Màu sắc',
+    sizeMessage: 'Vui lòng chọn Size',
+    shakeColor: () => {
+      document.getElementById('variantModalColorOptions')?.classList.add('shake')
+      setTimeout(() => document.getElementById('variantModalColorOptions')?.classList.remove('shake'), 450)
+    },
+    shakeSize: () => {
+      document.getElementById('variantModalSizeOptions')?.closest('div')?.classList.add('shake')
+      setTimeout(() => document.getElementById('variantModalSizeOptions')?.closest('div')?.classList.remove('shake'), 450)
+    }
+  })
+  if (!variantSelection.ok) return
 
   if (cartVariantEditId) {
     updateCartItemVariant(cartVariantEditId, selectedColor, selectedSize)
