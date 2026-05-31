@@ -26,11 +26,82 @@ function resolveTextUiSettings(textUiSettings?: Partial<TextUiSettings>): TextUi
 }
 
 export function storefrontBodyOpen(): string {
-  return "<body class=\"bg-gray-50 overflow-x-hidden\" data-storefront-theme=\"light\">"
+  return "<body class=\"bg-gray-50 overflow-x-hidden pb-[70px] md:pb-0\" data-storefront-theme=\"light\">"
 }
 
 export function storefrontNavbarSection(): string {
-  return "<!-- NAVBAR -->\n<nav class=\"navbar-blur fixed top-0 left-0 right-0 z-50 border-b border-white/10\">\n  <div class=\"storefront-marquee-bar\">\n    <div class=\"storefront-marquee-track\">\n      <div class=\"storefront-marquee-group\">\n        <i class=\"fas fa-bullhorn storefront-marquee-icon\" aria-hidden=\"true\"></i>\n        <span class=\"storefront-marquee-text\">Mua hàng tại đây không qua sàn thương mại nên giá thành sản phẩm sẽ rẻ hơn rất nhiều và bảo hành hoàn trả trong vòng 7 ngày nếu sản phẩm bị lỗi nên quý khách yên tâm mua sắm nhé.Bảo hành đổi trả nhắn qua trang facebook : <a class=\"storefront-marquee-link\" href=\"http://m.me/qhboypho\" target=\"_blank\" rel=\"noreferrer noopener\">QH Boypho</a>. Chúc quý khách có trải nghiệm mua sắm tốt tại QH Clothes</span>\n      </div>\n    </div>\n  </div>\n  <div class=\"max-w-7xl mx-auto px-4 py-3 flex items-center justify-between\">\n    <a href=\"/\" class=\"flex items-center gap-1.5 md:gap-1\">\n      <span class=\"inline-flex items-center justify-center\"><img src=\"/qh-logo.png\" alt=\"QH\" class=\"rounded-full w-9 h-9 object-cover bg-white\"></span><span class=\"hidden md:inline text-xl font-display text-white font-bold tracking-normal md:ml-0.5\"><span class=\"text-pink-400\">Clothes</span></span>\n    </a>\n    <div class=\"hidden md:flex items-center gap-6 text-sm text-gray-300\">\n      <a href=\"#products\" class=\"hover:text-pink-400 transition\">Sản phẩm</a>\n      <a href=\"#about\" class=\"hover:text-pink-400 transition\">Về chúng tôi</a>\n      <a href=\"#contact\" class=\"hover:text-pink-400 transition\">Liên hệ</a>\n    </div>\n    <div class=\"flex items-center gap-3\">\n      <button onclick=\"openCart()\" id=\"cartNavBtn\" class=\"relative text-white hover:text-pink-400 transition p-2\">\n        <i class=\"fas fa-shopping-bag text-xl\"></i>\n        <span id=\"cartBadge\" class=\"absolute -top-1 -right-1 bg-pink-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center hidden font-bold\">0</span>\n      </button>\n      <!-- Wallet / Top-up -->\n      <button onclick=\"openTopupModal()\" id=\"walletNavBtn\" class=\"hidden items-center gap-1.5 bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-xl transition text-xs font-medium\">\n        <i class=\"fas fa-wallet text-pink-400\"></i>\n        <span id=\"walletBalanceNav\">0đ</span>\n      </button>\n      <!-- User Avatar / Login -->\n      <button onclick=\"toggleUserMenu()\" id=\"userAvatarBtn\" class=\"relative text-white hover:text-pink-400 transition p-1\">\n        <div id=\"userAvatarDefault\" class=\"w-8 h-8 rounded-full bg-white/20 flex items-center justify-center\">\n          <i class=\"fas fa-user text-sm\"></i>\n        </div>\n        <img id=\"userAvatarImg\" src=\"\" alt=\"\" class=\"w-8 h-8 rounded-full object-cover border-2 border-pink-400 hidden\">\n      </button>\n      <a href=\"/admin\" id=\"adminNavLink\" class=\"text-gray-400 hover:text-white transition p-2 hidden\" title=\"Admin\">\n        <i class=\"fas fa-user-shield\"></i>\n      </a>\n      <button class=\"md:hidden text-white p-2\" onclick=\"toggleMobileMenu()\">\n        <i class=\"fas fa-bars text-xl\"></i>\n      </button>\n      <!-- Storefront theme -->\n      <button type=\"button\" onclick=\"toggleStorefrontTheme()\" id=\"storefrontThemeToggle\" class=\"theme-toggle-btn relative text-white hover:text-pink-400 transition p-2\" aria-label=\"Chuyển giao diện tối\" title=\"Chuyển sáng/tối\">\n        <i id=\"storefrontThemeIcon\" class=\"fas fa-moon text-lg\"></i>\n      </button>\n    </div>\n  </div>\n  <!-- Mobile menu -->\n  <div id=\"mobileMenu\" class=\"hidden md:hidden border-t border-white/10 py-4 px-4 flex flex-col gap-3\">\n    <a href=\"#products\" class=\"text-gray-300 hover:text-pink-400\" onclick=\"toggleMobileMenu()\">Sản phẩm</a>\n    <a href=\"#about\" class=\"text-gray-300 hover:text-pink-400\" onclick=\"toggleMobileMenu()\">Về chúng tôi</a>\n    <a href=\"#contact\" class=\"text-gray-300 hover:text-pink-400\" onclick=\"toggleMobileMenu()\">Liên hệ</a>\n  </div>\n</nav>"
+  return `<!-- NAVBAR -->
+<nav class="navbar-blur fixed top-0 left-0 right-0 z-50 border-b border-white/10">
+  <div class="storefront-marquee-bar">
+    <div class="storefront-marquee-track">
+      <div class="storefront-marquee-group">
+        <i class="fas fa-bullhorn storefront-marquee-icon" aria-hidden="true"></i>
+        <span class="storefront-marquee-text">Mua hàng tại đây không qua sàn thương mại nên giá thành sản phẩm sẽ rẻ hơn rất nhiều và bảo hành hoàn trả trong vòng 7 ngày nếu sản phẩm bị lỗi nên quý khách yên tâm mua sắm nhé.Bảo hành đổi trả nhắn qua trang facebook : <a class="storefront-marquee-link" href="http://m.me/qhboypho" target="_blank" rel="noreferrer noopener">QH Boypho</a>. Chúc quý khách có trải nghiệm mua sắm tốt tại QH Clothes</span>
+      </div>
+    </div>
+  </div>
+  <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+    <a href="/" class="flex items-center gap-1.5 md:gap-1">
+      <span class="inline-flex items-center justify-center"><img src="/qh-logo.png" alt="QH" class="rounded-full w-9 h-9 object-cover bg-white"></span><span class="hidden md:inline text-xl font-display text-white font-bold tracking-normal md:ml-0.5"><span class="text-pink-400">Clothes</span></span>
+    </a>
+    <div class="hidden md:flex items-center gap-6 text-sm text-gray-300">
+      <a href="#products" class="hover:text-pink-400 transition">Sản phẩm</a>
+      <a href="#about" class="hover:text-pink-400 transition">Về chúng tôi</a>
+      <a href="#contact" class="hover:text-pink-400 transition">Liên hệ</a>
+    </div>
+    
+    <!-- DESKTOP ICONS -->
+    <div class="hidden md:flex items-center gap-3">
+      <button onclick="openCart()" id="cartNavBtn" class="relative text-white hover:text-pink-400 transition p-2">
+        <i class="fas fa-shopping-cart text-xl"></i>
+        <span id="cartBadge" class="absolute -top-1 -right-1 bg-[#881337] text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center hidden font-bold">0</span>
+      </button>
+      <button onclick="openTopupModal()" id="walletNavBtn" class="items-center gap-1.5 bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-xl transition text-xs font-medium">
+        <i class="fas fa-wallet text-pink-400"></i>
+        <span id="walletBalanceNav">0đ</span>
+      </button>
+      <button onclick="toggleUserMenu()" id="userAvatarBtn" class="relative text-white hover:text-pink-400 transition p-1">
+        <div id="userAvatarDefault" class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+          <i class="fas fa-user text-sm"></i>
+        </div>
+        <img id="userAvatarImg" src="" alt="" class="w-8 h-8 rounded-full object-cover border-2 border-pink-400 hidden">
+      </button>
+      <a href="/admin" id="adminNavLink" class="text-gray-400 hover:text-white transition p-2 hidden" title="Admin">
+        <i class="fas fa-user-shield"></i>
+      </a>
+      <button type="button" onclick="toggleStorefrontTheme()" id="storefrontThemeToggle" class="theme-toggle-btn relative text-white hover:text-pink-400 transition p-2" aria-label="Chuyển giao diện tối" title="Chuyển sáng/tối">
+        <i id="storefrontThemeIcon" class="fas fa-moon text-lg"></i>
+      </button>
+    </div>
+
+    <!-- MOBILE TOP ICONS -->
+    <div class="flex md:hidden items-center gap-3">
+      <button type="button" onclick="toggleStorefrontTheme()" id="storefrontThemeToggleMobile" class="theme-toggle-btn relative text-white hover:text-pink-400 transition p-2 border border-white/20 rounded-full w-9 h-9 flex items-center justify-center">
+        <i id="storefrontThemeIconMobile" class="fas fa-moon text-[16px]"></i>
+      </button>
+      <button type="button" onclick="toggleMobileSearch()" class="text-white hover:text-pink-400 transition p-2">
+        <i class="fas fa-search text-[18px]"></i>
+      </button>
+      <button onclick="openCart()" id="cartNavBtnMobile" class="relative text-white hover:text-pink-400 transition p-2">
+        <i class="fas fa-shopping-cart text-[18px]"></i>
+        <span id="cartBadgeMobile" class="absolute top-0 right-0 bg-[#881337] text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center hidden font-bold">0</span>
+      </button>
+    </div>
+  </div>
+  
+  <!-- Mobile Search Bar (Hidden by default) -->
+  <div id="mobileSearchBar" class="hidden md:hidden border-t border-white/10 p-3 bg-[#0b0a14]/95 backdrop-blur-md">
+    <div class="relative flex items-center gap-2">
+      <div class="relative flex-1">
+        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+        <input type="text" id="mobileSearchInput" placeholder="Tìm sản phẩm..." class="w-full bg-white/10 text-white placeholder-gray-400 border-none rounded-xl py-2 pl-9 pr-4 focus:outline-none focus:ring-1 focus:ring-pink-400 text-sm" oninput="searchProducts(this.value)">
+      </div>
+      <button type="button" onclick="toggleMobileSearch()" class="text-gray-400 hover:text-white transition p-2 flex-shrink-0" aria-label="Đóng tìm kiếm">
+        <i class="fas fa-times text-lg"></i>
+      </button>
+    </div>
+  </div>
+</nav>`
 }
 
 export function storefrontHeroSection(textUiSettings?: Partial<TextUiSettings>): string {
@@ -74,7 +145,42 @@ export function storefrontBestsellersSection(): string {
 }
 
 export function storefrontFilterBarSection(): string {
-  return "<!-- FILTER BAR -->\n<section class=\"sticky top-20 z-40\" id=\"filterBar\">\n  <div class=\"filter-shell\">\n    <div class=\"filter-search-row flex gap-2\">\n      <div class=\"filter-search-wrap flex-1\">\n        <i class=\"fas fa-search filter-search-icon\" aria-hidden=\"true\"></i>\n        <input type=\"text\" id=\"searchInput\" placeholder=\"Tìm sản phẩm...\" class=\"filter-search-input w-full\" oninput=\"searchProducts(this.value)\">\n      </div>\n      <button type=\"button\" class=\"w-[3.5rem] h-[3.5rem] md:h-[2.4rem] md:w-[2.4rem] flex-shrink-0 flex items-center justify-center rounded-[999px] border border-gray-200 bg-white/80 text-gray-600 hover:bg-gray-100 hover:text-pink-500 transition shadow-sm\" onclick=\"openFilterModal()\" aria-label=\"Bộ lọc nâng cao\" title=\"Bộ lọc nâng cao\">\n        <i class=\"fas fa-sliders-h\"></i>\n      </button>\n    </div>\n    <div class=\"filter-chip-row hidden md:flex\" id=\"filterChipRow\">\n      <button class=\"filter-btn active whitespace-nowrap\" data-cat=\"all\" onclick=\"filterProducts('all',this)\">Tất cả</button>\n      <button class=\"filter-btn whitespace-nowrap\" data-cat=\"unisex\" onclick=\"filterProducts('unisex',this)\">Unisex</button>\n      <button class=\"filter-btn whitespace-nowrap\" data-cat=\"male\" onclick=\"filterProducts('male',this)\">Nam</button>\n      <button class=\"filter-btn whitespace-nowrap\" data-cat=\"female\" onclick=\"filterProducts('female',this)\">Nữ</button>\n    </div>\n  </div>\n  <div class=\"filter-meta-row\">\n    <div class=\"filter-product-count\"><i class=\"fas fa-shirt\" aria-hidden=\"true\"></i><span id=\"productsCountLabel\">0 sản phẩm</span></div>\n    <div class=\"filter-meta-actions\">\n      <label class=\"filter-sort-wrap\" for=\"productsSortSelect\">\n        <i class=\"fas fa-arrow-up-wide-short\" aria-hidden=\"true\"></i>\n        <select id=\"productsSortSelect\" class=\"filter-sort-select\" onchange=\"sortProductsByTime(this.value)\">\n          <option value=\"newest\">Mới nhất</option>\n          <option value=\"oldest\">Cũ nhất</option>\n        </select>\n      </label>\n      <button type=\"button\" id=\"productsLayoutToggle\" class=\"filter-view-toggle\" aria-label=\"Chuyển sang dạng lưới 2 cột\" title=\"Chuyển sang dạng lưới 2 cột\" onclick=\"toggleProductsMobileLayout()\"><i class=\"fas fa-table-cells-large\" aria-hidden=\"true\"></i></button>\n    </div>\n  </div>\n</section>"
+  return `<!-- FILTER BAR -->
+<section class="sticky top-20 z-40" id="filterBar">
+  <div class="filter-shell">
+    <div class="filter-search-row flex gap-2">
+      <!-- Desktop Search (Hidden on Mobile) -->
+      <div class="filter-search-wrap flex-1 hidden md:flex">
+        <i class="fas fa-search filter-search-icon" aria-hidden="true"></i>
+        <input type="text" id="searchInput" placeholder="Tìm sản phẩm..." class="filter-search-input w-full" oninput="searchProducts(this.value)">
+      </div>
+      
+      <div class="filter-chip-row flex flex-1 md:flex-none overflow-x-auto no-scrollbar gap-2" id="filterChipRow">
+        <button class="filter-btn active whitespace-nowrap" data-cat="all" onclick="filterProducts('all',this)">Tất cả</button>
+        <button class="filter-btn whitespace-nowrap" data-cat="unisex" onclick="filterProducts('unisex',this)">Unisex</button>
+        <button class="filter-btn whitespace-nowrap" data-cat="male" onclick="filterProducts('male',this)">Nam</button>
+        <button class="filter-btn whitespace-nowrap" data-cat="female" onclick="filterProducts('female',this)">Nữ</button>
+      </div>
+
+      <button type="button" class="w-[2.8rem] h-[2.8rem] md:h-[2.4rem] md:w-[2.4rem] flex-shrink-0 flex items-center justify-center rounded-xl border border-gray-200 bg-white/80 text-gray-600 hover:bg-gray-100 hover:text-[#881337] transition shadow-sm" onclick="openFilterModal()" aria-label="Bộ lọc nâng cao" title="Bộ lọc nâng cao">
+        <i class="fas fa-sliders-h"></i>
+      </button>
+    </div>
+  </div>
+  <div class="filter-meta-row">
+    <div class="filter-product-count"><i class="fas fa-shirt" aria-hidden="true"></i><span id="productsCountLabel">0 sản phẩm</span></div>
+    <div class="filter-meta-actions">
+      <label class="filter-sort-wrap" for="productsSortSelect">
+        <i class="fas fa-arrow-up-wide-short" aria-hidden="true"></i>
+        <select id="productsSortSelect" class="filter-sort-select" onchange="sortProductsByTime(this.value)">
+          <option value="newest">Mới nhất</option>
+          <option value="oldest">Cũ nhất</option>
+        </select>
+      </label>
+      <button type="button" id="productsLayoutToggle" class="filter-view-toggle" aria-label="Chuyển sang dạng lưới 2 cột" title="Chuyển sang dạng lưới 2 cột" onclick="toggleProductsMobileLayout()"><i class="fas fa-table-cells-large" aria-hidden="true"></i></button>
+    </div>
+  </div>
+</section>`
 }
 
 export function storefrontFlashSaleShopSection(): string {
@@ -103,6 +209,33 @@ export function storefrontFooterWithPolicySection(): string {
       'href="#" class="hover:text-pink-400 transition">Chính sách bảo mật',
       'href="/chinh-sach-bao-mat" class="hover:text-pink-400 transition">Chính sách bảo mật'
     )
+}
+
+export function storefrontMobileBottomNavSection(): string {
+  return `<!-- MOBILE BOTTOM NAV -->
+<nav class="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 safe-area-bottom pb-2">
+  <div class="flex items-center justify-around h-[60px]">
+    <a href="#hero" class="flex flex-col items-center justify-center gap-1 w-16 text-[#881337] transition">
+      <i class="fas fa-home text-xl"></i>
+      <span class="text-[10px] font-medium">Trang chủ</span>
+    </a>
+    <a href="#products" class="flex flex-col items-center justify-center gap-1 w-16 text-slate-500 hover:text-[#881337] transition">
+      <i class="fas fa-table-cells-large text-xl"></i>
+      <span class="text-[10px] font-medium">Sản Phẩm</span>
+    </a>
+    <button onclick="openCart()" class="relative flex flex-col items-center justify-center gap-1 w-16 text-slate-500 hover:text-[#881337] transition">
+      <div class="relative">
+        <i class="fas fa-shopping-cart text-xl"></i>
+        <span id="cartBadgeBottom" class="absolute -top-1.5 -right-2 bg-[#881337] text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center hidden font-bold">0</span>
+      </div>
+      <span class="text-[10px] font-medium">Giỏ hàng</span>
+    </button>
+    <button onclick="toggleUserMenu()" class="flex flex-col items-center justify-center gap-1 w-16 text-slate-500 hover:text-[#881337] transition">
+      <i class="fas fa-user text-xl"></i>
+      <span class="text-[10px] font-medium">Tài khoản</span>
+    </button>
+  </div>
+</nav>`
 }
 
 export function storefrontBodyClose(): string {

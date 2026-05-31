@@ -9,6 +9,7 @@ import {
   storefrontProductsSection,
   storefrontFeaturesSection,
   storefrontFooterWithPolicySection,
+  storefrontMobileBottomNavSection,
   storefrontBodyClose,
 } from './storefront/sections'
 import { storefrontModalsSection } from './storefront/modals'
@@ -87,9 +88,11 @@ ${storefrontFeaturesSection()}
 
 ${storefrontFooterWithPolicySection()}
 
-<div id="purchaseToastContainer" style="position:fixed;bottom:24px;left:24px;z-index:60;display:flex;flex-direction:column;gap:8px;pointer-events:none;max-width:320px;"></div>
+<div id="purchaseToastContainer" style="position:fixed;bottom:80px;left:24px;z-index:60;display:flex;flex-direction:column;gap:8px;pointer-events:none;max-width:320px;"></div>
 
 ${storefrontModalsSection(options.textUiSettings)}
+
+${storefrontMobileBottomNavSection()}
 
 <script>
 ${storefrontInlineScript()}

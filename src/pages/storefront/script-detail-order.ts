@@ -18,6 +18,7 @@ async function showDetail(id, options) {
     detailSelectedColor = ''
     detailSelectedColorImage = ''
     detailSelectedSize = ''
+
     const sizes = safeJson(p.sizes)
     const images = safeJson(p.images)
     const defaultMainImage = String(p.thumbnail || detailColorOptions[0]?.image || images[0] || '').trim()
@@ -25,7 +26,7 @@ async function showDetail(id, options) {
     const detailDisplayPrice = Number(flashMeta?.salePrice || p.display_price || p.price || 0)
     const detailDisplayOriginalPrice = Number(flashMeta?.basePrice || p.display_original_price || p.original_price || detailDisplayPrice)
     const discount = flashMeta ? Number(flashMeta.discountPercent || 0) : (p.original_price ? Math.round((1 - p.price/p.original_price)*100) : 0)
-    document.getElementById('detailContent').innerHTML = \`
+    const detailHtml = \`
     <div class="grid md:grid-cols-2 gap-6">
       <div>
         <img id="mainDetailImg" src="\${escapeHtml(defaultMainImage)}" alt="\${escapeHtml(p.name)}" class="w-full rounded-2xl h-80 object-cover mb-3">
@@ -34,17 +35,16 @@ async function showDetail(id, options) {
           <img src="\${escapeHtml(img)}" alt="" class="w-full h-16 object-cover rounded-lg border-2 border-transparent hover:border-pink-400"
             onclick="document.getElementById('mainDetailImg').src='\${escapeJsString(img)}'">\`).join('')}
         </div>
-        <div id="detailReviewsSection" class="review-section">
-          <div id="detailReviewsContent"><div class="flex items-center gap-2 py-3"><i class="fas fa-spinner fa-spin text-violet-400 text-sm"></i><span class="text-sm text-gray-400">Đang tải đánh giá...</span></div></div>
+        <div class="hidden md:block">
+          <div class="detail-reviews-section review-section mt-6 hidden">
+            <div class="detail-reviews-content"><div class="flex items-center gap-2 py-3"><i class="fas fa-spinner fa-spin text-violet-400 text-sm"></i><span class="text-sm text-gray-400">Đang tải đánh giá...</span></div></div>
+          </div>
         </div>
       </div>
       <div>
         \${p.brand ? \`<p class="text-sm text-pink-500 font-medium mb-1">\${escapeHtml(p.brand)}</p>\` : ''}
         <div class="flex items-start justify-between gap-2 mb-3">
-          <h2 class="font-display text-2xl font-bold text-gray-900">\${escapeHtml(p.name)}</h2>
-          <button type="button" onclick="copyProductLink()" class="flex-shrink-0 w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-pink-50 hover:text-pink-500 transition shadow-sm" title="Copy Link Sản Phẩm">
-            <i class="fas fa-share-alt"></i>
-          </button>
+          <h2 class="font-display text-xl md:text-2xl font-bold text-gray-900">\${escapeHtml(p.name)}</h2>
         </div>
         \${p.has_flash_sale ? \`<div class="flex flex-wrap items-center gap-2 mb-3"><span class="flash-sale-badge"><i class="fas fa-bolt"></i> Flash Sale</span><span class="flash-sale-countdown" data-flash-sale-ends-at="\${escapeHtml(flashMeta?.endsAt || '')}">\${formatFlashSaleCountdown(flashMeta?.endsAt || '')}</span></div>\` : ''}
         <div class="flex items-baseline gap-3 mb-4">
@@ -54,7 +54,7 @@ async function showDetail(id, options) {
         \${p.description ? \`<p class="text-gray-600 text-sm leading-relaxed mb-4">\${escapeHtml(p.description)}</p>\` : ''}
         \${p.material ? \`<p class="text-sm text-gray-500 mb-4"><strong>Chất liệu:</strong> \${escapeHtml(p.material)}</p>\` : ''}
         \${detailColorOptions.length ? \`
-        <div class="mb-4">
+        <div class="mb-4 hidden md:block">
           <p class="text-sm font-semibold mb-2">Màu sắc: <span class="text-pink-500" id="detailColorLabel"></span></p>
           <div class="grid grid-cols-2 sm:grid-cols-3 gap-3" id="detailColorGrid">
             \${detailColorOptions.map((item, idx) => \`<button type="button"
@@ -72,29 +72,35 @@ async function showDetail(id, options) {
           </div>
         </div>\` : ''}
         \${sizes.length ? \`
-        <div class="mb-6">
+        <div class="mb-6 hidden md:block">
           <p class="text-sm font-semibold mb-2">Size:</p>
           <div class="flex flex-wrap gap-2">
-            \${sizes.map(s => \`<button class="size-btn w-12 h-10 border rounded-lg text-sm font-medium hover:border-pink-400 transition" onclick="selectDetailSize('\${escapeJsString(s)}',this)">\${escapeHtml(s)}</button>\`).join('')}
+            \${sizes.map(s => \`<button type="button" class="size-btn w-12 h-10 border rounded-lg text-sm font-medium hover:border-pink-400 transition" onclick="selectDetailSize('\${escapeJsString(s)}',this)">\${escapeHtml(s)}</button>\`).join('')}
           </div>
         </div>\` : ''}
-        <div class="detail-action-bar \${detailOptions.cartItemId ? 'detail-action-bar--cart-edit' : ''}">
-          \${isCurrentUserBlocked()
-            ? renderBlockedPurchaseActions('w-full py-3.5 rounded-xl font-bold text-base')
-            : \`<button onclick="openOrderFromDetail(\${p.id})" class="btn-primary flex-1 text-white py-3.5 rounded-xl font-bold text-base"><i class="fas fa-shopping-cart"></i><span class="quick-order-label-desktop">Đặt hàng ngay</span><span class="quick-order-label-mobile">Đặt ngay</span></button><button onclick="addDetailToCart()" id="detailAddToCartBtn" class="add-to-cart-btn detail-cart-btn text-white py-3.5 rounded-xl font-bold text-base"><i class="fas fa-cart-plus"></i><span class="quick-order-label-desktop">Thêm vào giỏ hàng</span><span class="quick-order-label-mobile">Thêm vào giỏ</span></button>\`}
-        </div>
+      </div>
+    </div>
+    
+    <div class="w-full md:hidden">
+      <div class="detail-reviews-section review-section hidden">
+        <div class="detail-reviews-content"><div class="flex items-center gap-2 py-3"><i class="fas fa-spinner fa-spin text-violet-400 text-sm"></i><span class="text-sm text-gray-400">Đang tải đánh giá...</span></div></div>
       </div>
     </div>\`
+    document.getElementById('detailContent').innerHTML = detailHtml
+    
+    document.getElementById('detailActionBarContainer').innerHTML = isCurrentUserBlocked()
+      ? renderBlockedPurchaseActions('w-full py-3.5 rounded-xl font-bold text-base')
+      : \`<button onclick="openOrderFromDetail(\${p.id})" style="border-radius: 0.75rem !important;" class="hidden md:flex btn-primary flex-1 justify-center items-center gap-2 text-white py-3.5 font-bold text-base"><i class="fas fa-shopping-cart"></i><span class="quick-order-label-desktop">Đặt hàng ngay</span></button>
+         <button onclick="addDetailToCart()" id="detailAddToCartBtn" style="border-radius: 0.75rem !important;" class="hidden md:flex add-to-cart-btn detail-cart-btn flex-1 justify-center items-center gap-2 text-white py-3.5 font-bold text-base">\${detailOptions.cartItemId ? '<i class="fas fa-check"></i><span>Cập nhật lựa chọn</span>' : '<i class="fas fa-cart-plus"></i><span class="quick-order-label-desktop">Thêm vào giỏ hàng</span>'}</button>
+         <button onclick="openVariantModal(\${p.id}, 'buy_now')" style="border-radius: 0.75rem !important;" class="flex md:hidden btn-primary flex-1 justify-center items-center gap-2 text-white py-3.5 font-bold text-base"><i class="fas fa-shopping-cart"></i><span class="quick-order-label-mobile">Đặt ngay</span></button>
+         <button onclick="openVariantModal(\${p.id}, 'add_to_cart', \${detailOptions.cartItemId ? \\\`'\${detailOptions.cartItemId}'\\\` : 'null'})" id="detailAddToCartBtnMobile" style="border-radius: 0.75rem !important;" class="flex md:hidden add-to-cart-btn detail-cart-btn flex-1 justify-center items-center gap-2 text-white py-3.5 font-bold text-base">\${detailOptions.cartItemId ? '<i class="fas fa-check"></i><span>Cập nhật lựa chọn</span>' : '<i class="fas fa-cart-plus"></i><span class="quick-order-label-mobile">Thêm vào giỏ</span>'}</button>\`
+      
     if (detailOptions.cartItemId) {
-      cartVariantEditId = String(detailOptions.cartItemId || '')
-      const editBtn = document.getElementById('detailAddToCartBtn')
-      if (editBtn) {
-        editBtn.classList.add('detail-cart-btn--edit')
-        editBtn.innerHTML = '<i class="fas fa-check"></i><span>Cập nhật lựa chọn</span>'
-      }
+      document.getElementById('detailActionBarContainer').classList.add('detail-action-bar--cart-edit')
     } else {
-      cartVariantEditId = ''
+      document.getElementById('detailActionBarContainer').classList.remove('detail-action-bar--cart-edit')
     }
+    
     document.getElementById('detailOverlay').classList.remove('hidden')
     document.body.style.overflow = 'hidden'
     trackProductDetailView(p.id || id)
@@ -106,25 +112,10 @@ async function showDetail(id, options) {
       history.pushState({ modal: 'product_detail', id: p.id || id, openedFromSite: true }, '', newUrl.toString())
     }
 
-    if (detailColorOptions.length) {
-      const selectedColor = String(detailOptions.selectedColor || '').trim().toLowerCase()
-      const matchedColorIndex = selectedColor ? detailColorOptions.findIndex((item) => String(item.name || '').trim().toLowerCase() === selectedColor) : -1
-      const colorButtons = document.querySelectorAll('#detailColorGrid .detail-color-card')
-      const initialButton = colorButtons[matchedColorIndex >= 0 ? matchedColorIndex : 0]
-      if (initialButton) selectDetailColorByIndex(matchedColorIndex >= 0 ? matchedColorIndex : 0, initialButton)
-    } else {
-      const label = document.getElementById('detailColorLabel')
-      if (label) label.textContent = ''
-    }
-    const selectedSize = String(detailOptions.selectedSize || '').trim().toLowerCase()
-    if (selectedSize) {
-      const sizeButtons = Array.from(document.querySelectorAll('#detailContent .size-btn'))
-      const sizeButton = sizeButtons.find((btn) => String(btn.textContent || '').trim().toLowerCase() === selectedSize)
-      if (sizeButton) selectDetailSize(String(sizeButton.textContent || '').trim(), sizeButton)
-    }
     if (detailOptions.focusVariants) {
-      setTimeout(scrollDetailToVariantPicker, 120)
+      setTimeout(() => openVariantModal(p.id || id, detailOptions.cartItemId ? 'add_to_cart' : 'add_to_cart', detailOptions.cartItemId), 120)
     }
+
     loadProductReviews(Number(p.id))
   } catch(e) { showToast('Không thể tải chi tiết sản phẩm', 'error') }
 }
@@ -468,14 +459,14 @@ function productRequiresSkuSelection(product) {
   return getProductColorOptions(product).length > 0 || safeJson(product?.sizes).length > 0
 }
 
-// Add to cart from product card. Products with SKU options must go through detail modal.
+// Add to cart from product card. Products with SKU options must go through variant modal.
 async function addToCartFromCard(evt, id) {
   try {
     if (!assertCustomerCanShop()) return
     const res = await axios.get('/api/products/' + id)
     const p = res.data.data
     if (productRequiresSkuSelection(p)) {
-      showDetail(id)
+      openVariantModal(id, 'add_to_cart')
       return
     }
     const colors = getProductColorOptions(p).map((c) => c.name)
@@ -785,6 +776,245 @@ function addCurrentToCart() {
   if (addToCart(currentProduct, selectedColor, selectedSize, orderQty)) {
     closeOrder()
     showToast('Đã thêm "' + currentProduct.name + '" vào giỏ hàng!', 'success', 2500)
+  }
+}
+
+// ── VARIANT MODAL ──────────────────────────────────
+let variantActionType = 'add_to_cart'
+
+async function openVariantModal(productId, actionType, editCartId) {
+  try {
+    if (!assertCustomerCanShop()) return
+    const res = await axios.get('/api/products/' + productId)
+    currentProduct = res.data.data
+    variantActionType = actionType || 'add_to_cart'
+    cartVariantEditId = editCartId || ''
+    
+    orderQty = 1
+    selectedColor = ''
+    selectedColorImage = String(currentProduct.thumbnail || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400')
+    selectedSize = ''
+    
+    const colorOptions = getProductColorOptions(currentProduct)
+    orderColorOptions = Array.isArray(colorOptions) ? colorOptions : []
+    const sizes = safeJson(currentProduct.sizes)
+
+    // Render modal UI
+    document.getElementById('variantModalProductImg').src = selectedColorImage
+    document.getElementById('variantModalProductPrice').innerHTML = fmtPrice(currentProduct.price)
+    document.getElementById('variantQtyDisplay').textContent = '1'
+    document.getElementById('variantModalColorLabel').textContent = ''
+
+    const colorDiv = document.getElementById('variantModalColorOptions')
+    if (colorDiv) {
+      if (orderColorOptions.length) {
+        colorDiv.innerHTML = orderColorOptions.map((item, idx) => \`
+          <button type="button" class="variant-color-btn w-[4.5rem] flex-shrink-0 border-2 border-transparent rounded-xl overflow-hidden transition relative flex flex-col" onclick="selectVariantColorByIndex(\${idx}, this)">
+            <div class="aspect-square bg-gray-100 w-full">
+              <img src="\${escapeHtml(item.image)}" alt="" class="w-full h-full object-cover">
+            </div>
+            <div class="px-1 py-1.5 text-center border-t w-full bg-white">
+              <span class="block text-[11px] font-medium text-gray-900 leading-tight truncate">\${escapeHtml(item.name)}</span>
+            </div>
+          </button>
+        \`).join('')
+        colorDiv.parentElement.style.display = 'block'
+      } else {
+        colorDiv.innerHTML = ''
+        colorDiv.parentElement.style.display = 'none'
+      }
+    }
+
+    const sizeDiv = document.getElementById('variantModalSizeOptions')
+    if (sizeDiv) {
+      if (sizes.length) {
+        sizeDiv.innerHTML = sizes.map(s => \`
+          <button type="button" class="variant-size-btn min-w-[3.5rem] h-10 px-3 border border-gray-200 rounded-lg text-sm font-medium hover:border-pink-400 transition" onclick="selectVariantSize('\${escapeJsString(s)}', this)">\${escapeHtml(s)}</button>
+        \`).join('')
+        sizeDiv.parentElement.style.display = 'block'
+      } else {
+        sizeDiv.innerHTML = ''
+        sizeDiv.parentElement.style.display = 'none'
+      }
+    }
+
+    // Prefill for edit mode
+    if (cartVariantEditId) {
+      const cartItem = cart.find(i => i.cartId === cartVariantEditId)
+      if (cartItem) {
+        orderQty = cartItem.qty || 1
+        document.getElementById('variantQtyDisplay').textContent = orderQty
+        if (cartItem.color) {
+          const matchedColorIndex = orderColorOptions.findIndex((item) => String(item.name || '').trim().toLowerCase() === String(cartItem.color || '').trim().toLowerCase())
+          if (matchedColorIndex >= 0) {
+             const btn = colorDiv.querySelectorAll('.variant-color-btn')[matchedColorIndex]
+             selectVariantColorByIndex(matchedColorIndex, btn)
+          }
+        }
+        if (cartItem.size) {
+           const matchedSizeIndex = sizes.findIndex((s) => String(s || '').trim().toLowerCase() === String(cartItem.size || '').trim().toLowerCase())
+           if (matchedSizeIndex >= 0) {
+             const btn = sizeDiv.querySelectorAll('.variant-size-btn')[matchedSizeIndex]
+             selectVariantSize(String(sizes[matchedSizeIndex] || ''), btn)
+           }
+        }
+      }
+    }
+
+    const btn = document.getElementById('variantSubmitBtn')
+    if (btn) {
+      if (cartVariantEditId) {
+        btn.innerHTML = '<i class="fas fa-check"></i> Cập nhật'
+      } else {
+        btn.innerHTML = actionType === 'buy_now' ? '<i class="fas fa-bolt"></i> Đặt ngay' : '<i class="fas fa-cart-plus"></i> Thêm vào giỏ'
+      }
+    }
+    
+    document.getElementById('variantModalOverlay').classList.remove('hidden')
+    document.getElementById('variantModalOverlay').classList.add('flex')
+    document.body.style.overflow = 'hidden'
+    
+    // Animate slide up
+    const panel = document.getElementById('variantModalPanel')
+    const overlay = document.getElementById('variantModalOverlay')
+    if (panel) {
+      setTimeout(() => {
+        overlay.classList.remove('opacity-0')
+        overlay.classList.add('opacity-100')
+        panel.classList.remove('translate-y-full')
+        panel.classList.add('translate-y-0')
+      }, 10)
+    }
+  } catch (e) {
+    showToast('Không thể tải sản phẩm', 'error')
+  }
+}
+
+function selectVariantColorByIndex(idx, btn) {
+  const item = Array.isArray(orderColorOptions) ? orderColorOptions[idx] : null
+  if (!item) return
+  selectedColor = String(item.name || '').trim()
+  selectedColorImage = String(item.image || '').trim() || getSelectedColorImageFromProduct(currentProduct, selectedColor) || (currentProduct?.thumbnail || '')
+  const preview = document.getElementById('variantModalProductImg')
+  if (preview && selectedColorImage) preview.src = selectedColorImage
+  
+  const label = document.getElementById('variantModalColorLabel')
+  if (label) label.textContent = selectedColor
+
+  document.querySelectorAll('.variant-color-btn').forEach(b => b.classList.remove('border-pink-500', 'ring-2', 'ring-pink-200'))
+  if (btn) btn.classList.add('border-pink-500', 'ring-2', 'ring-pink-200')
+}
+
+function selectVariantSize(s, btn) {
+  selectedSize = String(s || '').trim()
+  document.querySelectorAll('.variant-size-btn').forEach(b => b.classList.remove('active', 'bg-gray-900', 'text-white', 'border-gray-900'))
+  if (btn) btn.classList.add('active', 'bg-gray-900', 'text-white', 'border-gray-900')
+  
+  const label = document.getElementById('variantModalSizeLabel')
+  if (label) label.textContent = selectedSize
+}
+
+function changeVariantQty(delta) {
+  orderQty = Math.max(1, Math.min(99, orderQty + delta))
+  document.getElementById('variantQtyDisplay').textContent = orderQty
+}
+
+function closeVariantModal() {
+  const panel = document.getElementById('variantModalPanel')
+  if (panel) {
+    panel.classList.remove('translate-y-0')
+    panel.classList.add('translate-y-full')
+  }
+  const overlay = document.getElementById('variantModalOverlay')
+  if (overlay) {
+    overlay.classList.remove('opacity-100')
+    overlay.classList.add('opacity-0')
+  }
+  
+  setTimeout(() => {
+    const overlay = document.getElementById('variantModalOverlay')
+    if (overlay) {
+      overlay.classList.add('hidden')
+      overlay.classList.remove('flex')
+    }
+    cartVariantEditId = ''
+    // Restore overflow if detailModal isn't open
+    if (document.getElementById('detailOverlay')?.classList.contains('hidden') && document.getElementById('cartOverlay')?.classList.contains('hidden')) {
+      document.body.style.overflow = ''
+    }
+  }, 300)
+}
+
+function submitVariantModal() {
+  if (!currentProduct) return
+  if (!assertCustomerCanShop()) return
+  
+  const hasColorOptions = Array.isArray(orderColorOptions) ? orderColorOptions.length > 0 : false
+  const sizes = safeJson(currentProduct?.sizes)
+  const hasSizeOptions = Array.isArray(sizes) ? sizes.length > 0 : false
+
+  if (hasColorOptions && !selectedColor) {
+    showToast('Vui lòng chọn Màu sắc', 'error')
+    document.getElementById('variantModalColorOptions')?.classList.add('shake')
+    setTimeout(() => document.getElementById('variantModalColorOptions')?.classList.remove('shake'), 450)
+    return
+  }
+  if (hasSizeOptions && !selectedSize) {
+    showToast('Vui lòng chọn Size', 'error')
+    document.getElementById('variantModalSizeOptions')?.closest('div').classList.add('shake')
+    setTimeout(() => document.getElementById('variantModalSizeOptions')?.closest('div').classList.remove('shake'), 450)
+    return
+  }
+
+  if (cartVariantEditId) {
+    updateCartItemVariant(cartVariantEditId, selectedColor, selectedSize)
+    const i = cart.find(x => x.cartId === cartVariantEditId)
+    if (i) {
+      i.qty = orderQty
+      saveCart()
+    }
+    cartVariantEditId = ''
+    closeVariantModal()
+    renderCartStep1()
+    showToast('Đã cập nhật phân loại sản phẩm', 'success', 2200)
+    return
+  }
+
+  if (variantActionType === 'add_to_cart') {
+    animateFlyToCart(resolveFlyImage(currentProduct), document.getElementById('variantSubmitBtn'))
+    if (addToCart(currentProduct, selectedColor, selectedSize, orderQty)) {
+      closeVariantModal()
+      showToast('Đã thêm "' + currentProduct.name + '" vào giỏ hàng!', 'success', 2500)
+    }
+  } else {
+    // Buy now flow
+    closeVariantModal()
+    openOrderFromDetail(currentProduct.id).then(() => {
+      // openOrder internally fetches again and clears orderQty, selectedColor, etc.
+      // So we have to set them again. 
+      // But openOrder is async and resets them! We need to pass state.
+      // Actually, since openOrder resets state, let's just push to openOrder with prefilled state.
+      setTimeout(() => {
+        const sizesObj = safeJson(currentProduct.sizes)
+        if (selectedColor) {
+           const matchedIndex = orderColorOptions.findIndex((item) => String(item.name || '').trim().toLowerCase() === String(selectedColor || '').trim().toLowerCase())
+           if (matchedIndex >= 0) {
+             const btn = document.getElementById('colorOptions')?.querySelectorAll('.color-btn')[matchedIndex]
+             selectOrderColorByIndex(matchedIndex, btn || null)
+           }
+        }
+        if (selectedSize) {
+           const matchedSizeIndex = sizesObj.findIndex((s) => String(s || '').trim().toLowerCase() === String(selectedSize || '').trim().toLowerCase())
+           if (matchedSizeIndex >= 0) {
+             const btn = document.getElementById('sizeOptions')?.querySelectorAll('.size-btn')[matchedSizeIndex]
+             selectOrderSize(String(sizesObj[matchedSizeIndex] || ''), btn || null)
+           }
+        }
+        // set qty
+        const qtyDiff = orderQty - 1
+        if (qtyDiff > 0) changeQty(qtyDiff)
+      }, 500) // slight delay to allow openOrder to finish rendering
+    })
   }
 }
 

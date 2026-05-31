@@ -352,19 +352,29 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
   </div>
 </div>
 
-<div id="detailOverlay" class="fixed inset-0 overlay hidden flex items-center justify-center p-4" style="z-index:1001;">
-  <div class="popup-card bg-white rounded-3xl shadow-2xl w-full max-w-md md:max-w-[56rem] max-h-[90vh] overflow-y-auto">
-    <div class="sticky top-0 bg-white rounded-t-3xl border-b px-6 py-4 flex items-center justify-between">
+<div id="detailOverlay" class="fixed inset-0 overlay hidden flex flex-col items-center justify-end sm:justify-center p-4 pt-16" style="z-index:1001;">
+  <div class="w-full max-w-md md:max-w-[56rem] flex justify-end gap-3 mb-3 md:hidden">
+     <button type="button" onclick="openCart()" class="w-11 h-11 flex items-center justify-center rounded-full bg-white text-gray-800 shadow-lg hover:text-pink-500 transition relative">
+        <i class="fas fa-shopping-cart text-lg"></i>
+        <span id="cartBadgeDetail" class="absolute -top-2 -right-2 bg-pink-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full font-bold hidden">0</span>
+     </button>
+     <button type="button" onclick="copyProductLink()" class="w-11 h-11 flex items-center justify-center rounded-full bg-white text-gray-800 shadow-lg hover:text-pink-500 transition">
+        <i class="fas fa-share-alt text-lg"></i>
+     </button>
+  </div>
+  <div class="popup-card bg-white rounded-3xl shadow-2xl w-full max-w-md md:max-w-[56rem] max-h-[85vh] flex flex-col relative">
+    <div class="sticky top-0 bg-white rounded-t-3xl border-b px-6 py-4 flex items-center justify-between" style="z-index: 10; flex-shrink: 0;">
       <h3 class="font-display text-xl font-bold text-gray-900">Chi tiết sản phẩm</h3>
       <button onclick="closeDetail()" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition">
         <i class="fas fa-times text-gray-600"></i>
       </button>
     </div>
-    <div id="detailContent" class="px-6 py-4"></div>
+    <div id="detailContent" class="px-6 py-4 overflow-y-auto flex-1"></div>
+    <div id="detailActionBarContainer" class="sticky bottom-0 bg-white rounded-b-3xl border-t px-6 py-4 w-full flex gap-3" style="z-index: 10; flex-shrink: 0;"></div>
   </div>
 </div>
 
-<div id="cartOverlay" class="fixed inset-0 overlay z-50 hidden" onclick="handleCartOverlayClick(event)">
+<div id="cartOverlay" class="fixed inset-0 overlay hidden" style="z-index:1005;" onclick="handleCartOverlayClick(event)">
   <div id="cartModal" class="cart-modal absolute right-0 top-0 bottom-0 w-full max-w-lg bg-white flex flex-col shadow-2xl">
     <div id="cartHeader" class="flex items-center justify-between px-5 py-4 border-b bg-gradient-to-r from-gray-900 to-gray-800 text-white flex-shrink-0">
       <div class="flex items-center gap-3">
@@ -729,6 +739,66 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
       </button>
       <button type="button" onclick="applyFilterModal()" class="btn-primary flex-1 text-white py-3 rounded-xl font-semibold text-sm shadow-md">
         Áp dụng lọc
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- VARIANT MODAL -->
+<div id="variantModalOverlay" class="fixed inset-0 bg-black/40 z-[10010] hidden opacity-0 transition-opacity duration-300" onclick="closeVariantModal(event)">
+  <div id="variantModalPanel" class="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-2xl transform translate-y-full transition-transform duration-300 flex flex-col max-h-[90vh]" onclick="event.stopPropagation()">
+    <!-- Header -->
+    <div class="flex items-center justify-between px-5 py-4 border-b">
+      <h3 class="font-bold text-gray-900 font-display">Tùy chọn sản phẩm</h3>
+      <button onclick="closeVariantModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition">
+        <i class="fas fa-times text-gray-600"></i>
+      </button>
+    </div>
+    
+    <!-- Content -->
+    <div class="flex-1 overflow-y-auto px-5 py-4 space-y-5">
+      <!-- Product Info -->
+      <div class="flex gap-4 items-center">
+        <img id="variantModalProductImg" src="" class="w-20 h-20 object-cover rounded-xl border">
+        <div>
+          <p class="text-xl font-bold text-pink-500" id="variantModalProductPrice"></p>
+          <p class="text-sm text-gray-500 mt-1">Kho: <span id="variantModalStock">Còn hàng</span></p>
+        </div>
+      </div>
+      
+      <!-- Colors -->
+      <div>
+        <div class="flex justify-between items-center mb-2">
+          <label class="font-bold text-gray-800 text-sm">Màu sắc</label>
+          <span id="variantModalColorLabel" class="text-xs text-gray-500 font-medium"></span>
+        </div>
+        <div id="variantModalColorOptions" class="flex gap-3 overflow-x-auto pb-2 scrollbar-hide"></div>
+      </div>
+      
+      <!-- Sizes -->
+      <div>
+        <div class="flex justify-between items-center mb-2">
+          <label class="font-bold text-gray-800 text-sm">Kích cỡ</label>
+          <span id="variantModalSizeLabel" class="text-xs text-gray-500 font-medium"></span>
+        </div>
+        <div id="variantModalSizeOptions" class="flex flex-wrap gap-2"></div>
+      </div>
+      
+      <!-- Quantity -->
+      <div class="flex items-center justify-between pt-2">
+        <label class="font-bold text-gray-800 text-sm">Số lượng</label>
+        <div class="flex items-center border border-gray-200 rounded-lg overflow-hidden h-9">
+          <button onclick="updateVariantQty(-1)" class="w-9 h-full flex items-center justify-center bg-gray-50 hover:bg-gray-100 transition text-gray-600"><i class="fas fa-minus text-xs"></i></button>
+          <span id="variantQtyDisplay" class="w-10 text-center text-sm font-semibold text-gray-800">1</span>
+          <button onclick="updateVariantQty(1)" class="w-9 h-full flex items-center justify-center bg-gray-50 hover:bg-gray-100 transition text-gray-600"><i class="fas fa-plus text-xs"></i></button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Footer -->
+    <div class="px-5 py-4 border-t bg-white flex-shrink-0">
+      <button onclick="submitVariantModal()" class="btn-primary w-full text-white py-3.5 rounded-xl font-bold text-base">
+        Xác nhận
       </button>
     </div>
   </div>

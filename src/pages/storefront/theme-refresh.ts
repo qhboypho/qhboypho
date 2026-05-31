@@ -1491,11 +1491,17 @@ export function storefrontThemeRefreshStyles(): string {
     color: rgba(169,184,211,0.82) !important;
   }
   body[data-storefront-theme='dark'] #orderPopupCard .size-btn.active,
+  body[data-storefront-theme='dark'] .variant-size-btn.active {
+    background: #1a1a2e;
+    color: white;
+  }
+  body[data-storefront-theme='dark'] #orderPopupCard .size-btn.active,
+  body[data-storefront-theme='dark'] .variant-size-btn.active,
   body[data-storefront-theme='dark'] #orderPopupCard .payment-method-btn.active {
     background: linear-gradient(135deg, #337cff, #8d55ff 45%, #ec4fbe) !important;
     border-color: transparent !important;
-    color: #fff !important;
-    box-shadow: 0 10px 22px rgba(59,130,246,0.22), 0 8px 20px rgba(236,79,190,0.16) !important;
+    color: white !important;
+    box-shadow: 0 4px 15px rgba(236,79,190,0.2) !important;
   }
   body[data-storefront-theme='dark'] #orderPopupCard #voucherBtn {
     background: rgba(30,41,59,0.9) !important;
@@ -2472,5 +2478,54 @@ export function storefrontThemeRefreshStyles(): string {
     background: rgba(255, 255, 255, 0.16) !important;
     color: #fff !important;
   }
-  `
+  
+  /* Filter and Variant Modal Panels Dark Mode */
+  body[data-storefront-theme='dark'] #filterModalPanel,
+  body[data-storefront-theme='dark'] #variantModalPanel {
+    background: #0f172a !important;
+    border-top: 1px solid rgba(148,163,184,0.18) !important;
+  }
+  body[data-storefront-theme='dark'] #filterModalPanel .bg-white,
+  body[data-storefront-theme='dark'] #variantModalPanel .bg-white {
+    background: transparent !important;
+  }
+  body[data-storefront-theme='dark'] #filterModalPanel .text-gray-900,
+  body[data-storefront-theme='dark'] #variantModalPanel .text-gray-900,
+  body[data-storefront-theme='dark'] #filterModalPanel .text-gray-800,
+  body[data-storefront-theme='dark'] #variantModalPanel .text-gray-800 {
+    color: #f8fafc !important;
+  }
+  body[data-storefront-theme='dark'] #filterModalPanel .text-gray-700,
+  body[data-storefront-theme='dark'] #variantModalPanel .text-gray-700,
+  body[data-storefront-theme='dark'] #filterModalPanel .text-gray-600,
+  body[data-storefront-theme='dark'] #variantModalPanel .text-gray-600 {
+    color: #cbd5e1 !important;
+  }
+  body[data-storefront-theme='dark'] #filterModalPanel .text-gray-500,
+  body[data-storefront-theme='dark'] #variantModalPanel .text-gray-500 {
+    color: #94a3b8 !important;
+  }
+  body[data-storefront-theme='dark'] #filterModalPanel .border-b,
+  body[data-storefront-theme='dark'] #variantModalPanel .border-b,
+  body[data-storefront-theme='dark'] #filterModalPanel .border-t,
+  body[data-storefront-theme='dark'] #variantModalPanel .border-t,
+  body[data-storefront-theme='dark'] #filterModalPanel .border-gray-100,
+  body[data-storefront-theme='dark'] #variantModalPanel .border-gray-100,
+  body[data-storefront-theme='dark'] #filterModalPanel .border-gray-200,
+  body[data-storefront-theme='dark'] #variantModalPanel .border-gray-200 {
+    border-color: rgba(148,163,184,0.18) !important;
+  }
+  body[data-storefront-theme='dark'] #filterModalPanel .bg-gray-100,
+  body[data-storefront-theme='dark'] #variantModalPanel .bg-gray-100,
+  body[data-storefront-theme='dark'] #filterModalPanel .bg-gray-50,
+  body[data-storefront-theme='dark'] #variantModalPanel .bg-gray-50 {
+    background: rgba(148,163,184,0.08) !important;
+  }
+  body[data-storefront-theme='dark'] #filterModalPanel .hover\:bg-gray-200:hover,
+  body[data-storefront-theme='dark'] #variantModalPanel .hover\:bg-gray-200:hover,
+  body[data-storefront-theme='dark'] #filterModalPanel .hover\:bg-gray-100:hover,
+  body[data-storefront-theme='dark'] #variantModalPanel .hover\:bg-gray-100:hover {
+    background: rgba(148,163,184,0.16) !important;
+  }
+`
 }

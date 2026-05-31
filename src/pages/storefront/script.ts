@@ -769,18 +769,26 @@ function saveCart() {
 }
 function updateCartBadge() {
   const total = cart.reduce((s,i)=>s+i.qty,0)
-  const badge = document.getElementById('cartBadge')
-  if (!badge) return
-  if (total > 0) {
-    badge.textContent = total > 99 ? '99+' : total
-    badge.classList.remove('hidden')
-    badge.classList.add('flex')
-    badge.classList.add('cart-badge-bounce')
-    setTimeout(()=>badge.classList.remove('cart-badge-bounce'),400)
-  } else {
-    badge.classList.add('hidden')
-    badge.classList.remove('flex')
+  
+  const updateBadge = (id) => {
+    const badge = document.getElementById(id)
+    if (!badge) return
+    if (total > 0) {
+      badge.textContent = total > 99 ? '99+' : total
+      badge.classList.remove('hidden')
+      badge.classList.add('flex')
+      badge.classList.add('cart-badge-bounce')
+      setTimeout(()=>badge.classList.remove('cart-badge-bounce'),400)
+    } else {
+      badge.classList.add('hidden')
+      badge.classList.remove('flex')
+    }
   }
+
+  updateBadge('cartBadge')
+  updateBadge('cartBadgeMobile')
+  updateBadge('cartBadgeBottom')
+  updateBadge('cartBadgeDetail')
 }
 function genCartId() { return Date.now().toString(36)+Math.random().toString(36).slice(2,7) }
 
@@ -837,21 +845,21 @@ function checkUrlDeepLink() {
 let _reviewState = { productId: 0, orderId: 0, rating: 5, images: [], submitting: false }
 
 async function loadProductReviews(productId) {
-  const section = document.getElementById('detailReviewsSection')
-  const content = document.getElementById('detailReviewsContent')
-  if (!section || !content) return
-  section.classList.remove('hidden')
+  const sections = document.querySelectorAll('.detail-reviews-section')
+  const contents = document.querySelectorAll('.detail-reviews-content')
+  if (!sections.length || !contents.length) return
+  sections.forEach(s => s.classList.remove('hidden'))
   try {
     const res = await axios.get('/api/reviews?productId=' + productId)
     const reviews = Array.isArray(res.data?.data) ? res.data.data : []
     const avg = Number(res.data?.avgRating || 0)
     const total = Number(res.data?.total || 0)
     if (!reviews.length) {
-      content.innerHTML = '<p class="text-gray-400 text-sm py-2">Chưa có đánh giá nào. Hãy là người đầu tiên!</p>'
+      contents.forEach(c => c.innerHTML = '<p class="text-gray-400 text-sm py-2">Chưa có đánh giá nào. Hãy là người đầu tiên!</p>')
       return
     }
     const stars = (n) => '★'.repeat(Math.round(n)) + '☆'.repeat(5 - Math.round(n))
-    content.innerHTML = \`
+    const html = \`
       <div class="flex items-center gap-2 mb-3">
         <span class="review-avg-stars text-lg">\${stars(avg)}</span>
         <span class="font-bold text-gray-800 text-sm">\${avg.toFixed(1)}</span>
@@ -879,8 +887,9 @@ async function loadProductReviews(productId) {
           </div>\`
         }).join('')}
       </div>\`
+    contents.forEach(c => c.innerHTML = html)
   } catch(e) {
-    section.classList.add('hidden')
+    sections.forEach(s => s.classList.add('hidden'))
   }
 }
 
@@ -1286,9 +1295,16 @@ function openProductDetailFromCard(productId) {
   showDetail(productId)
 }
 
-function openOrderFromProductCard(productId) {
+async function openOrderFromProductCard(productId) {
   if (!document.getElementById('productsModalOverlay')?.classList.contains('hidden')) closeProductsModal()
-  openOrder(productId)
+  try {
+    const res = await axios.get('/api/products/' + productId)
+    if (productRequiresSkuSelection(res.data.data)) {
+      openVariantModal(productId, 'buy_now')
+    } else {
+      openOrder(productId)
+    }
+  } catch(e) {}
 }
 
 function addToCartFromProductCard(event, productId) {
@@ -1615,6 +1631,21 @@ function toggleMobileMenu() {
   const m = document.getElementById('mobileMenu')
   m.classList.toggle('hidden')
 }
+
+function toggleMobileSearch() {
+  const bar = document.getElementById('mobileSearchBar')
+  const input = document.getElementById('mobileSearchInput')
+  if (bar.classList.contains('hidden')) {
+    bar.classList.remove('hidden')
+    if (input) input.focus()
+  } else {
+    bar.classList.add('hidden')
+    if (input) {
+      input.value = ''
+      searchProducts('') // clear search
+    }
+  }
+}
 // ── CART MODAL ────────────────────────────────────
 function openCart() {
   cartStep = 1
@@ -1716,12 +1747,7 @@ async function openCartItemVariantEditor(cartId) {
   const item = cart.find(i => i.cartId === cartId)
   if (!item) return
   cartVariantEditId = cartId
-  await showDetail(item.productId, {
-    cartItemId: cartId,
-    focusVariants: true,
-    selectedColor: item.color || '',
-    selectedSize: item.size || ''
-  })
+  await openVariantModal(item.productId, 'add_to_cart', cartId)
 }
 
 function updateCartHeaderSubtitle() {
