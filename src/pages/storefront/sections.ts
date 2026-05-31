@@ -79,25 +79,12 @@ export function storefrontNavbarSection(): string {
       <button type="button" onclick="toggleStorefrontTheme()" id="storefrontThemeToggleMobile" class="theme-toggle-btn relative text-white hover:text-pink-400 transition p-2 border border-white/20 rounded-full w-9 h-9 flex items-center justify-center">
         <i id="storefrontThemeIconMobile" class="fas fa-moon text-[16px]"></i>
       </button>
-      <button type="button" onclick="toggleMobileSearch()" class="text-white hover:text-pink-400 transition p-2">
+      <button type="button" onclick="focusProductsSearch()" class="text-white hover:text-pink-400 transition p-2" aria-label="Tìm sản phẩm">
         <i class="fas fa-search text-[18px]"></i>
       </button>
       <button onclick="openCart()" id="cartNavBtnMobile" class="relative text-white hover:text-pink-400 transition p-2">
         <i class="fas fa-shopping-cart text-[18px]"></i>
         <span id="cartBadgeMobile" class="absolute top-0 right-0 bg-[#881337] text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center hidden font-bold">0</span>
-      </button>
-    </div>
-  </div>
-  
-  <!-- Mobile Search Bar (Hidden by default) -->
-  <div id="mobileSearchBar" class="hidden md:hidden border-t border-white/10 p-3 bg-[#0b0a14]/95 backdrop-blur-md">
-    <div class="relative flex items-center gap-2">
-      <div class="relative flex-1">
-        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-        <input type="text" id="mobileSearchInput" placeholder="Tìm sản phẩm..." class="w-full bg-white/10 text-white placeholder-gray-400 border-none rounded-xl py-2 pl-9 pr-4 focus:outline-none focus:ring-1 focus:ring-pink-400 text-sm" oninput="searchProducts(this.value)">
-      </div>
-      <button type="button" onclick="toggleMobileSearch()" class="text-gray-400 hover:text-white transition p-2 flex-shrink-0" aria-label="Đóng tìm kiếm">
-        <i class="fas fa-times text-lg"></i>
       </button>
     </div>
   </div>
@@ -148,23 +135,23 @@ export function storefrontFilterBarSection(): string {
   return `<!-- FILTER BAR -->
 <section class="sticky top-20 z-40" id="filterBar">
   <div class="filter-shell">
-    <div class="filter-search-row flex gap-2">
-      <!-- Desktop Search (Hidden on Mobile) -->
-      <div class="filter-search-wrap flex-1 hidden md:flex">
-        <i class="fas fa-search filter-search-icon" aria-hidden="true"></i>
-        <input type="text" id="searchInput" placeholder="Tìm sản phẩm..." class="filter-search-input w-full" oninput="searchProducts(this.value)">
+    <div class="filter-search-row flex flex-col gap-2 md:flex-row">
+      <div class="flex gap-2">
+        <div class="filter-search-wrap flex-1">
+          <i class="fas fa-search filter-search-icon" aria-hidden="true"></i>
+          <input type="text" id="searchInput" placeholder="Tìm sản phẩm..." class="filter-search-input w-full" oninput="searchProducts(this.value)">
+        </div>
+        <button type="button" class="w-[2.8rem] h-[2.8rem] md:h-[2.4rem] md:w-[2.4rem] flex-shrink-0 flex items-center justify-center rounded-xl border border-gray-200 bg-white/80 text-gray-600 hover:bg-gray-100 hover:text-[#881337] transition shadow-sm" onclick="openFilterModal()" aria-label="Bộ lọc nâng cao" title="Bộ lọc nâng cao">
+          <i class="fas fa-sliders-h"></i>
+        </button>
       </div>
-      
-      <div class="filter-chip-row flex flex-1 md:flex-none overflow-x-auto no-scrollbar gap-2" id="filterChipRow">
+
+      <div class="filter-chip-row flex overflow-x-auto no-scrollbar gap-2 md:flex-1" id="filterChipRow">
         <button class="filter-btn active whitespace-nowrap" data-cat="all" onclick="filterProducts('all',this)">Tất cả</button>
         <button class="filter-btn whitespace-nowrap" data-cat="unisex" onclick="filterProducts('unisex',this)">Unisex</button>
         <button class="filter-btn whitespace-nowrap" data-cat="male" onclick="filterProducts('male',this)">Nam</button>
         <button class="filter-btn whitespace-nowrap" data-cat="female" onclick="filterProducts('female',this)">Nữ</button>
       </div>
-
-      <button type="button" class="w-[2.8rem] h-[2.8rem] md:h-[2.4rem] md:w-[2.4rem] flex-shrink-0 flex items-center justify-center rounded-xl border border-gray-200 bg-white/80 text-gray-600 hover:bg-gray-100 hover:text-[#881337] transition shadow-sm" onclick="openFilterModal()" aria-label="Bộ lọc nâng cao" title="Bộ lọc nâng cao">
-        <i class="fas fa-sliders-h"></i>
-      </button>
     </div>
   </div>
   <div class="filter-meta-row">

@@ -1625,20 +1625,21 @@ function toggleMobileMenu() {
   m.classList.toggle('hidden')
 }
 
-function toggleMobileSearch() {
-  const bar = document.getElementById('mobileSearchBar')
-  const input = document.getElementById('mobileSearchInput')
-  if (bar.classList.contains('hidden')) {
-    bar.classList.remove('hidden')
-    if (input) input.focus()
-  } else {
-    bar.classList.add('hidden')
-    if (input) {
-      input.value = ''
-      searchProducts('') // clear search
+function focusProductsSearch() {
+  const filterBar = document.getElementById('filterBar')
+  const input = document.getElementById('searchInput')
+  if (!filterBar || !input) return
+  filterBar.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  setTimeout(() => {
+    try {
+      input.focus({ preventScroll: true })
+    } catch (_) {
+      input.focus()
     }
-  }
+    if (String(input.value || '').trim()) input.select()
+  }, 260)
 }
+const toggleMobileSearch = focusProductsSearch
 // ── CART MODAL ────────────────────────────────────
 function openCart() {
   cartStep = 1
