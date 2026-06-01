@@ -2906,7 +2906,7 @@ function loadTurnstilePublicConfig() {
 async function renderUserAuthTurnstile() {
   await loadTurnstilePublicConfig()
   const wrap = document.getElementById('userAuthTurnstileWrap')
-  const widget = document.getElementById('userAuthTurnstileWidget')
+  let widget = document.getElementById('userAuthTurnstileWidget')
   if (!wrap || !widget || !userAuthTurnstileEnabled || !userAuthTurnstileSiteKey) {
     if (wrap) wrap.classList.add('hidden')
     return
@@ -2918,14 +2918,24 @@ async function renderUserAuthTurnstile() {
   wrap.classList.remove('hidden')
   await loadTurnstileScript()
   if (!window.turnstile || userAuthTurnstileWidgetId !== null) return
-  userAuthTurnstileWidgetId = window.turnstile.render('userAuthTurnstileWidget', {
-    sitekey: userAuthTurnstileSiteKey,
-    theme: document.body.dataset.storefrontTheme === 'dark' ? 'dark' : 'light',
-    action: 'storefront_auth',
-    callback: (token) => { userAuthTurnstileToken = token || '' },
-    'expired-callback': () => { userAuthTurnstileToken = '' },
-    'error-callback': () => { userAuthTurnstileToken = '' }
-  })
+  await new Promise((resolve) => requestAnimationFrame(resolve))
+  widget = document.getElementById('userAuthTurnstileWidget')
+  if (!widget || !widget.isConnected) return
+  widget.innerHTML = ''
+  try {
+    userAuthTurnstileWidgetId = window.turnstile.render(widget, {
+      sitekey: userAuthTurnstileSiteKey,
+      theme: document.body.dataset.storefrontTheme === 'dark' ? 'dark' : 'light',
+      action: 'storefront_auth',
+      callback: (token) => { userAuthTurnstileToken = token || '' },
+      'expired-callback': () => { userAuthTurnstileToken = '' },
+      'error-callback': () => { userAuthTurnstileToken = '' }
+    })
+  } catch (_) {
+    userAuthTurnstileWidgetId = null
+    wrap.classList.add('hidden')
+    return
+  }
 }
 
 function getUserAuthTurnstileToken() {
