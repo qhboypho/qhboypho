@@ -210,7 +210,7 @@ export function storefrontMobileBottomNavSection(): string {
       <i class="fas fa-table-cells-large text-xl"></i>
       <span class="text-[10px] font-medium">Sản Phẩm</span>
     </a>
-    <button onclick="openCart()" class="mobile-bottom-nav-link relative flex flex-col items-center justify-center gap-1 w-16 text-slate-500 hover:text-[#881337] transition">
+    <button onclick="openCart()" id="cartBottomNavBtn" class="mobile-bottom-nav-link relative flex flex-col items-center justify-center gap-1 w-16 text-slate-500 hover:text-[#881337] transition">
       <div class="relative">
         <i class="fas fa-shopping-cart text-xl"></i>
         <span id="cartBadgeBottom" class="absolute -top-1.5 -right-2 bg-[#881337] text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center hidden font-bold">0</span>

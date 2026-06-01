@@ -369,7 +369,7 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
         <i class="fas fa-times text-gray-600"></i>
       </button>
     </div>
-    <div id="detailContent" class="px-6 py-4 overflow-y-auto flex-1"></div>
+    <div id="detailContent" class="px-2 pt-0 pb-2 overflow-y-auto flex-1"></div>
     <div id="detailActionBarContainer" class="sticky bottom-0 bg-white rounded-b-3xl border-t px-6 py-4 w-full flex gap-3" style="z-index: 10; flex-shrink: 0;"></div>
   </div>
 </div>
@@ -745,10 +745,10 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
 </div>
 
 <!-- VARIANT MODAL -->
-<div id="variantModalOverlay" class="fixed inset-0 bg-black/40 z-[10010] hidden opacity-0 transition-opacity duration-300" onclick="closeVariantModal(event)">
-  <div id="variantModalPanel" class="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-2xl transform translate-y-full transition-transform duration-300 flex flex-col max-h-[90vh]" onclick="event.stopPropagation()">
+<div id="variantModalOverlay" class="fixed inset-0 z-[10010] hidden items-end bg-black/40 opacity-0 transition-opacity duration-300 md:items-center md:justify-center md:bg-slate-950/55 md:p-6" onclick="closeVariantModal(event)">
+  <div id="variantModalPanel" class="relative flex max-h-[90vh] w-full flex-col rounded-t-3xl bg-white opacity-0 shadow-2xl transition-[transform,opacity] duration-300 translate-y-full md:max-h-[min(88vh,46rem)] md:max-w-[44rem] md:translate-y-4 md:scale-[0.985] md:rounded-[2rem] md:border md:border-slate-200/80 md:shadow-[0_32px_90px_rgba(15,23,42,0.28)]" onclick="event.stopPropagation()">
     <!-- Header -->
-    <div class="flex items-center justify-between px-5 py-4 border-b">
+    <div class="flex items-center justify-between border-b px-5 py-4 md:px-7 md:py-5">
       <h3 class="font-bold text-gray-900 font-display">Tùy chọn sản phẩm</h3>
       <button onclick="closeVariantModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition">
         <i class="fas fa-times text-gray-600"></i>
@@ -756,13 +756,13 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
     </div>
     
     <!-- Content -->
-    <div class="flex-1 overflow-y-auto px-5 py-4 space-y-5">
+    <div class="flex-1 overflow-y-auto px-5 py-4 space-y-5 md:px-7 md:py-6 md:space-y-6">
       <!-- Product Info -->
-      <div class="flex gap-4 items-center">
-        <img id="variantModalProductImg" src="" class="w-20 h-20 object-cover rounded-xl border">
-        <div>
-          <p class="text-xl font-bold text-pink-500" id="variantModalProductPrice"></p>
-          <p class="text-sm text-gray-500 mt-1">Kho: <span id="variantModalStock">Còn hàng</span></p>
+      <div class="flex items-center gap-4 md:gap-5">
+        <img id="variantModalProductImg" src="" class="h-20 w-20 rounded-xl border object-cover md:h-24 md:w-24 md:rounded-2xl">
+        <div class="min-w-0 flex-1">
+          <p class="text-xl font-bold text-pink-500 md:text-2xl" id="variantModalProductPrice"></p>
+          <p class="mt-1 text-sm text-gray-500">Kho: <span id="variantModalStock">Còn hàng</span></p>
         </div>
       </div>
       
@@ -770,16 +770,16 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
       <div>
         <div class="flex justify-between items-center mb-2">
           <label class="font-bold text-gray-800 text-sm">Màu sắc</label>
-          <span id="variantModalColorLabel" class="text-xs text-gray-500 font-medium"></span>
+          <span id="variantModalColorLabel" class="hidden"></span>
         </div>
-        <div id="variantModalColorOptions" class="flex gap-3 overflow-x-auto pb-2 scrollbar-hide"></div>
+        <div id="variantModalColorOptions" class="flex gap-3 overflow-x-auto pb-2 scrollbar-hide md:flex-wrap md:overflow-visible"></div>
       </div>
       
       <!-- Sizes -->
       <div>
         <div class="flex justify-between items-center mb-2">
           <label class="font-bold text-gray-800 text-sm">Kích cỡ</label>
-          <span id="variantModalSizeLabel" class="text-xs text-gray-500 font-medium"></span>
+          <span id="variantModalSizeLabel" class="hidden"></span>
         </div>
         <div id="variantModalSizeOptions" class="flex flex-wrap gap-2"></div>
       </div>
@@ -796,8 +796,8 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
     </div>
     
     <!-- Footer -->
-    <div class="px-5 py-4 border-t bg-white flex-shrink-0">
-      <button onclick="submitVariantModal()" class="btn-primary w-full text-white py-3.5 rounded-xl font-bold text-base">
+    <div class="flex-shrink-0 border-t bg-white px-5 py-4 md:px-7 md:py-5">
+      <button id="variantSubmitBtn" onclick="submitVariantModal()" class="btn-primary w-full text-white py-3.5 rounded-xl font-bold text-base">
         Xác nhận
       </button>
     </div>

@@ -5,6 +5,138 @@ export function storefrontDetailOrderScript(): string {
   axios.post('/api/products/' + productId + '/view').catch(() => {})
 }
 
+let detailGalleryImages = []
+let detailGalleryIndex = 0
+let detailGalleryDragStartX = 0
+let detailGalleryDragStartY = 0
+let detailGalleryDragDeltaX = 0
+let detailGalleryIsDragging = false
+
+function buildDetailGalleryImages(defaultImage, baseImages, colorOptions) {
+  const unique = []
+  const pushImage = (value) => {
+    const src = String(value || '').trim()
+    if (!src || unique.includes(src)) return
+    unique.push(src)
+  }
+  pushImage(defaultImage)
+  if (Array.isArray(colorOptions)) colorOptions.forEach((item) => pushImage(item?.image))
+  if (Array.isArray(baseImages)) baseImages.forEach((item) => pushImage(item))
+  return unique
+}
+
+function getCurrentDetailGalleryImage() {
+  return detailGalleryImages[detailGalleryIndex] || detailGalleryImages[0] || ''
+}
+
+function updateDetailGalleryUI(immediate) {
+  const track = document.getElementById('detailGalleryTrack')
+  if (track) {
+    track.style.transitionDuration = immediate ? '0ms' : ''
+    track.style.transform = 'translate3d(' + (-detailGalleryIndex * 100) + '%, 0, 0)'
+  }
+
+  const counter = document.getElementById('detailGalleryCounter')
+  if (counter) counter.textContent = Math.max(1, detailGalleryIndex + 1) + '/' + Math.max(1, detailGalleryImages.length)
+
+  document.querySelectorAll('[data-detail-thumb-index]').forEach((thumb) => {
+    const thumbIndex = Number(thumb.getAttribute('data-detail-thumb-index'))
+    const active = thumbIndex === detailGalleryIndex
+    thumb.classList.toggle('is-active', active)
+    thumb.setAttribute('aria-pressed', active ? 'true' : 'false')
+    if (active) thumb.scrollIntoView({ behavior: immediate ? 'auto' : 'smooth', inline: 'center', block: 'nearest' })
+  })
+
+  const prevBtn = document.getElementById('detailGalleryPrevBtn')
+  const nextBtn = document.getElementById('detailGalleryNextBtn')
+  const atStart = detailGalleryIndex <= 0
+  const atEnd = detailGalleryIndex >= Math.max(0, detailGalleryImages.length - 1)
+  if (prevBtn) {
+    prevBtn.disabled = atStart
+    prevBtn.classList.toggle('is-disabled', atStart)
+  }
+  if (nextBtn) {
+    nextBtn.disabled = atEnd
+    nextBtn.classList.toggle('is-disabled', atEnd)
+  }
+}
+
+function setDetailGalleryIndex(nextIndex, options) {
+  if (!detailGalleryImages.length) return
+  const detailOptions = options || {}
+  const bounded = Math.max(0, Math.min(detailGalleryImages.length - 1, Number(nextIndex) || 0))
+  detailGalleryIndex = bounded
+  updateDetailGalleryUI(!!detailOptions.immediate)
+}
+
+function jumpToDetailGalleryIndex(index, event) {
+  if (event) {
+    event.preventDefault()
+    event.stopPropagation()
+  }
+  setDetailGalleryIndex(index)
+}
+
+function stepDetailGallery(step, event) {
+  if (event) {
+    event.preventDefault()
+    event.stopPropagation()
+  }
+  setDetailGalleryIndex(detailGalleryIndex + Number(step || 0))
+}
+
+function bindDetailGalleryGestures() {
+  const viewport = document.getElementById('detailGalleryViewport')
+  const track = document.getElementById('detailGalleryTrack')
+  if (!viewport || !track || detailGalleryImages.length <= 1) return
+
+  viewport.addEventListener('touchstart', (event) => {
+    const point = event.touches?.[0]
+    if (!point) return
+    detailGalleryIsDragging = true
+    detailGalleryDragStartX = point.clientX
+    detailGalleryDragStartY = point.clientY
+    detailGalleryDragDeltaX = 0
+    track.style.transitionDuration = '0ms'
+  }, { passive: true })
+
+  viewport.addEventListener('touchmove', (event) => {
+    if (!detailGalleryIsDragging) return
+    const point = event.touches?.[0]
+    if (!point) return
+    const deltaX = point.clientX - detailGalleryDragStartX
+    const deltaY = point.clientY - detailGalleryDragStartY
+    if (Math.abs(deltaY) > Math.abs(deltaX) + 10) {
+      detailGalleryIsDragging = false
+      track.style.transitionDuration = ''
+      updateDetailGalleryUI(true)
+      return
+    }
+    detailGalleryDragDeltaX = deltaX
+    track.style.transform = 'translate3d(calc(' + (-detailGalleryIndex * 100) + '% + ' + detailGalleryDragDeltaX + 'px), 0, 0)'
+    if (Math.abs(deltaX) > 6) event.preventDefault()
+  }, { passive: false })
+
+  viewport.addEventListener('touchend', () => {
+    if (!detailGalleryIsDragging) return
+    detailGalleryIsDragging = false
+    track.style.transitionDuration = ''
+    if (Math.abs(detailGalleryDragDeltaX) > 42) {
+      setDetailGalleryIndex(detailGalleryIndex + (detailGalleryDragDeltaX < 0 ? 1 : -1))
+    } else {
+      updateDetailGalleryUI(false)
+    }
+    detailGalleryDragDeltaX = 0
+  }, { passive: true })
+
+  viewport.addEventListener('touchcancel', () => {
+    detailGalleryIsDragging = false
+    detailGalleryDragDeltaX = 0
+    track.style.transitionDuration = ''
+    updateDetailGalleryUI(true)
+  }, { passive: true })
+}
+
 async function showDetail(id, options) {
   try {
     const detailOptions = options || {}
@@ -22,18 +154,34 @@ async function showDetail(id, options) {
     const sizes = safeJson(p.sizes)
     const images = safeJson(p.images)
     const defaultMainImage = String(p.thumbnail || detailColorOptions[0]?.image || images[0] || '').trim()
+    const detailGalleryImageList = buildDetailGalleryImages(defaultMainImage, [p.thumbnail].concat(images), detailColorOptions)
+    const defaultGalleryIndex = Math.max(0, detailGalleryImageList.findIndex((img) => img === defaultMainImage))
     const flashMeta = getFlashSaleMeta(p)
     const detailDisplayPrice = Number(flashMeta?.salePrice || p.display_price || p.price || 0)
     const detailDisplayOriginalPrice = Number(flashMeta?.basePrice || p.display_original_price || p.original_price || detailDisplayPrice)
     const discount = flashMeta ? Number(flashMeta.discountPercent || 0) : (p.original_price ? Math.round((1 - p.price/p.original_price)*100) : 0)
     const detailHtml = \`
     <div class="grid md:grid-cols-2 gap-6">
-      <div>
-        <img id="mainDetailImg" src="\${escapeHtml(defaultMainImage)}" alt="\${escapeHtml(p.name)}" class="w-full rounded-2xl h-80 object-cover mb-3">
-        <div class="img-gallery grid grid-cols-4 gap-2">
-          \${[p.thumbnail, ...images].filter((v,i,a)=>v&&a.indexOf(v)===i).slice(0,8).map(img => \`
-          <img src="\${escapeHtml(img)}" alt="" class="w-full h-16 object-cover rounded-lg border-2 border-transparent hover:border-pink-400"
-            onclick="document.getElementById('mainDetailImg').src='\${escapeJsString(img)}'">\`).join('')}
+      <div class="-mx-2 md:mx-0">
+        <div class="detail-gallery-shell relative mb-2">
+          <div id="detailGalleryViewport" class="detail-gallery-viewport relative w-full aspect-square overflow-hidden bg-slate-100">
+            <div id="detailGalleryTrack" class="detail-gallery-track">
+              \${detailGalleryImageList.map((img, idx) => \`<div class="detail-gallery-slide"><img src="\${escapeHtml(img)}" alt="\${escapeHtml(p.name)} \${idx + 1}" class="w-full h-full object-cover select-none pointer-events-none" draggable="false"></div>\`).join('')}
+            </div>
+            <button id="detailGalleryPrevBtn" type="button" onclick="stepDetailGallery(-1, event)" class="detail-gallery-arrow detail-gallery-arrow--prev hidden md:flex\${detailGalleryImageList.length <= 1 ? ' md:hidden' : ''}" aria-label="Ảnh trước">
+              <i class="fas fa-chevron-left"></i>
+            </button>
+            <button id="detailGalleryNextBtn" type="button" onclick="stepDetailGallery(1, event)" class="detail-gallery-arrow detail-gallery-arrow--next hidden md:flex\${detailGalleryImageList.length <= 1 ? ' md:hidden' : ''}" aria-label="Ảnh sau">
+              <i class="fas fa-chevron-right"></i>
+            </button>
+            <div id="detailGalleryCounter" class="detail-gallery-counter md:hidden">\${defaultGalleryIndex + 1}/\${Math.max(1, detailGalleryImageList.length)}</div>
+          </div>
+        </div>
+        <div id="detailGalleryThumbs" class="img-gallery detail-gallery-thumbs px-2 md:px-0">
+          \${detailGalleryImageList.map((img, idx) => \`
+          <button type="button" class="detail-gallery-thumb\${idx === defaultGalleryIndex ? ' is-active' : ''}" data-detail-thumb-index="\${idx}" onclick="jumpToDetailGalleryIndex(\${idx}, event)" aria-label="Xem ảnh \${idx + 1}" aria-pressed="\${idx === defaultGalleryIndex ? 'true' : 'false'}">
+            <img src="\${escapeHtml(img)}" alt="" class="w-full h-full object-cover" draggable="false">
+          </button>\`).join('')}
         </div>
         <div class="hidden md:block">
           <div class="detail-reviews-section review-section mt-6 hidden">
@@ -43,8 +191,9 @@ async function showDetail(id, options) {
       </div>
       <div>
         \${p.brand ? \`<p class="text-sm text-pink-500 font-medium mb-1">\${escapeHtml(p.brand)}</p>\` : ''}
-        <div class="flex items-start justify-between gap-2 mb-3">
-          <h2 class="font-display text-xl md:text-2xl font-bold text-gray-900">\${escapeHtml(p.name)}</h2>
+        <div class="detail-product-heading-row flex items-center justify-between gap-3 mb-3">
+          <h2 id="detailProductTitle" class="detail-product-title font-display font-bold text-gray-900 min-w-0 flex-1">\${escapeHtml(p.name)}</h2>
+          \${renderFavoriteButton(p.id, 'favorite-toggle-btn--detail')}
         </div>
         \${p.has_flash_sale ? \`<div class="flex flex-wrap items-center gap-2 mb-3"><span class="flash-sale-badge"><i class="fas fa-bolt"></i> Flash Sale</span><span class="flash-sale-countdown" data-flash-sale-ends-at="\${escapeHtml(flashMeta?.endsAt || '')}">\${formatFlashSaleCountdown(flashMeta?.endsAt || '')}</span></div>\` : ''}
         <div class="flex items-baseline gap-3 mb-4">
@@ -87,6 +236,10 @@ async function showDetail(id, options) {
       </div>
     </div>\`
     document.getElementById('detailContent').innerHTML = detailHtml
+    detailGalleryImages = detailGalleryImageList.slice()
+    detailGalleryIndex = defaultGalleryIndex
+    updateDetailGalleryUI(true)
+    bindDetailGalleryGestures()
     
     document.getElementById('detailActionBarContainer').innerHTML = isCurrentUserBlocked()
       ? renderBlockedPurchaseActions('w-full py-3.5 rounded-xl font-bold text-base')
@@ -125,9 +278,9 @@ function selectDetailColorByIndex(idx, btn) {
   if (!item) return
   detailSelectedColorIndex = idx
   detailSelectedColor = String(item.name || '').trim()
-  detailSelectedColorImage = String(item.image || '').trim() || String(document.getElementById('mainDetailImg')?.src || '').trim()
-  const mainImg = document.getElementById('mainDetailImg')
-  if (mainImg && detailSelectedColorImage) mainImg.src = detailSelectedColorImage
+  detailSelectedColorImage = String(item.image || '').trim() || getCurrentDetailGalleryImage()
+  const galleryIndex = detailSelectedColorImage ? detailGalleryImages.findIndex((img) => img === detailSelectedColorImage) : -1
+  if (galleryIndex >= 0) setDetailGalleryIndex(galleryIndex)
   const label = document.getElementById('detailColorLabel')
   if (label) label.textContent = detailSelectedColor
   document.querySelectorAll('.detail-color-card').forEach(b => b.classList.remove('border-pink-500','ring-2','ring-pink-100','shadow-sm'))
@@ -214,7 +367,7 @@ function addDetailToCart() {
     showToast('Đã cập nhật phân loại sản phẩm', 'success', 2200)
     return
   }
-  animateFlyToCart(resolveFlyImage(currentProduct), document.getElementById('mainDetailImg'))
+  animateFlyToCart(resolveFlyImage(currentProduct), document.getElementById('detailGalleryViewport'))
   if (addToCart(currentProduct, color, size, 1)) {
     showToast('Đã thêm "' + currentProduct.name + '" vào giỏ hàng!', 'success', 2500)
     closeDetail()
@@ -434,19 +587,52 @@ function resolveFlyImage(product) {
   return product.thumbnail || imgs[0] || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200'
 }
 
+function isVisibleFlyTarget(el) {
+  if (!(el instanceof HTMLElement)) return false
+  const style = window.getComputedStyle(el)
+  if (style.display === 'none' || style.visibility === 'hidden' || Number(style.opacity || '1') <= 0.08) return false
+  if (el.closest('#mobileBottomNav')?.classList.contains('is-hidden')) return false
+  const rect = el.getBoundingClientRect()
+  return rect.width > 0 && rect.height > 0 && rect.bottom >= 0 && rect.right >= 0 && rect.top <= window.innerHeight && rect.left <= window.innerWidth
+}
+
+function getCartFlyTarget() {
+  const isMobile = window.innerWidth <= 768
+  const candidates = isMobile
+    ? [
+        document.getElementById('cartBottomNavBtn'),
+        document.getElementById('cartNavBtnMobile'),
+        document.getElementById('cartBadgeBottom')?.parentElement,
+        document.getElementById('cartBadgeMobile')?.parentElement,
+        document.getElementById('cartNavBtn')
+      ]
+    : [
+        document.getElementById('cartNavBtn'),
+        document.getElementById('cartNavBtnMobile'),
+        document.getElementById('cartBottomNavBtn'),
+        document.getElementById('cartBadgeMobile')?.parentElement,
+        document.getElementById('cartBadgeBottom')?.parentElement
+      ]
+  return candidates.find((el) => isVisibleFlyTarget(el)) || document.getElementById(isMobile ? 'cartBottomNavBtn' : 'cartNavBtn') || document.getElementById('cartNavBtnMobile')
+}
+
 function animateFlyToCart(imgUrl, sourceEl) {
-  const cartBtn = document.getElementById('cartNavBtn')
+  const cartBtn = getCartFlyTarget()
   if (!cartBtn) return
   const flyImg = imgUrl || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200'
   const fromRect = sourceEl ? sourceEl.getBoundingClientRect() : null
   const toRect = cartBtn.getBoundingClientRect()
+  const isMobile = window.innerWidth <= 768
 
   const chip = document.createElement('div')
   chip.className = 'cart-fly-chip'
-  const startX = fromRect ? (fromRect.left + fromRect.width / 2 - 21) : (window.innerWidth / 2 - 21)
-  const startY = fromRect ? (fromRect.top + fromRect.height / 2 - 21) : (window.innerHeight / 2 - 21)
+  const chipSize = isMobile ? 56 : 52
+  const startX = fromRect ? (fromRect.left + fromRect.width / 2 - chipSize / 2) : (window.innerWidth / 2 - chipSize / 2)
+  const startY = fromRect ? (fromRect.top + fromRect.height / 2 - chipSize / 2) : (window.innerHeight / 2 - chipSize / 2)
   chip.style.left = startX + 'px'
   chip.style.top = startY + 'px'
+  chip.style.width = chipSize + 'px'
+  chip.style.height = chipSize + 'px'
 
   const img = document.createElement('img')
   img.src = flyImg
@@ -454,14 +640,56 @@ function animateFlyToCart(imgUrl, sourceEl) {
   chip.appendChild(img)
   document.body.appendChild(chip)
 
-  requestAnimationFrame(() => {
-    const endX = toRect.left + toRect.width / 2 - 21
-    const endY = toRect.top + toRect.height / 2 - 21
-    chip.style.transform = 'translate(' + (endX - startX) + 'px, ' + (endY - startY) + 'px) scale(0.35)'
-    chip.style.opacity = '0.1'
-  })
+  const endX = toRect.left + toRect.width / 2 - chipSize / 2
+  const endY = toRect.top + toRect.height / 2 - chipSize / 2
+  const deltaX = endX - startX
+  const deltaY = endY - startY
+  const arcHeight = isMobile
+    ? Math.max(92, Math.min(170, Math.abs(deltaX) * 0.15 + Math.abs(deltaY) * 0.16))
+    : Math.max(104, Math.min(188, Math.abs(deltaX) * 0.18 + Math.abs(deltaY) * 0.14))
+  const control1X = startX + deltaX * 0.16
+  const control1Y = startY - arcHeight
+  const control2X = startX + deltaX * 0.84
+  const control2Y = endY - (arcHeight * (isMobile ? 0.9 : 0.72))
+  const duration = isMobile ? 1320 : 1120
+  const startAt = performance.now()
+  const rotateDirection = deltaX >= 0 ? 1 : -1
 
-  setTimeout(() => chip.remove(), 760)
+  chip.classList.add('is-active')
+
+  function step(now) {
+    const elapsed = now - startAt
+    const t = Math.min(1, elapsed / duration)
+    const ease = 1 - Math.pow(1 - t, 3)
+    const inv = 1 - ease
+    const x = (inv * inv * inv * startX)
+      + (3 * inv * inv * ease * control1X)
+      + (3 * inv * ease * ease * control2X)
+      + (ease * ease * ease * endX)
+    const y = (inv * inv * inv * startY)
+      + (3 * inv * inv * ease * control1Y)
+      + (3 * inv * ease * ease * control2Y)
+      + (ease * ease * ease * endY)
+    const burst = t < 0.22 ? Math.sin((t / 0.22) * Math.PI) * 0.12 : 0
+    const scale = Math.max(0.42, 1 + burst - ease * (isMobile ? 0.58 : 0.52))
+    const rotate = rotateDirection * ease * (isMobile ? 18 : 14)
+    const opacity = t < 0.84 ? 1 : 1 - ((t - 0.84) / 0.16) * 0.92
+    chip.style.transform = 'translate(' + (x - startX) + 'px, ' + (y - startY) + 'px) scale(' + scale.toFixed(3) + ') rotate(' + rotate.toFixed(2) + 'deg)'
+    chip.style.opacity = String(Math.max(0.12, opacity))
+
+    if (t < 1) {
+      requestAnimationFrame(step)
+      return
+    }
+
+    chip.remove()
+    cartBtn.classList.remove('cart-fly-target-pulse')
+    void cartBtn.offsetWidth
+    cartBtn.classList.add('cart-fly-target-pulse')
+    setTimeout(() => cartBtn.classList.remove('cart-fly-target-pulse'), 520)
+  }
+
+  requestAnimationFrame(step)
 }
 
 function productRequiresSkuSelection(product) {
@@ -851,11 +1079,11 @@ async function openVariantModal(productId, actionType, editCartId) {
       if (orderColorOptions.length) {
         colorDiv.innerHTML = orderColorOptions.map((item, idx) => \`
           <button type="button" class="variant-color-btn w-[4.5rem] flex-shrink-0 border-2 border-transparent rounded-xl overflow-hidden transition relative flex flex-col" onclick="selectVariantColorByIndex(\${idx}, this)">
-            <div class="aspect-square bg-gray-100 w-full">
+            <div class="aspect-square bg-gray-100 w-full flex items-center justify-center overflow-hidden">
               <img src="\${escapeHtml(item.image)}" alt="" class="w-full h-full object-cover">
             </div>
-            <div class="px-1 py-1.5 text-center border-t w-full bg-white">
-              <span class="block text-[11px] font-medium text-gray-900 leading-tight truncate">\${escapeHtml(item.name)}</span>
+            <div class="px-1.5 pt-1 pb-0.5 text-center border-t w-full bg-white min-h-[2.2rem] flex items-start justify-center">
+              <span class="block text-[11px] font-medium text-gray-900 leading-tight overflow-hidden" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;text-overflow:ellipsis;word-break:break-word;overflow-wrap:anywhere;">\${escapeHtml(item.name)}</span>
             </div>
           </button>
         \`).join('')
@@ -923,7 +1151,12 @@ async function openVariantModal(productId, actionType, editCartId) {
         overlay.classList.remove('opacity-0')
         overlay.classList.add('opacity-100')
         panel.classList.remove('translate-y-full')
+        panel.classList.remove('opacity-0')
+        panel.classList.remove('md:translate-y-4')
+        panel.classList.remove('md:scale-[0.985]')
         panel.classList.add('translate-y-0')
+        panel.classList.add('opacity-100')
+        panel.classList.add('scale-100')
       }, 10)
     }
   } catch (e) {
@@ -964,7 +1197,12 @@ function closeVariantModal() {
   const panel = document.getElementById('variantModalPanel')
   if (panel) {
     panel.classList.remove('translate-y-0')
+    panel.classList.remove('opacity-100')
+    panel.classList.remove('scale-100')
     panel.classList.add('translate-y-full')
+    panel.classList.add('opacity-0')
+    panel.classList.add('md:translate-y-4')
+    panel.classList.add('md:scale-[0.985]')
   }
   const overlay = document.getElementById('variantModalOverlay')
   if (overlay) {
@@ -1022,7 +1260,7 @@ function submitVariantModal() {
   }
 
   if (variantActionType === 'add_to_cart') {
-    animateFlyToCart(resolveFlyImage(currentProduct), document.getElementById('variantSubmitBtn'))
+    animateFlyToCart(resolveFlyImage(currentProduct), document.getElementById('variantModalProductImg') || document.getElementById('variantSubmitBtn'))
     if (addToCart(currentProduct, selectedColor, selectedSize, orderQty)) {
       closeVariantModal()
       showToast('Đã thêm "' + currentProduct.name + '" vào giỏ hàng!', 'success', 2500)

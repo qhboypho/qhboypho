@@ -185,7 +185,7 @@ function renderFavoriteButton(productId, extraClass) {
   if (!id) return ''
   const active = isFavoriteProduct(id)
   const cls = extraClass ? ' ' + extraClass : ''
-  return '<button type="button" class="favorite-toggle-btn' + (active ? ' active' : '') + cls + '" title="' + (active ? 'Bỏ yêu thích' : 'Lưu yêu thích') + '" aria-label="' + (active ? 'Bỏ yêu thích' : 'Lưu yêu thích') + '" aria-pressed="' + (active ? 'true' : 'false') + '" onclick="toggleFavoriteProduct(event,' + id + ')"><i class="' + (active ? 'fas' : 'far') + ' fa-heart"></i></button>'
+  return '<button type="button" class="favorite-toggle-btn' + (active ? ' active' : '') + cls + '" title="' + (active ? 'Bỏ yêu thích' : 'Lưu yêu thích') + '" aria-label="' + (active ? 'Bỏ yêu thích' : 'Lưu yêu thích') + '" aria-pressed="' + (active ? 'true' : 'false') + '" onclick="toggleFavoriteProduct(event,' + id + ')"><i class="fas fa-heart"></i></button>'
 }
 
 function syncFavoriteButtonState(productId) {
@@ -198,7 +198,7 @@ function syncFavoriteButtonState(productId) {
     btn.setAttribute('title', active ? 'Bỏ yêu thích' : 'Lưu yêu thích')
     btn.setAttribute('aria-label', active ? 'Bỏ yêu thích' : 'Lưu yêu thích')
     const icon = btn.querySelector('i')
-    if (icon) icon.className = (active ? 'fas' : 'far') + ' fa-heart'
+    if (icon) icon.className = 'fas fa-heart'
   })
 }
 
@@ -1326,7 +1326,7 @@ function renderStorefrontProductCard(p) {
       <!-- Discount badge hidden temporarily; keep logic for later reuse.
       \${!p.has_flash_sale && discount > 0 ? \`<span class="absolute top-3 left-3 badge-sale text-white text-xs font-bold px-2 py-1 rounded-full">-\${discount}%</span>\` : ''}
       -->
-      \${p.is_featured ? \`<span class="absolute top-3 right-3 product-featured-badge bg-amber-400 text-white text-xs font-bold px-2 py-1 rounded-full">⭐ Hot</span>\` : ''}
+      \${p.is_featured ? \`<span class="absolute top-3 right-3 product-featured-badge"><i class="fas fa-fire-flame-curved" aria-hidden="true"></i><span>Hot</span></span>\` : ''}
       <div class="absolute inset-0 hidden bg-black/0 transition items-center justify-center opacity-0 hover:bg-black/10 hover:opacity-100 md:flex">
         <span class="bg-white/90 text-gray-800 px-3 py-1 rounded-full text-xs font-semibold">Xem chi tiết</span>
       </div>
@@ -1857,7 +1857,7 @@ function updateCartSummary() {
     deleteBtn.classList.add('hidden')
     checkoutBtn.disabled = true
   }
-  document.getElementById('selectedCount').textContent = 'Da chon ' + count
+  document.getElementById('selectedCount').textContent = 'Đã chọn ' + count
 }
 function changeCartQty(cartId, delta) {
   const item = cart.find(i=>i.cartId===cartId)
@@ -2427,19 +2427,19 @@ function ensureHeroCarouselRuntimeStyle() {
     .hero-carousel-media{position:relative;overflow:hidden;background:linear-gradient(135deg,#1f2937,#831843);aspect-ratio:1/1}
     .hero-carousel-media img{width:100%;height:100%;object-fit:cover;display:block}
     .hero-carousel-media::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(17,24,39,.08),rgba(190,24,93,.24))}
+    .hero-carousel-media::before{content:'';position:absolute;left:0;right:0;bottom:0;height:38%;background:linear-gradient(180deg,rgba(7,12,24,0) 0%,rgba(7,12,24,.18) 34%,rgba(7,12,24,.58) 72%,rgba(7,12,24,.84) 100%);z-index:2;pointer-events:none}
     .hero-carousel-detail-overlay{position:absolute;inset:0;z-index:3;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0);opacity:0;transition:background .2s ease,opacity .2s ease;border:0;cursor:pointer}
     .hero-carousel-media:hover .hero-carousel-detail-overlay{background:rgba(0,0,0,.16);opacity:1}
     .hero-carousel-detail-overlay span{display:inline-flex;align-items:center;gap:.4rem;border-radius:999px;background:rgba(255,255,255,.92);color:#1f2937;font-size:12px;font-weight:700;padding:8px 12px;box-shadow:0 12px 26px rgba(15,23,42,.2)}
-    .hero-carousel-kicker{position:absolute;left:18px;right:18px;bottom:16px;color:#fff;font-size:11px;font-weight:800;letter-spacing:.16em;text-transform:uppercase;text-shadow:0 2px 10px rgba(0,0,0,.38);z-index:2}
-    .hero-carousel-body{padding:14px 16px 16px;display:flex;flex-direction:column;gap:9px}
-    .hero-carousel-title{font-family:'Inter',sans-serif;font-size:16px;font-weight:800;line-height:1.28;color:#111827;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
-    .hero-carousel-desc{font-size:12px;line-height:1.45;color:#64748b;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+    .hero-carousel-kicker{position:absolute;left:18px;right:18px;bottom:14px;color:rgba(248,250,252,.98);font-size:11px;font-weight:900;letter-spacing:.16em;text-transform:uppercase;text-shadow:0 1px 2px rgba(2,6,23,.45);z-index:4;-webkit-font-smoothing:antialiased;text-rendering:geometricPrecision}
+    .hero-carousel-body{padding:14px 16px 16px;display:flex;flex-direction:column;gap:11px;background:rgba(8,16,32,.88);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility}
+    .hero-carousel-title{font-family:'Inter',sans-serif;font-size:16px;font-weight:800;line-height:1.28;color:#f8fafc;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;text-shadow:none;filter:none}
     .hero-carousel-footer{display:flex;align-items:center;justify-content:space-between;gap:12px}
     .hero-carousel-price-wrap{display:flex;align-items:center;gap:8px;min-width:0;flex-wrap:wrap}
-    .hero-carousel-price{font-size:16px;font-weight:800;white-space:nowrap}
-    .hero-carousel-original-price{font-size:12px;color:#9ca3af;text-decoration:line-through;white-space:nowrap}
-    .hero-carousel-link{border:0;background:transparent;color:#64748b;font-size:14px;font-weight:700;white-space:nowrap;cursor:pointer}
-    .hero-carousel-link:hover{color:#db2777}
+    .hero-carousel-price{font-size:18px;font-weight:900;white-space:nowrap}
+    .hero-carousel-original-price{font-size:11px;color:#9ca3af;text-decoration:line-through;white-space:nowrap}
+    .hero-carousel-link{border:0;background:transparent;color:#f8fafc;font-size:14px;font-weight:700;white-space:nowrap;cursor:pointer;text-shadow:none}
+    .hero-carousel-link:hover{color:#f9a8d4}
     .hero-carousel-nav{position:absolute;top:50%;transform:translateY(-50%);z-index:10;width:42px;height:42px;border:0;border-radius:999px;background:rgba(255,255,255,.92);color:#475569;box-shadow:0 12px 28px rgba(15,23,42,.22);display:flex;align-items:center;justify-content:center;transition:transform .2s ease,background .2s ease,color .2s ease}
     .hero-carousel-nav:hover{transform:translateY(-50%) scale(1.06);background:#fff;color:#db2777}
     .hero-carousel-prev{left:0}
@@ -2461,13 +2461,13 @@ function ensureHeroCarouselRuntimeStyle() {
       .hero-carousel-prev{left:2px}
       .hero-carousel-next{right:2px}
       .hero-carousel-detail-overlay{display:none}
-      .hero-carousel-kicker{left:12px;right:12px;bottom:12px;font-size:10px}
-      .hero-carousel-body{padding:10px 12px 12px;gap:5px;min-height:0;flex:1}
+      .hero-carousel-media::before{display:none}
+      .hero-carousel-kicker{display:none}
+      .hero-carousel-body{padding:10px 12px 12px;gap:7px;min-height:0;flex:1}
       .hero-carousel-title{font-size:13px;line-height:1.22}
-      .hero-carousel-desc{font-size:10px;min-height:24px}
       .hero-carousel-footer{margin-top:auto;gap:8px;align-items:flex-end}
       .hero-carousel-price-wrap{gap:0}
-      .hero-carousel-price{font-size:14px}
+      .hero-carousel-price{font-size:15px}
       .hero-carousel-original-price{font-size:11px}
       .hero-carousel-link{font-size:12px}
     }
@@ -2478,7 +2478,6 @@ function ensureHeroCarouselRuntimeStyle() {
 function renderHeroCarouselCard(b, index) {
   const title = escapeHtml(b.title || 'Sản phẩm thịnh hành')
   const subtitle = escapeHtml(b.subtitle || 'Đang thịnh hành')
-  const desc = escapeHtml(b.description || 'Mẫu đang được quan tâm trong bộ sưu tập QH Clothes.')
   const price = escapeHtml(b.price || '')
   const originalPrice = escapeHtml(b.original_price || '')
   const image = escapeHtml(b.image_url || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400')
@@ -2493,7 +2492,6 @@ function renderHeroCarouselCard(b, index) {
     </div>
     <div class="hero-carousel-body">
       <h3 class="hero-carousel-title">\${title}</h3>
-      <p class="hero-carousel-desc">\${desc}</p>
       <div class="hero-carousel-footer">
         <div class="hero-carousel-price-wrap">
           <span class="hero-carousel-price text-gradient-price">\${price}</span>
