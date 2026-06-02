@@ -1302,14 +1302,6 @@ function getProductPreviewLimit() {
   return cols * PRODUCT_PREVIEW_ROWS
 }
 
-function renderProductCardBrandRow(p) {
-  const brand = String(p?.brand || '').trim()
-  return '<div class="product-card-brand-row text-xs text-pink-500 font-medium mb-1">'
-    + (brand ? '<span class="product-card-brand-text">' + escapeHtml(brand) + '</span>' : '')
-    + '<span class="shipping-carrier-logo-wrap"><img class="shipping-carrier-logo" src="/GHTK_id8dR2ZdYY_1.svg" alt="GHTK" loading="lazy"></span>'
-    + '</div>'
-}
-
 function renderStorefrontProductCard(p) {
   const colors = getProductColorOptions(p).map((c) => c.name)
   const flashMeta = getFlashSaleMeta(p)
@@ -1332,7 +1324,6 @@ function renderStorefrontProductCard(p) {
       </div>
     </div>
     <div class="p-3 md:p-4">
-      \${renderProductCardBrandRow(p)}
       <h3 class="font-semibold text-gray-900 text-sm leading-tight mb-2 line-clamp-2">\${escapeHtml(p.name)}</h3>
       <div class="flex items-center gap-2 mb-3 flex-wrap">
         <span class="text-gradient-price font-bold">\${fmtPrice(displayPrice)}</span>

@@ -14,7 +14,7 @@ export type TextUiSettings = {
 }
 
 export const DEFAULT_QUICK_ORDER_RISK_NOTE_TEXT =
-  'Hãy chắc bạn muốn mua và nhận được hàng trước khi đặt để tránh phát sinh phí hoàn và bị hệ thống ghi nhận lịch sử bom hàng. Bạn sẽ không thể đặt hàng nếu số lần không nhận được vượt quá 2 lần'
+  'Vui lòng kiểm tra kỹ thông tin trước khi đặt hàng để shop giao đúng và nhanh nhất. Với các đơn không nhận nhiều lần, hệ thống có thể tạm hạn chế đặt hàng để tránh phát sinh chi phí vận chuyển.'
 
 export const DEFAULT_TEXT_UI_SETTINGS: TextUiSettings = {
   quick_order_risk_note_text: DEFAULT_QUICK_ORDER_RISK_NOTE_TEXT,

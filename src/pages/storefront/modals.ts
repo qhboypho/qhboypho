@@ -240,12 +240,12 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
         </div>
 
         <div class="order-risk-note">
-          <div class="order-risk-note-icon" aria-hidden="true">
-            <i class="fas fa-triangle-exclamation"></i>
-          </div>
-          <div class="min-w-0">
+          <div class="min-w-0 w-full">
             <div class="order-risk-note-title">
-              <strong>Chú ý !</strong>
+              <span class="order-risk-note-icon" aria-hidden="true">
+                <i class="fas fa-triangle-exclamation"></i>
+              </span>
+              <strong>Lưu ý:</strong>
             </div>
             <div class="order-risk-note-text">
               ${quickOrderRiskNoteText}

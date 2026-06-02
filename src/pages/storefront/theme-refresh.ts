@@ -643,36 +643,6 @@ export function storefrontThemeRefreshStyles(): string {
     display: flex;
     flex-direction: column;
   }
-  .product-card-brand-row {
-    display: flex;
-    align-items: center;
-    gap: 0.35rem;
-    min-height: 1.05rem;
-  }
-  .product-card-brand-text {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .shipping-carrier-logo-wrap {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex: 0 0 auto;
-    line-height: 0;
-  }
-  .shipping-carrier-logo {
-    display: block;
-    width: 2.5rem;
-    height: auto;
-    object-fit: contain;
-  }
-  body[data-storefront-theme='dark'] .shipping-carrier-logo-wrap {
-    background: rgb(63 69 108 / 79%);
-    padding: 0.1rem;
-    border-radius: 4px;
-  }
   .bs-card,
   .flash-sale-shop-card {
     display: flex;
@@ -1049,16 +1019,6 @@ export function storefrontThemeRefreshStyles(): string {
   }
   .favorites-products-grid .product-card p.text-pink-500 {
     display: none !important;
-  }
-  .favorites-products-grid .product-card .product-card-brand-row {
-    display: flex !important;
-    margin-bottom: 0.15rem !important;
-  }
-  .favorites-products-grid .product-card .product-card-brand-text {
-    display: none !important;
-  }
-  .favorites-products-grid .product-card .shipping-carrier-logo-wrap {
-    width: 2.5rem !important;
   }
   .favorites-products-grid .product-card h3 {
     font-size: 0.82rem !important;
@@ -2517,19 +2477,6 @@ export function storefrontThemeRefreshStyles(): string {
     #productsModalOverlay .product-card p.text-pink-500 {
       display: none !important;
     }
-    #products .product-card .product-card-brand-row,
-    #productsModalOverlay .product-card .product-card-brand-row {
-      display: flex !important;
-      margin-bottom: 0.15rem !important;
-    }
-    #products .product-card .product-card-brand-text,
-    #productsModalOverlay .product-card .product-card-brand-text {
-      display: none !important;
-    }
-    #products .product-card .shipping-carrier-logo-wrap,
-    #productsModalOverlay .product-card .shipping-carrier-logo-wrap {
-      width: 2.5rem !important;
-    }
     #products .product-card h3 {
       font-size: 0.8rem !important;
       line-height: 1.16 !important;
@@ -2663,12 +2610,12 @@ export function storefrontThemeRefreshStyles(): string {
       width: 100% !important;
       min-width: 0 !important;
       max-width: 100% !important;
-      height: 1.52rem !important;
-      font-size: 0.62rem !important;
+      height: 1.86rem !important;
+      font-size: 0.68rem !important;
       line-height: 1 !important;
-      padding-left: 0.42rem !important;
-      padding-right: 0.42rem !important;
-      gap: 0.2rem !important;
+      padding-left: 0.5rem !important;
+      padding-right: 0.5rem !important;
+      gap: 0.24rem !important;
       border-radius: 0 !important;
       border-top-left-radius: 0.62rem !important;
       border-bottom-left-radius: 0.62rem !important;
@@ -2684,10 +2631,10 @@ export function storefrontThemeRefreshStyles(): string {
       width: 100% !important;
       min-width: 100% !important;
       max-width: none !important;
-      height: 1.52rem !important;
+      height: 1.86rem !important;
       border-radius: var(--qh-action-radius) !important;
-      padding-left: 0.46rem !important;
-      padding-right: 0.46rem !important;
+      padding-left: 0.5rem !important;
+      padding-right: 0.5rem !important;
     }
     #products .product-cart-btn,
     #productsModalOverlay .product-cart-btn {
@@ -2695,8 +2642,8 @@ export function storefrontThemeRefreshStyles(): string {
       flex: 0 0 auto;
       width: 100% !important;
       min-width: 0 !important;
-      height: 1.52rem !important;
-      padding: 0 0.5rem !important;
+      height: 1.86rem !important;
+      padding: 0 0.56rem !important;
       border-radius: 0 !important;
       border-top-right-radius: 0.62rem !important;
       border-bottom-right-radius: 0.62rem !important;
@@ -2729,7 +2676,7 @@ export function storefrontThemeRefreshStyles(): string {
     #productsModalOverlay .product-buy-btn .quick-order-label-mobile {
       width: 100%;
       text-align: center;
-      font-size: 0.62rem !important;
+      font-size: 0.68rem !important;
       line-height: 1 !important;
       letter-spacing: 0;
       -webkit-text-size-adjust: 100%;
@@ -2775,6 +2722,15 @@ export function storefrontThemeRefreshStyles(): string {
       align-self: center;
       margin-left: 0;
       margin-right: 0;
+      width: 100%;
+      grid-template-columns: minmax(0, 7fr) minmax(3.3rem, 3fr);
+    }
+    #productsGrid.products-grid-compact .product-buy-btn .quick-order-label-mobile {
+      font-size: 0.72rem !important;
+    }
+    #productsGrid.products-grid-compact .product-cart-btn {
+      padding-left: 0.46rem !important;
+      padding-right: 0.46rem !important;
     }
     .bs-actions {
       display: grid;
@@ -2790,7 +2746,7 @@ export function storefrontThemeRefreshStyles(): string {
       overflow: hidden;
       border-radius: 0.62rem;
       position: relative;
-      height: 1.72rem;
+      height: 1.96rem;
       width: 100%;
       background: linear-gradient(135deg, #337cff, #8d55ff 45%, #ec4fbe) !important;
       box-shadow: 0 10px 22px rgba(59,130,246,0.24), 0 8px 20px rgba(236,63,173,0.18) !important;
@@ -2805,14 +2761,14 @@ export function storefrontThemeRefreshStyles(): string {
       display: flex !important;
       align-items: center !important;
       justify-content: center !important;
-      gap: 0.28rem !important;
+      gap: 0.32rem !important;
       width: 100% !important;
       min-width: 0 !important;
       max-width: 100% !important;
       height: 100% !important;
-      font-size: 0.62rem !important;
-      padding-left: 0.46rem !important;
-      padding-right: 0.46rem !important;
+      font-size: 0.68rem !important;
+      padding-left: 0.54rem !important;
+      padding-right: 0.54rem !important;
       border-radius: 0 !important;
       border-top-left-radius: 0.62rem !important;
       border-bottom-left-radius: 0.62rem !important;
@@ -2846,7 +2802,7 @@ export function storefrontThemeRefreshStyles(): string {
       width: 100% !important;
       min-width: 0 !important;
       height: 100% !important;
-      padding: 0 0.5rem !important;
+      padding: 0 0.56rem !important;
       align-items: center !important;
       justify-content: center !important;
       border-radius: 0 !important;
@@ -2855,7 +2811,7 @@ export function storefrontThemeRefreshStyles(): string {
       background: transparent !important;
       box-shadow: none !important;
       color: #fff;
-      font-size: 0.62rem !important;
+      font-size: 0.68rem !important;
       position: relative;
       line-height: 1 !important;
     }
@@ -2879,7 +2835,7 @@ export function storefrontThemeRefreshStyles(): string {
       display: grid;
       grid-template-columns: minmax(0, 6fr) minmax(3.95rem, 4fr);
       gap: 0;
-      margin-top: 0.55rem;
+      margin-top: 0.62rem;
       padding-top: 0 !important;
       width: min(100%, 10rem);
       min-width: 0;
@@ -2897,13 +2853,13 @@ export function storefrontThemeRefreshStyles(): string {
       justify-content: center;
       width: 100% !important;
       min-width: 0 !important;
-      height: 1.8rem;
-      padding: 0 0.42rem !important;
+      height: 2.02rem;
+      padding: 0 0.52rem !important;
       border-radius: var(--qh-action-radius) !important;
       background: transparent !important;
       box-shadow: none !important;
       overflow: hidden;
-      gap: 0.2rem !important;
+      gap: 0.24rem !important;
       -webkit-text-size-adjust: 100%;
       text-size-adjust: 100%;
     }
@@ -2913,19 +2869,19 @@ export function storefrontThemeRefreshStyles(): string {
       min-width: 0 !important;
       flex: 0 0 auto !important;
       justify-self: stretch !important;
-      padding-left: 0.42rem !important;
-      padding-right: 0.42rem !important;
+      padding-left: 0.52rem !important;
+      padding-right: 0.52rem !important;
     }
     .flash-sale-shop-cart-btn {
       flex: 0 0 2.05rem;
       width: 100% !important;
       min-width: 0;
-      height: 1.8rem;
+      height: 2.02rem;
       border-radius: var(--qh-action-radius) !important;
       background: transparent !important;
       box-shadow: none !important;
       position: relative;
-      padding: 0 0.5rem !important;
+      padding: 0 0.56rem !important;
     }
     .bs-card .flash-sale-shop-actions > .flash-sale-shop-cart-btn {
       width: 100% !important;
@@ -2951,7 +2907,7 @@ export function storefrontThemeRefreshStyles(): string {
     .flash-sale-shop-buy-btn .quick-order-label-mobile {
       width: 100%;
       text-align: center;
-      font-size: 0.62rem !important;
+      font-size: 0.68rem !important;
       line-height: 1 !important;
       letter-spacing: 0;
       overflow: hidden;
@@ -2962,8 +2918,8 @@ export function storefrontThemeRefreshStyles(): string {
     }
     .flash-sale-shop-actions--blocked .blocked-order-btn,
     .flash-sale-shop-blocked-btn {
-      height: 1.8rem !important;
-      padding: 0 0.62rem !important;
+      height: 2.02rem !important;
+      padding: 0 0.72rem !important;
       border-radius: var(--qh-action-radius) !important;
     }
     .bs-card {
@@ -3110,11 +3066,40 @@ export function storefrontThemeRefreshStyles(): string {
       font-size: 0.82rem;
     }
   }
+  @media (max-width: 389px) {
+    #productsGrid.products-grid-compact .product-card-actions,
+    #productsModalGrid.products-grid-compact .product-card-actions {
+      grid-template-columns: minmax(0, 7.5fr) minmax(2.5rem, 2.5fr) !important;
+    }
+    #productsGrid.products-grid-compact .product-card-actions::after,
+    #productsModalGrid.products-grid-compact .product-card-actions::after {
+      left: calc(100% - 2.5rem) !important;
+    }
+  }
   @media (max-width: 360px) {
     .detail-product-title {
       font-size: 1.04rem !important;
       line-height: 1.14 !important;
     }
+  }
+  .order-risk-note {
+    display: block !important;
+  }
+  .order-risk-note-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+  }
+  .order-risk-note-title .order-risk-note-icon {
+    width: 1.78rem;
+    height: 1.78rem;
+    margin: 0;
+    flex: 0 0 auto;
+  }
+  .order-risk-note-text {
+    display: block;
+    width: 100%;
+    margin-top: 0.42rem;
   }
 `
 }
