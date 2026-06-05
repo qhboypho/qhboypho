@@ -35,6 +35,93 @@ let activeUserMenuView = ''
 let userOrderHistoryCache = []
 let lastMobileBottomNavScrollY = 0
 let mobileBottomNavHidden = false
+let storefrontScrollLockY = 0
+let storefrontScrollLockActive = false
+const storefrontScrollLockTokens = new Set()
+const storefrontScrollLockStyles = {
+  bodyPosition: '',
+  bodyTop: '',
+  bodyLeft: '',
+  bodyRight: '',
+  bodyWidth: '',
+  bodyOverflow: '',
+  htmlOverflow: '',
+  htmlOverscrollBehavior: '',
+}
+
+function lockStorefrontPageScroll(token) {
+  const key = String(token || 'modal')
+  storefrontScrollLockTokens.add(key)
+  if (storefrontScrollLockActive) return
+  storefrontScrollLockActive = true
+  const body = document.body
+  const html = document.documentElement
+  storefrontScrollLockY = Math.max(0, window.scrollY || window.pageYOffset || 0)
+  storefrontScrollLockStyles.bodyPosition = body.style.position || ''
+  storefrontScrollLockStyles.bodyTop = body.style.top || ''
+  storefrontScrollLockStyles.bodyLeft = body.style.left || ''
+  storefrontScrollLockStyles.bodyRight = body.style.right || ''
+  storefrontScrollLockStyles.bodyWidth = body.style.width || ''
+  storefrontScrollLockStyles.bodyOverflow = body.style.overflow || ''
+  storefrontScrollLockStyles.htmlOverflow = html.style.overflow || ''
+  storefrontScrollLockStyles.htmlOverscrollBehavior = html.style.overscrollBehavior || ''
+  html.classList.add('storefront-scroll-locked')
+  body.classList.add('storefront-scroll-locked')
+  html.style.overflow = 'hidden'
+  html.style.overscrollBehavior = 'none'
+  body.style.position = 'fixed'
+  body.style.top = '-' + storefrontScrollLockY + 'px'
+  body.style.left = '0'
+  body.style.right = '0'
+  body.style.width = '100%'
+  body.style.overflow = 'hidden'
+}
+
+function unlockStorefrontPageScroll(token) {
+  const key = String(token || 'modal')
+  storefrontScrollLockTokens.delete(key)
+  if (!storefrontScrollLockActive || storefrontScrollLockTokens.size) return
+  const body = document.body
+  const html = document.documentElement
+  html.classList.remove('storefront-scroll-locked')
+  body.classList.remove('storefront-scroll-locked')
+  body.style.position = storefrontScrollLockStyles.bodyPosition
+  body.style.top = storefrontScrollLockStyles.bodyTop
+  body.style.left = storefrontScrollLockStyles.bodyLeft
+  body.style.right = storefrontScrollLockStyles.bodyRight
+  body.style.width = storefrontScrollLockStyles.bodyWidth
+  body.style.overflow = storefrontScrollLockStyles.bodyOverflow
+  html.style.overflow = storefrontScrollLockStyles.htmlOverflow
+  html.style.overscrollBehavior = storefrontScrollLockStyles.htmlOverscrollBehavior
+  storefrontScrollLockActive = false
+  const restoreY = storefrontScrollLockY
+  storefrontScrollLockY = 0
+  window.scrollTo(0, restoreY)
+}
+
+function syncStorefrontPageScrollLock() {
+  const modalIds = [
+    'orderOverlay',
+    'orderBankTransferOverlay',
+    'orderPaidNoticeOverlay',
+    'shippingJourneyOverlay',
+    'detailOverlay',
+    'cartOverlay',
+    'userMenuOverlay',
+    'reviewModalOverlay',
+    'blockedCustomerModal',
+    'favoriteAuthModal',
+    'filterModalOverlay',
+    'variantModalOverlay',
+    'productsModalOverlay'
+  ]
+  const hasOpenModal = modalIds.some((id) => {
+    const el = document.getElementById(id)
+    return el && !el.classList.contains('hidden')
+  })
+  if (hasOpenModal) lockStorefrontPageScroll('sync-open-modal')
+  else unlockStorefrontPageScroll('sync-open-modal')
+}
 
 // ── CART STATE ─────────────────────────────────────
 // cart = [{ cartId, productId, name, sku, thumbnail, price, color, size, qty, checked }]
@@ -211,7 +298,7 @@ function showFavoriteAuthModal() {
   if (!modal) return
   modal.classList.remove('hidden')
   modal.classList.add('flex')
-  document.body.style.overflow = 'hidden'
+  lockStorefrontPageScroll('favoriteAuthModal')
 }
 
 function closeFavoriteAuthModal() {
@@ -219,7 +306,7 @@ function closeFavoriteAuthModal() {
   if (!modal) return
   modal.classList.add('hidden')
   modal.classList.remove('flex')
-  if (!document.getElementById('userMenuOverlay') || document.getElementById('userMenuOverlay').classList.contains('hidden')) document.body.style.overflow = ''
+  unlockStorefrontPageScroll('favoriteAuthModal')
 }
 
 function openFavoriteLoginFlow() {
@@ -959,12 +1046,12 @@ async function openReviewModal(orderId, productId) {
     }
   } catch { document.getElementById('reviewProductInfo').innerHTML = '<p class="text-sm text-gray-500">Đơn hàng #' + orderId + '</p>' }
   document.getElementById('reviewModalOverlay').classList.remove('hidden')
-  document.body.style.overflow = 'hidden'
+  lockStorefrontPageScroll('reviewModalOverlay')
 }
 
 function closeReviewModal() {
   document.getElementById('reviewModalOverlay').classList.add('hidden')
-  document.body.style.overflow = ''
+  unlockStorefrontPageScroll('reviewModalOverlay')
 }
 
 function handleReviewOverlayClick(e) {
@@ -1348,13 +1435,13 @@ function openProductsModal() {
   const overlay = document.getElementById('productsModalOverlay')
   if (!overlay) return
   overlay.classList.remove('hidden')
-  document.body.style.overflow = 'hidden'
+  lockStorefrontPageScroll('productsModalOverlay')
   requestAnimationFrame(() => overlay.querySelector('.overflow-y-auto')?.scrollTo({ top: 0 }))
 }
 
 function closeProductsModal() {
   document.getElementById('productsModalOverlay')?.classList.add('hidden')
-  document.body.style.overflow = ''
+  unlockStorefrontPageScroll('productsModalOverlay')
 }
 
 function openProductDetailFromCard(productId) {
@@ -1481,7 +1568,7 @@ function openFilterModal() {
     document.querySelectorAll('#filterModalTypeRow .filter-modal-chip').forEach(b => {
       b.classList.toggle('active', b.getAttribute('data-val') === activeProductType)
     })
-    document.body.style.overflow = 'hidden'
+    lockStorefrontPageScroll('filterModalOverlay')
 
     // Animate slide up
     const panel = document.getElementById('filterModalPanel')
@@ -1504,7 +1591,7 @@ function closeFilterModal() {
     setTimeout(() => {
       modal.classList.add('hidden')
       modal.classList.remove('flex')
-      document.body.style.overflow = ''
+      unlockStorefrontPageScroll('filterModalOverlay')
     }, 300)
   }
 }
@@ -1722,11 +1809,11 @@ function openCart() {
   document.getElementById('cartStep1').classList.remove('hidden')
   document.getElementById('cartBackBtn').classList.add('hidden')
   document.getElementById('cartTitle').textContent = 'Giỏ hàng'
-  document.body.style.overflow = 'hidden'
+  lockStorefrontPageScroll('cartOverlay')
 }
 function closeCart() {
   document.getElementById('cartOverlay').classList.add('hidden')
-  document.body.style.overflow = ''
+  unlockStorefrontPageScroll('cartOverlay')
 }
 function handleCartOverlayClick(e) {
   if (e.target.id === 'cartOverlay') closeCart()
@@ -2043,7 +2130,7 @@ function showBlockedCustomerModal(reason) {
   if (modal) {
     modal.classList.remove('hidden')
     modal.classList.add('flex')
-    document.body.style.overflow = 'hidden'
+    lockStorefrontPageScroll('blockedCustomerModal')
   }
 }
 
@@ -2052,7 +2139,7 @@ function closeBlockedCustomerModal() {
   if (modal) {
     modal.classList.add('hidden')
     modal.classList.remove('flex')
-    document.body.style.overflow = ''
+    unlockStorefrontPageScroll('blockedCustomerModal')
   }
 }
 
@@ -2796,7 +2883,7 @@ function openUserMenu() {
   activeUserMenuView = ''
   panel.classList.remove('closing')
   overlay.classList.remove('hidden')
-  document.body.style.overflow = 'hidden'
+  lockStorefrontPageScroll('userMenuOverlay')
   if (currentUser) document.getElementById('userMenuContent').innerHTML = ''
   else renderUserAuthForm('login')
 }
@@ -2804,7 +2891,7 @@ function closeUserMenu() {
   const overlay = document.getElementById('userMenuOverlay')
   const panel = document.getElementById('userMenuPanel')
   panel.classList.add('closing')
-  setTimeout(() => { overlay.classList.add('hidden'); panel.classList.remove('closing'); closeShippingJourneyModal(); document.body.style.overflow = '' }, 300)
+  setTimeout(() => { overlay.classList.add('hidden'); panel.classList.remove('closing'); closeShippingJourneyModal(); unlockStorefrontPageScroll('userMenuOverlay') }, 300)
 }
 function handleUserMenuOverlayClick(e) { if (e.target.id === 'userMenuOverlay') closeUserMenu() }
 
@@ -3280,6 +3367,7 @@ function openShippingJourneyModal(orderId) {
   renderShippingJourneyModal(order)
   overlay.classList.remove('hidden')
   overlay.classList.add('flex')
+  lockStorefrontPageScroll('shippingJourneyOverlay')
 }
 
 function closeShippingJourneyModal() {
@@ -3287,6 +3375,7 @@ function closeShippingJourneyModal() {
   if (!overlay) return
   overlay.classList.add('hidden')
   overlay.classList.remove('flex')
+  unlockStorefrontPageScroll('shippingJourneyOverlay')
 }
 
 function handleShippingJourneyOverlayClick(e) {
@@ -3523,7 +3612,7 @@ function openOrderBankTransferModal(info) {
   document.getElementById('orderBankTransferContent').textContent = transferContent
   document.getElementById('orderBankQrImg').src = qrImage
   document.getElementById('orderBankTransferOverlay').classList.remove('hidden')
-  document.body.style.overflow = 'hidden'
+  lockStorefrontPageScroll('orderBankTransferOverlay')
   startOrderPaymentPolling(orderCode)
 }
 
@@ -3531,7 +3620,7 @@ function closeOrderBankTransferModal() {
   document.getElementById('orderBankTransferOverlay').classList.add('hidden')
   stopOrderPaymentPolling()
   pendingBankTransferOrder = null
-  document.body.style.overflow = ''
+  unlockStorefrontPageScroll('orderBankTransferOverlay')
 }
 
 async function copyBankValue(value) {
@@ -3557,9 +3646,11 @@ function showOrderPaidNotice(orderCode) {
   if (!overlay) return
   overlay.classList.remove('hidden')
   overlay.classList.add('flex')
+  lockStorefrontPageScroll('orderPaidNoticeOverlay')
   setTimeout(() => {
     overlay.classList.add('hidden')
     overlay.classList.remove('flex')
+    unlockStorefrontPageScroll('orderPaidNoticeOverlay')
   }, 2600)
 }
 

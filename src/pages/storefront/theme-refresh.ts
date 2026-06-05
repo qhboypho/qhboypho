@@ -56,6 +56,18 @@ export function storefrontThemeRefreshStyles(): string {
       linear-gradient(135deg, #f8fafc 0%, #f1f5f9 52%, #fdf2f8 100%) !important;
     color: var(--qh-text);
   }
+  html.storefront-scroll-locked,
+  body.storefront-scroll-locked {
+    overflow: hidden !important;
+    overscroll-behavior: none !important;
+  }
+  body.storefront-scroll-locked .overlay,
+  body.storefront-scroll-locked .user-menu-overlay,
+  body.storefront-scroll-locked .review-modal-overlay,
+  body.storefront-scroll-locked #variantModalOverlay,
+  body.storefront-scroll-locked #productsModalOverlay {
+    touch-action: pan-y;
+  }
   body[data-storefront-theme='dark'] {
     background:
       radial-gradient(circle at 12% 8%, rgba(30,144,255,0.28), transparent 30rem),

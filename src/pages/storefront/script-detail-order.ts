@@ -255,7 +255,7 @@ async function showDetail(id, options) {
     }
     
     document.getElementById('detailOverlay').classList.remove('hidden')
-    document.body.style.overflow = 'hidden'
+    lockStorefrontPageScroll('detailOverlay')
     trackProductDetailView(p.id || id)
     startFlashSaleCountdownTicker()
     
@@ -302,7 +302,7 @@ function closeDetail(skipHistory) {
   const overlay = document.getElementById('detailOverlay')
   if (overlay) overlay.classList.add('hidden')
   cartVariantEditId = ''
-  document.body.style.overflow = ''
+  unlockStorefrontPageScroll('detailOverlay')
   
   if (!skipHistory) {
     const newUrl = new URL(window.location.href)
@@ -474,7 +474,7 @@ async function openOrder(id, options) {
     }
 
     document.getElementById('orderOverlay').classList.remove('hidden')
-    document.body.style.overflow = 'hidden'
+    lockStorefrontPageScroll('orderOverlay')
   } catch(e) { showToast('Lỗi khi tải sản phẩm', 'error') }
 }
 
@@ -578,7 +578,7 @@ function updateOrderTotal() {
 }
 function closeOrder() {
   document.getElementById('orderOverlay').classList.add('hidden')
-  document.body.style.overflow = ''
+  unlockStorefrontPageScroll('orderOverlay')
 }
 
 function resolveFlyImage(product) {
@@ -827,7 +827,7 @@ function showBlockedCustomerModal(reason) {
   if (modal) {
     modal.classList.remove('hidden')
     modal.classList.add('flex')
-    document.body.style.overflow = 'hidden'
+    lockStorefrontPageScroll('blockedCustomerModal')
   }
 }
 
@@ -836,7 +836,7 @@ function closeBlockedCustomerModal() {
   if (modal) {
     modal.classList.add('hidden')
     modal.classList.remove('flex')
-    document.body.style.overflow = ''
+    unlockStorefrontPageScroll('blockedCustomerModal')
   }
 }
 
@@ -1141,7 +1141,7 @@ async function openVariantModal(productId, actionType, editCartId) {
     
     document.getElementById('variantModalOverlay').classList.remove('hidden')
     document.getElementById('variantModalOverlay').classList.add('flex')
-    document.body.style.overflow = 'hidden'
+    lockStorefrontPageScroll('variantModalOverlay')
     
     // Animate slide up
     const panel = document.getElementById('variantModalPanel')
@@ -1217,10 +1217,7 @@ function closeVariantModal() {
       overlay.classList.remove('flex')
     }
     cartVariantEditId = ''
-    // Restore overflow if detailModal isn't open
-    if (document.getElementById('detailOverlay')?.classList.contains('hidden') && document.getElementById('cartOverlay')?.classList.contains('hidden')) {
-      document.body.style.overflow = ''
-    }
+    unlockStorefrontPageScroll('variantModalOverlay')
   }, 300)
 }
 

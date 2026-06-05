@@ -398,7 +398,6 @@ function openFlashSaleProductPickerModal() {
   const modal = document.getElementById('flashSaleProductPickerModal')
   if (!modal) return
   showAdminOverlay(modal)
-  document.body.style.overflow = 'hidden'
   if (!flashSaleProductPickerItems.length) {
     loadFlashSaleProductPickerProducts()
   } else {
@@ -414,7 +413,6 @@ function closeFlashSaleProductPickerModal(event) {
   if (event && event.target && event.currentTarget && event.target !== event.currentTarget) return
   const modal = document.getElementById('flashSaleProductPickerModal')
   forceHideAdminOverlay(modal)
-  if (!document.querySelector('.modal-overlay:not(.hidden)')) document.body.style.overflow = ''
 }
 
 function toggleFlashSaleProductSelection(productId) {
@@ -664,7 +662,6 @@ function openFlashSaleCreateModal() {
   resetFlashSaleCreateForm()
   flashSaleSyncModalMode()
   showAdminOverlay(modal)
-  document.body.style.overflow = 'hidden'
   renderFlashSaleSelectedItems()
   loadFlashSaleProductPickerProducts()
 }
@@ -674,7 +671,6 @@ async function openFlashSaleEditModal(id) {
   if (!modal) return
   resetFlashSaleCreateForm()
   showAdminOverlay(modal)
-  document.body.style.overflow = 'hidden'
   if (!flashSaleProductPickerItems.length) {
     await loadFlashSaleProductPickerProducts()
   }
@@ -695,7 +691,6 @@ async function openFlashSaleDuplicateModal(id) {
   if (!modal) return
   resetFlashSaleCreateForm()
   showAdminOverlay(modal)
-  document.body.style.overflow = 'hidden'
   if (!flashSaleProductPickerItems.length) {
     await loadFlashSaleProductPickerProducts()
   }
@@ -716,7 +711,6 @@ function closeFlashSaleCreateModal(event) {
   const modal = document.getElementById('createFlashSaleModal')
   forceHideAdminOverlay(modal)
   closeFlashSaleProductPickerModal()
-  if (!document.querySelector('.modal-overlay:not(.hidden)')) document.body.style.overflow = ''
 }
 
 function loadSettingsWarehousePage() {

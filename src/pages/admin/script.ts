@@ -30,8 +30,66 @@ let marketingActiveSubPage = ''
 let desktopSidebarCollapsed = false
 let selectedColorImage = ''
 let adminOverlaySafetyScheduled = false
+let adminScrollLockY = 0
+let adminScrollLockActive = false
+const adminScrollLockStyles = {
+  bodyPosition: '',
+  bodyTop: '',
+  bodyLeft: '',
+  bodyRight: '',
+  bodyWidth: '',
+  bodyOverflow: '',
+  htmlOverflow: '',
+  htmlOverscrollBehavior: '',
+}
 const MAX_PRODUCT_PAYLOAD_SIZE = 1200000
 const ADMIN_OVERLAY_IDS = ['productModal', 'orderDetailModal', 'arrangeSuccessModal', 'createFlashSaleModal', 'flashSaleProductPickerModal', 'adminChangePasswordModal', 'reviewAdminModal', 'dashboardCustomerModal', 'customerOrderHistoryModal', 'customerActionConfirmModal']
+
+function lockAdminPageScroll() {
+  if (adminScrollLockActive) return
+  adminScrollLockActive = true
+  const body = document.body
+  const html = document.documentElement
+  adminScrollLockY = Math.max(0, window.scrollY || window.pageYOffset || 0)
+  adminScrollLockStyles.bodyPosition = body.style.position || ''
+  adminScrollLockStyles.bodyTop = body.style.top || ''
+  adminScrollLockStyles.bodyLeft = body.style.left || ''
+  adminScrollLockStyles.bodyRight = body.style.right || ''
+  adminScrollLockStyles.bodyWidth = body.style.width || ''
+  adminScrollLockStyles.bodyOverflow = body.style.overflow || ''
+  adminScrollLockStyles.htmlOverflow = html.style.overflow || ''
+  adminScrollLockStyles.htmlOverscrollBehavior = html.style.overscrollBehavior || ''
+  html.classList.add('admin-scroll-locked')
+  body.classList.add('admin-scroll-locked')
+  html.style.overflow = 'hidden'
+  html.style.overscrollBehavior = 'none'
+  body.style.position = 'fixed'
+  body.style.top = '-' + adminScrollLockY + 'px'
+  body.style.left = '0'
+  body.style.right = '0'
+  body.style.width = '100%'
+  body.style.overflow = 'hidden'
+}
+
+function unlockAdminPageScroll() {
+  if (!adminScrollLockActive) return
+  const body = document.body
+  const html = document.documentElement
+  html.classList.remove('admin-scroll-locked')
+  body.classList.remove('admin-scroll-locked')
+  body.style.position = adminScrollLockStyles.bodyPosition
+  body.style.top = adminScrollLockStyles.bodyTop
+  body.style.left = adminScrollLockStyles.bodyLeft
+  body.style.right = adminScrollLockStyles.bodyRight
+  body.style.width = adminScrollLockStyles.bodyWidth
+  body.style.overflow = adminScrollLockStyles.bodyOverflow
+  html.style.overflow = adminScrollLockStyles.htmlOverflow
+  html.style.overscrollBehavior = adminScrollLockStyles.htmlOverscrollBehavior
+  adminScrollLockActive = false
+  const restoreY = adminScrollLockY
+  adminScrollLockY = 0
+  window.scrollTo(0, restoreY)
+}
 
 function forceHideAdminOverlay(el) {
   if (!el) return
@@ -50,7 +108,7 @@ function showAdminOverlay(el, displayMode = 'flex') {
   el.style.pointerEvents = ''
   el.classList.remove('hidden')
   if (displayMode === 'flex') el.classList.add('flex')
-  document.body.style.overflow = 'hidden'
+  lockAdminPageScroll()
   queueAdminOverlaySafetySync()
 }
 
@@ -284,7 +342,8 @@ function normalizeAdminOverlayState(options = {}) {
   }
 
   syncSidebarOverlay()
-  document.body.style.overflow = activeModals.length ? 'hidden' : ''
+  if (activeModals.length) lockAdminPageScroll()
+  else unlockAdminPageScroll()
   document.body.style.pointerEvents = ''
   debugAdminOverlayState(reason || 'normalize')
 }
@@ -1674,12 +1733,10 @@ async function openProductModal(id = null) {
   }
   
   showAdminOverlay(document.getElementById('productModal'))
-  document.body.style.overflow = 'hidden'
 }
 
 function closeProductModal() {
   forceHideAdminOverlay(document.getElementById('productModal'))
-  document.body.style.overflow = ''
   editingId = null
 }
 
@@ -2619,7 +2676,7 @@ document.addEventListener('keydown', function(e) {
     closeChangeAdminPasswordModal()
     closeDashboardCustomerModal()
     closeAdminAvatarMenu()
-    document.body.style.overflow = ''
+    unlockAdminPageScroll()
     closeMobileSidebar()
   }
 })
