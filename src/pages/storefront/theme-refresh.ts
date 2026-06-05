@@ -814,11 +814,15 @@ export function storefrontThemeRefreshStyles(): string {
   }
   .detail-gallery-shell {
     width: 100%;
+    max-width: 100%;
+    min-width: 0;
   }
   .detail-gallery-viewport {
     position: relative;
     touch-action: pan-y;
     background: #f1f5f9;
+    max-width: 100%;
+    min-width: 0;
   }
   .detail-gallery-track {
     display: flex;
@@ -835,11 +839,14 @@ export function storefrontThemeRefreshStyles(): string {
   .detail-gallery-thumbs {
     display: flex;
     width: 100%;
+    max-width: 100%;
     min-width: 0;
     gap: 0.5rem;
     overflow-x: auto;
+    overflow-y: hidden;
     padding-bottom: 0.2rem;
     padding-right: 0.2rem;
+    box-sizing: border-box;
     overscroll-behavior-x: contain;
     scroll-snap-type: x proximity;
     scrollbar-width: none;
@@ -1931,10 +1938,36 @@ export function storefrontThemeRefreshStyles(): string {
     text-shadow: 0 0 14px rgba(255,209,102,0.42);
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 0 18px rgba(93,65,255,0.22);
   }
+  #detailOverlay .popup-card,
+  #detailContent,
+  #detailContent > .grid,
+  #detailContent > .grid > div {
+    max-width: 100%;
+    min-width: 0;
+  }
+  #detailOverlay .popup-card,
+  #detailContent {
+    overflow-x: hidden;
+  }
   @media (max-width: 768px) {
+    #detailOverlay .popup-card {
+      width: 100% !important;
+      max-width: calc(100vw - 1.3rem) !important;
+      overflow-x: hidden !important;
+    }
+    #detailContent {
+      width: 100% !important;
+      max-width: 100% !important;
+      overflow-x: hidden !important;
+    }
     .detail-gallery-thumbs {
       gap: 0.4rem;
+      width: 100% !important;
+      max-width: 100% !important;
+      padding-left: 0.5rem;
       padding-right: 0.5rem;
+      margin-left: 0;
+      margin-right: 0;
     }
     .detail-gallery-thumb {
       flex-basis: clamp(2.9rem, 15.5vw, 3.95rem);
