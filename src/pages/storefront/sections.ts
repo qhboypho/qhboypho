@@ -202,22 +202,22 @@ export function storefrontMobileBottomNavSection(): string {
   return `<!-- MOBILE BOTTOM NAV -->
 <nav id="mobileBottomNav" class="mobile-bottom-nav md:hidden fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 safe-area-bottom pb-2">
   <div class="flex items-center justify-around h-[60px]">
-    <a href="#hero" class="mobile-bottom-nav-link is-active flex flex-col items-center justify-center gap-1 w-16 text-[#881337] transition">
+    <a href="#hero" class="mobile-bottom-nav-link is-active flex flex-col items-center justify-center gap-1 w-16 transition">
       <i class="fas fa-home text-xl"></i>
       <span class="text-[10px] font-medium">Trang chủ</span>
     </a>
-    <a href="#products" class="mobile-bottom-nav-link flex flex-col items-center justify-center gap-1 w-16 text-slate-500 hover:text-[#881337] transition">
+    <a href="#products" class="mobile-bottom-nav-link flex flex-col items-center justify-center gap-1 w-16 transition">
       <i class="fas fa-table-cells-large text-xl"></i>
       <span class="text-[10px] font-medium">Sản Phẩm</span>
     </a>
-    <button onclick="openCart()" id="cartBottomNavBtn" class="mobile-bottom-nav-link relative flex flex-col items-center justify-center gap-1 w-16 text-slate-500 hover:text-[#881337] transition">
+    <button onclick="openCart()" id="cartBottomNavBtn" class="mobile-bottom-nav-link relative flex flex-col items-center justify-center gap-1 w-16 transition">
       <div class="relative">
         <i class="fas fa-shopping-cart text-xl"></i>
         <span id="cartBadgeBottom" class="absolute -top-1.5 -right-2 bg-[#881337] text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center hidden font-bold">0</span>
       </div>
       <span class="text-[10px] font-medium">Giỏ hàng</span>
     </button>
-    <button onclick="toggleUserMenu()" class="mobile-bottom-nav-link flex flex-col items-center justify-center gap-1 w-16 text-slate-500 hover:text-[#881337] transition">
+    <button onclick="toggleUserMenu()" class="mobile-bottom-nav-link flex flex-col items-center justify-center gap-1 w-16 transition">
       <i class="fas fa-user text-xl"></i>
       <span class="text-[10px] font-medium">Tài khoản</span>
     </button>

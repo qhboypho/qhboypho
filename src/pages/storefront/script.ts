@@ -1312,7 +1312,7 @@ function renderStorefrontProductCard(p) {
   <div class="product-card bg-white rounded-2xl overflow-hidden card-hover shadow-sm border border-gray-100 cursor-pointer" onclick="openProductDetailFromCard(\${p.id})">
     <div class="relative overflow-hidden bg-gray-100">
       <img src="\${escapeHtml(p.thumbnail || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400')}"
-        alt="\${escapeHtml(p.name)}" class="w-full product-img-main" loading="lazy"
+        alt="\${escapeHtml(p.name)}" class="w-full product-img-main" loading="eager" decoding="sync"
         onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'">
       \${renderFavoriteButton(p.id)}
       <!-- Discount badge hidden temporarily; keep logic for later reuse.

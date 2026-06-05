@@ -117,13 +117,16 @@ export function storefrontThemeRefreshStyles(): string {
   .mobile-bottom-nav-link {
     color: #64748b;
   }
+  .mobile-bottom-nav-link:hover {
+    color: #db2777;
+  }
   .mobile-bottom-nav-link i,
   .mobile-bottom-nav-link span {
     color: inherit;
     transition: color 0.2s ease, opacity 0.2s ease;
   }
   .mobile-bottom-nav-link.is-active {
-    color: #881337;
+    color: #db2777;
   }
   body[data-storefront-theme='dark'] .mobile-bottom-nav {
     background: rgba(2,12,30,0.72) !important;
@@ -2330,6 +2333,12 @@ export function storefrontThemeRefreshStyles(): string {
       padding-left: 0.75rem !important;
       padding-right: 0.75rem !important;
     }
+    #about .grid {
+      gap: 1rem !important;
+    }
+    #about .p-6 {
+      padding: 0.5rem !important;
+    }
     #products > .text-center.mb-12 {
       margin-bottom: 1.9rem !important;
     }
@@ -2610,9 +2619,9 @@ export function storefrontThemeRefreshStyles(): string {
       width: 100% !important;
       min-width: 0 !important;
       max-width: 100% !important;
-      height: 1.86rem !important;
-      font-size: 0.68rem !important;
-      line-height: 1 !important;
+      height: 2.08rem !important;
+      font-size: 0.72rem !important;
+      line-height: 1.32 !important;
       padding-left: 0.5rem !important;
       padding-right: 0.5rem !important;
       gap: 0.24rem !important;
@@ -2621,7 +2630,8 @@ export function storefrontThemeRefreshStyles(): string {
       border-bottom-left-radius: 0.62rem !important;
       background: transparent !important;
       box-shadow: none !important;
-      overflow: hidden;
+      overflow: visible;
+      font-family: 'Be Vietnam Pro', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
       -webkit-text-size-adjust: 100%;
       text-size-adjust: 100%;
     }
@@ -2631,7 +2641,7 @@ export function storefrontThemeRefreshStyles(): string {
       width: 100% !important;
       min-width: 100% !important;
       max-width: none !important;
-      height: 1.86rem !important;
+      height: 2.08rem !important;
       border-radius: var(--qh-action-radius) !important;
       padding-left: 0.5rem !important;
       padding-right: 0.5rem !important;
@@ -2642,7 +2652,7 @@ export function storefrontThemeRefreshStyles(): string {
       flex: 0 0 auto;
       width: 100% !important;
       min-width: 0 !important;
-      height: 1.86rem !important;
+      height: 2.08rem !important;
       padding: 0 0.56rem !important;
       border-radius: 0 !important;
       border-top-right-radius: 0.62rem !important;
@@ -2676,9 +2686,13 @@ export function storefrontThemeRefreshStyles(): string {
     #productsModalOverlay .product-buy-btn .quick-order-label-mobile {
       width: 100%;
       text-align: center;
-      font-size: 0.68rem !important;
-      line-height: 1 !important;
+      font-size: 0.72rem !important;
+      line-height: 1.32 !important;
       letter-spacing: 0;
+      overflow: visible;
+      text-overflow: clip;
+      white-space: nowrap;
+      padding: 0.08rem 0 0.12rem;
       -webkit-text-size-adjust: 100%;
       text-size-adjust: 100%;
     }
@@ -2726,7 +2740,8 @@ export function storefrontThemeRefreshStyles(): string {
       grid-template-columns: minmax(0, 7fr) minmax(3.3rem, 3fr);
     }
     #productsGrid.products-grid-compact .product-buy-btn .quick-order-label-mobile {
-      font-size: 0.72rem !important;
+      font-size: 0.74rem !important;
+      line-height: 1.32 !important;
     }
     #productsGrid.products-grid-compact .product-cart-btn {
       padding-left: 0.46rem !important;
