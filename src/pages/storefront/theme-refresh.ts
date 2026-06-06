@@ -988,6 +988,9 @@ export function storefrontThemeRefreshStyles(): string {
     letter-spacing: 0.01em;
     text-transform: uppercase;
   }
+  .bs-mobile-hot-badge {
+    display: none;
+  }
   .bs-card .bs-medal {
     left: auto;
     right: 0.75rem;
@@ -2820,6 +2823,242 @@ export function storefrontThemeRefreshStyles(): string {
     #productsGrid.products-grid-compact .product-cart-btn {
       padding-left: 0.46rem !important;
       padding-right: 0.46rem !important;
+    }
+    #bestsellersSection .bestsellers-track {
+      display: grid !important;
+      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      gap: 0.75rem !important;
+      align-items: stretch;
+      overflow: visible !important;
+      scroll-snap-type: none !important;
+      padding: 0 !important;
+    }
+    #bestsellersSection .bs-card {
+      display: flex !important;
+      flex-direction: column;
+      width: 100% !important;
+      min-width: 0 !important;
+      max-width: none !important;
+      height: 100% !important;
+      min-height: 100%;
+      align-self: stretch;
+      border-radius: 1rem !important;
+      overflow: hidden;
+    }
+    #bestsellersSection .bs-card > .relative {
+      flex: 0 0 auto;
+      width: 100%;
+      min-width: 0;
+      aspect-ratio: 1 / 1;
+      overflow: hidden;
+      background: rgba(15,23,42,0.08);
+    }
+    #bestsellersSection .bs-card-img {
+      display: block;
+      width: 100% !important;
+      height: 100% !important;
+      aspect-ratio: 1 / 1;
+      object-fit: cover;
+    }
+    #bestsellersSection .bs-card-body {
+      flex: 1 1 auto;
+      min-height: 0;
+      height: auto;
+      padding: 0.68rem 0.68rem 0.72rem !important;
+      display: flex;
+      flex-direction: column;
+    }
+    #bestsellersSection .bs-name {
+      display: -webkit-box !important;
+      min-height: 0 !important;
+      margin-bottom: 0.34rem !important;
+      color: var(--qh-text) !important;
+      font-size: 0.86rem !important;
+      font-weight: 800 !important;
+      line-height: 1.18 !important;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      white-space: normal !important;
+      overflow: hidden !important;
+      text-overflow: initial !important;
+    }
+    #bestsellersSection .bs-card-body > .flex.items-center.justify-between {
+      align-items: flex-start !important;
+      justify-content: flex-start !important;
+      gap: 0.32rem !important;
+      margin-bottom: 0.45rem !important;
+    }
+    #bestsellersSection .bs-card-body > .flex.items-center.justify-between > .flex {
+      gap: 0.35rem !important;
+      row-gap: 0.08rem !important;
+    }
+    #bestsellersSection .bs-price {
+      font-size: 0.9rem !important;
+      line-height: 1.1 !important;
+      font-weight: 800 !important;
+    }
+    #bestsellersSection .bs-original-price {
+      font-size: 0.66rem !important;
+      line-height: 1.1 !important;
+    }
+    #bestsellersSection .bs-stars,
+    #bestsellersSection .bs-card .bs-sold-chip,
+    #bestsellersSection .bs-card-body > .flex.items-center.gap-1\\.5 {
+      display: none !important;
+    }
+    #bestsellersSection .bs-medal {
+      display: none !important;
+    }
+    #bestsellersSection .bs-mobile-hot-badge {
+      position: absolute;
+      top: 0.5rem;
+      right: 0.5rem;
+      z-index: 6;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.24rem;
+      padding: 0.22rem 0.4rem;
+      border-radius: 999px;
+      background: linear-gradient(135deg, rgba(255,148,61,0.96), rgba(255,92,92,0.94));
+      color: #fff !important;
+      box-shadow: 0 10px 18px rgba(255,120,76,0.28);
+      text-transform: uppercase;
+    }
+    #bestsellersSection .bs-mobile-hot-badge i {
+      font-size: 0.68rem;
+      line-height: 1;
+    }
+    #bestsellersSection .bs-mobile-hot-badge span {
+      font-size: 0.58rem;
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: 0.01em;
+    }
+    #bestsellersSection .favorite-toggle-btn--bestseller {
+      top: 0.55rem;
+      left: 0.55rem;
+    }
+    #bestsellersSection .flash-sale-mini-strip {
+      gap: 0;
+      margin: 0.08rem 0 0.36rem;
+      padding: 0.1rem 0.12rem;
+      border-radius: 0.2rem;
+    }
+    #bestsellersSection .flash-sale-mini-label {
+      min-width: 0;
+      padding: 0.1rem 0.38rem;
+      border-radius: 0.2rem 0 0 0.2rem;
+      font-size: 0.58rem;
+      line-height: 1;
+    }
+    #bestsellersSection .flash-sale-mini-strip .flash-sale-mini-timer {
+      min-width: 6.2ch;
+      padding: 0.1rem 0.4rem;
+      border-radius: 0 0.2rem 0.2rem 0;
+      font-size: 0.58rem;
+      letter-spacing: 0.06em;
+      margin-left: 0;
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: 'tnum' 1;
+      font-kerning: none;
+      transition: none !important;
+      animation: none !important;
+    }
+    #bestsellersSection .flash-sale-mini-tail {
+      display: none !important;
+    }
+    #bestsellersSection .flash-sale-shop-actions {
+      display: grid;
+      grid-template-columns: minmax(0, 7fr) minmax(3.3rem, 3fr);
+      align-items: stretch;
+      justify-content: stretch;
+      gap: 0;
+      align-self: center;
+      margin-top: auto;
+      margin-left: 0;
+      margin-right: 0;
+      overflow: hidden;
+      border-radius: 0.62rem;
+      position: relative;
+      width: 100%;
+      min-width: 0;
+      background: linear-gradient(135deg, #337cff, #8d55ff 45%, #ec4fbe) !important;
+      box-shadow: 0 10px 22px rgba(59,130,246,0.24), 0 8px 20px rgba(236,63,173,0.18) !important;
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+    }
+    #bestsellersSection .flash-sale-shop-actions > .flash-sale-shop-buy-btn {
+      display: flex !important;
+      align-items: center;
+      justify-content: center;
+      width: 100% !important;
+      min-width: 0 !important;
+      max-width: 100% !important;
+      height: 2.08rem !important;
+      padding: 0 0.5rem !important;
+      gap: 0.24rem !important;
+      border-radius: 0 !important;
+      border-top-left-radius: 0.62rem !important;
+      border-bottom-left-radius: 0.62rem !important;
+      background: transparent !important;
+      box-shadow: none !important;
+      overflow: visible;
+      font-family: 'Be Vietnam Pro', 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    #bestsellersSection .flash-sale-shop-actions > .flash-sale-shop-cart-btn {
+      display: inline-flex !important;
+      width: 100% !important;
+      min-width: 0 !important;
+      height: 2.08rem !important;
+      padding: 0 0.46rem !important;
+      border-radius: 0 !important;
+      border-top-right-radius: 0.62rem !important;
+      border-bottom-right-radius: 0.62rem !important;
+      background: transparent !important;
+      box-shadow: none !important;
+      position: relative;
+    }
+    #bestsellersSection .flash-sale-shop-actions > .flash-sale-shop-cart-btn::before {
+      content: '|';
+      position: absolute;
+      left: 0;
+      top: 50%;
+      color: rgba(255,255,255,0.62);
+      font-size: 0.74rem;
+      font-weight: 700;
+      line-height: 1;
+      transform: translate(-50%, -52%);
+      pointer-events: none;
+    }
+    #bestsellersSection .flash-sale-shop-buy-btn i {
+      display: none !important;
+    }
+    #bestsellersSection .flash-sale-shop-buy-btn .quick-order-label-mobile {
+      display: block !important;
+      width: 100%;
+      text-align: center;
+      color: #fff;
+      font-size: 0.74rem !important;
+      line-height: 1.32 !important;
+      letter-spacing: 0;
+      overflow: visible;
+      text-overflow: clip;
+      white-space: nowrap;
+      padding: 0.08rem 0 0.12rem;
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+    }
+    #bestsellersSection .flash-sale-shop-buy-btn .quick-order-label-desktop {
+      display: none !important;
+    }
+    #bestsellersSection .flash-sale-shop-actions--blocked {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    #bestsellersSection .flash-sale-shop-actions--blocked .blocked-order-btn {
+      width: 100% !important;
+      min-width: 100% !important;
+      height: 2.08rem !important;
+      border-radius: 0.62rem !important;
     }
     .bs-actions {
       display: grid;

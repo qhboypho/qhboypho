@@ -1171,6 +1171,7 @@ async function loadBestSellers() {
             alt="\${escapeHtml(p.name)}" class="bs-card-img" loading="lazy"
             onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'">
           \${renderFavoriteButton(p.id, 'favorite-toggle-btn--bestseller')}
+          <span class="bs-mobile-hot-badge" aria-label="Sản phẩm hot"><i class="fas fa-fire-flame-curved" aria-hidden="true"></i><span>Hot</span></span>
           <div class="\${medalClass(i)}">\${medalIcon(i)}</div>
         </div>
         <div class="bs-card-body p-3">
