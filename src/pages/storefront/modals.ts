@@ -419,12 +419,31 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
 
     <div id="cartStep2" class="hidden flex-col flex-1 overflow-hidden checkout-slide">
       <div id="checkoutSummary" class="flex-shrink-0 bg-gray-50 border-b px-5 py-3 overflow-x-auto">
+        <div id="checkoutOrderHeader" class="checkout-order-header hidden">
+          <strong>Đơn hàng</strong>
+          <button type="button" id="ckMobileNoteAction" onclick="openCheckoutNoteSheet()" class="checkout-mobile-note-action hidden">
+            <span id="ckMobileNoteLabel">Thêm ghi chú</span>
+            <i class="fas fa-chevron-right"></i>
+          </button>
+        </div>
         <div id="checkoutSummaryItems" class="flex gap-3 min-w-max"></div>
       </div>
 
-      <div class="flex-1 overflow-y-auto px-5 py-4">
-        <h3 class="font-display text-base font-bold text-gray-800 mb-4">Thông tin giao hàng</h3>
-        <div class="space-y-4">
+      <div class="flex-1 overflow-y-auto px-5 py-4 checkout-confirm-body">
+        <div id="ckMobileAddressSummary" class="checkout-mobile-address-summary hidden"></div>
+
+        <div id="ckShippingEditor" class="checkout-shipping-editor">
+          <div class="checkout-shipping-editor-panel">
+            <div class="checkout-shipping-editor-header hidden">
+              <button type="button" onclick="closeCheckoutAddressEditor()" class="checkout-sheet-back-btn" aria-label="Quay lại">
+                <i class="fas fa-chevron-left"></i>
+              </button>
+              <h3 class="font-display text-base font-bold text-gray-900">Thông tin giao hàng</h3>
+              <span class="w-9"></span>
+            </div>
+            <div class="checkout-shipping-editor-body">
+              <h3 class="checkout-shipping-title font-display text-base font-bold text-gray-800 mb-4">Thông tin giao hàng</h3>
+              <div class="space-y-4">
           <div id="ckFieldName">
             <label class="block text-sm font-semibold text-gray-700 mb-1.5 field-title">
               <i class="fas fa-user text-pink-400 mr-1"></i>Họ và tên *
@@ -494,6 +513,15 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
               placeholder="Địa chỉ đầy đủ sẽ tự động ghép tại đây"
               class="mt-2.5 w-full border rounded-xl px-4 py-2.5 text-sm bg-gray-50 text-gray-600 focus:outline-none">
           </div>
+              </div>
+            </div>
+            <div class="checkout-shipping-editor-footer hidden">
+              <button type="button" onclick="saveCheckoutAddressFromEditor()" class="btn-primary w-full text-white py-3.5 rounded-xl font-bold text-sm">
+                Lưu địa chỉ
+              </button>
+            </div>
+          </div>
+        </div>
 
           <div id="ckFieldVoucher">
             <label class="block text-sm font-semibold text-gray-700 mb-1.5">
@@ -511,7 +539,7 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
             <div id="ckVoucherStatus" class="mt-2 hidden"></div>
           </div>
 
-          <div>
+          <div id="ckNoteField">
             <label class="block text-sm font-semibold text-gray-700 mb-1.5">
               <i class="fas fa-sticky-note text-pink-400 mr-1"></i>Ghi chú (tuỳ chọn)
             </label>
@@ -520,7 +548,6 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
           </div>
 
           ${checkoutPaymentOptions('ck', 'Thanh toán online khi chọn 1 mặt hàng')}
-        </div>
       </div>
 
       <div class="cart-checkout-footer flex-shrink-0 border-t px-5 py-4">
@@ -543,6 +570,47 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
           <i class="fas fa-credit-card mr-2"></i>Xác nhận & Đặt hàng
         </button>
       </div>
+    </div>
+  </div>
+</div>
+
+<div id="checkoutAddressManagerOverlay" class="fixed inset-0 overlay hidden flex items-end justify-center sm:items-center p-0 sm:p-4 z-[10020]" onclick="if(event.target===this) closeCheckoutAddressManager()">
+  <div id="checkoutAddressManagerPanel" class="checkout-address-manager-panel bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-md overflow-hidden transform transition-transform translate-y-full sm:translate-y-0 duration-300" onclick="event.stopPropagation()">
+    <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+      <button type="button" onclick="closeCheckoutAddressManager()" class="checkout-sheet-back-btn" aria-label="Quay lại">
+        <i class="fas fa-chevron-left"></i>
+      </button>
+      <h3 class="font-display text-lg font-bold text-gray-900">Địa chỉ của bạn</h3>
+      <span class="w-9"></span>
+    </div>
+    <button type="button" onclick="openCheckoutAddressEditor()" class="checkout-address-add-row">
+      <span class="checkout-address-add-icon"><i class="fas fa-plus"></i></span>
+      <span>Thêm địa chỉ</span>
+      <i class="fas fa-chevron-right ml-auto"></i>
+    </button>
+    <div id="checkoutAddressManagerList" class="max-h-[68vh] overflow-y-auto"></div>
+  </div>
+</div>
+
+<div id="checkoutNoteOverlay" class="fixed inset-0 overlay hidden flex items-end justify-center sm:items-center p-0 sm:p-4 z-[10020]" onclick="if(event.target===this) closeCheckoutNoteSheet()">
+  <div id="checkoutNotePanel" class="checkout-note-panel bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-md overflow-hidden transform transition-transform translate-y-full sm:translate-y-0 duration-300" onclick="event.stopPropagation()">
+    <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+      <h3 class="font-display text-lg font-bold text-gray-900">Ghi chú đơn hàng</h3>
+      <button type="button" onclick="closeCheckoutNoteSheet()" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition">
+        <i class="fas fa-times text-gray-600"></i>
+      </button>
+    </div>
+    <div class="px-5 py-4">
+      <textarea id="checkoutNoteDraft" rows="4" placeholder="Nhập ghi chú cho shop..."
+        class="w-full border rounded-2xl px-4 py-3 text-sm resize-none focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200"></textarea>
+    </div>
+    <div class="px-5 py-4 border-t border-gray-100 flex gap-3">
+      <button type="button" onclick="clearCheckoutNoteSheet()" class="w-1/3 border border-gray-200 text-gray-700 py-3 rounded-xl font-semibold text-sm hover:bg-gray-50 transition">
+        Xoá
+      </button>
+      <button type="button" onclick="saveCheckoutNoteSheet()" class="btn-primary flex-1 text-white py-3 rounded-xl font-semibold text-sm shadow-md">
+        Lưu ghi chú
+      </button>
     </div>
   </div>
 </div>

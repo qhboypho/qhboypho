@@ -114,7 +114,9 @@ function syncStorefrontPageScrollLock() {
     'favoriteAuthModal',
     'filterModalOverlay',
     'variantModalOverlay',
-    'productsModalOverlay'
+    'productsModalOverlay',
+    'checkoutAddressManagerOverlay',
+    'checkoutNoteOverlay'
   ]
   const hasOpenModal = modalIds.some((id) => {
     const el = document.getElementById(id)
@@ -130,6 +132,11 @@ let cart = []
 let cartStep = 1  // 1=list, 2=checkout
 let ckAppliedVoucher = null
 let cartSelectedPaymentMethod = ''
+let checkoutAddressBook = []
+let selectedCheckoutAddressId = ''
+let editingCheckoutAddressId = ''
+let checkoutAddressEditorSaved = false
+let checkoutAddressEditorSnapshot = null
 let currentUser = null
 let isAdminUser = false
 let userAuthTurnstileEnabled = false
@@ -835,6 +842,316 @@ function getAddressPayload(scope) {
     detail,
     effectiveDate: ADDRESS_EFFECTIVE_DATE
   }
+}
+
+function getCheckoutAddressBookKey() {
+  if (isAdminUser) return 'qhclothes_checkout_addresses_admin'
+  const uid = Number(currentUser?.userId || currentUser?.id || 0)
+  if (uid > 0) return 'qhclothes_checkout_addresses_user_' + uid
+  return 'qhclothes_checkout_addresses_guest'
+}
+
+function loadCheckoutAddressBook() {
+  try {
+    const raw = localStorage.getItem(getCheckoutAddressBookKey())
+    const parsed = raw ? JSON.parse(raw) : []
+    checkoutAddressBook = Array.isArray(parsed) ? parsed.filter((item) => item && item.id) : []
+  } catch (_) {
+    checkoutAddressBook = []
+  }
+  return checkoutAddressBook
+}
+
+function saveCheckoutAddressBook() {
+  try {
+    localStorage.setItem(getCheckoutAddressBookKey(), JSON.stringify(checkoutAddressBook))
+  } catch (_) { }
+}
+
+function maskCheckoutPhone(phone) {
+  const raw = String(phone || '').replace(/\\s/g, '')
+  if (raw.length <= 4) return raw
+  const prefix = raw.startsWith('0') ? '(+84)' + raw.slice(1, 3) : raw.slice(0, 5)
+  return prefix + '*****' + raw.slice(-2)
+}
+
+function captureCheckoutAddressFromFields() {
+  const name = document.getElementById('ckName')?.value.trim() || ''
+  const phone = document.getElementById('ckPhone')?.value.trim() || ''
+  const addressPayload = getAddressPayload('ck')
+  if (!name || !phone || !addressPayload.valid) return null
+  return {
+    id: editingCheckoutAddressId || ('addr_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8)),
+    name,
+    phone,
+    address: addressPayload.address,
+    provinceCode: addressPayload.provinceCode,
+    communeCode: addressPayload.communeCode,
+    detail: addressPayload.detail,
+    effectiveDate: addressPayload.effectiveDate,
+    updatedAt: Date.now()
+  }
+}
+
+function snapshotCheckoutAddressFields() {
+  return {
+    selectedId: selectedCheckoutAddressId,
+    name: document.getElementById('ckName')?.value || '',
+    phone: document.getElementById('ckPhone')?.value || '',
+    provinceCode: document.getElementById('ckProvince')?.value || '',
+    communeCode: document.getElementById('ckCommune')?.value || '',
+    detail: document.getElementById('ckAddressDetail')?.value || '',
+    address: document.getElementById('ckAddress')?.value || ''
+  }
+}
+
+async function restoreCheckoutAddressSnapshot(snapshot) {
+  if (!snapshot) return
+  const nameEl = document.getElementById('ckName')
+  const phoneEl = document.getElementById('ckPhone')
+  const provinceEl = document.getElementById('ckProvince')
+  const communeEl = document.getElementById('ckCommune')
+  const detailEl = document.getElementById('ckAddressDetail')
+  const addressEl = document.getElementById('ckAddress')
+  if (nameEl) nameEl.value = snapshot.name || ''
+  if (phoneEl) phoneEl.value = snapshot.phone || ''
+  if (provinceEl) {
+    provinceEl.value = String(snapshot.provinceCode || '')
+    if (snapshot.provinceCode) await onAddressProvinceChange('ck')
+  }
+  if (communeEl) communeEl.value = String(snapshot.communeCode || '')
+  if (detailEl) detailEl.value = snapshot.detail || ''
+  if (addressEl) addressEl.value = snapshot.address || ''
+  selectedCheckoutAddressId = snapshot.selectedId || ''
+  renderAddressDropdownList('ck', 'province', '')
+  renderAddressDropdownList('ck', 'commune', '')
+  syncAddressFullText('ck')
+  renderCheckoutAddressSummary()
+}
+
+function getSelectedCheckoutAddress() {
+  loadCheckoutAddressBook()
+  return checkoutAddressBook.find((item) => item.id === selectedCheckoutAddressId) || checkoutAddressBook[0] || null
+}
+
+async function applyCheckoutAddressRecord(record) {
+  if (!record) return
+  await ensureAddressKitReady()
+  const nameEl = document.getElementById('ckName')
+  const phoneEl = document.getElementById('ckPhone')
+  const provinceEl = document.getElementById('ckProvince')
+  const communeEl = document.getElementById('ckCommune')
+  const detailEl = document.getElementById('ckAddressDetail')
+  if (nameEl) nameEl.value = record.name || ''
+  if (phoneEl) phoneEl.value = record.phone || ''
+  if (provinceEl) {
+    provinceEl.value = String(record.provinceCode || '')
+    await onAddressProvinceChange('ck')
+  }
+  if (communeEl) communeEl.value = String(record.communeCode || '')
+  if (detailEl) detailEl.value = String(record.detail || '')
+  renderAddressDropdownList('ck', 'province', '')
+  renderAddressDropdownList('ck', 'commune', '')
+  syncAddressFullText('ck')
+  selectedCheckoutAddressId = record.id || ''
+  ;['ckFieldName','ckFieldPhone','ckFieldAddress'].forEach(id => clearCheckoutError(id))
+  renderCheckoutAddressSummary()
+}
+
+function ensureCheckoutAddressBookFromCurrentFields() {
+  loadCheckoutAddressBook()
+  const current = captureCheckoutAddressFromFields()
+  if (!current) return null
+  const existingIndex = checkoutAddressBook.findIndex((item) => {
+    return String(item.phone || '') === current.phone && String(item.address || '') === current.address
+  })
+  if (existingIndex >= 0) {
+    current.id = checkoutAddressBook[existingIndex].id
+    checkoutAddressBook[existingIndex] = { ...checkoutAddressBook[existingIndex], ...current }
+  } else {
+    checkoutAddressBook.unshift(current)
+  }
+  selectedCheckoutAddressId = current.id
+  saveCheckoutAddressBook()
+  return current
+}
+
+function renderCheckoutAddressSummary() {
+  const box = document.getElementById('ckMobileAddressSummary')
+  if (!box) return
+  const name = document.getElementById('ckName')?.value.trim() || ''
+  const phone = document.getElementById('ckPhone')?.value.trim() || ''
+  const address = syncAddressFullText('ck')
+  box.classList.remove('hidden')
+  if (!name || !phone || !address) {
+    box.innerHTML = '<button type="button" onclick="openCheckoutAddressEditor()" class="checkout-address-empty-card">'
+      + '<span class="checkout-address-pin"><i class="fas fa-map-marker-alt"></i></span>'
+      + '<span class="min-w-0 flex-1"><strong>Thêm địa chỉ nhận hàng</strong><small>Điền tên, số điện thoại và địa chỉ giao hàng</small></span>'
+      + '<i class="fas fa-chevron-right"></i>'
+      + '</button>'
+    return
+  }
+  box.innerHTML = '<button type="button" onclick="openCheckoutAddressManager()" class="checkout-address-selected-card">'
+    + '<span class="checkout-address-pin"><i class="fas fa-map-marker-alt"></i></span>'
+    + '<span class="min-w-0 flex-1 text-left">'
+    + '<strong>' + escapeHtml(name) + ' <span>' + escapeHtml(maskCheckoutPhone(phone)) + '</span></strong>'
+    + '<small>' + escapeHtml(address) + '</small>'
+    + '</span>'
+    + '<i class="fas fa-chevron-right"></i>'
+    + '</button>'
+}
+
+function openCheckoutAddressEditor(addressId) {
+  editingCheckoutAddressId = String(addressId || '')
+  checkoutAddressEditorSaved = false
+  checkoutAddressEditorSnapshot = snapshotCheckoutAddressFields()
+  const record = editingCheckoutAddressId ? checkoutAddressBook.find((item) => item.id === editingCheckoutAddressId) : null
+  const editor = document.getElementById('ckShippingEditor')
+  if (record) {
+    applyCheckoutAddressRecord(record).catch(() => { })
+  } else if (!editingCheckoutAddressId) {
+    ;['ckName','ckPhone','ckAddress','ckAddressDetail'].forEach(id => { const el=document.getElementById(id); if(el) el.value='' })
+    resetAddressScope('ck')
+  }
+  if (editor) {
+    editor.classList.add('is-open')
+    lockStorefrontPageScroll('ckShippingEditor')
+  }
+}
+
+function closeCheckoutAddressEditor() {
+  const editor = document.getElementById('ckShippingEditor')
+  if (editor) editor.classList.remove('is-open')
+  if (!checkoutAddressEditorSaved && checkoutAddressEditorSnapshot) {
+    restoreCheckoutAddressSnapshot(checkoutAddressEditorSnapshot).catch(() => { })
+  }
+  editingCheckoutAddressId = ''
+  checkoutAddressEditorSaved = false
+  checkoutAddressEditorSnapshot = null
+  unlockStorefrontPageScroll('ckShippingEditor')
+}
+
+function saveCheckoutAddressFromEditor() {
+  const payload = validateCheckoutFields('ck', {})
+  if (!payload) return
+  const record = captureCheckoutAddressFromFields()
+  if (!record) return
+  loadCheckoutAddressBook()
+  const idx = checkoutAddressBook.findIndex((item) => item.id === record.id)
+  if (idx >= 0) checkoutAddressBook[idx] = { ...checkoutAddressBook[idx], ...record }
+  else checkoutAddressBook.unshift(record)
+  selectedCheckoutAddressId = record.id
+  saveCheckoutAddressBook()
+  renderCheckoutAddressSummary()
+  renderCheckoutAddressManager()
+  checkoutAddressEditorSaved = true
+  closeCheckoutAddressEditor()
+}
+
+function renderCheckoutAddressManager() {
+  const list = document.getElementById('checkoutAddressManagerList')
+  if (!list) return
+  loadCheckoutAddressBook()
+  if (!checkoutAddressBook.length) {
+    list.innerHTML = '<div class="px-5 py-8 text-center text-sm text-gray-500">Chưa có địa chỉ nào</div>'
+    return
+  }
+  list.innerHTML = checkoutAddressBook.map((item) => {
+    const isActive = item.id === selectedCheckoutAddressId
+    return '<div class="checkout-address-manage-row' + (isActive ? ' is-active' : '') + '">'
+      + '<button type="button" class="checkout-address-manage-main" onclick="selectCheckoutManagedAddress(\\'' + escapeHtml(item.id) + '\\')">'
+      + '<strong>' + escapeHtml(item.name || '') + '</strong>'
+      + '<span>' + escapeHtml(maskCheckoutPhone(item.phone || '')) + '</span>'
+      + '<p>' + escapeHtml(item.address || '') + '</p>'
+      + (isActive ? '<em>Mặc định</em>' : '')
+      + '</button>'
+      + '<button type="button" class="checkout-address-edit-btn" onclick="openCheckoutAddressEditor(\\'' + escapeHtml(item.id) + '\\')">Chỉnh sửa</button>'
+      + '</div>'
+  }).join('')
+}
+
+function openCheckoutAddressManager() {
+  renderCheckoutAddressManager()
+  const modal = document.getElementById('checkoutAddressManagerOverlay')
+  const panel = document.getElementById('checkoutAddressManagerPanel')
+  if (!modal || !panel) return
+  modal.classList.remove('hidden')
+  modal.classList.add('flex')
+  lockStorefrontPageScroll('checkoutAddressManagerOverlay')
+  setTimeout(() => {
+    panel.classList.remove('translate-y-full')
+    panel.classList.add('translate-y-0')
+  }, 10)
+}
+
+function closeCheckoutAddressManager() {
+  const modal = document.getElementById('checkoutAddressManagerOverlay')
+  const panel = document.getElementById('checkoutAddressManagerPanel')
+  if (!modal || !panel) return
+  panel.classList.remove('translate-y-0')
+  panel.classList.add('translate-y-full')
+  setTimeout(() => {
+    modal.classList.add('hidden')
+    modal.classList.remove('flex')
+    unlockStorefrontPageScroll('checkoutAddressManagerOverlay')
+  }, 260)
+}
+
+function selectCheckoutManagedAddress(addressId) {
+  const record = checkoutAddressBook.find((item) => item.id === addressId)
+  if (!record) return
+  applyCheckoutAddressRecord(record)
+    .then(() => closeCheckoutAddressManager())
+    .catch(() => showToast('Không thể áp dụng địa chỉ này. Vui lòng thử lại.', 'error', 3500))
+}
+
+function updateCheckoutNoteActionLabel() {
+  const label = document.getElementById('ckMobileNoteLabel')
+  if (!label) return
+  const note = document.getElementById('ckNote')?.value.trim() || ''
+  label.textContent = note ? ('Ghi chú: ' + note) : 'Thêm ghi chú'
+}
+
+function openCheckoutNoteSheet() {
+  const modal = document.getElementById('checkoutNoteOverlay')
+  const panel = document.getElementById('checkoutNotePanel')
+  const draft = document.getElementById('checkoutNoteDraft')
+  if (draft) draft.value = document.getElementById('ckNote')?.value || ''
+  if (!modal || !panel) return
+  modal.classList.remove('hidden')
+  modal.classList.add('flex')
+  lockStorefrontPageScroll('checkoutNoteOverlay')
+  setTimeout(() => {
+    panel.classList.remove('translate-y-full')
+    panel.classList.add('translate-y-0')
+    draft?.focus()
+  }, 10)
+}
+
+function closeCheckoutNoteSheet() {
+  const modal = document.getElementById('checkoutNoteOverlay')
+  const panel = document.getElementById('checkoutNotePanel')
+  if (!modal || !panel) return
+  panel.classList.remove('translate-y-0')
+  panel.classList.add('translate-y-full')
+  setTimeout(() => {
+    modal.classList.add('hidden')
+    modal.classList.remove('flex')
+    unlockStorefrontPageScroll('checkoutNoteOverlay')
+  }, 260)
+}
+
+function saveCheckoutNoteSheet() {
+  const noteEl = document.getElementById('ckNote')
+  const draft = document.getElementById('checkoutNoteDraft')
+  if (noteEl && draft) noteEl.value = draft.value.trim()
+  updateCheckoutNoteActionLabel()
+  closeCheckoutNoteSheet()
+}
+
+function clearCheckoutNoteSheet() {
+  const draft = document.getElementById('checkoutNoteDraft')
+  if (draft) draft.value = ''
 }
 
 function resolveCartStorageKey() {
@@ -1815,6 +2132,9 @@ function openCart() {
 }
 function closeCart() {
   document.getElementById('cartOverlay').classList.add('hidden')
+  closeCheckoutAddressEditor()
+  closeCheckoutAddressManager()
+  closeCheckoutNoteSheet()
   unlockStorefrontPageScroll('cartOverlay')
 }
 function handleCartOverlayClick(e) {
@@ -2000,6 +2320,30 @@ function setupSwipeToDelete() {
 }
 
 // ── CHECKOUT from CART ────────────────────────────
+function renderCheckoutSummaryCards(items) {
+  return items.map(function(item) {
+    const col = (typeof item.color === 'string' && item.color) ? item.color : ''
+    const sz = item.size || ''
+    const variantLabel = [col, sz].filter(Boolean).join(', ') || 'Chọn màu, size'
+    return '<div class="checkout-order-item cart-item rounded-xl border border-gray-200 bg-white">'
+      + '<div class="cart-item-inner checkout-order-item-inner rounded-xl p-3">'
+      + '<div class="flex gap-3 items-start">'
+      + '<img src="' + escapeHtml(item.thumbnail) + '" alt="' + escapeHtml(item.name) + '" class="checkout-order-img h-20 aspect-square object-cover rounded-lg flex-shrink-0" onerror="this.src=&quot;https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&quot;">'
+      + '<div class="flex-1 min-w-0">'
+      + '<div class="flex items-start gap-2">'
+      + '<p class="font-semibold text-gray-900 text-sm line-clamp-1 mb-0.5 flex-1 min-w-0">' + escapeHtml(item.name) + '</p>'
+      + '<span class="checkout-order-qty">x' + item.qty + '</span>'
+      + '</div>'
+      + '<p class="text-xs text-gray-400 mb-1">' + escapeHtml(item.sku) + '</p>'
+      + '<div class="cart-variant-selector checkout-order-variant"><span>' + escapeHtml(variantLabel) + '</span></div>'
+      + '<div class="flex items-end justify-between gap-2">'
+      + '<span class="text-gradient-price font-bold text-sm">' + fmtPrice(item.price) + '</span>'
+      + '<span class="text-right text-xs text-gray-400">= ' + fmtPrice(item.price * item.qty) + '</span>'
+      + '</div>'
+      + '</div></div></div></div>'
+  }).join('')
+}
+
 async function proceedToCheckout() {
   const checked = cart.filter(i=>i.checked)
   if (checked.length === 0) { showToast('Vui lòng chọn ít nhất 1 mặt hàng','error'); return }
@@ -2011,16 +2355,18 @@ async function proceedToCheckout() {
     return
   }
   // Build summary
-  document.getElementById('checkoutSummaryItems').innerHTML = checked.map(function(i){
-    return '<div class="flex-shrink-0 w-20 text-center">'
-      + '<div class="relative inline-block">'
-      + '<img src="' + escapeHtml(i.thumbnail) + '" class="h-20 aspect-square object-cover rounded-xl border-2 border-white shadow" onerror="this.src=&quot;https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&quot;">'
-      + '<span class="absolute -top-1 -right-1 w-5 h-5 bg-pink-500 text-white text-xs rounded-full flex items-center justify-center font-bold">' + i.qty + '</span>'
-      + '</div><p class="text-xs text-gray-600 mt-1 line-clamp-1">' + escapeHtml(i.name) + '</p></div>'
-  }).join('')
+  const summaryItemsEl = document.getElementById('checkoutSummaryItems')
+  summaryItemsEl.className = 'checkout-order-list'
+  summaryItemsEl.innerHTML = renderCheckoutSummaryCards(checked)
   // reset form
   ;['ckName','ckPhone','ckAddress','ckAddressDetail','ckNote'].forEach(id => { const el=document.getElementById(id); if(el) el.value='' })
   await applySavedAddressToScope('ck')
+  loadCheckoutAddressBook()
+  const selectedAddress = getSelectedCheckoutAddress()
+  if (selectedAddress) await applyCheckoutAddressRecord(selectedAddress)
+  else ensureCheckoutAddressBookFromCurrentFields()
+  renderCheckoutAddressSummary()
+  updateCheckoutNoteActionLabel()
   ;['ckFieldName','ckFieldPhone','ckFieldAddress','ckFieldPaymentMethod'].forEach(id => clearCheckoutError(id))
   resetCheckoutPaymentMethod('ck')
   ckAppliedVoucher = null
@@ -2150,7 +2496,12 @@ function closeBlockedCustomerModal() {
 
 async function submitCartOrder() {
   const payload = validateCheckoutFields('ck', { requirePayment: true })
-  if (!payload) return
+  if (!payload) {
+    if (window.matchMedia && window.matchMedia('(max-width: 767px)').matches) {
+      openCheckoutAddressEditor()
+    }
+    return
+  }
 
   // Check if customer is blocked
   const blockCheck = await checkCustomerBlockStatus(payload.phone)
@@ -2244,6 +2595,8 @@ const storefrontClosableOverlays = [
   { id: 'productsModalOverlay', close: () => closeProductsModal() },
   { id: 'orderOverlay', close: () => closeOrder() },
   { id: 'detailOverlay', close: () => closeDetail() },
+  { id: 'checkoutAddressManagerOverlay', close: () => closeCheckoutAddressManager() },
+  { id: 'checkoutNoteOverlay', close: () => closeCheckoutNoteSheet() },
   { id: 'cartOverlay', close: () => closeCart() },
   { id: 'userMenuOverlay', close: () => closeUserMenu() },
 ]
