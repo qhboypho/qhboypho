@@ -2811,6 +2811,7 @@ export function storefrontThemeRefreshStyles(): string {
     #productsGrid.products-grid-compact .product-card-actions {
       justify-content: center;
       align-self: center;
+      margin-top: 1rem;
       margin-left: 0;
       margin-right: 0;
       width: 100%;
@@ -2825,18 +2826,22 @@ export function storefrontThemeRefreshStyles(): string {
       padding-right: 0.46rem !important;
     }
     #bestsellersSection .bestsellers-track {
-      display: grid !important;
-      grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      display: flex !important;
+      grid-template-columns: none !important;
       gap: 0.75rem !important;
       align-items: stretch;
-      overflow: visible !important;
-      scroll-snap-type: none !important;
-      padding: 0 !important;
+      overflow-x: auto !important;
+      overflow-y: hidden !important;
+      scroll-snap-type: x mandatory !important;
+      scroll-padding-left: 0.1rem;
+      -webkit-overflow-scrolling: touch;
+      padding: 0 0.1rem 0.35rem !important;
     }
     #bestsellersSection .bs-card {
       display: flex !important;
       flex-direction: column;
-      width: 100% !important;
+      flex: 0 0 clamp(9.4rem, 43vw, 10.6rem);
+      width: clamp(9.4rem, 43vw, 10.6rem) !important;
       min-width: 0 !important;
       max-width: none !important;
       height: 100% !important;
@@ -2844,6 +2849,7 @@ export function storefrontThemeRefreshStyles(): string {
       align-self: stretch;
       border-radius: 1rem !important;
       overflow: hidden;
+      scroll-snap-align: start;
     }
     #bestsellersSection .bs-card > .relative {
       flex: 0 0 auto;
@@ -2901,10 +2907,29 @@ export function storefrontThemeRefreshStyles(): string {
       font-size: 0.66rem !important;
       line-height: 1.1 !important;
     }
-    #bestsellersSection .bs-stars,
     #bestsellersSection .bs-card .bs-sold-chip,
     #bestsellersSection .bs-card-body > .flex.items-center.gap-1\\.5 {
       display: none !important;
+    }
+    #bestsellersSection .bs-stars {
+      display: inline-flex !important;
+      align-items: center;
+      gap: 0.24rem;
+      margin-left: 0;
+      color: #f6b91a !important;
+      font-size: 0.66rem;
+      line-height: 1;
+      letter-spacing: 0;
+      white-space: nowrap;
+    }
+    #bestsellersSection .bs-stars .product-rating-stars-icons {
+      letter-spacing: -0.08em;
+    }
+    #bestsellersSection .bs-stars .product-rating-score-text {
+      color: var(--qh-muted);
+      font-size: 0.66rem;
+      font-weight: 700;
+      line-height: 1;
     }
     #bestsellersSection .bs-medal {
       display: none !important;
@@ -2974,7 +2999,7 @@ export function storefrontThemeRefreshStyles(): string {
       justify-content: stretch;
       gap: 0;
       align-self: center;
-      margin-top: auto;
+      margin-top: 1rem;
       margin-left: 0;
       margin-right: 0;
       overflow: hidden;
