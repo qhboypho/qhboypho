@@ -565,6 +565,8 @@ function updateOrderTotal() {
   const subtotal = currentProduct.price * orderQty
   const discount = appliedVoucher ? appliedVoucher.discount_amount : 0
   const total = Math.max(0, subtotal - discount)
+  const label = document.getElementById('orderTotalLabel')
+  if (label) label.textContent = 'Tổng (' + orderQty + ' mặt hàng):'
   document.getElementById('orderTotal').textContent = fmtPrice(total)
   if (appliedVoucher) {
     document.getElementById('orderSubtotal').textContent = fmtPrice(subtotal)

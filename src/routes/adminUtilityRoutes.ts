@@ -56,6 +56,10 @@ type NotificationSettingsInput = {
   marquee_speed_seconds?: unknown
 }
 
+type PaymentSettingsInput = {
+  wallet_topup_enabled?: unknown
+}
+
 type TextUiSettingsInput = {
   quick_order_risk_note_text?: unknown
   hero_badge_text?: unknown
@@ -123,6 +127,10 @@ const IMAGE_SETTING_KEYS = [
 const NOTIFICATION_SETTING_KEYS = [
   'marquee_text',
   'marquee_speed_seconds',
+] as const
+
+const PAYMENT_SETTING_KEYS = [
+  'wallet_topup_enabled',
 ] as const
 
 const DEFAULT_MARQUEE_TEXT = 'Mua hàng tại đây không qua sàn thương mại nên giá thành sản phẩm sẽ rẻ hơn rất nhiều và bảo hành hoàn trả trong vòng 7 ngày nếu sản phẩm bị lỗi nên quý khách yên tâm mua sắm nhé.Bảo hành đổi trả nhắn qua trang facebook : QH Boypho. Chúc quý khách có trải nghiệm mua sắm tốt tại QH Clothes'
@@ -195,6 +203,18 @@ async function readNotificationSettings(db: D1Database) {
   return {
     marquee_text: String(map.get('marquee_text') || DEFAULT_MARQUEE_TEXT).trim(),
     marquee_speed_seconds: Number.isFinite(speed) ? Math.min(120, Math.max(8, Math.round(speed))) : DEFAULT_MARQUEE_SPEED_SECONDS,
+  }
+}
+
+async function readPaymentSettings(db: D1Database) {
+  const query = `SELECT key, value FROM app_settings WHERE key IN (${PAYMENT_SETTING_KEYS.map(() => '?').join(',')})`
+  const result = await db.prepare(query).bind(...PAYMENT_SETTING_KEYS).all()
+  const map = new Map<string, string>()
+  for (const row of (result.results || []) as any[]) {
+    map.set(String(row.key || ''), String(row.value || '').trim())
+  }
+  return {
+    wallet_topup_enabled: String(map.get('wallet_topup_enabled') || '1') !== '0',
   }
 }
 
@@ -491,6 +511,33 @@ export function registerAdminUtilityRoutes(app: Hono<{ Bindings: AppBindings }>,
     }
   })
 
+  app.get('/api/admin/settings/payment', async (c) => {
+    try {
+      await deps.initDB(c.env.DB)
+      const settings = await readPaymentSettings(c.env.DB)
+      return c.json({ success: true, data: settings })
+    } catch (e: any) {
+      return c.json({ success: false, error: e.message }, 500)
+    }
+  })
+
+  app.put('/api/admin/settings/payment', async (c) => {
+    try {
+      await deps.initDB(c.env.DB)
+      const body: PaymentSettingsInput = await c.req.json<PaymentSettingsInput>().catch(() => ({} as PaymentSettingsInput))
+      const enabled = body.wallet_topup_enabled === true || body.wallet_topup_enabled === 1 || body.wallet_topup_enabled === '1'
+      const payload = {
+        wallet_topup_enabled: enabled,
+      }
+      await deps.upsertAppSettings(c.env.DB, [
+        { key: 'wallet_topup_enabled', value: enabled ? '1' : '0' },
+      ])
+      return c.json({ success: true, data: payload })
+    } catch (e: any) {
+      return c.json({ success: false, error: e.message }, 500)
+    }
+  })
+
   app.get('/api/admin/settings/text-ui', async (c) => {
     try {
       await deps.initDB(c.env.DB)
@@ -550,6 +597,16 @@ export function registerAdminUtilityRoutes(app: Hono<{ Bindings: AppBindings }>,
     try {
       await deps.initDB(c.env.DB)
       const settings = await readNotificationSettings(c.env.DB)
+      return c.json({ success: true, data: settings })
+    } catch (e: any) {
+      return c.json({ success: false, error: e.message }, 500)
+    }
+  })
+
+  app.get('/api/public/payment-settings', async (c) => {
+    try {
+      await deps.initDB(c.env.DB)
+      const settings = await readPaymentSettings(c.env.DB)
       return c.json({ success: true, data: settings })
     } catch (e: any) {
       return c.json({ success: false, error: e.message }, 500)

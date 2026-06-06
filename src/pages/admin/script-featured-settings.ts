@@ -120,7 +120,7 @@ function updateFeaturedPreview() {
     .sort((a,b) => (featuredOrderMap[a.id]||0) - (featuredOrderMap[b.id]||0))
 
   const countEl = document.getElementById('featuredCount')
-  countEl.innerHTML = \`<i class="fas fa-star mr-1"></i>\${featured.length} sản phẩm nổi bật\`
+  countEl.innerHTML = \`<i class="fas fa-star mr-1"></i>\${featured.length} mặt hàng nổi bật\`
 
   const strip = document.getElementById('featuredPreviewStrip')
   const previewItems = document.getElementById('featuredPreviewItems')
@@ -366,6 +366,46 @@ async function saveSocialSettings() {
   } finally {
     btn.disabled = false
     btn.innerHTML = '<i class=\"fas fa-save\"></i>Lưu cấu hình MXH'
+  }
+}
+
+function syncPaymentSettingsSwitch(enabled) {
+  const input = document.getElementById('walletTopupEnabledSwitch')
+  const label = document.getElementById('walletTopupSwitchLabel')
+  const status = document.getElementById('paymentSettingsStatus')
+  const isEnabled = enabled !== false
+  if (input) input.checked = isEnabled
+  if (label) {
+    label.textContent = isEnabled ? 'Đang bật' : 'Đang tắt'
+    label.className = 'text-sm font-semibold ' + (isEnabled ? 'text-emerald-600' : 'text-gray-500')
+  }
+  if (status) {
+    status.className = 'inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold ' + (isEnabled ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500')
+    status.innerHTML = '<i class="fas ' + (isEnabled ? 'fa-circle-check' : 'fa-circle-pause') + '"></i>' + (isEnabled ? 'Nạp ví đang bật' : 'Nạp ví đang tắt')
+  }
+}
+
+async function loadPaymentSettings() {
+  try {
+    const res = await axios.get('/api/admin/settings/payment')
+    syncPaymentSettingsSwitch((res.data.data || {}).wallet_topup_enabled !== false)
+  } catch (e) {
+    showAdminToast('Lỗi tải cấu hình thanh toán', 'error')
+    syncPaymentSettingsSwitch(true)
+  }
+}
+
+async function savePaymentSettings() {
+  const input = document.getElementById('walletTopupEnabledSwitch')
+  const enabled = !!(input && input.checked)
+  syncPaymentSettingsSwitch(enabled)
+  try {
+    await axios.put('/api/admin/settings/payment', { wallet_topup_enabled: enabled })
+    showAdminToast(enabled ? 'Đã bật nạp tiền vào ví' : 'Đã tắt nạp tiền vào ví', 'success')
+    await loadPaymentSettings()
+  } catch (e) {
+    showAdminToast('Lưu cấu hình thanh toán thất bại', 'error')
+    await loadPaymentSettings()
   }
 }
 

@@ -721,7 +721,7 @@ function getDashboardStatsParams() {
 function showPage(pageName) {
   pageName = String(pageName || 'dashboard')
   ensureSettingsImagesNavItem()
-  const adminPages = ['dashboard','products','orders','returns','customers','reviews','vouchers','featured','settings','settings-social','settings-text-ui','settings-images','settings-notifications','settings-warehouse','flashsale']
+  const adminPages = ['dashboard','products','orders','returns','customers','reviews','vouchers','featured','settings','settings-social','settings-payment','settings-text-ui','settings-images','settings-notifications','settings-warehouse','flashsale']
   adminPages.forEach(p => {
     const section = document.getElementById('page-'+p)
     if (section) section.classList.toggle('hidden', p !== pageName)
@@ -732,18 +732,19 @@ function showPage(pageName) {
   document.querySelectorAll('.nav-sub-item').forEach(b => {
     b.classList.toggle('active', b.dataset.subPage === settingsActiveSubPage || b.dataset.subPage === marketingActiveSubPage)
   })
-  if (pageName === 'settings' || pageName === 'settings-social' || pageName === 'settings-text-ui' || pageName === 'settings-images' || pageName === 'settings-notifications' || pageName === 'settings-warehouse') {
+  if (pageName === 'settings' || pageName === 'settings-social' || pageName === 'settings-payment' || pageName === 'settings-text-ui' || pageName === 'settings-images' || pageName === 'settings-notifications' || pageName === 'settings-warehouse') {
     const settingsBtn = document.getElementById('settingsMenuBtn')
     if (settingsBtn) settingsBtn.classList.add('active')
     setSettingsSubmenuOpen(true)
     if (pageName === 'settings-social') settingsActiveSubPage = 'settings-social'
+    if (pageName === 'settings-payment') settingsActiveSubPage = 'settings-payment'
     if (pageName === 'settings-text-ui') settingsActiveSubPage = 'settings-text-ui'
     if (pageName === 'settings-images') settingsActiveSubPage = 'settings-images'
     if (pageName === 'settings-notifications') settingsActiveSubPage = 'settings-notifications'
     if (pageName === 'settings-warehouse') settingsActiveSubPage = 'settings-warehouse'
   } else {
     setSettingsSubmenuOpen(false)
-    if (pageName !== 'settings-social' && pageName !== 'settings-text-ui' && pageName !== 'settings-images' && pageName !== 'settings-notifications' && pageName !== 'settings-warehouse') settingsActiveSubPage = ''
+    if (pageName !== 'settings-social' && pageName !== 'settings-payment' && pageName !== 'settings-text-ui' && pageName !== 'settings-images' && pageName !== 'settings-notifications' && pageName !== 'settings-warehouse') settingsActiveSubPage = ''
   }
   if (pageName === 'flashsale') {
     const marketingBtn = document.getElementById('marketingMenuBtn')
@@ -761,7 +762,7 @@ function showPage(pageName) {
   if (marketingActiveSubPage) {
     document.querySelectorAll('.nav-sub-item[data-sub-page="' + marketingActiveSubPage + '"]').forEach(b => b.classList.add('active'))
   }
-  const titles = {dashboard:'Dashboard', products:'Quản lý Sản phẩm', orders:'Quản lý Đơn hàng', returns:'Quản lý hoàn trả', customers:'Quản lý Khách hàng', reviews:'Quản lý Đánh giá', vouchers:'Quản lý Voucher', featured:'Sản phẩm Nổi Bật', settings:'Setting', 'settings-social':'Cấu hình MXH', 'settings-text-ui':'Text UI', 'settings-images':'Cài đặt ảnh', 'settings-notifications':'Cài đặt thông báo', 'settings-warehouse':'Cài đặt kho hàng', flashsale:'Quản lý Flashsale'}
+  const titles = {dashboard:'Dashboard', products:'Quản lý Sản phẩm', orders:'Quản lý Đơn hàng', returns:'Quản lý hoàn trả', customers:'Quản lý Khách hàng', reviews:'Quản lý Đánh giá', vouchers:'Quản lý Voucher', featured:'Sản phẩm Nổi Bật', settings:'Setting', 'settings-social':'Cấu hình MXH', 'settings-payment':'Thanh toán', 'settings-text-ui':'Text UI', 'settings-images':'Cài đặt ảnh', 'settings-notifications':'Cài đặt thông báo', 'settings-warehouse':'Cài đặt kho hàng', flashsale:'Quản lý Flashsale'}
   document.body.dataset.adminPage = pageName
   document.getElementById('pageTitle').textContent = titles[pageName] || pageName
 
@@ -775,6 +776,7 @@ function showPage(pageName) {
   else if (pageName === 'featured') loadFeaturedAdmin()
   else if (pageName === 'settings') loadSettingsAdmin()
   else if (pageName === 'settings-social') loadSocialSettings()
+  else if (pageName === 'settings-payment') loadPaymentSettings()
   else if (pageName === 'settings-text-ui') loadTextUiSettings()
   else if (pageName === 'settings-images') loadImageSettings()
   else if (pageName === 'settings-notifications') loadNotificationSettings()
@@ -913,6 +915,7 @@ function setSettingsSubmenuOpen(open) {
 }
 
 function toggleSettingsMenu() {
+  ensureSettingsImagesNavItem()
   setSettingsSubmenuOpen(!settingsSubmenuOpen)
 }
 
@@ -939,6 +942,16 @@ function ensureSettingsImagesNavItem() {
     const warehouseBtn = submenu.querySelector('[data-sub-page="settings-warehouse"]')
     submenu.insertBefore(btn, warehouseBtn || null)
   }
+  if (!submenu.querySelector('[data-sub-page="settings-payment"]')) {
+    const btn = document.createElement('button')
+    btn.type = 'button'
+    btn.className = 'nav-sub-item w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg text-gray-400 text-sm font-medium'
+    btn.dataset.subPage = 'settings-payment'
+    btn.onclick = openSettingsPayment
+    btn.innerHTML = '<i class="fas fa-credit-card w-4"></i><span class="sidebar-sub-label">Thanh toán</span>'
+    const warehouseBtn = submenu.querySelector('[data-sub-page="settings-warehouse"]')
+    submenu.insertBefore(btn, warehouseBtn || null)
+  }
   if (submenu.querySelector('[data-sub-page="settings-notifications"]')) return
   const btn = document.createElement('button')
   btn.type = 'button'
@@ -956,6 +969,14 @@ function openSettingsTextUi() {
   setSettingsSubmenuOpen(true)
   setMarketingSubmenuOpen(false)
   showPage('settings-text-ui')
+}
+
+function openSettingsPayment() {
+  settingsActiveSubPage = 'settings-payment'
+  marketingActiveSubPage = ''
+  setSettingsSubmenuOpen(true)
+  setMarketingSubmenuOpen(false)
+  showPage('settings-payment')
 }
 
 function openSettingsNotifications() {

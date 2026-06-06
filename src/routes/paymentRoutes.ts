@@ -32,6 +32,11 @@ async function verifyOrderAccess(c: any, order: any): Promise<boolean> {
   return false
 }
 
+async function isWalletTopupEnabled(db: D1Database): Promise<boolean> {
+  const row = await db.prepare("SELECT value FROM app_settings WHERE key='wallet_topup_enabled' LIMIT 1").first<{ value?: string | null }>()
+  return String(row?.value || '1') !== '0'
+}
+
 export function registerPaymentRoutes(app: Hono<{ Bindings: AppBindings }>, deps: PaymentRouteDeps) {
   app.post('/api/webhooks/casso', async (c) => {
     try {
@@ -60,6 +65,11 @@ export function registerPaymentRoutes(app: Hono<{ Bindings: AppBindings }>, deps
         const match = desc.match(/QHVN90(\d+)/)
 
         if (match) {
+          const walletTopupEnabled = await isWalletTopupEnabled(c.env.DB)
+          if (!walletTopupEnabled) {
+            await c.env.DB.prepare("INSERT INTO transactions (tid, amount, description) VALUES (?, ?, ?)").bind(tx.tid, tx.amount, tx.description).run()
+            continue
+          }
           const userId = match[1]
           const amount = tx.amount
           await c.env.DB.prepare("UPDATE users SET balance = balance + ? WHERE id = ?").bind(amount, userId).run()

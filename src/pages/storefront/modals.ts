@@ -234,7 +234,7 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
             <span id="orderDiscount" class="text-sm font-bold text-green-600">-0đ</span>
           </div>
           <div class="flex justify-between items-center">
-            <span class="font-semibold text-gray-700">Tổng cộng:</span>
+            <span id="orderTotalLabel" class="font-semibold text-gray-700">Tổng (1 mặt hàng):</span>
             <span id="orderTotal" class="text-2xl font-bold text-gradient-price">0đ</span>
           </div>
         </div>
@@ -383,7 +383,7 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
         </button>
         <div>
           <h2 id="cartTitle" class="font-display text-lg font-bold">Giỏ hàng</h2>
-          <p id="cartSubtitle" class="text-xs text-gray-300">Chưa có sản phẩm</p>
+          <p id="cartSubtitle" class="text-xs text-gray-300">Chưa có mặt hàng</p>
         </div>
       </div>
       <button onclick="closeCart()" class="w-9 h-9 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 transition">
@@ -407,7 +407,7 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
 
       <div id="cartFooter" class="hidden flex-shrink-0 border-t bg-white px-5 py-4">
         <div class="flex items-center justify-between mb-3">
-          <span class="text-gray-600 font-medium">Tổng cộng (<span id="cartSelectedItems">0</span> sản phẩm):</span>
+          <span class="text-gray-600 font-medium">Tổng cộng (<span id="cartSelectedItems">0</span> mặt hàng):</span>
           <span id="cartTotalPrice" class="text-xl font-bold text-gradient-price">0đ</span>
         </div>
         <button onclick="proceedToCheckout()" id="checkoutBtn"
@@ -519,29 +519,28 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
               class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
           </div>
 
-          ${checkoutPaymentOptions('ck', 'Thanh toán online khi chọn 1 sản phẩm')}
-
-          <div class="bg-gradient-to-r from-pink-50 to-red-50 rounded-2xl p-4 space-y-1.5">
-            <div id="ckSubtotalRow" class="hidden flex justify-between items-center">
-              <span class="text-sm text-gray-500">Tạm tính:</span>
-              <span id="ckSubtotal" class="text-sm font-semibold text-gray-700">0đ</span>
-            </div>
-            <div id="ckDiscountRow" class="hidden flex justify-between items-center">
-              <span class="text-sm text-green-600 font-medium"><i class="fas fa-tag mr-1"></i>Giảm giá:</span>
-              <span id="ckDiscount" class="text-sm font-bold text-green-600">-0đ</span>
-            </div>
-            <div class="flex justify-between items-center">
-              <span class="font-semibold text-gray-700">Tổng cộng:</span>
-              <span id="ckTotal" class="text-2xl font-bold text-gradient-price">0đ</span>
-            </div>
-          </div>
+          ${checkoutPaymentOptions('ck', 'Thanh toán online khi chọn 1 mặt hàng')}
         </div>
       </div>
 
-      <div class="flex-shrink-0 border-t bg-white px-5 py-4">
+      <div class="cart-checkout-footer flex-shrink-0 border-t px-5 py-4">
+        <div class="cart-checkout-summary mb-3 space-y-1.5">
+          <div id="ckSubtotalRow" class="hidden flex justify-between items-center">
+            <span class="text-sm text-gray-500">Tạm tính:</span>
+            <span id="ckSubtotal" class="text-sm font-semibold text-gray-700">0đ</span>
+          </div>
+          <div id="ckDiscountRow" class="hidden flex justify-between items-center">
+            <span class="text-sm text-green-600 font-medium"><i class="fas fa-tag mr-1"></i>Giảm giá:</span>
+            <span id="ckDiscount" class="text-sm font-bold text-green-600">-0đ</span>
+          </div>
+          <div class="flex justify-between items-center gap-3">
+            <span id="ckTotalLabel" class="min-w-0 text-sm font-semibold text-gray-600">Tổng (0 mặt hàng):</span>
+            <span id="ckTotal" class="flex-shrink-0 text-2xl font-bold text-gradient-price">0đ</span>
+          </div>
+        </div>
         <button onclick="submitCartOrder()" id="submitCartBtn"
           class="btn-primary w-full text-white py-3.5 rounded-xl font-bold text-base">
-          <i class="fas fa-shopping-cart mr-2"></i>Đặt hàng ngay
+          <i class="fas fa-credit-card mr-2"></i>Xác nhận & Đặt hàng
         </button>
       </div>
     </div>

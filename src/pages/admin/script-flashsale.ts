@@ -152,9 +152,9 @@ function flashSaleUpdateSelectionSummary() {
   const skuCount = flashSaleCreateSelectedItems.length
   const checkedSkuCount = flashSaleGetCheckedItems().length
   if (hint) hint.textContent = skuCount
-    ? 'Đã chọn ' + productCount + ' sản phẩm với ' + skuCount + ' SKU để cấu hình flashsale.'
+    ? 'Đã chọn ' + productCount + ' mặt hàng với ' + skuCount + ' SKU để cấu hình flashsale.'
     : 'Chưa có sản phẩm nào được gắn vào flashsale.'
-  if (count) count.innerHTML = '<i class="fas fa-layer-group"></i>' + productCount + ' sản phẩm / ' + skuCount + ' SKU'
+  if (count) count.innerHTML = '<i class="fas fa-layer-group"></i>' + productCount + ' mặt hàng / ' + skuCount + ' SKU'
   if (checkedCount) checkedCount.innerHTML = '<i class="fas fa-check-double"></i>' + checkedSkuCount + '/' + skuCount + ' đã tick'
 }
 
@@ -357,7 +357,7 @@ function renderFlashSaleProductPicker() {
     if (!query) return true
     return String(product.name || '').toLowerCase().includes(query) || String(product.id || '').includes(query)
   })
-  if (count) count.innerHTML = '<i class="fas fa-layer-group"></i><span>' + products.length + ' sản phẩm</span>'
+  if (count) count.innerHTML = '<i class="fas fa-layer-group"></i><span>' + products.length + ' mặt hàng</span>'
   if (!flashSaleProductPickerItems.length) {
     list.innerHTML = '<div class="py-10 text-center text-gray-400"><i class="fas fa-spinner fa-spin text-3xl mb-2"></i><p>Đang tải sản phẩm...</p></div>'
     return

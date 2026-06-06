@@ -155,7 +155,7 @@ export function storefrontFilterBarSection(): string {
     </div>
   </div>
   <div class="filter-meta-row">
-    <div class="filter-product-count"><i class="fas fa-shirt" aria-hidden="true"></i><span id="productsCountLabel">0 sản phẩm</span></div>
+    <div class="filter-product-count"><i class="fas fa-shirt" aria-hidden="true"></i><span id="productsCountLabel">0 mặt hàng</span></div>
     <div class="filter-meta-actions">
       <label class="filter-sort-wrap" for="productsSortSelect">
         <i class="fas fa-arrow-up-wide-short" aria-hidden="true"></i>

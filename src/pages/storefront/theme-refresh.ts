@@ -61,6 +61,13 @@ export function storefrontThemeRefreshStyles(): string {
     overflow: hidden !important;
     overscroll-behavior: none !important;
   }
+  @media (max-width: 768px) {
+    input:not([type='checkbox']):not([type='radio']):not([type='range']),
+    select,
+    textarea {
+      font-size: max(16px, 1rem) !important;
+    }
+  }
   body.storefront-scroll-locked .overlay,
   body.storefront-scroll-locked .user-menu-overlay,
   body.storefront-scroll-locked .review-modal-overlay,
@@ -93,9 +100,11 @@ export function storefrontThemeRefreshStyles(): string {
       linear-gradient(90deg, rgba(125,211,252,0.075) 1px, transparent 1px);
   }
   .navbar-blur {
-    background: rgba(255,255,255,0.88) !important;
+    background: rgba(255,255,255,0.96) !important;
     border-bottom: 1px solid var(--qh-border) !important;
-    box-shadow: 0 12px 34px rgba(15,23,42,0.08);
+    box-shadow: 0 12px 34px rgba(15,23,42,0.1);
+    -webkit-backdrop-filter: blur(18px) saturate(1.2);
+    backdrop-filter: blur(18px) saturate(1.2);
   }
   .navbar-blur a,
   .navbar-blur button {
@@ -110,7 +119,7 @@ export function storefrontThemeRefreshStyles(): string {
     border: 1px solid var(--qh-border);
   }
   body[data-storefront-theme='dark'] .navbar-blur {
-    background: rgba(2,12,30,0.72) !important;
+    background: rgba(2,12,30,0.92) !important;
     border-color: rgba(80,160,220,0.36) !important;
   }
   body[data-storefront-theme='dark'] .navbar-blur a,
@@ -118,8 +127,11 @@ export function storefrontThemeRefreshStyles(): string {
     color: #f8fbff !important;
   }
   .mobile-bottom-nav {
+    background: rgba(255,255,255,0.96) !important;
     transition: transform 0.24s ease, opacity 0.24s ease, background-color 0.24s ease, border-color 0.24s ease, box-shadow 0.24s ease;
-    box-shadow: 0 -10px 30px rgba(15,23,42,0.08);
+    box-shadow: 0 -10px 30px rgba(15,23,42,0.12);
+    -webkit-backdrop-filter: blur(18px) saturate(1.2);
+    backdrop-filter: blur(18px) saturate(1.2);
   }
   .mobile-bottom-nav.is-hidden {
     transform: translateY(calc(100% + env(safe-area-inset-bottom)));
@@ -141,10 +153,11 @@ export function storefrontThemeRefreshStyles(): string {
     color: #db2777;
   }
   body[data-storefront-theme='dark'] .mobile-bottom-nav {
-    background: rgba(2,12,30,0.72) !important;
+    background: rgba(2,12,30,0.92) !important;
     border-color: rgba(80,160,220,0.36) !important;
     box-shadow: 0 -16px 34px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.04);
-    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(18px) saturate(1.2);
+    backdrop-filter: blur(18px) saturate(1.2);
   }
   body[data-storefront-theme='dark'] .mobile-bottom-nav-link {
     color: #94a3b8 !important;
@@ -2219,6 +2232,22 @@ export function storefrontThemeRefreshStyles(): string {
   body[data-storefront-theme='dark'] .order-history-item {
     background: rgba(11,32,58,0.82) !important;
     border-color: rgba(80,160,220,0.24) !important;
+  }
+  .cart-checkout-footer {
+    background: #fff !important;
+    border-color: rgba(77,138,213,0.16) !important;
+    box-shadow: 0 -12px 26px rgba(15,23,42,0.08);
+  }
+  .cart-checkout-summary {
+    color: #5c6f8d;
+  }
+  body[data-storefront-theme='dark'] .cart-modal .cart-checkout-footer {
+    background: #071426 !important;
+    border-color: rgba(80,160,220,0.24) !important;
+    box-shadow: 0 -14px 30px rgba(0,0,0,0.36);
+  }
+  body[data-storefront-theme='dark'] .cart-checkout-summary {
+    color: #a9b8d3;
   }
   body[data-storefront-theme='dark'] .popup-card .sticky,
   body[data-storefront-theme='dark'] .cart-modal .sticky,

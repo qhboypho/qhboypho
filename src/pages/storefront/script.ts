@@ -35,6 +35,7 @@ let activeUserMenuView = ''
 let userOrderHistoryCache = []
 let lastMobileBottomNavScrollY = 0
 let mobileBottomNavHidden = false
+let walletTopupEnabled = true
 let storefrontScrollLockY = 0
 let storefrontScrollLockActive = false
 const storefrontScrollLockTokens = new Set()
@@ -1471,7 +1472,7 @@ function renderProductsModal() {
   if (!grid) return
   const visible = filteredProducts.slice(0, productsModalVisibleCount)
   grid.innerHTML = visible.map((p) => renderStorefrontProductCard(p)).join('')
-  if (meta) meta.textContent = 'Đang hiển thị ' + visible.length + ' / ' + filteredProducts.length + ' sản phẩm'
+  if (meta) meta.textContent = 'Đang hiển thị ' + visible.length + ' / ' + filteredProducts.length + ' mặt hàng'
   if (loadMoreBtn) loadMoreBtn.classList.toggle('hidden', visible.length >= filteredProducts.length)
   startFlashSaleCountdownTicker()
 }
@@ -1495,7 +1496,7 @@ function sortProductsList(products) {
 
 function updateProductsFilterMeta(total) {
   const countLabel = document.getElementById('productsCountLabel')
-  if (countLabel) countLabel.textContent = String(total || 0) + ' sản phẩm'
+  if (countLabel) countLabel.textContent = String(total || 0) + ' mặt hàng'
   const sortSelect = document.getElementById('productsSortSelect')
   if (sortSelect && sortSelect.value !== activeProductSort) sortSelect.value = activeProductSort
   applyProductsMobileLayout()
@@ -1836,7 +1837,7 @@ function renderCartStep1() {
   if (cart.length === 0) {
     checkAllBar.classList.add('hidden')
     footer.classList.add('hidden')
-    listEl.innerHTML = '<div class="flex flex-col items-center justify-center py-20 text-center"><div class="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center mb-4"><i class="fas fa-shopping-bag text-4xl text-gray-300"></i></div><p class="text-gray-500 font-medium text-lg mb-1">Chưa có sản phẩm nào</p><p class="text-gray-400 text-sm">Hãy thêm sản phẩm vào giỏ hàng</p><button onclick="closeCart()" class="mt-6 btn-primary text-white px-6 py-2.5 rounded-full font-semibold text-sm"><i class="fas fa-arrow-left mr-2"></i>Tiếp tục mua sắm</button></div>'
+    listEl.innerHTML = '<div class="flex flex-col items-center justify-center py-20 text-center"><div class="w-24 h-24 rounded-full bg-gray-100 flex items-center justify-center mb-4"><i class="fas fa-shopping-bag text-4xl text-gray-300"></i></div><p class="text-gray-500 font-medium text-lg mb-1">Chưa có mặt hàng nào</p><p class="text-gray-400 text-sm">Hãy thêm mặt hàng vào giỏ hàng</p><button onclick="closeCart()" class="mt-6 btn-primary text-white px-6 py-2.5 rounded-full font-semibold text-sm"><i class="fas fa-arrow-left mr-2"></i>Tiếp tục mua sắm</button></div>'
     updateCartHeaderSubtitle()
     return
   }
@@ -1858,7 +1859,7 @@ function renderCartStep1() {
       + '<button type="button" class="cart-inline-delete-btn cart-del-btn" data-id="' + item.cartId + '" title="Xoá sản phẩm" aria-label="Xoá sản phẩm"><i class="fas fa-trash"></i></button>'
       + '<div class="flex gap-3 items-start">'
       + '<div class="flex-shrink-0 pt-1"><input type="checkbox" ' + chk + ' data-toggle-id="' + item.cartId + '" class="cart-chk w-4 h-4 accent-pink-500 cursor-pointer mt-0.5"></div>'
-      + '<img src="' + escapeHtml(item.thumbnail) + '" alt="' + escapeHtml(item.name) + '" class="w-16 h-20 object-cover rounded-lg flex-shrink-0" onerror="this.src=&quot;https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&quot;">'
+      + '<img src="' + escapeHtml(item.thumbnail) + '" alt="' + escapeHtml(item.name) + '" class="h-20 aspect-square object-cover rounded-lg flex-shrink-0" onerror="this.src=&quot;https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&quot;">'
       + '<div class="flex-1 min-w-0 pr-8">'
       + '<p class="font-semibold text-gray-900 text-sm line-clamp-1 mb-0.5">' + escapeHtml(item.name) + '</p>'
       + '<p class="text-xs text-gray-400 mb-1">' + escapeHtml(item.sku) + '</p>'
@@ -1904,7 +1905,7 @@ async function openCartItemVariantEditor(cartId) {
 
 function updateCartHeaderSubtitle() {
   const total = cart.reduce(function(s,i){return s+i.qty},0)
-  document.getElementById('cartSubtitle').textContent = total > 0 ? (total + ' sản phẩm trong giỏ') : 'Chưa có sản phẩm nào'
+  document.getElementById('cartSubtitle').textContent = total > 0 ? (total + ' mặt hàng trong giỏ') : 'Chưa có mặt hàng nào'
 }
 
 function toggleCheckAll(cb) {
@@ -2000,7 +2001,7 @@ function setupSwipeToDelete() {
 // ── CHECKOUT from CART ────────────────────────────
 async function proceedToCheckout() {
   const checked = cart.filter(i=>i.checked)
-  if (checked.length === 0) { showToast('Vui lòng chọn ít nhất 1 sản phẩm','error'); return }
+  if (checked.length === 0) { showToast('Vui lòng chọn ít nhất 1 mặt hàng','error'); return }
   if (!assertCustomerCanShop()) return
   try {
     await ensureAddressKitReady()
@@ -2012,7 +2013,7 @@ async function proceedToCheckout() {
   document.getElementById('checkoutSummaryItems').innerHTML = checked.map(function(i){
     return '<div class="flex-shrink-0 w-20 text-center">'
       + '<div class="relative inline-block">'
-      + '<img src="' + escapeHtml(i.thumbnail) + '" class="w-16 h-20 object-cover rounded-xl border-2 border-white shadow" onerror="this.src=&quot;https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&quot;">'
+      + '<img src="' + escapeHtml(i.thumbnail) + '" class="h-20 aspect-square object-cover rounded-xl border-2 border-white shadow" onerror="this.src=&quot;https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&quot;">'
       + '<span class="absolute -top-1 -right-1 w-5 h-5 bg-pink-500 text-white text-xs rounded-full flex items-center justify-center font-bold">' + i.qty + '</span>'
       + '</div><p class="text-xs text-gray-600 mt-1 line-clamp-1">' + escapeHtml(i.name) + '</p></div>'
   }).join('')
@@ -2034,14 +2035,17 @@ async function proceedToCheckout() {
   document.getElementById('cartStep2').classList.add('flex')
   document.getElementById('cartBackBtn').classList.remove('hidden')
   document.getElementById('cartTitle').textContent = 'Xác nhận đơn hàng'
-  document.getElementById('cartSubtitle').textContent = checked.reduce(function(s,i){return s+i.qty},0) + ' sản phẩm'
+  document.getElementById('cartSubtitle').textContent = checked.reduce(function(s,i){return s+i.qty},0) + ' mặt hàng'
 }
 
 function updateCkTotal() {
   const checked = cart.filter(i=>i.checked)
+  const itemCount = checked.reduce((s,i)=>s+i.qty,0)
   const subtotal = checked.reduce((s,i)=>s+i.price*i.qty,0)
   const discount = ckAppliedVoucher ? ckAppliedVoucher.discount_amount : 0
   const total = Math.max(0, subtotal - discount)
+  const label = document.getElementById('ckTotalLabel')
+  if (label) label.textContent = 'Tổng (' + itemCount + ' mặt hàng):'
   document.getElementById('ckTotal').textContent = fmtPrice(total)
   if (ckAppliedVoucher) {
     document.getElementById('ckSubtotal').textContent = fmtPrice(subtotal)
@@ -2158,7 +2162,7 @@ async function submitCartOrder() {
   const checkedItems = cart.filter(i=>i.checked)
   const paymentMethod = getCheckoutSelectedPaymentMethod('ck')
   if (paymentMethod === 'BANK_TRANSFER' && checkedItems.length !== 1) {
-    showToast('Chuyển khoản từ giỏ hiện chỉ hỗ trợ 1 sản phẩm mỗi lần. Hãy chọn 1 sản phẩm hoặc dùng COD.', 'error', 5000)
+    showToast('Chuyển khoản từ giỏ hiện chỉ hỗ trợ 1 mặt hàng mỗi lần. Hãy chọn 1 mặt hàng hoặc dùng COD.', 'error', 5000)
     return
   }
   const btn = document.getElementById('submitCartBtn')
@@ -2221,7 +2225,7 @@ async function submitCartOrder() {
     } else { showToast('Đặt hàng thất bại, thử lại sau','error') }
   } finally {
     btn.disabled=false
-    btn.innerHTML='<i class="fas fa-shopping-cart mr-2"></i>Đặt hàng ngay'
+    btn.innerHTML='<i class="fas fa-credit-card mr-2"></i>Xác nhận & Đặt hàng'
   }
 }
 
@@ -2321,6 +2325,7 @@ async function loadFooterSocialLinks() {
 async function loadSettings() {
   try {
     prepareHeroBannerShell()
+    loadPublicPaymentSettings().catch(() => { })
     const imageSettingsRes = await axios.get('/api/public/image-settings').catch(() => ({ data: { data: {} } }))
     const imageSettings = (imageSettingsRes.data && imageSettingsRes.data.data) ? imageSettingsRes.data.data : {}
     const configuredTrendingImage = String(imageSettings.home_trending_banner_image || '').trim()
@@ -2348,6 +2353,14 @@ async function loadSettings() {
   } catch (e) {
     console.error('Failed to load banners', e)
   }
+}
+
+async function loadPublicPaymentSettings() {
+  const res = await axios.get('/api/public/payment-settings')
+  const data = (res.data && res.data.data) || {}
+  walletTopupEnabled = data.wallet_topup_enabled !== false
+  updateUserUI()
+  syncWalletTopupDisabledView()
 }
 
 async function loadHeroFallbackProducts() {
@@ -2561,7 +2574,7 @@ function renderHeroCarouselCard(b, index) {
   const image = escapeHtml(b.image_url || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400')
   const detailAction = b.product_id ? \`onclick="showDetail(\${Number(b.product_id)})"\` : 'onclick="document.getElementById(&quot;products&quot;)?.scrollIntoView({behavior:&quot;smooth&quot;})"'
   const footerAction = b.product_id ? \`onclick="event.stopPropagation();openOrder(\${Number(b.product_id)})"\` : detailAction
-  const footerLabel = b.product_id ? 'Đặt ngay' : 'Xem sản phẩm'
+  const footerLabel = b.product_id ? 'Đặt nhanh' : 'Xem sản phẩm'
   return \`<article class="hero-carousel-card" data-hero-index="\${index}" data-offset="hidden" aria-hidden="true" \${detailAction}>
     <div class="hero-carousel-media">
       <img src="\${image}" alt="\${title}" onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'">
@@ -2792,6 +2805,16 @@ async function checkUserAuth() {
 
 function fmtBalance(v) { return new Intl.NumberFormat('vi-VN').format(v||0) + 'đ' }
 
+function renderWalletTopupDisabledNotice() {
+  return '<div class="text-center py-8 text-gray-400"><i class="fas fa-wallet text-3xl mb-3"></i><p class="font-semibold text-gray-600">Chức năng nạp tiền vào ví đang tắt</p><p class="text-sm mt-1">Shop sẽ mở lại khi cần hỗ trợ thanh toán bằng ví.</p></div>'
+}
+
+function syncWalletTopupDisabledView() {
+  if (walletTopupEnabled || activeUserMenuView !== 'wallet') return
+  const content = document.getElementById('userMenuContent')
+  if (content) content.innerHTML = renderWalletTopupDisabledNotice()
+}
+
 function updateUserUI() {
   const defaultAvatar = document.getElementById('userAvatarDefault')
   const imgAvatar = document.getElementById('userAvatarImg')
@@ -2846,16 +2869,25 @@ function updateUserUI() {
     document.getElementById('userMenuAvatarSlot').innerHTML = renderUserAvatarHtml(currentUser, 'w-12 h-12', 'text-xl', 'border-2 border-pink-400')
     document.getElementById('userMenuName').textContent = getUserDisplayName(currentUser)
     document.getElementById('userMenuEmail').textContent = getUserDisplayLine(currentUser)
-    // Wallet
-    walletNav.classList.remove('hidden')
-    walletNav.classList.add('flex')
     const bal = fmtBalance(currentUser.balance)
-    document.getElementById('walletBalanceNav').textContent = bal
-    document.getElementById('walletBalanceMenu').textContent = bal
+    if (walletTopupEnabled) {
+      walletNav.classList.remove('hidden')
+      walletNav.classList.add('flex')
+      document.getElementById('walletBalanceNav').textContent = bal
+      document.getElementById('walletBalanceMenu').textContent = bal
+    } else {
+      walletNav.classList.add('hidden')
+      walletNav.classList.remove('flex')
+      syncWalletTopupDisabledView()
+    }
     if (authedNav) authedNav.classList.remove('hidden')
     if (userOrdersBtn) userOrdersBtn.classList.remove('hidden')
     if (userFavoritesBtn) userFavoritesBtn.classList.remove('hidden')
-    if (userWalletBtn) userWalletBtn.classList.remove('hidden')
+    if (walletTopupEnabled) {
+      if (userWalletBtn) userWalletBtn.classList.remove('hidden')
+    } else if (userWalletBtn) {
+      userWalletBtn.classList.add('hidden')
+    }
   } else {
     defaultAvatar.classList.remove('hidden')
     imgAvatar.classList.add('hidden')
@@ -3754,6 +3786,10 @@ function handlePaymentReturnFlow() {
 function showWalletInMenu() {
     var content = document.getElementById('userMenuContent')
     activeUserMenuView = 'wallet'
+    if (!walletTopupEnabled) {
+        content.innerHTML = renderWalletTopupDisabledNotice()
+        return
+    }
     if (!currentUser) {
         content.innerHTML = '<div class="text-center py-8 text-gray-400"><i class="fas fa-lock text-3xl mb-3"></i><p>Vui lòng đăng nhập để nạp tiền</p></div>'
         return
@@ -3841,6 +3877,10 @@ loadBestSellers()
 
 
 function openTopupModal() {
+    if (!walletTopupEnabled) {
+      showToast('Chức năng nạp tiền vào ví đang tắt', 'warning', 3000)
+      return
+    }
     if (!currentUser) { toggleUserMenu(); return }
     openUserMenu()
     showWalletInMenu()
