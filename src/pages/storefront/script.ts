@@ -2668,9 +2668,15 @@ function renderStorefrontMarquee(text, speedSeconds) {
   ensureStorefrontMarqueeRuntimeStyle()
   const track = document.querySelector('.storefront-marquee-track')
   if (!track) return
+  const bar = track.closest('.storefront-marquee-bar')
   const safeText = String(text || DEFAULT_MARQUEE_NOTIFICATION_TEXT).trim() || DEFAULT_MARQUEE_NOTIFICATION_TEXT
   const speed = normalizeStorefrontMarqueeSpeed(speedSeconds)
+  if (bar) bar.classList.remove('storefront-marquee-bar--static')
   track.innerHTML = ''
+  track.className = 'storefront-marquee-track'
+  track.style.removeProperty('animation')
+  track.style.removeProperty('transform')
+  track.style.removeProperty('width')
   for (let i = 0; i < 3; i++) {
     const group = document.createElement('div')
     group.className = 'storefront-marquee-group'
@@ -2687,6 +2693,39 @@ function renderStorefrontMarquee(text, speedSeconds) {
   track.style.setProperty('--storefront-marquee-duration', speed + 's')
 }
 
+function renderStorefrontStaticNotification(text) {
+  const track = document.querySelector('.storefront-marquee-track')
+  if (!track) return
+  const bar = track.closest('.storefront-marquee-bar')
+  const safeText = String(text || DEFAULT_MARQUEE_NOTIFICATION_TEXT).trim() || DEFAULT_MARQUEE_NOTIFICATION_TEXT
+  if (bar) bar.classList.add('storefront-marquee-bar--static')
+  track.innerHTML = ''
+  track.className = 'storefront-marquee-track storefront-marquee-track--static'
+  track.style.animation = 'none'
+  track.style.transform = 'none'
+  track.style.width = '100%'
+  const notice = document.createElement('div')
+  notice.className = 'storefront-static-notice'
+  const icon = document.createElement('i')
+  icon.className = 'fas fa-bullhorn storefront-marquee-icon'
+  icon.setAttribute('aria-hidden', 'true')
+  const span = document.createElement('span')
+  span.className = 'storefront-static-notice-text'
+  span.textContent = safeText
+  notice.appendChild(icon)
+  notice.appendChild(span)
+  track.appendChild(notice)
+}
+
+function renderStorefrontNotificationSettings(cfg) {
+  const mode = String(cfg?.notification_display_mode || '').trim() === 'static' ? 'static' : 'marquee'
+  if (mode === 'static') {
+    renderStorefrontStaticNotification(cfg?.static_notification_text || cfg?.marquee_text || DEFAULT_MARQUEE_NOTIFICATION_TEXT)
+    return
+  }
+  renderStorefrontMarquee(cfg?.marquee_text || DEFAULT_MARQUEE_NOTIFICATION_TEXT, cfg?.marquee_speed_seconds || 48)
+}
+
 function initStorefrontMarquee() {
   renderStorefrontMarquee(DEFAULT_MARQUEE_NOTIFICATION_TEXT, 48)
 }
@@ -2695,7 +2734,7 @@ async function loadNotificationSettings() {
   try {
     const res = await axios.get('/api/public/notification-settings')
     const cfg = (res.data && res.data.data) || {}
-    renderStorefrontMarquee(cfg.marquee_text || DEFAULT_MARQUEE_NOTIFICATION_TEXT, cfg.marquee_speed_seconds || 48)
+    renderStorefrontNotificationSettings(cfg)
   } catch (_) {
     renderStorefrontMarquee(DEFAULT_MARQUEE_NOTIFICATION_TEXT, 48)
   }

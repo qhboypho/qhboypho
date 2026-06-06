@@ -456,10 +456,14 @@ export function adminNotificationSettingsPage(): string {
       #page-settings-notifications .notification-hero { background: radial-gradient(circle at 88% 12%, rgba(236,72,153,.38), transparent 32%), radial-gradient(circle at 14% 100%, rgba(59,130,246,.18), transparent 34%), linear-gradient(135deg,#101827 0%,#172033 48%,#9f1239 100%); }
       #page-settings-notifications .notification-card { box-shadow: 0 18px 44px -24px rgba(15,23,42,.28); }
       #page-settings-notifications .storefront-marquee-bar { height: 34px; background: rgba(24,24,27,0.98); border-bottom: 1px solid rgba(255,255,255,0.06); overflow: hidden; }
+      #page-settings-notifications .storefront-marquee-bar.storefront-marquee-bar--static { height: auto; min-height: 34px; overflow: visible; }
       #page-settings-notifications .storefront-marquee-track { display: flex; align-items: center; width: max-content; height: 100%; animation: storefrontMarqueePreview var(--storefront-marquee-duration, 48s) linear infinite; animation-delay: 0s; will-change: transform; }
       #page-settings-notifications .storefront-marquee-group { display: inline-flex; align-items: center; flex: 0 0 auto; gap: 0.45rem; padding: 0 1.25rem; white-space: nowrap; }
       #page-settings-notifications .storefront-marquee-icon { flex: 0 0 auto; color: #facc15; font-size: 14px; line-height: 1; }
       #page-settings-notifications .storefront-marquee-text { flex: 0 0 auto; color: rgba(255,255,255,0.9); font-size: 14px; font-weight: 600; line-height: 1; white-space: nowrap; letter-spacing: 0; }
+      #page-settings-notifications .storefront-static-notice { display: flex; align-items: center; justify-content: center; gap: .45rem; min-height: 100%; padding: .3rem 1rem; color: rgba(255,255,255,.92); font-size: 14px; font-weight: 700; line-height: 1.35; overflow: visible; text-align: center; }
+      #page-settings-notifications .storefront-static-notice i { flex: 0 0 auto; color: #facc15; font-size: 14px; }
+      #page-settings-notifications .storefront-static-notice span { min-width: 0; overflow: visible; text-overflow: clip; white-space: normal; overflow-wrap: anywhere; }
       #page-settings-notifications input[type="range"] { accent-color: #ec4899; }
       @keyframes storefrontMarqueePreview { from { transform: translateX(0); } to { transform: translateX(-33.333%); } }
     </style>
@@ -470,7 +474,7 @@ export function adminNotificationSettingsPage(): string {
             <i class="fas fa-bullhorn"></i>Setting / Thông báo
           </p>
           <h2 class="mt-4 text-2xl md:text-3xl font-extrabold tracking-tight">Quản lý thông báo chạy trên storefront</h2>
-          <p class="mt-2 max-w-4xl text-sm leading-relaxed text-slate-200">Tuỳ chỉnh nội dung marquee, tốc độ chạy và xem preview trực tiếp trước khi lưu. Marquee nên ngắn, rõ ưu đãi, không nhồi quá nhiều thông tin.</p>
+          <p class="mt-2 max-w-4xl text-sm leading-relaxed text-slate-200">Tuỳ chỉnh thông báo đầu trang, chọn chạy marquee hoặc hiển thị tĩnh và xem preview trực tiếp trước khi lưu.</p>
         </div>
         <button id="saveNotificationSettingsBtn" onclick="saveNotificationSettings()" class="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-bold text-rose-700 shadow-lg shadow-black/20 hover:bg-pink-50 transition">
           <i class="fas fa-save text-pink-500"></i>Lưu thông báo
@@ -481,6 +485,20 @@ export function adminNotificationSettingsPage(): string {
     <div class="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
       <div class="min-w-0 space-y-5">
         <section class="notification-card min-w-0 overflow-hidden rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
+          <div class="mb-5">
+            <h3 class="text-lg font-extrabold text-gray-900">Kiểu hiển thị</h3>
+            <div class="mt-3 grid gap-3 sm:grid-cols-2">
+              <label class="flex cursor-pointer items-center gap-3 rounded-2xl border border-pink-200 bg-pink-50 px-4 py-3 text-sm font-bold text-pink-700">
+                <input id="notificationModeMarquee" name="notificationDisplayMode" type="radio" value="marquee" checked onchange="previewNotificationSettings()" class="accent-pink-500">
+                <span><i class="fas fa-person-running mr-2"></i>Chạy marquee</span>
+              </label>
+              <label class="flex cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700">
+                <input id="notificationModeStatic" name="notificationDisplayMode" type="radio" value="static" onchange="previewNotificationSettings()" class="accent-pink-500">
+                <span><i class="fas fa-align-left mr-2"></i>Hiển thị tĩnh</span>
+              </label>
+            </div>
+          </div>
+
           <div class="mb-4 flex items-start justify-between gap-4">
             <div class="min-w-0 flex items-start gap-4">
               <span class="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-pink-50 text-pink-600">
@@ -500,6 +518,15 @@ export function adminNotificationSettingsPage(): string {
             <button type="button" onclick="setNotificationQuickText('Hỗ trợ đổi size trong 7 ngày nếu sản phẩm còn nguyên tem mác')" class="rounded-full border border-orange-100 bg-orange-50 px-3 py-2 text-xs font-bold text-orange-700 hover:bg-orange-100 transition">Đổi trả</button>
             <button type="button" onclick="setNotificationQuickText('Freeship cho đơn từ 500K | Giao hàng toàn quốc')" class="rounded-full border border-orange-100 bg-orange-50 px-3 py-2 text-xs font-bold text-orange-700 hover:bg-orange-100 transition">Freeship</button>
             <button type="button" onclick="clearNotificationText()" class="rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 transition">Xoá nội dung</button>
+          </div>
+
+          <div class="mt-6 rounded-2xl border border-blue-100 bg-blue-50/70 p-4">
+            <div class="mb-3 flex items-center justify-between gap-3">
+              <label for="staticNotificationText" class="text-sm font-extrabold text-blue-900">Nội dung tĩnh</label>
+              <span id="staticNotificationTextCounter" class="inline-flex shrink-0 items-center rounded-full bg-white px-3 py-1 text-xs font-bold text-blue-600">0/600</span>
+            </div>
+            <textarea id="staticNotificationText" rows="3" maxlength="600" oninput="previewNotificationSettings()" placeholder="Nhập nội dung hiển thị tĩnh khi không muốn chạy marquee..." class="block w-full max-w-full resize-y rounded-2xl border border-blue-200 bg-white px-4 py-3 text-sm font-medium leading-relaxed text-slate-900 outline-none transition focus:border-blue-300 focus:ring-4 focus:ring-blue-100"></textarea>
+            <p class="mt-2 text-xs font-semibold text-blue-700">Khi chọn hiển thị tĩnh, storefront sẽ dùng nội dung này. Nếu để trống sẽ tự dùng nội dung marquee.</p>
           </div>
         </section>
 
@@ -545,7 +572,7 @@ export function adminNotificationSettingsPage(): string {
             </div>
             <div class="bg-gradient-to-br from-indigo-950 to-pink-900 p-5">
               <p class="text-2xl font-extrabold">QH Clothes</p>
-              <p class="mt-2 text-sm font-medium text-pink-100">Thông báo chạy ngay khi trang được load.</p>
+              <p id="notificationPreviewCaption" class="mt-2 text-sm font-medium text-pink-100">Thông báo chạy ngay khi trang được load.</p>
             </div>
           </div>
         </section>

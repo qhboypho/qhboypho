@@ -54,6 +54,8 @@ type ImageSettingsInput = {
 type NotificationSettingsInput = {
   marquee_text?: unknown
   marquee_speed_seconds?: unknown
+  notification_display_mode?: unknown
+  static_notification_text?: unknown
 }
 
 type PaymentSettingsInput = {
@@ -127,6 +129,8 @@ const IMAGE_SETTING_KEYS = [
 const NOTIFICATION_SETTING_KEYS = [
   'marquee_text',
   'marquee_speed_seconds',
+  'notification_display_mode',
+  'static_notification_text',
 ] as const
 
 const PAYMENT_SETTING_KEYS = [
@@ -135,6 +139,11 @@ const PAYMENT_SETTING_KEYS = [
 
 const DEFAULT_MARQUEE_TEXT = 'Mua hàng tại đây không qua sàn thương mại nên giá thành sản phẩm sẽ rẻ hơn rất nhiều và bảo hành hoàn trả trong vòng 7 ngày nếu sản phẩm bị lỗi nên quý khách yên tâm mua sắm nhé.Bảo hành đổi trả nhắn qua trang facebook : QH Boypho. Chúc quý khách có trải nghiệm mua sắm tốt tại QH Clothes'
 const DEFAULT_MARQUEE_SPEED_SECONDS = 48
+const DEFAULT_NOTIFICATION_DISPLAY_MODE = 'marquee'
+
+function normalizeNotificationDisplayMode(value: unknown): 'marquee' | 'static' {
+  return String(value || '').trim() === 'static' ? 'static' : 'marquee'
+}
 
 async function readSocialHandles(db: D1Database) {
   const query = `SELECT key, value FROM app_settings WHERE key IN (${SOCIAL_SETTING_KEYS.map(() => '?').join(',')})`
@@ -200,9 +209,12 @@ async function readNotificationSettings(db: D1Database) {
     map.set(String(row.key || ''), String(row.value || '').trim())
   }
   const speed = Number(map.get('marquee_speed_seconds') || DEFAULT_MARQUEE_SPEED_SECONDS)
+  const displayMode = normalizeNotificationDisplayMode(map.get('notification_display_mode') || DEFAULT_NOTIFICATION_DISPLAY_MODE)
   return {
     marquee_text: String(map.get('marquee_text') || DEFAULT_MARQUEE_TEXT).trim(),
     marquee_speed_seconds: Number.isFinite(speed) ? Math.min(120, Math.max(8, Math.round(speed))) : DEFAULT_MARQUEE_SPEED_SECONDS,
+    notification_display_mode: displayMode,
+    static_notification_text: String(map.get('static_notification_text') || '').trim(),
   }
 }
 
@@ -500,10 +512,14 @@ export function registerAdminUtilityRoutes(app: Hono<{ Bindings: AppBindings }>,
       const payload = {
         marquee_text: String(body.marquee_text || '').trim().slice(0, 600),
         marquee_speed_seconds: String(Number.isFinite(rawSpeed) ? Math.min(120, Math.max(8, Math.round(rawSpeed))) : DEFAULT_MARQUEE_SPEED_SECONDS),
+        notification_display_mode: normalizeNotificationDisplayMode(body.notification_display_mode),
+        static_notification_text: String(body.static_notification_text || '').trim().slice(0, 600),
       }
       await deps.upsertAppSettings(c.env.DB, [
         { key: 'marquee_text', value: payload.marquee_text },
         { key: 'marquee_speed_seconds', value: payload.marquee_speed_seconds },
+        { key: 'notification_display_mode', value: payload.notification_display_mode },
+        { key: 'static_notification_text', value: payload.static_notification_text },
       ])
       return c.json({ success: true, data: payload })
     } catch (e: any) {

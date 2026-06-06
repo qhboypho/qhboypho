@@ -503,9 +503,15 @@ function normalizeMarqueeSpeed(value) {
 function renderAdminMarqueePreview(text, speedSeconds) {
   const track = document.getElementById('adminMarqueePreviewTrack')
   if (!track) return
+  const bar = track.closest('.storefront-marquee-bar')
   const safeText = String(text || DEFAULT_MARQUEE_NOTIFICATION_TEXT).trim() || DEFAULT_MARQUEE_NOTIFICATION_TEXT
   const speed = normalizeMarqueeSpeed(speedSeconds)
+  if (bar) bar.classList.remove('storefront-marquee-bar--static')
   track.innerHTML = ''
+  track.className = 'storefront-marquee-track'
+  track.style.removeProperty('animation')
+  track.style.removeProperty('transform')
+  track.style.removeProperty('width')
   for (let i = 0; i < 3; i++) {
     const group = document.createElement('div')
     group.className = 'storefront-marquee-group'
@@ -522,9 +528,51 @@ function renderAdminMarqueePreview(text, speedSeconds) {
   track.style.setProperty('--storefront-marquee-duration', speed + 's')
 }
 
+function renderAdminStaticNotificationPreview(text) {
+  const track = document.getElementById('adminMarqueePreviewTrack')
+  if (!track) return
+  const bar = track.closest('.storefront-marquee-bar')
+  const safeText = String(text || DEFAULT_MARQUEE_NOTIFICATION_TEXT).trim() || DEFAULT_MARQUEE_NOTIFICATION_TEXT
+  if (bar) bar.classList.add('storefront-marquee-bar--static')
+  track.innerHTML = ''
+  track.className = 'storefront-marquee-track'
+  track.style.animation = 'none'
+  track.style.transform = 'none'
+  track.style.width = '100%'
+  const notice = document.createElement('div')
+  notice.className = 'storefront-static-notice'
+  const icon = document.createElement('i')
+  icon.className = 'fas fa-bullhorn'
+  icon.setAttribute('aria-hidden', 'true')
+  const span = document.createElement('span')
+  span.textContent = safeText
+  notice.appendChild(icon)
+  notice.appendChild(span)
+  track.appendChild(notice)
+}
+
+function getNotificationDisplayMode() {
+  const selected = document.querySelector('input[name="notificationDisplayMode"]:checked')
+  return selected?.value === 'static' ? 'static' : 'marquee'
+}
+
+function setNotificationDisplayMode(mode) {
+  const normalized = String(mode || '') === 'static' ? 'static' : 'marquee'
+  const marquee = document.getElementById('notificationModeMarquee')
+  const stat = document.getElementById('notificationModeStatic')
+  if (marquee) marquee.checked = normalized === 'marquee'
+  if (stat) stat.checked = normalized === 'static'
+}
+
 function updateMarqueeCounter() {
   const text = document.getElementById('marqueeNotificationText')?.value || ''
   const counter = document.getElementById('marqueeTextCounter')
+  if (counter) counter.textContent = String(text.length) + '/600'
+}
+
+function updateStaticNotificationCounter() {
+  const text = document.getElementById('staticNotificationText')?.value || ''
+  const counter = document.getElementById('staticNotificationTextCounter')
   if (counter) counter.textContent = String(text.length) + '/600'
 }
 
@@ -565,15 +613,27 @@ function clearNotificationText() {
 
 function previewNotificationSettings() {
   const text = document.getElementById('marqueeNotificationText')?.value || ''
+  const staticText = document.getElementById('staticNotificationText')?.value || ''
+  const mode = getNotificationDisplayMode()
   const speed = updateMarqueeSpeedControls(document.getElementById('marqueeSpeedSeconds')?.value || 48)
   updateMarqueeCounter()
-  renderAdminMarqueePreview(text, speed)
+  updateStaticNotificationCounter()
+  if (mode === 'static') {
+    renderAdminStaticNotificationPreview(staticText || text)
+  } else {
+    renderAdminMarqueePreview(text, speed)
+  }
+  const caption = document.getElementById('notificationPreviewCaption')
+  if (caption) caption.textContent = mode === 'static' ? 'Thông báo hiển thị tĩnh trên đầu trang.' : 'Thông báo chạy ngay khi trang được load.'
 }
 
 function fillNotificationSettings(cfg) {
   const text = document.getElementById('marqueeNotificationText')
+  const staticText = document.getElementById('staticNotificationText')
   const speed = document.getElementById('marqueeSpeedSeconds')
   if (text) text.value = cfg.marquee_text || DEFAULT_MARQUEE_NOTIFICATION_TEXT
+  if (staticText) staticText.value = cfg.static_notification_text || ''
+  setNotificationDisplayMode(cfg.notification_display_mode || 'marquee')
   if (speed) speed.value = String(normalizeMarqueeSpeed(cfg.marquee_speed_seconds || 48))
   updateMarqueeSpeedControls(cfg.marquee_speed_seconds || 48)
   previewNotificationSettings()
@@ -593,7 +653,9 @@ async function saveNotificationSettings() {
   const btn = document.getElementById('saveNotificationSettingsBtn')
   const payload = {
     marquee_text: String(document.getElementById('marqueeNotificationText')?.value || '').trim(),
-    marquee_speed_seconds: normalizeMarqueeSpeed(document.getElementById('marqueeSpeedSeconds')?.value || 48)
+    marquee_speed_seconds: normalizeMarqueeSpeed(document.getElementById('marqueeSpeedSeconds')?.value || 48),
+    notification_display_mode: getNotificationDisplayMode(),
+    static_notification_text: String(document.getElementById('staticNotificationText')?.value || '').trim()
   }
   if (btn) {
     btn.disabled = true

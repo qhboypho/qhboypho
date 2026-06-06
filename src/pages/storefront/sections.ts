@@ -82,10 +82,6 @@ export function storefrontNavbarSection(): string {
       <button type="button" onclick="focusProductsSearch()" class="text-white hover:text-pink-400 transition p-2" aria-label="Tìm sản phẩm">
         <i class="fas fa-search text-[18px]"></i>
       </button>
-      <button onclick="openCart()" id="cartNavBtnMobile" class="relative text-white hover:text-pink-400 transition p-2">
-        <i class="fas fa-shopping-cart text-[18px]"></i>
-        <span id="cartBadgeMobile" class="absolute top-0 right-0 bg-[#881337] text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center hidden font-bold">0</span>
-      </button>
     </div>
   </div>
 </nav>`

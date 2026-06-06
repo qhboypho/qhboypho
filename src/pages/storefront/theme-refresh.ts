@@ -172,13 +172,50 @@ export function storefrontThemeRefreshStyles(): string {
     background: rgba(2,8,18,0.94) !important;
     border-color: var(--qh-border) !important;
   }
+  .storefront-marquee-bar.storefront-marquee-bar--static {
+    height: auto !important;
+    min-height: 24px;
+    overflow: visible !important;
+  }
   .storefront-marquee-text {
     color: rgba(232,240,255,0.9) !important;
+  }
+  .storefront-marquee-track.storefront-marquee-track--static {
+    animation: none !important;
+    transform: none !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 100%;
+    justify-content: center;
+  }
+  .storefront-static-notice {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    width: 100%;
+    min-height: 100%;
+    padding: 0.28rem 0.95rem;
+    overflow: visible;
+    color: rgba(232,240,255,0.92);
+    font-size: 0.78rem;
+    font-weight: 700;
+    line-height: 1.35;
+    text-align: center;
+  }
+  .storefront-static-notice-text {
+    min-width: 0;
+    max-width: min(100%, 72rem);
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
   body[data-storefront-theme='dark'] .storefront-marquee-bar {
     background: rgba(3,10,25,0.84) !important;
   }
-  body[data-storefront-theme='dark'] .storefront-marquee-text {
+  body[data-storefront-theme='dark'] .storefront-marquee-text,
+  body[data-storefront-theme='dark'] .storefront-static-notice {
     color: #dbeafe !important;
   }
   .gradient-hero,
@@ -2017,6 +2054,13 @@ export function storefrontThemeRefreshStyles(): string {
     }
     #purchaseToastContainer {
       display: none !important;
+    }
+    #toastContainer,
+    #toastContainer .toast,
+    .purchase-toast {
+      display: none !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
     }
     .quick-order-label-desktop {
       display: none;
