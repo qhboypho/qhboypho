@@ -28,7 +28,7 @@ assert.match(authRoutesSource, /app\.post\('\/api\/auth\/login'[\s\S]*enforceTur
 
 assert.match(adminLoginSource, /\/api\/auth\/turnstile-config/, 'admin login page should load Turnstile public config')
 assert.match(adminLoginSource, /https:\/\/challenges\.cloudflare\.com\/turnstile\/v0\/api\.js\?render=explicit/, 'admin login page should load Turnstile explicit renderer')
-assert.match(adminLoginSource, /turnstile\.render\('adminTurnstileWidget'/, 'admin login should render the Turnstile widget')
+assert.match(adminLoginSource, /document\.getElementById\('adminTurnstileWidget'\)[\s\S]*turnstile\.render\(widget/, 'admin login should render the Turnstile widget from the resolved container element')
 assert.match(adminLoginSource, /turnstile_token: getAdminTurnstileToken\(\)/, 'admin login payload should include the Turnstile token')
 assert.match(adminLoginSource, /isAdminTurnstileLocalDev\(\)/, 'admin login should allow local test-key submit even if the widget token is empty')
 assert.match(adminLoginSource, /if \(isAdminTurnstileLocalDev\(\)\)[\s\S]*wrap\.classList\.add\('hidden'\)[\s\S]*return/, 'admin login should not wait for the Cloudflare script when using local test keys')

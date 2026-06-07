@@ -147,7 +147,9 @@ export function adminLoginHTML(): string {
     wrap.classList.remove('hidden')
     await loadAdminTurnstileScript()
     if (!window.turnstile || adminTurnstileWidgetId !== null) return
-    adminTurnstileWidgetId = window.turnstile.render('adminTurnstileWidget', {
+    const widget = document.getElementById('adminTurnstileWidget')
+    if (!widget) return
+    adminTurnstileWidgetId = window.turnstile.render(widget, {
       sitekey: adminTurnstileSiteKey,
       theme: 'dark',
       action: 'admin_login',
