@@ -2003,6 +2003,12 @@ function setMobileBottomNavHidden(hidden) {
   nav.classList.toggle('is-hidden', mobileBottomNavHidden)
 }
 
+function revealMobileBottomNavForCartFeedback() {
+  if (window.innerWidth >= 768) return
+  setMobileBottomNavHidden(false)
+  lastMobileBottomNavScrollY = Math.max(0, window.scrollY || window.pageYOffset || 0)
+}
+
 function updateMobileBottomNavOnScroll() {
   const nav = document.getElementById('mobileBottomNav')
   if (!nav || window.innerWidth >= 768) return

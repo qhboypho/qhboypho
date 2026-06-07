@@ -454,7 +454,7 @@ export function storefrontThemeRefreshStyles(): string {
     color: #fff !important;
     background: linear-gradient(135deg, #337cff, #8d55ff 45%, #ec4fbe) !important;
     border-color: rgba(255,255,255,0.34) !important;
-    box-shadow: 0 14px 34px rgba(59,130,246,0.28), 0 10px 28px rgba(236,63,173,0.22) !important;
+    box-shadow: none !important;
   }
   .filter-meta-row {
     display: flex;
@@ -571,7 +571,7 @@ export function storefrontThemeRefreshStyles(): string {
     color: #fff !important;
     background: linear-gradient(135deg, #337cff, #8d55ff 45%, #ec4fbe) !important;
     border-color: rgba(255,255,255,0.34) !important;
-    box-shadow: 0 14px 34px rgba(59,130,246,0.28), 0 10px 28px rgba(236,63,173,0.22) !important;
+    box-shadow: none !important;
   }
   body[data-storefront-theme='dark'] .filter-view-toggle {
     background: rgba(6,20,40,0.72) !important;
@@ -2220,11 +2220,17 @@ export function storefrontThemeRefreshStyles(): string {
       white-space: nowrap;
     }
     .favorite-toggle-btn {
-      top: 0.5rem;
-      left: 0.5rem;
+      top: 0.25rem;
+      left: 0.25rem;
+      width: 2.75rem;
+      height: 2.75rem;
+      border-radius: 9999px;
+      background: rgba(255,255,255,0.01) !important;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
     }
     .favorite-toggle-btn i {
-      font-size: 1.08rem;
+      font-size: 1.22rem;
     }
     .flash-sale-mini-strip {
       gap: 0;
@@ -4140,6 +4146,24 @@ export function storefrontThemeRefreshStyles(): string {
     }
   }
   @media (max-width: 389px) {
+    #orderPopupCard .order-voucher-row {
+      grid-template-columns: minmax(0, 1fr) minmax(3.9rem, 3.9rem) !important;
+      gap: 0.35rem !important;
+    }
+    #orderPopupCard #orderVoucher {
+      min-width: 0 !important;
+      padding-left: 0.72rem !important;
+      padding-right: 0.72rem !important;
+      font-size: 0.82rem !important;
+      letter-spacing: 0.045em !important;
+    }
+    #orderPopupCard #voucherBtn {
+      width: 3.9rem !important;
+      min-width: 3.9rem !important;
+      padding-left: 0 !important;
+      padding-right: 0 !important;
+      font-size: 0.78rem !important;
+    }
     #productsGrid.products-grid-compact .product-card-actions,
     #productsModalGrid.products-grid-compact .product-card-actions {
       grid-template-columns: minmax(0, 7.5fr) minmax(2.5rem, 2.5fr) !important;

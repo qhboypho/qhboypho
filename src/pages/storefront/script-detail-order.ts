@@ -367,6 +367,7 @@ function addDetailToCart() {
     showToast('Đã cập nhật phân loại sản phẩm', 'success', 2200)
     return
   }
+  revealMobileBottomNavForCartFeedback()
   animateFlyToCart(resolveFlyImage(currentProduct), document.getElementById('detailGalleryViewport'))
   if (addToCart(currentProduct, color, size, 1)) {
     showToast('Đã thêm "' + currentProduct.name + '" vào giỏ hàng!', 'success', 2500)
@@ -688,6 +689,7 @@ async function addToCartFromCard(evt, id) {
     const sizes = safeJson(p.sizes)
     const color = colors.length > 0 ? colors[0] : ''
     const size = sizes.length > 0 ? sizes[0] : ''
+    revealMobileBottomNavForCartFeedback()
     animateFlyToCart(resolveFlyImage(p), evt?.currentTarget || evt?.target || null)
     if (addToCart(p, color, size, 1)) {
       showToast('Đã thêm "' + p.name + '" vào giỏ hàng!', 'success', 2500)
@@ -960,6 +962,7 @@ function addCurrentToCart() {
     shakeSize: () => shakeField('sizeSection')
   })
   if (!orderSelection.ok) return
+  revealMobileBottomNavForCartFeedback()
   animateFlyToCart(resolveFlyImage(currentProduct), document.getElementById('addToCartBtn'))
   if (addToCart(currentProduct, selectedColor, selectedSize, orderQty)) {
     closeOrder()
@@ -1176,6 +1179,7 @@ function submitVariantModal() {
   }
 
   if (variantActionType === 'add_to_cart') {
+    revealMobileBottomNavForCartFeedback()
     animateFlyToCart(resolveFlyImage(currentProduct), document.getElementById('variantModalProductImg') || document.getElementById('variantSubmitBtn'))
     if (addToCart(currentProduct, selectedColor, selectedSize, orderQty)) {
       closeVariantModal()
