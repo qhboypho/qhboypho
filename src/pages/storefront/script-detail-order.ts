@@ -284,7 +284,7 @@ function selectDetailColorByIndex(idx, btn) {
   const label = document.getElementById('detailColorLabel')
   if (label) label.textContent = detailSelectedColor
   document.querySelectorAll('.detail-color-card').forEach(b => b.classList.remove('border-pink-500','ring-2','ring-pink-100','shadow-sm'))
-  if (btn) btn.classList.add('border-pink-500','ring-2','ring-pink-100','shadow-sm')
+  if (btn) btn.classList.add('border-pink-500')
 }
 function selectDetailSize(s, btn) {
   detailSelectedSize = String(s || '').trim()
@@ -1098,7 +1098,7 @@ function selectVariantColorByIndex(idx, btn) {
   if (label) label.textContent = selectedColor
 
   document.querySelectorAll('.variant-color-btn').forEach(b => b.classList.remove('border-pink-500', 'ring-2', 'ring-pink-200'))
-  if (btn) btn.classList.add('border-pink-500', 'ring-2', 'ring-pink-200')
+  if (btn) btn.classList.add('border-pink-500')
 }
 
 function selectVariantSize(s, btn) {

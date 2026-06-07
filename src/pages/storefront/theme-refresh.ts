@@ -1764,6 +1764,18 @@ export function storefrontThemeRefreshStyles(): string {
   #orderPopupCard .order-total-card .font-semibold.text-gray-700 {
     color: inherit !important;
   }
+  .detail-color-card.border-pink-500,
+  .variant-color-btn.border-pink-500,
+  #orderPopupCard .color-btn.active {
+    border-color: #ec4899 !important;
+    box-shadow: none !important;
+    outline: none !important;
+  }
+  .detail-color-card,
+  .variant-color-btn,
+  #orderPopupCard .color-btn {
+    box-shadow: none !important;
+  }
   #orderPopupCard #voucherBtn {
     background: rgba(15,23,42,0.9) !important;
     color: #f8fbff !important;
@@ -2005,6 +2017,13 @@ export function storefrontThemeRefreshStyles(): string {
   body[data-storefront-theme='dark'] #orderPopupCard .payment-method-btn .text-gray-600,
   body[data-storefront-theme='dark'] #orderPopupCard .order-total-card .font-semibold.text-gray-700 {
     color: #f8fbff !important;
+  }
+  body[data-storefront-theme='dark'] .detail-color-card.border-pink-500,
+  body[data-storefront-theme='dark'] .variant-color-btn.border-pink-500,
+  body[data-storefront-theme='dark'] #orderPopupCard .color-btn.active {
+    border-color: #ec4899 !important;
+    box-shadow: none !important;
+    outline: none !important;
   }
   body[data-storefront-theme='dark'] #orderPopupCard .size-btn.active,
   body[data-storefront-theme='dark'] .variant-size-btn.active {
