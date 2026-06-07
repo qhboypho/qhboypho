@@ -312,6 +312,13 @@ function getActiveAdminModalOverlays() {
     .filter((el) => isAdminOverlayElementVisible(el) && adminOverlayHasVisibleContent(el))
 }
 
+function isMobileSidebarOpen() {
+  const sidebar = document.getElementById('sidebar')
+  if (!sidebar) return false
+  const isDesktop = window.matchMedia && window.matchMedia('(min-width: 768px)').matches
+  return !isDesktop && !sidebar.classList.contains('-translate-x-full')
+}
+
 function normalizeAdminOverlayState(options = {}) {
   const preserveActiveModal = options.preserveActiveModal !== false
   const reason = String(options.reason || '')
@@ -342,7 +349,7 @@ function normalizeAdminOverlayState(options = {}) {
   }
 
   syncSidebarOverlay()
-  if (activeModals.length) lockAdminPageScroll()
+  if (activeModals.length || isMobileSidebarOpen()) lockAdminPageScroll()
   else unlockAdminPageScroll()
   document.body.style.pointerEvents = ''
   debugAdminOverlayState(reason || 'normalize')
@@ -816,6 +823,7 @@ function closeMobileSidebar() {
   const overlay = document.getElementById('sidebarOverlay')
   if (!sidebar || !overlay) {
     syncMobileSidebarToggle(false)
+    if (!getActiveAdminModalOverlays().length) unlockAdminPageScroll()
     return
   }
   sidebar.classList.add('-translate-x-full')
@@ -823,6 +831,7 @@ function closeMobileSidebar() {
   overlay.classList.add('hidden')
   overlay.style.pointerEvents = 'none'
   syncMobileSidebarToggle(false)
+  if (!getActiveAdminModalOverlays().length) unlockAdminPageScroll()
 }
 
 function openMobileSidebar() {
@@ -837,6 +846,7 @@ function openMobileSidebar() {
   overlay.classList.remove('hidden')
   overlay.style.pointerEvents = ''
   syncMobileSidebarToggle(true)
+  lockAdminPageScroll()
 }
 
 function toggleSidebar() {
@@ -858,6 +868,7 @@ function syncSidebarOverlay() {
     overlay.style.display = 'none'
     overlay.classList.add('hidden')
     overlay.style.pointerEvents = 'none'
+    if (!getActiveAdminModalOverlays().length) unlockAdminPageScroll()
     return
   }
   syncMobileSidebarToggle(sidebarOpen)
@@ -865,10 +876,12 @@ function syncSidebarOverlay() {
     overlay.style.display = 'block'
     overlay.classList.remove('hidden')
     overlay.style.pointerEvents = ''
+    lockAdminPageScroll()
   } else {
     overlay.style.display = 'none'
     overlay.classList.add('hidden')
     overlay.style.pointerEvents = 'none'
+    if (!getActiveAdminModalOverlays().length) unlockAdminPageScroll()
   }
 }
 

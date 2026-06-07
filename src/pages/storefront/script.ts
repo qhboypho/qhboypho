@@ -37,6 +37,10 @@ let mobileBottomNavHidden = false
 let walletTopupEnabled = true
 let storefrontScrollLockY = 0
 let storefrontScrollLockActive = false
+let storefrontScrollLockMode = ''
+let storefrontScrollTouchY = 0
+let storefrontScrollTouchHandler = null
+let storefrontScrollTouchStartHandler = null
 const storefrontScrollLockTokens = new Set()
 const storefrontScrollLockStyles = {
   bodyPosition: '',
@@ -47,6 +51,62 @@ const storefrontScrollLockStyles = {
   bodyOverflow: '',
   htmlOverflow: '',
   htmlOverscrollBehavior: '',
+}
+
+function isStorefrontMobileViewport() {
+  const viewportWidth = Math.min(
+    window.innerWidth || document.documentElement.clientWidth || 0,
+    window.visualViewport?.width || window.innerWidth || 0
+  )
+  return viewportWidth > 0 && viewportWidth <= 768
+}
+
+function getStorefrontScrollableAncestor(target) {
+  let node = target instanceof Element ? target : null
+  while (node && node !== document.body && node !== document.documentElement) {
+    const style = window.getComputedStyle(node)
+    const canScrollY = /(auto|scroll)/.test(style.overflowY || '')
+    if (canScrollY && node.scrollHeight > node.clientHeight + 1) return node
+    node = node.parentElement
+  }
+  return null
+}
+
+function bindStorefrontMobileScrollTrap() {
+  if (storefrontScrollTouchHandler || !isStorefrontMobileViewport()) return
+  storefrontScrollTouchStartHandler = (event) => {
+    storefrontScrollTouchY = event.touches?.[0]?.clientY || 0
+  }
+  storefrontScrollTouchHandler = (event) => {
+    if (!storefrontScrollLockActive || !storefrontScrollLockTokens.size) return
+    const currentY = event.touches?.[0]?.clientY || storefrontScrollTouchY
+    const deltaY = currentY - storefrontScrollTouchY
+    storefrontScrollTouchY = currentY
+    const scroller = getStorefrontScrollableAncestor(event.target)
+    if (!scroller) {
+      event.preventDefault()
+      return
+    }
+    const atTop = scroller.scrollTop <= 0
+    const atBottom = Math.ceil(scroller.scrollTop + scroller.clientHeight) >= scroller.scrollHeight
+    if ((atTop && deltaY > 0) || (atBottom && deltaY < 0)) {
+      event.preventDefault()
+    }
+  }
+  document.addEventListener('touchstart', storefrontScrollTouchStartHandler, { passive: true, capture: true })
+  document.addEventListener('touchmove', storefrontScrollTouchHandler, { passive: false, capture: true })
+}
+
+function unbindStorefrontMobileScrollTrap() {
+  if (storefrontScrollTouchStartHandler) {
+    document.removeEventListener('touchstart', storefrontScrollTouchStartHandler, true)
+    storefrontScrollTouchStartHandler = null
+  }
+  if (storefrontScrollTouchHandler) {
+    document.removeEventListener('touchmove', storefrontScrollTouchHandler, true)
+    storefrontScrollTouchHandler = null
+  }
+  storefrontScrollTouchY = 0
 }
 
 function lockStorefrontPageScroll(token) {
@@ -69,12 +129,18 @@ function lockStorefrontPageScroll(token) {
   body.classList.add('storefront-scroll-locked')
   html.style.overflow = 'hidden'
   html.style.overscrollBehavior = 'none'
+  body.style.overflow = 'hidden'
+  body.style.width = '100%'
+  if (isStorefrontMobileViewport()) {
+    storefrontScrollLockMode = 'mobile'
+    bindStorefrontMobileScrollTrap()
+    return
+  }
+  storefrontScrollLockMode = 'fixed'
   body.style.position = 'fixed'
   body.style.top = '-' + storefrontScrollLockY + 'px'
   body.style.left = '0'
   body.style.right = '0'
-  body.style.width = '100%'
-  body.style.overflow = 'hidden'
 }
 
 function unlockStorefrontPageScroll(token) {
@@ -85,6 +151,8 @@ function unlockStorefrontPageScroll(token) {
   const html = document.documentElement
   html.classList.remove('storefront-scroll-locked')
   body.classList.remove('storefront-scroll-locked')
+  unbindStorefrontMobileScrollTrap()
+  const wasFixedLock = storefrontScrollLockMode === 'fixed'
   body.style.position = storefrontScrollLockStyles.bodyPosition
   body.style.top = storefrontScrollLockStyles.bodyTop
   body.style.left = storefrontScrollLockStyles.bodyLeft
@@ -94,9 +162,12 @@ function unlockStorefrontPageScroll(token) {
   html.style.overflow = storefrontScrollLockStyles.htmlOverflow
   html.style.overscrollBehavior = storefrontScrollLockStyles.htmlOverscrollBehavior
   storefrontScrollLockActive = false
+  storefrontScrollLockMode = ''
   const restoreY = storefrontScrollLockY
   storefrontScrollLockY = 0
-  window.scrollTo(0, restoreY)
+  if (wasFixedLock) {
+    requestAnimationFrame(() => window.scrollTo(0, restoreY))
+  }
 }
 
 function syncStorefrontPageScrollLock() {
@@ -2985,6 +3056,7 @@ let heroBannersData = []
 let lastHeroMobileMode = null
 let heroCarouselIndex = 0
 let heroCarouselTimer = null
+let heroCarouselSuppressClick = false
 
 function renderFooterSocialLinks(data) {
   const section = document.getElementById('footerSocialSection')
@@ -3195,6 +3267,7 @@ function renderCollapsedBanners(banners) {
     <button type="button" class="hero-carousel-nav hero-carousel-next" aria-label="Sản phẩm tiếp theo" onclick="moveHeroCarousel(1)"><i class="fas fa-chevron-right"></i></button>
   </div>\`
   updateHeroCarousel()
+  bindHeroCarouselSwipe()
 }
 
 function ensureHeroCarouselRuntimeStyle() {
@@ -3205,7 +3278,7 @@ function ensureHeroCarouselRuntimeStyle() {
     #heroBannersWrapper{cursor:default!important}
     #heroBannersCollapsed{position:relative}
     .hero-setting-banner-card{border-radius:1.5rem;overflow:hidden;box-shadow:0 24px 55px rgba(0,0,0,.34);background:rgba(255,255,255,.05)}
-    .hero-3d-carousel{position:relative;width:430px;height:548px;display:flex;align-items:center;justify-content:center;perspective:1100px;overflow:visible}
+    .hero-3d-carousel{position:relative;width:430px;height:548px;display:flex;align-items:center;justify-content:center;perspective:1100px;overflow:visible;touch-action:pan-y}
     .hero-carousel-stage{position:relative;width:360px;height:520px;transform-style:preserve-3d}
     .hero-carousel-card{position:absolute;inset:0;border-radius:24px;overflow:hidden;background:var(--qh-product-card-bg,linear-gradient(145deg,#fff,#f8fafc) padding-box,linear-gradient(135deg,rgba(203,213,225,.95),rgba(236,72,153,.24)) border-box);color:var(--qh-text,#111827);box-shadow:0 28px 70px rgba(0,0,0,.18),0 0 34px var(--qh-glow-blue,rgba(59,130,246,.12)),0 0 36px var(--qh-glow-pink,rgba(236,72,153,.1)),inset 0 0 0 1px rgba(255,255,255,.06),inset 0 1px 0 rgba(255,255,255,.08);border:1px solid transparent;transition:transform .55s cubic-bezier(.2,.8,.2,1),opacity .45s ease;will-change:transform,opacity;pointer-events:none;backface-visibility:hidden;-webkit-font-smoothing:antialiased}
     .hero-carousel-card[data-offset="0"]{transform:translate3d(0,0,0) scale(1);opacity:1;z-index:6;pointer-events:auto}
@@ -3318,6 +3391,67 @@ function moveHeroCarousel(direction) {
   if (!total) return
   heroCarouselIndex = (heroCarouselIndex + direction + total) % total
   updateHeroCarousel()
+}
+
+function bindHeroCarouselSwipe() {
+  const carousel = document.querySelector('.hero-3d-carousel')
+  if (!carousel || carousel.dataset.swipeBound === '1') return
+  carousel.dataset.swipeBound = '1'
+
+  let startX = 0
+  let startY = 0
+  let lastX = 0
+  let lastY = 0
+  let active = false
+
+  carousel.addEventListener('touchstart', (event) => {
+    if (!isMobileHeroLayout()) return
+    const touch = event.touches && event.touches[0]
+    if (!touch) return
+    startX = touch.clientX
+    startY = touch.clientY
+    lastX = startX
+    lastY = startY
+    active = true
+  }, { passive: true })
+
+  carousel.addEventListener('touchmove', (event) => {
+    if (!active) return
+    const touch = event.touches && event.touches[0]
+    if (!touch) return
+    lastX = touch.clientX
+    lastY = touch.clientY
+  }, { passive: true })
+
+  carousel.addEventListener('touchend', (event) => {
+    if (!active || !isMobileHeroLayout()) {
+      active = false
+      return
+    }
+    active = false
+    const touch = event.changedTouches && event.changedTouches[0]
+    if (touch) {
+      lastX = touch.clientX
+      lastY = touch.clientY
+    }
+    const dx = lastX - startX
+    const dy = lastY - startY
+    const threshold = Math.max(36, Math.min(58, carousel.clientWidth * 0.12))
+    if (Math.abs(dx) < threshold || Math.abs(dx) <= Math.abs(dy) * 1.2) return
+
+    event.preventDefault()
+    heroCarouselSuppressClick = true
+    moveHeroCarousel(dx < 0 ? 1 : -1)
+    window.setTimeout(() => {
+      heroCarouselSuppressClick = false
+    }, 320)
+  }, { passive: false })
+
+  carousel.addEventListener('click', (event) => {
+    if (!heroCarouselSuppressClick) return
+    event.preventDefault()
+    event.stopPropagation()
+  }, true)
 }
 
 function stopHeroCarouselAutoPlay() {

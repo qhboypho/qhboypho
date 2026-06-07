@@ -76,11 +76,11 @@ export function storefrontNavbarSection(): string {
 
     <!-- MOBILE TOP ICONS -->
     <div class="flex md:hidden items-center gap-3">
-      <button type="button" onclick="toggleStorefrontTheme()" id="storefrontThemeToggleMobile" class="theme-toggle-btn relative text-white hover:text-pink-400 transition p-2 border border-white/20 rounded-full w-9 h-9 flex items-center justify-center">
-        <i id="storefrontThemeIconMobile" class="fas fa-moon text-[16px]"></i>
-      </button>
       <button type="button" onclick="focusProductsSearch()" class="text-white hover:text-pink-400 transition p-2" aria-label="Tìm sản phẩm">
         <i class="fas fa-search text-[18px]"></i>
+      </button>
+      <button type="button" onclick="toggleStorefrontTheme()" id="storefrontThemeToggleMobile" class="theme-toggle-btn relative text-white hover:text-pink-400 transition p-2 border border-white/20 rounded-full w-9 h-9 flex items-center justify-center">
+        <i id="storefrontThemeIconMobile" class="fas fa-moon text-[16px]"></i>
       </button>
     </div>
   </div>

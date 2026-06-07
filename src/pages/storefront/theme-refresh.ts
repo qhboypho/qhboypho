@@ -3150,7 +3150,6 @@ export function storefrontThemeRefreshStyles(): string {
       line-height: 1.08 !important;
     }
     #products > .text-center.mb-12 > p.text-gray-500 {
-      max-width: 15rem;
       margin-left: auto;
       margin-right: auto;
       font-size: 0.96rem !important;
@@ -4102,7 +4101,6 @@ export function storefrontThemeRefreshStyles(): string {
       font-size: 1.72rem !important;
     }
     #products > .text-center.mb-12 > p.text-gray-500 {
-      max-width: 13.5rem;
       font-size: 0.9rem !important;
     }
     .filter-shell {
