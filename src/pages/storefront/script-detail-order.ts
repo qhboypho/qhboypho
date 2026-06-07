@@ -421,7 +421,12 @@ async function openOrder(id, options) {
     document.getElementById('orderName').value = ''
     document.getElementById('orderPhone').value = ''
     await applySavedAddressToScope('order')
+    loadCheckoutAddressBook()
+    const selectedAddress = getSelectedCheckoutAddress()
+    if (selectedAddress) await applyAddressRecordToScope(selectedAddress, 'order')
+    else renderOrderAddressSummary()
     document.getElementById('orderNote').value = ''
+    updateOrderNoteActionLabel()
     document.getElementById('orderVoucher').value = ''
     document.getElementById('voucherStatus').classList.add('hidden')
     document.getElementById('discountRow').classList.add('hidden')
@@ -503,58 +508,6 @@ function selectOrderSize(s, btn) {
 function selectPaymentMethod(method, btn) {
   selectCheckoutPaymentMethod('order', method, btn)
 }
-function isPopupTabAlive(tab) {
-  try { return !!(tab && !tab.closed) } catch (_) { return false }
-}
-function openOrReuseZaloPayLinkTab() {
-  if (isPopupTabAlive(zaloPayLinkTab)) {
-    try { zaloPayLinkTab.focus() } catch (_) { }
-    return zaloPayLinkTab
-  }
-  let tab = null
-  try { tab = window.open('https://zalopay.vn/', '_blank') } catch (_) { tab = null }
-  zaloPayLinkTab = tab
-  return tab
-}
-
-async function ensureZaloPayConfigReady(showMessage) {
-  try {
-    const res = await axios.get('/api/payments/zalopay/config')
-    const ready = !!res.data?.data?.ready
-    const missing = Array.isArray(res.data?.data?.missing) ? res.data.data.missing : []
-    if (ready) return { ready: true, missing: [] }
-    if (showMessage) {
-      const detail = missing.length ? (': ' + missing.join(', ')) : ''
-      showToast('ZaloPay chua cau hinh day du' + detail, 'error', 5500)
-    }
-    return { ready: false, missing }
-  } catch (_) {
-    if (showMessage) showToast('Khong kiem tra duoc cau hinh ZaloPay. Thu lai sau.', 'error', 5000)
-    return { ready: false, missing: [] }
-  }
-}
-
-function openZaloPayLink(evt) {
-  if (evt) {
-    evt.preventDefault()
-    evt.stopPropagation()
-  }
-  const zaloBtn = Array.from(document.querySelectorAll('.payment-method-btn')).find(function (btn) {
-    return String(btn.getAttribute('onclick') || '').indexOf("'ZALOPAY'") >= 0
-  })
-  if (zaloBtn) selectPaymentMethod('ZALOPAY', zaloBtn)
-  const tab = openOrReuseZaloPayLinkTab()
-  if (tab) {
-    showToast('Da mo ZaloPay. Bam Dat ngay de tao QR thanh toan.', 'success', 4500)
-    return
-  }
-  const fallback = window.open('https://zalopay.vn/', '_blank')
-  if (fallback) {
-    showToast('Da mo trang ZaloPay.', 'success', 3500)
-  } else {
-    showToast('Trinh duyet dang chan popup, hay cho phep popup roi thu lai.', 'error', 4000)
-  }
-}
 function changeQty(d) {
   orderQty = Math.max(1, Math.min(99, orderQty + d))
   document.getElementById('qtyDisplay').textContent = orderQty
@@ -566,7 +519,7 @@ function updateOrderTotal() {
   const discount = appliedVoucher ? appliedVoucher.discount_amount : 0
   const total = Math.max(0, subtotal - discount)
   const label = document.getElementById('orderTotalLabel')
-  if (label) label.textContent = 'Tổng (' + orderQty + ' mặt hàng):'
+  if (label) label.textContent = 'Tổng cộng (' + orderQty + ' mặt hàng):'
   document.getElementById('orderTotal').textContent = fmtPrice(total)
   if (appliedVoucher) {
     document.getElementById('orderSubtotal').textContent = fmtPrice(subtotal)
@@ -579,6 +532,7 @@ function updateOrderTotal() {
   }
 }
 function closeOrder() {
+  closeOrderAddressEditor()
   document.getElementById('orderOverlay').classList.add('hidden')
   unlockStorefrontPageScroll('orderOverlay')
 }
@@ -891,52 +845,6 @@ async function continueOrderPaymentFlow({ orderCode, orderId, orderTotal, paymen
     return { handled: true }
   }
 
-  if (paymentMethod === 'ZALOPAY') {
-    let zaloData = null
-    try {
-      const zalo = await axios.post('/api/orders/' + orderId + '/zalopay-link', { origin: window.location.origin })
-      zaloData = zalo.data?.data || null
-    } catch (err) {
-      const errCode = err.response?.data?.error
-      const missing = Array.isArray(err.response?.data?.missing) ? err.response.data.missing : []
-      if (errCode === 'ZALOPAY_CONFIG_MISSING') {
-        const detail = missing.length ? (': ' + missing.join(', ')) : ''
-        showToast('ZaloPay chua cau hinh day du' + detail, 'error', 5500)
-      } else {
-        showToast('ZaloPay tam loi, vui long thu lai sau it phut.', 'error', 4500)
-      }
-    }
-
-    if (zaloData?.alreadyPaid) {
-      onOrderMarkedPaid(orderCode)
-      showToast('Đơn ' + orderCode + ' đã được thanh toán trước đó.', 'success', 4500)
-      return { handled: true }
-    }
-
-    const checkoutUrl = String(zaloData?.orderUrl || '').trim()
-    if (!checkoutUrl) {
-      try { if (payTabRef && !payTabRef.closed) payTabRef.close() } catch (_) { }
-      showToast('Không tạo được liên kết thanh toán ZaloPay.', 'error', 4500)
-      return { handled: true }
-    }
-
-    let payTab = payTabRef
-    if (payTab) {
-      try { payTab.location.href = checkoutUrl } catch (_) { payTab = null }
-    }
-    if (!payTab) payTab = window.open(checkoutUrl, '_blank')
-
-    if (payTab) {
-      zaloPayLinkTab = payTab
-      startOrderPaymentPolling(orderCode)
-      showToast('Đơn ' + orderCode + ': đã mở tab ZaloPay, vui lòng quét QR để thanh toán.', 'success', 5000)
-    } else {
-      startOrderPaymentPolling(orderCode)
-      window.location.href = checkoutUrl
-    }
-    return { handled: true }
-  }
-
   showToast('🎉 Đặt hàng thành công! Mã đơn: ' + orderCode, 'success', 5000)
   return { handled: true }
 }
@@ -946,12 +854,34 @@ async function submitOrder() {
   const sizes = safeJson(currentProduct?.sizes)
   const hasColorOptions = Array.isArray(orderColorOptions) ? orderColorOptions.length > 0 : false
   const hasSizeOptions = Array.isArray(sizes) ? sizes.length > 0 : false
-  const payload = validateCheckoutFields('order', {
+  let payload = validateCheckoutFields('order', {
     requireColor: hasColorOptions,
     requireSize: hasSizeOptions,
     requirePayment: true
   })
-  if (!payload) return
+  if (!payload) {
+    const selectedAddress = getSelectedCheckoutAddress()
+    if (selectedAddress) {
+      try {
+        await applyAddressRecordToScope(selectedAddress, 'order')
+        payload = validateCheckoutFields('order', {
+          requireColor: hasColorOptions,
+          requireSize: hasSizeOptions,
+          requirePayment: true
+        })
+      } catch (_) { }
+    }
+  }
+  if (!payload) {
+    if (
+      window.matchMedia
+      && window.matchMedia('(max-width: 767px)').matches
+      && !hasCheckoutContactAddress('order')
+    ) {
+      openOrderAddressEditor()
+    }
+    return
+  }
   
   // Check if customer is blocked
   const blockCheck = await checkCustomerBlockStatus(payload.phone)
@@ -961,10 +891,6 @@ async function submitOrder() {
   }
   
   const paymentMethod = getCheckoutSelectedPaymentMethod('order')
-  if (paymentMethod === 'ZALOPAY') {
-    const check = await ensureZaloPayConfigReady(true)
-    if (!check.ready) return
-  }
 
   const btn = document.getElementById('submitOrderBtn')
   btn.disabled = true
@@ -972,11 +898,6 @@ async function submitOrder() {
   let payTabRef = null
   if (paymentMethod === 'BANK_TRANSFER') {
     try { payTabRef = window.open('about:blank', '_blank') } catch (_) { payTabRef = null }
-  } else if (paymentMethod === 'ZALOPAY') {
-    payTabRef = openOrReuseZaloPayLinkTab()
-    if (!payTabRef) {
-      try { payTabRef = window.open('about:blank', '_blank') } catch (_) { payTabRef = null }
-    }
   }
 
   try {
@@ -1016,10 +937,6 @@ async function submitOrder() {
       updateOrderTotal()
       document.getElementById('voucherBtn').innerHTML = 'Áp dụng'
       document.getElementById('voucherBtn').className = 'px-4 py-2.5 bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-sm font-semibold transition whitespace-nowrap'
-    } else if (errCode === 'ZALOPAY_CONFIG_MISSING') {
-      const missing = Array.isArray(e.response?.data?.missing) ? e.response.data.missing : []
-      const detail = missing.length ? (': ' + missing.join(', ')) : ''
-      showToast('ZaloPay chua cau hinh day du' + detail, 'error', 5500)
     } else {
       showToast('Đặt hàng thất bại, thử lại sau', 'error')
     }

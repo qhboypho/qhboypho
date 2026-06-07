@@ -15,7 +15,6 @@ const PRODUCT_MODAL_PAGE_SIZE = 24
 const MOBILE_PRODUCT_PAGE_SIZE = 8
 let productsModalVisibleCount = PRODUCT_MODAL_PAGE_SIZE
 let mobileProductsVisibleCount = MOBILE_PRODUCT_PAGE_SIZE
-let zaloPayLinkTab = null
 let appliedVoucher = null   // { code, discount_amount }
 let detailColorOptions = []
 let detailSelectedColor = ''
@@ -105,6 +104,7 @@ function syncStorefrontPageScrollLock() {
     'orderOverlay',
     'orderBankTransferOverlay',
     'orderPaidNoticeOverlay',
+    'cartOrderSuccessOverlay',
     'shippingJourneyOverlay',
     'detailOverlay',
     'cartOverlay',
@@ -137,6 +137,10 @@ let selectedCheckoutAddressId = ''
 let editingCheckoutAddressId = ''
 let checkoutAddressEditorSaved = false
 let checkoutAddressEditorSnapshot = null
+let checkoutAddressContext = 'ck'
+let orderAddressEditorSaved = false
+let orderAddressEditorSnapshot = null
+let checkoutNoteContext = 'ck'
 let currentUser = null
 let isAdminUser = false
 let userAuthTurnstileEnabled = false
@@ -516,6 +520,14 @@ function validateCheckoutFields(scope, options) {
   return values
 }
 
+function hasCheckoutContactAddress(scope) {
+  const cfg = getCheckoutScopeConfig(scope)
+  const name = document.getElementById(cfg.nameInputId)?.value.trim() || ''
+  const phone = document.getElementById(cfg.phoneInputId)?.value.trim() || ''
+  const addressPayload = getAddressPayload(scope)
+  return !!(name && phone && /^[0-9]{9,11}$/.test(phone.replace(/\s/g, '')) && addressPayload.valid)
+}
+
 function getAddressPreferenceKey() {
   if (isAdminUser) return 'qhclothes_saved_address_admin'
   const uid = Number(currentUser?.userId || currentUser?.id || 0)
@@ -726,7 +738,10 @@ async function onAddressProvinceChange(scope) {
     renderCommuneOptionsForScope(scope)
     syncAddressFullText(scope)
     if (scope === 'ck') clearCheckoutError(ids.fieldId)
-    else clearFieldError(ids.fieldId)
+    else {
+      clearFieldError(ids.fieldId)
+      renderOrderAddressSummary()
+    }
     return
   }
   try {
@@ -738,7 +753,10 @@ async function onAddressProvinceChange(scope) {
   }
   syncAddressFullText(scope)
   if (scope === 'ck') clearCheckoutError(ids.fieldId)
-  else clearFieldError(ids.fieldId)
+  else {
+    clearFieldError(ids.fieldId)
+    renderOrderAddressSummary()
+  }
 }
 
 function onAddressCommuneChange(scope) {
@@ -746,7 +764,10 @@ function onAddressCommuneChange(scope) {
   renderAddressDropdownList(scope, 'commune', '')
   const ids = getAddressScopeElements(scope)
   if (scope === 'ck') clearCheckoutError(ids.fieldId)
-  else clearFieldError(ids.fieldId)
+  else {
+    clearFieldError(ids.fieldId)
+    renderOrderAddressSummary()
+  }
 }
 
 function onAddressDropdownSearchInput(scope, type) {
@@ -768,8 +789,13 @@ function selectAddressDropdownOption(scope, type, code) {
   if (searchEl) searchEl.value = ''
   addressDropdownSearchState[scope + ':' + type] = ''
   closeAddressDropdown(scope, type)
-  if (type === 'province') onAddressProvinceChange(scope)
-  else onAddressCommuneChange(scope)
+  if (type === 'province') {
+    renderProvinceOptionsForScope(scope, '')
+    onAddressProvinceChange(scope)
+  } else {
+    renderCommuneOptionsForScope(scope, '')
+    onAddressCommuneChange(scope)
+  }
 }
 
 function toggleAddressDropdown(scope, type) {
@@ -876,9 +902,14 @@ function maskCheckoutPhone(phone) {
 }
 
 function captureCheckoutAddressFromFields() {
-  const name = document.getElementById('ckName')?.value.trim() || ''
-  const phone = document.getElementById('ckPhone')?.value.trim() || ''
-  const addressPayload = getAddressPayload('ck')
+  return captureAddressRecordFromScope('ck')
+}
+
+function captureAddressRecordFromScope(scope) {
+  const cfg = getCheckoutScopeConfig(scope)
+  const name = document.getElementById(cfg.nameInputId)?.value.trim() || ''
+  const phone = document.getElementById(cfg.phoneInputId)?.value.trim() || ''
+  const addressPayload = getAddressPayload(scope)
   if (!name || !phone || !addressPayload.valid) return null
   return {
     id: editingCheckoutAddressId || ('addr_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8)),
@@ -891,6 +922,14 @@ function captureCheckoutAddressFromFields() {
     effectiveDate: addressPayload.effectiveDate,
     updatedAt: Date.now()
   }
+}
+
+function getCheckoutAddressFingerprint(record) {
+  const phone = String(record?.phone || '').replace(/\D/g, '')
+  const provinceCode = String(record?.provinceCode || '').trim()
+  const communeCode = String(record?.communeCode || '').trim()
+  const detail = normalizeSearchText(record?.detail || '')
+  return [phone, provinceCode, communeCode, detail].join('|')
 }
 
 function snapshotCheckoutAddressFields() {
@@ -935,27 +974,38 @@ function getSelectedCheckoutAddress() {
 }
 
 async function applyCheckoutAddressRecord(record) {
+  await applyAddressRecordToScope(record, 'ck')
+}
+
+async function applyAddressRecordToScope(record, scope) {
   if (!record) return
   await ensureAddressKitReady()
-  const nameEl = document.getElementById('ckName')
-  const phoneEl = document.getElementById('ckPhone')
-  const provinceEl = document.getElementById('ckProvince')
-  const communeEl = document.getElementById('ckCommune')
-  const detailEl = document.getElementById('ckAddressDetail')
+  const cfg = getCheckoutScopeConfig(scope)
+  const ids = getAddressScopeElements(scope)
+  const nameEl = document.getElementById(cfg.nameInputId)
+  const phoneEl = document.getElementById(cfg.phoneInputId)
+  const provinceEl = document.getElementById(ids.provinceId)
+  const communeEl = document.getElementById(ids.communeId)
+  const detailEl = document.getElementById(ids.detailId)
   if (nameEl) nameEl.value = record.name || ''
   if (phoneEl) phoneEl.value = record.phone || ''
   if (provinceEl) {
     provinceEl.value = String(record.provinceCode || '')
-    await onAddressProvinceChange('ck')
+    await onAddressProvinceChange(scope)
   }
   if (communeEl) communeEl.value = String(record.communeCode || '')
   if (detailEl) detailEl.value = String(record.detail || '')
-  renderAddressDropdownList('ck', 'province', '')
-  renderAddressDropdownList('ck', 'commune', '')
-  syncAddressFullText('ck')
+  renderAddressDropdownList(scope, 'province', '')
+  renderAddressDropdownList(scope, 'commune', '')
+  syncAddressFullText(scope)
   selectedCheckoutAddressId = record.id || ''
-  ;['ckFieldName','ckFieldPhone','ckFieldAddress'].forEach(id => clearCheckoutError(id))
-  renderCheckoutAddressSummary()
+  if (scope === 'ck') {
+    ;['ckFieldName','ckFieldPhone','ckFieldAddress'].forEach(id => clearCheckoutError(id))
+    renderCheckoutAddressSummary()
+  } else {
+    ;['fieldName','fieldPhone','fieldAddress'].forEach(id => clearFieldError(id))
+    renderOrderAddressSummary()
+  }
 }
 
 function ensureCheckoutAddressBookFromCurrentFields() {
@@ -1001,7 +1051,146 @@ function renderCheckoutAddressSummary() {
     + '</button>'
 }
 
+function snapshotOrderAddressFields() {
+  return {
+    selectedId: selectedCheckoutAddressId,
+    name: document.getElementById('orderName')?.value || '',
+    phone: document.getElementById('orderPhone')?.value || '',
+    provinceCode: document.getElementById('orderProvince')?.value || '',
+    communeCode: document.getElementById('orderCommune')?.value || '',
+    detail: document.getElementById('orderAddressDetail')?.value || '',
+    address: document.getElementById('orderAddress')?.value || ''
+  }
+}
+
+async function restoreOrderAddressSnapshot(snapshot) {
+  if (!snapshot) return
+  const nameEl = document.getElementById('orderName')
+  const phoneEl = document.getElementById('orderPhone')
+  const provinceEl = document.getElementById('orderProvince')
+  const communeEl = document.getElementById('orderCommune')
+  const detailEl = document.getElementById('orderAddressDetail')
+  const addressEl = document.getElementById('orderAddress')
+  if (nameEl) nameEl.value = snapshot.name || ''
+  if (phoneEl) phoneEl.value = snapshot.phone || ''
+  if (provinceEl) {
+    provinceEl.value = String(snapshot.provinceCode || '')
+    if (snapshot.provinceCode) await onAddressProvinceChange('order')
+  }
+  if (communeEl) communeEl.value = String(snapshot.communeCode || '')
+  if (detailEl) detailEl.value = snapshot.detail || ''
+  if (addressEl) addressEl.value = snapshot.address || ''
+  selectedCheckoutAddressId = snapshot.selectedId || ''
+  renderAddressDropdownList('order', 'province', '')
+  renderAddressDropdownList('order', 'commune', '')
+  syncAddressFullText('order')
+  renderOrderAddressSummary()
+}
+
+function renderOrderAddressSummary() {
+  const box = document.getElementById('orderMobileAddressSummary')
+  if (!box) return
+  const name = document.getElementById('orderName')?.value.trim() || ''
+  const phone = document.getElementById('orderPhone')?.value.trim() || ''
+  const address = syncAddressFullText('order')
+  box.classList.remove('hidden')
+  if (!name || !phone || !address) {
+    box.innerHTML = '<button type="button" onclick="openOrderAddressEditor()" class="checkout-address-empty-card">'
+      + '<span class="checkout-address-pin"><i class="fas fa-map-marker-alt"></i></span>'
+      + '<span class="min-w-0 flex-1"><strong>Thêm địa chỉ nhận hàng</strong><small>Điền tên, số điện thoại và địa chỉ giao hàng</small></span>'
+      + '<i class="fas fa-chevron-right"></i>'
+      + '</button>'
+    return
+  }
+  box.innerHTML = '<button type="button" onclick="openOrderAddressManager()" class="checkout-address-selected-card">'
+    + '<span class="checkout-address-pin"><i class="fas fa-map-marker-alt"></i></span>'
+    + '<span class="min-w-0 flex-1 text-left">'
+    + '<strong>' + escapeHtml(name) + ' <span>' + escapeHtml(maskCheckoutPhone(phone)) + '</span></strong>'
+    + '<small>' + escapeHtml(address) + '</small>'
+    + '</span>'
+    + '<i class="fas fa-chevron-right"></i>'
+    + '</button>'
+}
+
+async function openOrderAddressEditor(addressId) {
+  editingCheckoutAddressId = String(addressId || '')
+  orderAddressEditorSaved = false
+  orderAddressEditorSnapshot = snapshotOrderAddressFields()
+  const record = editingCheckoutAddressId ? checkoutAddressBook.find((item) => item.id === editingCheckoutAddressId) : null
+  if (record) {
+    await applyAddressRecordToScope(record, 'order')
+  } else if (!editingCheckoutAddressId) {
+    ;['orderName','orderPhone','orderAddress','orderAddressDetail'].forEach(id => { const el=document.getElementById(id); if(el) el.value='' })
+    resetAddressScope('order')
+  }
+  const editor = document.getElementById('orderShippingEditor')
+  if (editor) {
+    editor.classList.add('is-open')
+    lockStorefrontPageScroll('orderShippingEditor')
+  }
+}
+
+function closeOrderAddressEditor() {
+  const editor = document.getElementById('orderShippingEditor')
+  if (editor) editor.classList.remove('is-open')
+  if (!orderAddressEditorSaved && orderAddressEditorSnapshot) {
+    restoreOrderAddressSnapshot(orderAddressEditorSnapshot).catch(() => { })
+  }
+  editingCheckoutAddressId = ''
+  orderAddressEditorSaved = false
+  orderAddressEditorSnapshot = null
+  unlockStorefrontPageScroll('orderShippingEditor')
+}
+
+async function saveOrderAddressFromEditor() {
+  const payload = validateCheckoutFields('order', {})
+  if (!payload) return
+  const record = captureAddressRecordFromScope('order')
+  if (!record) return
+  loadCheckoutAddressBook()
+  const recordFingerprint = getCheckoutAddressFingerprint(record)
+  const duplicate = checkoutAddressBook.find((item) => {
+    return item.id !== record.id && getCheckoutAddressFingerprint(item) === recordFingerprint
+  })
+  if (duplicate) {
+    if (record.id) {
+      let merged = false
+      checkoutAddressBook = checkoutAddressBook
+        .map((item) => {
+          if (item.id === record.id) {
+            merged = true
+            return { ...item, ...record }
+          }
+          return item
+        })
+        .filter((item) => item.id === record.id || getCheckoutAddressFingerprint(item) !== recordFingerprint)
+      if (!merged) checkoutAddressBook.unshift(record)
+      selectedCheckoutAddressId = record.id
+      saveCheckoutAddressBook()
+      await applyAddressRecordToScope(record, 'order')
+      renderCheckoutAddressManager()
+      showToast('Đã cập nhật và gộp địa chỉ trùng.', 'success', 3000)
+    } else {
+      showToast('Địa chỉ này đã tồn tại trong danh sách.', 'error', 3500)
+      await applyAddressRecordToScope(duplicate, 'order')
+    }
+    orderAddressEditorSaved = true
+    closeOrderAddressEditor()
+    return
+  }
+  const idx = checkoutAddressBook.findIndex((item) => item.id === record.id)
+  if (idx >= 0) checkoutAddressBook[idx] = { ...checkoutAddressBook[idx], ...record }
+  else checkoutAddressBook.unshift(record)
+  selectedCheckoutAddressId = record.id
+  saveCheckoutAddressBook()
+  await applyAddressRecordToScope(record, 'order')
+  renderCheckoutAddressManager()
+  orderAddressEditorSaved = true
+  closeOrderAddressEditor()
+}
+
 function openCheckoutAddressEditor(addressId) {
+  checkoutAddressContext = 'ck'
   editingCheckoutAddressId = String(addressId || '')
   checkoutAddressEditorSaved = false
   checkoutAddressEditorSnapshot = snapshotCheckoutAddressFields()
@@ -1019,6 +1208,22 @@ function openCheckoutAddressEditor(addressId) {
   }
 }
 
+function openCheckoutAddressEditorFromManager(addressId) {
+  const modal = document.getElementById('checkoutAddressManagerOverlay')
+  const panel = document.getElementById('checkoutAddressManagerPanel')
+  if (modal && panel && !modal.classList.contains('hidden')) {
+    panel.classList.remove('translate-y-0')
+    panel.classList.add('translate-y-full')
+    modal.classList.add('hidden')
+    modal.classList.remove('flex')
+    unlockStorefrontPageScroll('checkoutAddressManagerOverlay')
+  }
+  setTimeout(() => {
+    if (checkoutAddressContext === 'order') openOrderAddressEditor(addressId)
+    else openCheckoutAddressEditor(addressId)
+  }, 0)
+}
+
 function closeCheckoutAddressEditor() {
   const editor = document.getElementById('ckShippingEditor')
   if (editor) editor.classList.remove('is-open')
@@ -1031,12 +1236,42 @@ function closeCheckoutAddressEditor() {
   unlockStorefrontPageScroll('ckShippingEditor')
 }
 
-function saveCheckoutAddressFromEditor() {
+async function saveCheckoutAddressFromEditor() {
   const payload = validateCheckoutFields('ck', {})
   if (!payload) return
   const record = captureCheckoutAddressFromFields()
   if (!record) return
   loadCheckoutAddressBook()
+  const recordFingerprint = getCheckoutAddressFingerprint(record)
+  const duplicate = checkoutAddressBook.find((item) => {
+    return item.id !== record.id && getCheckoutAddressFingerprint(item) === recordFingerprint
+  })
+  if (duplicate) {
+    if (record.id) {
+      let merged = false
+      checkoutAddressBook = checkoutAddressBook
+        .map((item) => {
+          if (item.id === record.id) {
+            merged = true
+            return { ...item, ...record }
+          }
+          return item
+        })
+        .filter((item) => item.id === record.id || getCheckoutAddressFingerprint(item) !== recordFingerprint)
+      if (!merged) checkoutAddressBook.unshift(record)
+      selectedCheckoutAddressId = record.id
+      saveCheckoutAddressBook()
+      await applyCheckoutAddressRecord(record)
+      renderCheckoutAddressManager()
+      showToast('Đã cập nhật và gộp địa chỉ trùng.', 'success', 3000)
+    } else {
+      showToast('Địa chỉ này đã tồn tại trong danh sách.', 'error', 3500)
+      await applyCheckoutAddressRecord(duplicate)
+    }
+    checkoutAddressEditorSaved = true
+    closeCheckoutAddressEditor()
+    return
+  }
   const idx = checkoutAddressBook.findIndex((item) => item.id === record.id)
   if (idx >= 0) checkoutAddressBook[idx] = { ...checkoutAddressBook[idx], ...record }
   else checkoutAddressBook.unshift(record)
@@ -1065,12 +1300,28 @@ function renderCheckoutAddressManager() {
       + '<p>' + escapeHtml(item.address || '') + '</p>'
       + (isActive ? '<em>Mặc định</em>' : '')
       + '</button>'
-      + '<button type="button" class="checkout-address-edit-btn" onclick="openCheckoutAddressEditor(\\'' + escapeHtml(item.id) + '\\')">Chỉnh sửa</button>'
+      + '<button type="button" class="checkout-address-edit-btn" onclick="openCheckoutAddressEditorFromManager(\\'' + escapeHtml(item.id) + '\\')">Chỉnh sửa</button>'
       + '</div>'
   }).join('')
 }
 
 function openCheckoutAddressManager() {
+  checkoutAddressContext = 'ck'
+  renderCheckoutAddressManager()
+  const modal = document.getElementById('checkoutAddressManagerOverlay')
+  const panel = document.getElementById('checkoutAddressManagerPanel')
+  if (!modal || !panel) return
+  modal.classList.remove('hidden')
+  modal.classList.add('flex')
+  lockStorefrontPageScroll('checkoutAddressManagerOverlay')
+  setTimeout(() => {
+    panel.classList.remove('translate-y-full')
+    panel.classList.add('translate-y-0')
+  }, 10)
+}
+
+function openOrderAddressManager() {
+  checkoutAddressContext = 'order'
   renderCheckoutAddressManager()
   const modal = document.getElementById('checkoutAddressManagerOverlay')
   const panel = document.getElementById('checkoutAddressManagerPanel')
@@ -1100,30 +1351,51 @@ function closeCheckoutAddressManager() {
 function selectCheckoutManagedAddress(addressId) {
   const record = checkoutAddressBook.find((item) => item.id === addressId)
   if (!record) return
-  applyCheckoutAddressRecord(record)
+  const applyRecord = checkoutAddressContext === 'order'
+    ? applyAddressRecordToScope(record, 'order')
+    : applyCheckoutAddressRecord(record)
+  applyRecord
     .then(() => closeCheckoutAddressManager())
     .catch(() => showToast('Không thể áp dụng địa chỉ này. Vui lòng thử lại.', 'error', 3500))
 }
 
 function updateCheckoutNoteActionLabel() {
-  const label = document.getElementById('ckMobileNoteLabel')
-  if (!label) return
   const note = document.getElementById('ckNote')?.value.trim() || ''
-  label.textContent = note ? ('Ghi chú: ' + note) : 'Thêm ghi chú'
+  const row = document.querySelector('#ckNoteField .checkout-note-field-row span')
+  if (row) row.innerHTML = '<i class="fas fa-sticky-note text-pink-400 mr-1"></i>' + (note ? 'Ghi chú' : 'Ghi chú (tuỳ chọn)')
+  document.querySelectorAll('.checkout-note-preview-inline').forEach((preview) => {
+    preview.textContent = note
+    preview.classList.toggle('hidden', !note)
+  })
 }
 
-function openCheckoutNoteSheet() {
+function updateOrderNoteActionLabel() {
+  const note = document.getElementById('orderNote')?.value.trim() || ''
+  const row = document.querySelector('#orderNoteField .checkout-note-field-row span')
+  if (row) row.innerHTML = '<i class="fas fa-sticky-note text-pink-400 mr-1"></i>' + (note ? 'Ghi chú' : 'Ghi chú (tuỳ chọn)')
+  document.querySelectorAll('.order-note-preview-inline').forEach((preview) => {
+    preview.textContent = note
+    preview.classList.toggle('hidden', !note)
+  })
+}
+
+function getCheckoutNoteInputId(scope) {
+  return scope === 'order' ? 'orderNote' : 'ckNote'
+}
+
+function openCheckoutNoteSheet(scope) {
+  checkoutNoteContext = scope === 'order' ? 'order' : 'ck'
   const modal = document.getElementById('checkoutNoteOverlay')
   const panel = document.getElementById('checkoutNotePanel')
   const draft = document.getElementById('checkoutNoteDraft')
-  if (draft) draft.value = document.getElementById('ckNote')?.value || ''
+  if (draft) draft.value = document.getElementById(getCheckoutNoteInputId(checkoutNoteContext))?.value || ''
   if (!modal || !panel) return
   modal.classList.remove('hidden')
   modal.classList.add('flex')
   lockStorefrontPageScroll('checkoutNoteOverlay')
   setTimeout(() => {
-    panel.classList.remove('translate-y-full')
-    panel.classList.add('translate-y-0')
+    panel.classList.remove('opacity-0', 'scale-95')
+    panel.classList.add('opacity-100', 'scale-100')
     draft?.focus()
   }, 10)
 }
@@ -1132,8 +1404,8 @@ function closeCheckoutNoteSheet() {
   const modal = document.getElementById('checkoutNoteOverlay')
   const panel = document.getElementById('checkoutNotePanel')
   if (!modal || !panel) return
-  panel.classList.remove('translate-y-0')
-  panel.classList.add('translate-y-full')
+  panel.classList.remove('opacity-100', 'scale-100')
+  panel.classList.add('opacity-0', 'scale-95')
   setTimeout(() => {
     modal.classList.add('hidden')
     modal.classList.remove('flex')
@@ -1142,10 +1414,11 @@ function closeCheckoutNoteSheet() {
 }
 
 function saveCheckoutNoteSheet() {
-  const noteEl = document.getElementById('ckNote')
+  const noteEl = document.getElementById(getCheckoutNoteInputId(checkoutNoteContext))
   const draft = document.getElementById('checkoutNoteDraft')
   if (noteEl && draft) noteEl.value = draft.value.trim()
-  updateCheckoutNoteActionLabel()
+  if (checkoutNoteContext === 'order') updateOrderNoteActionLabel()
+  else updateCheckoutNoteActionLabel()
   closeCheckoutNoteSheet()
 }
 
@@ -2019,8 +2292,6 @@ window.normalizeColorOptions = normalizeColorOptions
 window.getColorNames = getColorNames
 function formatPaymentMethod(v) {
   const key = String(v || '').toUpperCase()
-  if (key === 'ZALOPAY') return 'ZaloPay'
-  if (key === 'MOMO') return 'Ví điện tử MoMo'
   if (key === 'BANK_TRANSFER') return 'Chuyển khoản ngân hàng'
   return 'COD - Thanh toán khi giao'
 }
@@ -2331,15 +2602,12 @@ function renderCheckoutSummaryCards(items) {
       + '<img src="' + escapeHtml(item.thumbnail) + '" alt="' + escapeHtml(item.name) + '" class="checkout-order-img h-20 aspect-square object-cover rounded-lg flex-shrink-0" onerror="this.src=&quot;https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&quot;">'
       + '<div class="flex-1 min-w-0">'
       + '<div class="flex items-start gap-2">'
-      + '<p class="font-semibold text-gray-900 text-sm line-clamp-1 mb-0.5 flex-1 min-w-0">' + escapeHtml(item.name) + '</p>'
+      + '<p class="checkout-order-product-name font-semibold text-gray-900 text-sm line-clamp-1 mb-0.5 flex-1 min-w-0">' + escapeHtml(item.name) + '</p>'
       + '<span class="checkout-order-qty">x' + item.qty + '</span>'
       + '</div>'
       + '<p class="text-xs text-gray-400 mb-1">' + escapeHtml(item.sku) + '</p>'
       + '<div class="cart-variant-selector checkout-order-variant"><span>' + escapeHtml(variantLabel) + '</span></div>'
-      + '<div class="flex items-end justify-between gap-2">'
       + '<span class="text-gradient-price font-bold text-sm">' + fmtPrice(item.price) + '</span>'
-      + '<span class="text-right text-xs text-gray-400">= ' + fmtPrice(item.price * item.qty) + '</span>'
-      + '</div>'
       + '</div></div></div></div>'
   }).join('')
 }
@@ -2367,6 +2635,7 @@ async function proceedToCheckout() {
   else ensureCheckoutAddressBookFromCurrentFields()
   renderCheckoutAddressSummary()
   updateCheckoutNoteActionLabel()
+  setCartSubmitStatus('', '')
   ;['ckFieldName','ckFieldPhone','ckFieldAddress','ckFieldPaymentMethod'].forEach(id => clearCheckoutError(id))
   resetCheckoutPaymentMethod('ck')
   ckAppliedVoucher = null
@@ -2403,6 +2672,54 @@ function updateCkTotal() {
     document.getElementById('ckSubtotalRow').classList.add('hidden')
     document.getElementById('ckDiscountRow').classList.add('hidden')
   }
+}
+
+function setCartSubmitStatus(message, type) {
+  const el = document.getElementById('ckSubmitStatus')
+  if (!el) return
+  const msg = String(message || '').trim()
+  if (!msg) {
+    el.classList.add('hidden')
+    el.textContent = ''
+    return
+  }
+  const isError = type === 'error'
+  el.className = (isError
+    ? 'mb-3 rounded-xl px-3 py-2 text-sm font-semibold bg-red-500/10 text-red-600 border border-red-400/30'
+    : 'mb-3 rounded-xl px-3 py-2 text-sm font-semibold bg-green-500/10 text-green-600 border border-green-400/30')
+  el.textContent = msg
+}
+
+function resetCartSubmitButton() {
+  const btn = document.getElementById('submitCartBtn')
+  if (!btn) return
+  btn.disabled = false
+  btn.innerHTML = '<i class="fas fa-credit-card mr-2"></i>Đặt hàng'
+}
+
+function showCartOrderSuccessModal(createdOrders) {
+  const overlay = document.getElementById('cartOrderSuccessOverlay')
+  const msgEl = document.getElementById('cartOrderSuccessMessage')
+  const codesEl = document.getElementById('cartOrderSuccessCodes')
+  if (!overlay || !codesEl) return
+  const orders = Array.isArray(createdOrders) ? createdOrders : []
+  if (msgEl) msgEl.textContent = orders.length > 1
+    ? (orders.length + ' đơn hàng đã được tạo.')
+    : 'Đơn hàng đã được ghi nhận.'
+  codesEl.innerHTML = orders.map((order) => {
+    return '<p class="font-mono text-sm font-bold text-blue-600">' + escapeHtml(order.orderCode || '') + '</p>'
+  }).join('')
+  overlay.classList.remove('hidden')
+  overlay.classList.add('flex')
+  lockStorefrontPageScroll('cartOrderSuccessOverlay')
+}
+
+function closeCartOrderSuccessModal() {
+  const overlay = document.getElementById('cartOrderSuccessOverlay')
+  if (!overlay) return
+  overlay.classList.add('hidden')
+  overlay.classList.remove('flex')
+  unlockStorefrontPageScroll('cartOrderSuccessOverlay')
 }
 async function applyCkVoucher() {
   const code = document.getElementById('ckVoucher').value.trim().toUpperCase()
@@ -2495,31 +2812,52 @@ function closeBlockedCustomerModal() {
 }
 
 async function submitCartOrder() {
-  const payload = validateCheckoutFields('ck', { requirePayment: true })
+  setCartSubmitStatus('', '')
+  let payload = validateCheckoutFields('ck', { requirePayment: true })
   if (!payload) {
+    const selectedAddress = getSelectedCheckoutAddress()
+    if (selectedAddress) {
+      try {
+        await applyCheckoutAddressRecord(selectedAddress)
+        payload = validateCheckoutFields('ck', { requirePayment: true })
+      } catch (_) { }
+    }
+  }
+  if (!payload) {
+    setCartSubmitStatus('Vui lòng kiểm tra lại thông tin giao hàng và phương thức thanh toán.', 'error')
     if (window.matchMedia && window.matchMedia('(max-width: 767px)').matches) {
       openCheckoutAddressEditor()
     }
     return
   }
 
+  const btn = document.getElementById('submitCartBtn')
+  if (btn) {
+    btn.disabled = true
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Đang đặt hàng...'
+  }
+
   // Check if customer is blocked
   const blockCheck = await checkCustomerBlockStatus(payload.phone)
   if (blockCheck.is_blocked) {
+    resetCartSubmitButton()
     showBlockedCustomerModal(blockCheck.reason)
     return
   }
 
   const note = document.getElementById('ckNote').value.trim()
   const checkedItems = cart.filter(i=>i.checked)
-  const paymentMethod = getCheckoutSelectedPaymentMethod('ck')
-  if (paymentMethod === 'BANK_TRANSFER' && checkedItems.length !== 1) {
-    showToast('Chuyển khoản từ giỏ hiện chỉ hỗ trợ 1 mặt hàng mỗi lần. Hãy chọn 1 mặt hàng hoặc dùng COD.', 'error', 5000)
+  if (!checkedItems.length) {
+    setCartSubmitStatus('Không còn mặt hàng nào được chọn để đặt.', 'error')
+    resetCartSubmitButton()
     return
   }
-  const btn = document.getElementById('submitCartBtn')
-  btn.disabled=true
-  btn.innerHTML='<i class="fas fa-spinner fa-spin mr-2"></i>Đang xử lý...'
+  const paymentMethod = getCheckoutSelectedPaymentMethod('ck')
+  if (paymentMethod === 'BANK_TRANSFER' && checkedItems.length !== 1) {
+    setCartSubmitStatus('Chuyển khoản từ giỏ hiện chỉ hỗ trợ 1 mặt hàng mỗi lần. Hãy chọn 1 mặt hàng hoặc dùng COD.', 'error')
+    resetCartSubmitButton()
+    return
+  }
   let payTabRef = null
   if (paymentMethod === 'BANK_TRANSFER') {
     try { payTabRef = window.open('about:blank', '_blank') } catch (_) { payTabRef = null }
@@ -2560,6 +2898,7 @@ async function submitCartOrder() {
         payTabRef
       })
     } else {
+      showCartOrderSuccessModal(createdOrders)
       showToast('Đặt hàng thành công! ' + createdOrders.length + ' đơn hàng đã được tạo', 'success', 5000)
     }
   } catch(e) {
@@ -2570,14 +2909,16 @@ async function submitCartOrder() {
     } else if (errCode === 'ORDER_DAILY_LIMIT_REACHED') {
       showBlockedCustomerModal(e.response?.data?.reason || 'Bạn đã đặt tối đa 2 đơn trong hôm nay. Vui lòng liên hệ shop nếu cần hỗ trợ.')
     } else if (errCode==='INVALID_VOUCHER'||errCode==='VOUCHER_LIMIT') {
-      showToast('Voucher không còn hiệu lực','error')
+      setCartSubmitStatus('Voucher không còn hiệu lực.', 'error')
       ckAppliedVoucher=null; updateCkTotal()
       document.getElementById('ckVoucherBtn').innerHTML='Áp dụng'
       document.getElementById('ckVoucherBtn').className='px-4 py-2.5 bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-sm font-semibold transition whitespace-nowrap'
-    } else { showToast('Đặt hàng thất bại, thử lại sau','error') }
+    } else {
+      const apiMsg = e.response?.data?.reason || e.response?.data?.error || e.message || ''
+      setCartSubmitStatus('Đặt hàng thất bại' + (apiMsg ? ': ' + apiMsg : ', vui lòng thử lại sau.'), 'error')
+    }
   } finally {
-    btn.disabled=false
-    btn.innerHTML='<i class="fas fa-credit-card mr-2"></i>Xác nhận & Đặt hàng'
+    resetCartSubmitButton()
   }
 }
 
@@ -2597,6 +2938,7 @@ const storefrontClosableOverlays = [
   { id: 'detailOverlay', close: () => closeDetail() },
   { id: 'checkoutAddressManagerOverlay', close: () => closeCheckoutAddressManager() },
   { id: 'checkoutNoteOverlay', close: () => closeCheckoutNoteSheet() },
+  { id: 'cartOrderSuccessOverlay', close: () => closeCartOrderSuccessModal() },
   { id: 'cartOverlay', close: () => closeCart() },
   { id: 'userMenuOverlay', close: () => closeUserMenu() },
 ]
@@ -2630,7 +2972,10 @@ document.addEventListener('keydown', handleGlobalEscape)
     orderProvince: 'fieldAddress',
     orderCommune: 'fieldAddress'
   }
-  const clearFn = () => clearFieldError(fieldMap[id])
+  const clearFn = () => {
+    clearFieldError(fieldMap[id])
+    renderOrderAddressSummary()
+  }
   el.addEventListener('input', clearFn)
   el.addEventListener('change', clearFn)
 })
@@ -3838,15 +4183,12 @@ async function showUserOrders() {
     const unpaidGatewayOrders = orders.filter(function (o) {
       const method = String(o.payment_method || '').toUpperCase()
       const unpaid = String(o.payment_status || '').toLowerCase() !== 'paid'
-      return unpaid && (method === 'BANK_TRANSFER' || method === 'ZALOPAY')
+      return unpaid && method === 'BANK_TRANSFER'
     }).slice(0, 6)
     if (unpaidGatewayOrders.length) {
       await Promise.all(unpaidGatewayOrders.map(function (o) {
         const method = String(o.payment_method || '').toUpperCase()
-        const syncEndpoint = method === 'ZALOPAY'
-          ? '/api/orders/' + o.id + '/zalopay-sync'
-          : '/api/orders/' + o.id + '/payos-sync'
-        return axios.post(syncEndpoint).catch(function () { return null })
+        return axios.post('/api/orders/' + o.id + '/payos-sync').catch(function () { return null })
       }))
       const refreshed = await axios.get('/api/user/orders')
       orders = refreshed.data.data || orders
@@ -3864,7 +4206,7 @@ async function showUserOrders() {
         const paymentMethod = String(o.payment_method || '').toUpperCase()
         const orderStatus = String(o.status || '').toLowerCase()
         const canResume = !paymentPaid
-          && (paymentMethod === 'BANK_TRANSFER' || paymentMethod === 'ZALOPAY')
+          && paymentMethod === 'BANK_TRANSFER'
           && orderStatus !== 'cancelled'
           && orderStatus !== 'done'
         const imageSrc = getOrderHistoryImage(o)
@@ -3921,25 +4263,22 @@ function resumeOrderPaymentFromButton(button) {
 
 async function resumeOrderPayment(orderId, orderCode, paymentMethod) {
   const method = String(paymentMethod || '').toUpperCase()
-  const isZaloPay = method === 'ZALOPAY'
-  if (isZaloPay) {
-    const check = await ensureZaloPayConfigReady(true)
-    if (!check.ready) return
+  if (method !== 'BANK_TRANSFER') {
+    showToast('Đơn này không dùng phương thức chuyển khoản', 'error', 3800)
+    return
   }
-  const providerLabel = isZaloPay ? 'ZaloPay' : 'PayOS'
-  const createEndpoint = isZaloPay ? '/api/orders/' + orderId + '/zalopay-link' : '/api/orders/' + orderId + '/payos-link'
-  const syncEndpoint = isZaloPay ? '/api/orders/' + orderId + '/zalopay-sync' : '/api/orders/' + orderId + '/payos-sync'
-  let payTab = isZaloPay ? openOrReuseZaloPayLinkTab() : window.open('about:blank', '_blank')
+  const providerLabel = 'PayOS'
+  const createEndpoint = '/api/orders/' + orderId + '/payos-link'
+  const syncEndpoint = '/api/orders/' + orderId + '/payos-sync'
+  let payTab = window.open('about:blank', '_blank')
   const openCheckoutUrl = function (url) {
     const checkoutUrl = String(url || '').trim()
     if (!checkoutUrl) return false
     if (payTab) {
       try { payTab.location.href = checkoutUrl } catch (_) { payTab = null }
-      if (isZaloPay && payTab) zaloPayLinkTab = payTab
       return true
     }
     payTab = window.open(checkoutUrl, '_blank')
-    if (isZaloPay && payTab) zaloPayLinkTab = payTab
     return !!payTab
   }
   try {
@@ -3952,9 +4291,7 @@ async function resumeOrderPayment(orderId, orderCode, paymentMethod) {
       showToast('Đơn này đã thanh toán thành công', 'success', 3500)
       return
     }
-    const checkoutUrl = isZaloPay
-      ? String(paymentData.orderUrl || '').trim()
-      : String(paymentData.checkoutUrl || '').trim()
+    const checkoutUrl = String(paymentData.checkoutUrl || '').trim()
     if (!checkoutUrl) {
       try { if (payTab && !payTab.closed) payTab.close() } catch (_) { }
       showToast('Không tạo được link thanh toán ' + providerLabel, 'error', 3500)
@@ -3968,18 +4305,10 @@ async function resumeOrderPayment(orderId, orderCode, paymentMethod) {
     showToast('Đang mở lại trang ' + providerLabel + ' để bạn thanh toán tiếp', 'success', 3500)
   } catch (err) {
     const errCode = err.response?.data?.error
-    const fallbackUrl = isZaloPay
-      ? String(err.response?.data?.detail?.order_url || err.response?.data?.detail?.data?.order_url || '').trim()
-      : String(err.response?.data?.detail?.checkoutUrl || err.response?.data?.detail?.data?.checkoutUrl || '').trim()
+    const fallbackUrl = String(err.response?.data?.detail?.checkoutUrl || err.response?.data?.detail?.data?.checkoutUrl || '').trim()
     if (fallbackUrl && openCheckoutUrl(fallbackUrl)) {
       startOrderPaymentPolling(orderCode)
       showToast('Đang mở lại trang ' + providerLabel + ' để bạn thanh toán tiếp', 'success', 3500)
-      return
-    }
-    if (errCode === 'ZALOPAY_CONFIG_MISSING') {
-      const missing = Array.isArray(err.response?.data?.missing) ? err.response.data.missing : []
-      const detail = missing.length ? (': ' + missing.join(', ')) : ''
-      showToast('ZaloPay chua cau hinh day du' + detail, 'error', 5500)
       return
     }
     if (errCode === 'PAYOS_CONFIG_MISSING') {

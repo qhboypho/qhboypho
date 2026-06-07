@@ -53,32 +53,6 @@ function checkoutPaymentOptions(scope: 'order' | 'ck', bankHint: string): string
                 <span class="block text-xs text-gray-500">${bankHint}</span>
               </span>
             </button>
-
-            ${scope === 'order' ? `
-            <div class="payment-method-unavailable w-full flex items-center gap-2 border rounded-xl px-3 py-2.5 transition" aria-disabled="true">
-              <button type="button" data-payment-scope="${scope}" class="payment-method-btn flex-1 flex items-center gap-3 text-left border rounded-lg px-2 py-1.5" tabindex="-1" disabled>
-                <span class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold">ZP</span>
-                <span>
-                  <span class="block text-sm font-semibold text-gray-800">Zalopay</span>
-                  <span class="payment-method-badge block text-xs text-gray-500 mt-0.5">Không khả dụng</span>
-                </span>
-              </button>
-              <button type="button" class="text-sm font-semibold text-blue-600 flex items-center gap-1" tabindex="-1" disabled>
-                Liên kết <i class="fas fa-chevron-right text-xs"></i>
-              </button>
-            </div>
-
-            <div class="payment-method-unavailable w-full flex items-center gap-3 border rounded-xl px-3 py-2.5 transition" aria-disabled="true">
-              <button type="button" data-payment-scope="${scope}" class="payment-method-btn flex-1 flex items-center gap-3 text-left border rounded-lg px-2 py-1.5" tabindex="-1" disabled>
-                <span class="w-8 h-8 rounded-full bg-pink-100 text-pink-600 flex items-center justify-center">
-                  <i class="fas fa-wallet"></i>
-                </span>
-                <span>
-                  <span class="block text-sm font-semibold text-gray-800">Ví điện tử MoMo</span>
-                  <span class="payment-method-badge block text-xs text-gray-500 mt-0.5">Không khả dụng</span>
-                </span>
-              </button>
-            </div>` : ''}
           </div>
         </div>`
 }
@@ -95,7 +69,7 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
       </button>
     </div>
 
-    <div class="px-6 py-4">
+    <div id="orderModalBody" class="order-modal-body px-6 py-4">
       <div id="orderProductPreview" class="order-product-preview flex gap-3 p-3 bg-gray-50 rounded-2xl mb-5">
         <img id="orderProductImg" src="" alt="" class="w-16 h-20 object-cover rounded-xl">
         <div>
@@ -105,72 +79,94 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
       </div>
 
       <div class="space-y-4">
-        <div id="fieldName">
-          <label class="block text-sm font-semibold text-gray-700 mb-1.5 field-title">
-            <i class="fas fa-user text-pink-400 mr-1"></i>Họ và tên *
-          </label>
-          <input type="text" id="orderName" placeholder="Nhập họ và tên"
-            class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
-        </div>
+        <div id="orderMobileAddressSummary" class="checkout-mobile-address-summary order-mobile-address-summary hidden"></div>
 
-        <div id="fieldPhone">
-          <label class="block text-sm font-semibold text-gray-700 mb-1.5 field-title">
-            <i class="fas fa-phone text-pink-400 mr-1"></i>Số điện thoại *
-          </label>
-          <input type="tel" id="orderPhone" placeholder="0987 654 321"
-            class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
-        </div>
-
-        <div id="fieldAddress">
-          <label class="block text-sm font-semibold text-gray-700 mb-1.5 field-title">
-            <i class="fas fa-map-marker-alt text-pink-400 mr-1"></i>Địa chỉ giao hàng *
-          </label>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-            <div id="orderProvinceDropdown" class="relative">
-              <button type="button" id="orderProvinceTrigger" onclick="toggleAddressDropdown('order','province')"
-                class="w-full border rounded-xl px-3.5 py-2.5 text-sm bg-white text-left flex items-center justify-between focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
-                <span id="orderProvinceLabel" class="text-gray-500">Chọn tỉnh/thành</span>
-                <i class="fas fa-chevron-down text-gray-400 text-xs"></i>
+        <div id="orderShippingEditor" class="order-shipping-editor">
+          <div class="order-shipping-editor-panel">
+            <div class="order-shipping-editor-header hidden">
+              <button type="button" onclick="closeOrderAddressEditor()" class="checkout-sheet-back-btn" aria-label="Quay lại">
+                <i class="fas fa-chevron-left"></i>
               </button>
-              <div id="orderProvinceMenu" class="hidden absolute z-[90] mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
-                <div class="p-2 border-b bg-gray-50">
-                  <input type="text" id="orderProvinceSearch" placeholder="Tìm tỉnh/thành..."
-                    oninput="onAddressDropdownSearchInput('order','province')"
-                    class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
-                </div>
-                <div id="orderProvinceOptions" class="max-h-56 overflow-auto"></div>
-              </div>
-              <select id="orderProvince" onchange="onAddressProvinceChange('order')" class="hidden">
-                <option value="">Chọn tỉnh/thành</option>
-              </select>
+              <h3 class="font-display text-base font-bold text-gray-900">Thông tin giao hàng</h3>
+              <span class="w-9"></span>
             </div>
-            <div id="orderCommuneDropdown" class="relative">
-              <button type="button" id="orderCommuneTrigger" onclick="toggleAddressDropdown('order','commune')"
-                class="w-full border rounded-xl px-3.5 py-2.5 text-sm bg-white text-left flex items-center justify-between focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
-                <span id="orderCommuneLabel" class="text-gray-500">Chọn phường/xã</span>
-                <i class="fas fa-chevron-down text-gray-400 text-xs"></i>
-              </button>
-              <div id="orderCommuneMenu" class="hidden absolute z-[90] mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
-                <div class="p-2 border-b bg-gray-50">
-                  <input type="text" id="orderCommuneSearch" placeholder="Tìm phường/xã..."
-                    oninput="onAddressDropdownSearchInput('order','commune')"
-                    class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
+            <div class="order-shipping-editor-body">
+              <div class="space-y-4">
+                <div id="fieldName">
+                  <label class="block text-sm font-semibold text-gray-700 mb-1.5 field-title">
+                    <i class="fas fa-user text-pink-400 mr-1"></i>Họ và tên *
+                  </label>
+                  <input type="text" id="orderName" placeholder="Nhập họ và tên"
+                    class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
                 </div>
-                <div id="orderCommuneOptions" class="max-h-56 overflow-auto"></div>
+
+                <div id="fieldPhone">
+                  <label class="block text-sm font-semibold text-gray-700 mb-1.5 field-title">
+                    <i class="fas fa-phone text-pink-400 mr-1"></i>Số điện thoại *
+                  </label>
+                  <input type="tel" id="orderPhone" placeholder="0987 654 321"
+                    class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
+                </div>
+
+                <div id="fieldAddress">
+                  <label class="block text-sm font-semibold text-gray-700 mb-1.5 field-title">
+                    <i class="fas fa-map-marker-alt text-pink-400 mr-1"></i>Địa chỉ giao hàng *
+                  </label>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                    <div id="orderProvinceDropdown" class="relative">
+                      <button type="button" id="orderProvinceTrigger" onclick="toggleAddressDropdown('order','province')"
+                        class="w-full border rounded-xl px-3.5 py-2.5 text-sm bg-white text-left flex items-center justify-between focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
+                        <span id="orderProvinceLabel" class="text-gray-500">Chọn tỉnh/thành</span>
+                        <i class="fas fa-chevron-down text-gray-400 text-xs"></i>
+                      </button>
+                      <div id="orderProvinceMenu" class="hidden absolute z-[90] mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
+                        <div class="p-2 border-b bg-gray-50">
+                          <input type="text" id="orderProvinceSearch" placeholder="Tìm tỉnh/thành..."
+                            oninput="onAddressDropdownSearchInput('order','province')"
+                            class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
+                        </div>
+                        <div id="orderProvinceOptions" class="max-h-56 overflow-auto"></div>
+                      </div>
+                      <select id="orderProvince" onchange="onAddressProvinceChange('order')" class="hidden">
+                        <option value="">Chọn tỉnh/thành</option>
+                      </select>
+                    </div>
+                    <div id="orderCommuneDropdown" class="relative">
+                      <button type="button" id="orderCommuneTrigger" onclick="toggleAddressDropdown('order','commune')"
+                        class="w-full border rounded-xl px-3.5 py-2.5 text-sm bg-white text-left flex items-center justify-between focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
+                        <span id="orderCommuneLabel" class="text-gray-500">Chọn phường/xã</span>
+                        <i class="fas fa-chevron-down text-gray-400 text-xs"></i>
+                      </button>
+                      <div id="orderCommuneMenu" class="hidden absolute z-[90] mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
+                        <div class="p-2 border-b bg-gray-50">
+                          <input type="text" id="orderCommuneSearch" placeholder="Tìm phường/xã..."
+                            oninput="onAddressDropdownSearchInput('order','commune')"
+                            class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
+                        </div>
+                        <div id="orderCommuneOptions" class="max-h-56 overflow-auto"></div>
+                      </div>
+                      <select id="orderCommune" onchange="onAddressCommuneChange('order')" class="hidden">
+                        <option value="">Chọn phường/xã</option>
+                      </select>
+                    </div>
+                  </div>
+                  <input type="text" id="orderAddressDetail"
+                    placeholder="Số nhà, tên đường..."
+                    class="mt-2.5 w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200"
+                    oninput="clearFieldError('fieldAddress'); syncAddressFullText('order')">
+                  <input type="text" id="orderAddress"
+                    readonly
+                    placeholder="Địa chỉ đầy đủ sẽ tự động ghép tại đây"
+                    class="mt-2.5 w-full border rounded-xl px-4 py-2.5 text-sm bg-gray-50 text-gray-600 focus:outline-none">
+                </div>
               </div>
-              <select id="orderCommune" onchange="onAddressCommuneChange('order')" class="hidden">
-                <option value="">Chọn phường/xã</option>
-              </select>
+            </div>
+            <div class="order-shipping-editor-footer hidden">
+              <button type="button" onclick="saveOrderAddressFromEditor()" class="btn-primary w-full text-white py-3.5 rounded-xl font-bold text-sm">
+                Lưu địa chỉ
+              </button>
             </div>
           </div>
-          <input type="text" id="orderAddressDetail"
-            placeholder="Số nhà, tên đường..."
-            class="mt-2.5 w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200"
-            oninput="clearFieldError('fieldAddress'); syncAddressFullText('order')">
-          <input type="text" id="orderAddress"
-            readonly
-            placeholder="Địa chỉ đầy đủ sẽ tự động ghép tại đây"
-            class="mt-2.5 w-full border rounded-xl px-4 py-2.5 text-sm bg-gray-50 text-gray-600 focus:outline-none">
         </div>
 
         <div id="fieldColor">
@@ -202,7 +198,7 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
           <label class="block text-sm font-semibold text-gray-700 mb-1.5 field-title">
             <i class="fas fa-tag text-pink-400 mr-1"></i>Mã giảm giá (tuỳ chọn)
           </label>
-          <div class="flex gap-2">
+          <div class="order-voucher-row flex gap-2">
             <input type="text" id="orderVoucher" placeholder="Nhập mã voucher..."
               class="flex-1 border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200 uppercase tracking-wider"
               oninput="this.value=this.value.toUpperCase()">
@@ -214,30 +210,16 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
           <div id="voucherStatus" class="mt-2 hidden"></div>
         </div>
 
-        <div>
-          <label class="block text-sm font-semibold text-gray-700 mb-1.5">
-            <i class="fas fa-sticky-note text-pink-400 mr-1"></i>Ghi chú (tuỳ chọn)
-          </label>
-          <input type="text" id="orderNote" placeholder="Ghi chú cho đơn hàng..."
-            class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
+        <div id="orderNoteField">
+          <input type="hidden" id="orderNote">
+          <button type="button" onclick="openCheckoutNoteSheet('order')" class="checkout-note-field-row">
+            <span><i class="fas fa-sticky-note text-pink-400 mr-1"></i>Ghi chú (tuỳ chọn)</span>
+            <i class="fas fa-chevron-right"></i>
+          </button>
+          <p id="orderNotePreview" class="checkout-order-note-preview order-note-preview-inline hidden"></p>
         </div>
 
         ${checkoutPaymentOptions('order', 'Chuyển khoản trực tiếp')}
-
-        <div class="order-total-card bg-gradient-to-r from-pink-50 to-red-50 rounded-2xl p-4 space-y-1.5">
-          <div id="subtotalRow" class="flex justify-between items-center hidden">
-            <span class="text-sm text-gray-500">Tạm tính:</span>
-            <span id="orderSubtotal" class="text-sm font-semibold text-gray-700">0đ</span>
-          </div>
-          <div id="discountRow" class="flex justify-between items-center hidden">
-            <span class="text-sm text-green-600 font-medium"><i class="fas fa-tag mr-1"></i>Giảm giá:</span>
-            <span id="orderDiscount" class="text-sm font-bold text-green-600">-0đ</span>
-          </div>
-          <div class="flex justify-between items-center">
-            <span id="orderTotalLabel" class="font-semibold text-gray-700">Tổng (1 mặt hàng):</span>
-            <span id="orderTotal" class="text-2xl font-bold text-gradient-price">0đ</span>
-          </div>
-        </div>
 
         <div class="order-risk-note">
           <div class="min-w-0 w-full">
@@ -255,15 +237,31 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
 
       </div>
     </div>
-    <div id="orderActionBarContainer" class="sticky bottom-0 bg-white rounded-b-3xl border-t px-6 py-4 w-full flex gap-3 detail-action-bar" style="z-index: 10; flex-shrink: 0;">
-      <button onclick="addCurrentToCart()" id="addToCartBtn"
-        class="add-to-cart-btn order-cart-btn flex-1 flex items-center justify-center gap-2 text-white px-4 py-3.5 rounded-xl font-bold text-base transition">
-        <i class="fas fa-cart-plus"></i><span>Thêm vào giỏ</span>
-      </button>
-      <button onclick="submitOrder()" id="submitOrderBtn"
-        class="btn-primary order-submit-btn flex-1 flex items-center justify-center gap-2 text-white px-4 py-3.5 rounded-xl font-bold text-base">
-        <i class="fas fa-shopping-cart"></i><span>Đặt ngay</span>
-      </button>
+    <div id="orderActionBarContainer" class="sticky bottom-0 bg-white rounded-b-3xl border-t px-6 py-4 w-full detail-action-bar" style="z-index: 10; flex-shrink: 0;">
+      <div class="order-total-card space-y-1.5">
+        <div id="subtotalRow" class="flex justify-between items-center hidden">
+          <span class="text-sm text-gray-500">Tạm tính:</span>
+          <span id="orderSubtotal" class="text-sm font-semibold text-gray-700">0đ</span>
+        </div>
+        <div id="discountRow" class="flex justify-between items-center hidden">
+          <span class="text-sm text-green-600 font-medium"><i class="fas fa-tag mr-1"></i>Giảm giá:</span>
+          <span id="orderDiscount" class="text-sm font-bold text-green-600">-0đ</span>
+        </div>
+        <div class="flex justify-between items-center gap-3">
+          <span id="orderTotalLabel" class="min-w-0 text-sm font-semibold text-gray-600">Tổng cộng (1 mặt hàng):</span>
+          <span id="orderTotal" class="flex-shrink-0 text-2xl font-bold text-gradient-price">0đ</span>
+        </div>
+      </div>
+      <div class="order-action-buttons">
+        <button onclick="addCurrentToCart()" id="addToCartBtn"
+          class="add-to-cart-btn order-cart-btn flex-1 flex items-center justify-center gap-2 text-white px-4 py-3.5 rounded-xl font-bold text-base transition">
+          <i class="fas fa-cart-plus"></i><span>Thêm vào giỏ</span>
+        </button>
+        <button onclick="submitOrder()" id="submitOrderBtn"
+          class="btn-primary order-submit-btn flex-1 flex items-center justify-center gap-2 text-white px-4 py-3.5 rounded-xl font-bold text-base">
+          <i class="fas fa-shopping-cart"></i><span>Đặt ngay</span>
+        </button>
+      </div>
     </div>
   </div>
 </div>
@@ -335,6 +333,20 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
     <p class="text-green-600 font-bold text-lg">Đã thanh toán thành công</p>
     <p class="text-sm text-gray-600 mt-1">Đơn hàng đã được ghi nhận.</p>
     <p class="text-xs font-mono text-blue-600 mt-2" id="orderPaidNoticeCode"></p>
+  </div>
+</div>
+
+<div id="cartOrderSuccessOverlay" class="fixed inset-0 z-[10030] hidden items-center justify-center bg-black/40 p-4">
+  <div class="popup-card bg-white rounded-3xl shadow-2xl w-full max-w-sm p-5 text-center">
+    <div class="w-14 h-14 mx-auto mb-3 rounded-full bg-green-100 text-green-600 flex items-center justify-center">
+      <i class="fas fa-check text-2xl"></i>
+    </div>
+    <p class="text-green-600 font-bold text-lg">Đặt hàng thành công</p>
+    <p id="cartOrderSuccessMessage" class="text-sm text-gray-600 mt-1">Đơn hàng đã được ghi nhận.</p>
+    <div id="cartOrderSuccessCodes" class="mt-3 space-y-1"></div>
+    <button type="button" onclick="closeCartOrderSuccessModal()" class="mt-5 btn-primary w-full text-white py-3 rounded-xl font-bold text-sm">
+      Đóng
+    </button>
   </div>
 </div>
 
@@ -421,10 +433,6 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
       <div id="checkoutSummary" class="flex-shrink-0 bg-gray-50 border-b px-5 py-3 overflow-x-auto">
         <div id="checkoutOrderHeader" class="checkout-order-header hidden">
           <strong>Đơn hàng</strong>
-          <button type="button" id="ckMobileNoteAction" onclick="openCheckoutNoteSheet()" class="checkout-mobile-note-action hidden">
-            <span id="ckMobileNoteLabel">Thêm ghi chú</span>
-            <i class="fas fa-chevron-right"></i>
-          </button>
         </div>
         <div id="checkoutSummaryItems" class="flex gap-3 min-w-max"></div>
       </div>
@@ -540,14 +548,29 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
           </div>
 
           <div id="ckNoteField">
-            <label class="block text-sm font-semibold text-gray-700 mb-1.5">
-              <i class="fas fa-sticky-note text-pink-400 mr-1"></i>Ghi chú (tuỳ chọn)
-            </label>
-            <input type="text" id="ckNote" placeholder="Ghi chú cho đơn hàng..."
-              class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
+            <input type="hidden" id="ckNote">
+            <button type="button" onclick="openCheckoutNoteSheet('ck')" class="checkout-note-field-row">
+              <span><i class="fas fa-sticky-note text-pink-400 mr-1"></i>Ghi chú (tuỳ chọn)</span>
+              <i class="fas fa-chevron-right"></i>
+            </button>
+            <p id="ckNotePreview" class="checkout-order-note-preview checkout-note-preview-inline hidden"></p>
           </div>
 
           ${checkoutPaymentOptions('ck', 'Thanh toán online khi chọn 1 mặt hàng')}
+
+          <div class="order-risk-note">
+            <div class="min-w-0 w-full">
+              <div class="order-risk-note-title">
+                <span class="order-risk-note-icon" aria-hidden="true">
+                  <i class="fas fa-triangle-exclamation"></i>
+                </span>
+                <strong>Lưu ý:</strong>
+              </div>
+              <div class="order-risk-note-text">
+                ${quickOrderRiskNoteText}
+              </div>
+            </div>
+          </div>
       </div>
 
       <div class="cart-checkout-footer flex-shrink-0 border-t px-5 py-4">
@@ -565,16 +588,17 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
             <span id="ckTotal" class="flex-shrink-0 text-2xl font-bold text-gradient-price">0đ</span>
           </div>
         </div>
+        <div id="ckSubmitStatus" class="hidden mb-3 rounded-xl px-3 py-2 text-sm font-semibold"></div>
         <button onclick="submitCartOrder()" id="submitCartBtn"
           class="btn-primary w-full text-white py-3.5 rounded-xl font-bold text-base">
-          <i class="fas fa-credit-card mr-2"></i>Xác nhận & Đặt hàng
+          <i class="fas fa-credit-card mr-2"></i>Đặt hàng
         </button>
       </div>
     </div>
   </div>
 </div>
 
-<div id="checkoutAddressManagerOverlay" class="fixed inset-0 overlay hidden flex items-end justify-center sm:items-center p-0 sm:p-4 z-[10020]" onclick="if(event.target===this) closeCheckoutAddressManager()">
+<div id="checkoutAddressManagerOverlay" class="fixed inset-0 overlay hidden flex items-stretch justify-center sm:items-center p-0 sm:p-4 z-[10020]" onclick="if(event.target===this) closeCheckoutAddressManager()">
   <div id="checkoutAddressManagerPanel" class="checkout-address-manager-panel bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-md overflow-hidden transform transition-transform translate-y-full sm:translate-y-0 duration-300" onclick="event.stopPropagation()">
     <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
       <button type="button" onclick="closeCheckoutAddressManager()" class="checkout-sheet-back-btn" aria-label="Quay lại">
@@ -583,7 +607,7 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
       <h3 class="font-display text-lg font-bold text-gray-900">Địa chỉ của bạn</h3>
       <span class="w-9"></span>
     </div>
-    <button type="button" onclick="openCheckoutAddressEditor()" class="checkout-address-add-row">
+    <button type="button" onclick="openCheckoutAddressEditorFromManager()" class="checkout-address-add-row">
       <span class="checkout-address-add-icon"><i class="fas fa-plus"></i></span>
       <span>Thêm địa chỉ</span>
       <i class="fas fa-chevron-right ml-auto"></i>
@@ -592,8 +616,8 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
   </div>
 </div>
 
-<div id="checkoutNoteOverlay" class="fixed inset-0 overlay hidden flex items-end justify-center sm:items-center p-0 sm:p-4 z-[10020]" onclick="if(event.target===this) closeCheckoutNoteSheet()">
-  <div id="checkoutNotePanel" class="checkout-note-panel bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-md overflow-hidden transform transition-transform translate-y-full sm:translate-y-0 duration-300" onclick="event.stopPropagation()">
+<div id="checkoutNoteOverlay" class="fixed inset-0 overlay hidden flex items-center justify-center p-4 z-[10020]" onclick="if(event.target===this) closeCheckoutNoteSheet()">
+  <div id="checkoutNotePanel" class="checkout-note-panel bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden opacity-0 scale-95 transform transition duration-200" onclick="event.stopPropagation()">
     <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
       <h3 class="font-display text-lg font-bold text-gray-900">Ghi chú đơn hàng</h3>
       <button type="button" onclick="closeCheckoutNoteSheet()" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition">
@@ -713,7 +737,7 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
 </div>
 
 <!-- Blocked Customer Modal -->
-<div id="blockedCustomerModal" class="fixed inset-0 overlay hidden flex items-center justify-center p-4" style="z-index:1002;" onclick="if(event.target===this) closeBlockedCustomerModal()">
+<div id="blockedCustomerModal" class="fixed inset-0 overlay hidden flex items-center justify-center p-4" style="z-index:10040;" onclick="if(event.target===this) closeBlockedCustomerModal()">
   <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden" onclick="event.stopPropagation()">
     <div class="bg-gradient-to-r from-red-500 to-red-600 px-6 py-5 text-white">
       <div class="flex items-center gap-3">
