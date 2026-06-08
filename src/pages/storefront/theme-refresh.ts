@@ -140,18 +140,43 @@ export function storefrontThemeRefreshStyles(): string {
     pointer-events: none;
   }
   .mobile-bottom-nav-link {
-    color: #64748b;
+    color: #334155;
   }
   .mobile-bottom-nav-link:hover {
-    color: #db2777;
+    color: #7c3aed;
   }
   .mobile-bottom-nav-link i,
   .mobile-bottom-nav-link span {
     color: inherit;
-    transition: color 0.2s ease, opacity 0.2s ease;
+    transition: color 0.2s ease, opacity 0.2s ease, filter 0.2s ease;
   }
   .mobile-bottom-nav-link.is-active {
-    color: #db2777;
+    color: #8b5cf6;
+  }
+  .mobile-bottom-nav-link.is-active i {
+    background: linear-gradient(135deg, #337cff, #8d55ff 45%, #ec4fbe);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 3px 8px rgba(236,79,190,0.22));
+  }
+  .mobile-bottom-nav-link.is-active > span {
+    color: #8b5cf6;
+    background: none !important;
+    -webkit-text-fill-color: currentColor;
+    font-weight: 500;
+    filter: none;
+  }
+  #cartBadge,
+  #cartBadgeMobile,
+  #cartBadgeBottom,
+  #cartBadgeDetail {
+    background: #ef123f !important;
+    color: #fff !important;
+    -webkit-text-fill-color: #fff !important;
+    background-clip: border-box !important;
+    -webkit-background-clip: border-box !important;
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.9), 0 4px 10px rgba(239,18,63,0.32) !important;
   }
   body[data-storefront-theme='dark'] .mobile-bottom-nav {
     background: rgba(2,12,30,0.92) !important;
@@ -161,13 +186,27 @@ export function storefrontThemeRefreshStyles(): string {
     backdrop-filter: blur(18px) saturate(1.2);
   }
   body[data-storefront-theme='dark'] .mobile-bottom-nav-link {
-    color: #94a3b8 !important;
+    color: #cbd5e1 !important;
   }
   body[data-storefront-theme='dark'] .mobile-bottom-nav-link.is-active {
     color: #f472b6 !important;
   }
+  body[data-storefront-theme='dark'] .mobile-bottom-nav-link.is-active i {
+    background: linear-gradient(135deg, #337cff, #8d55ff 45%, #ec4fbe);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 3px 9px rgba(236,79,190,0.28));
+  }
+  body[data-storefront-theme='dark'] .mobile-bottom-nav-link.is-active > span {
+    color: #f472b6 !important;
+    background: none !important;
+    -webkit-text-fill-color: currentColor;
+    font-weight: 500;
+    filter: none;
+  }
   body[data-storefront-theme='dark'] .mobile-bottom-nav-link:hover {
-    color: #e2e8f0 !important;
+    color: #ffffff !important;
   }
   @media (max-width: 767px) {
     .user-menu-panel {
@@ -2325,6 +2364,34 @@ export function storefrontThemeRefreshStyles(): string {
     background: none !important;
     border: 0 !important;
     color: #ff5ca8 !important;
+  }
+  body[data-storefront-theme='dark'] #favoriteAuthModal .popup-card {
+    background: linear-gradient(180deg, rgba(9,24,48,0.98), rgba(5,15,31,0.98)) !important;
+    color: #eaf5ff !important;
+    border: 1px solid rgba(80,160,220,0.24) !important;
+    box-shadow: 0 28px 80px rgba(0,0,0,0.46), 0 0 0 1px rgba(255,255,255,0.04) inset !important;
+  }
+  body[data-storefront-theme='dark'] #favoriteAuthModal .border-b {
+    border-color: rgba(80,160,220,0.22) !important;
+  }
+  body[data-storefront-theme='dark'] #favoriteAuthModal h3,
+  body[data-storefront-theme='dark'] #favoriteAuthModal p {
+    color: #f8fbff !important;
+  }
+  body[data-storefront-theme='dark'] #favoriteAuthModal .rounded-2xl {
+    background: rgba(236,72,153,0.10) !important;
+    border-color: rgba(236,72,153,0.24) !important;
+  }
+  body[data-storefront-theme='dark'] #favoriteAuthModal button[onclick="closeFavoriteAuthModal()"] {
+    background: rgba(148,163,184,0.12) !important;
+    border-color: rgba(148,163,184,0.18) !important;
+    color: #dbeafe !important;
+  }
+  body[data-storefront-theme='dark'] #favoriteAuthModal button[onclick="closeFavoriteAuthModal()"]:hover {
+    background: rgba(148,163,184,0.18) !important;
+  }
+  body[data-storefront-theme='dark'] #favoriteAuthModal button[onclick="closeFavoriteAuthModal()"] i {
+    color: #dbeafe !important;
   }
   body[data-storefront-theme='dark'] .hero-carousel-desc,
   body[data-storefront-theme='dark'] .hero-carousel-link,

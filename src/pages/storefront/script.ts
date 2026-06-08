@@ -2003,6 +2003,25 @@ function setMobileBottomNavHidden(hidden) {
   nav.classList.toggle('is-hidden', mobileBottomNavHidden)
 }
 
+function setMobileBottomNavActive(target) {
+  const nav = document.getElementById('mobileBottomNav')
+  const item = target?.closest?.('.mobile-bottom-nav-link')
+  if (!nav || !item) return
+  nav.querySelectorAll('.mobile-bottom-nav-link').forEach((link) => {
+    link.classList.toggle('is-active', link === item)
+  })
+}
+
+function initMobileBottomNavActiveState() {
+  const nav = document.getElementById('mobileBottomNav')
+  if (!nav || nav.dataset.activeBound === '1') return
+  nav.dataset.activeBound = '1'
+  nav.querySelectorAll('.mobile-bottom-nav-link').forEach((item) => {
+    item.addEventListener('click', () => setMobileBottomNavActive(item))
+    item.addEventListener('touchstart', () => setMobileBottomNavActive(item), { passive: true })
+  })
+}
+
 function revealMobileBottomNavForCartFeedback() {
   if (window.innerWidth >= 768) return
   setMobileBottomNavHidden(false)
@@ -3621,6 +3640,7 @@ window.addEventListener('scroll', () => {
 initStorefrontMarquee()
 applyStorefrontTheme(loadStorefrontThemePreference())
 initMobileBottomNavBehavior()
+initMobileBottomNavActiveState()
 initHeroTypedText()
 bindAddressSearchableDropdowns()
 loadNotificationSettings()
