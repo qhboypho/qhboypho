@@ -2007,6 +2007,11 @@ function setMobileBottomNavActive(target) {
   const nav = document.getElementById('mobileBottomNav')
   const item = target?.closest?.('.mobile-bottom-nav-link')
   if (!nav || !item) return
+  const isAccountNavItem = item.getAttribute('onclick')?.includes('toggleUserMenu')
+  const userMenuOverlay = document.getElementById('userMenuOverlay')
+  if (!isAccountNavItem && userMenuOverlay && !userMenuOverlay.classList.contains('hidden') && typeof closeUserMenu === 'function') {
+    closeUserMenu()
+  }
   nav.querySelectorAll('.mobile-bottom-nav-link').forEach((link) => {
     link.classList.toggle('is-active', link === item)
   })
