@@ -74,10 +74,16 @@ export function adminModalsSection(): string {
           </select>
         </div>
         <div>
+          <label class="block text-sm font-semibold mb-1.5 text-gray-700">Loại sản phẩm</label>
+          <select id="pProductType" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
+            <option value="">Chưa phân loại</option>
+          </select>
+        </div>
+        <div>
           <label class="block text-sm font-semibold mb-1.5 text-gray-700">Thương hiệu</label>
           <input type="text" id="pBrand" placeholder="VD: QH Clothes" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
         </div>
-        <div class="md:col-span-2">
+        <div>
           <label class="block text-sm font-semibold mb-1.5 text-gray-700">Chất liệu</label>
           <input type="text" id="pMaterial" placeholder="VD: 100% Cotton Combed" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
         </div>

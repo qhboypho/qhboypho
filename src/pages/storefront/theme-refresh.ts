@@ -4265,6 +4265,34 @@ export function storefrontThemeRefreshStyles(): string {
       line-height: 1.14 !important;
     }
   }
+  @media (min-width: 768px) {
+    #detailOverlay .popup-card {
+      width: 100% !important;
+      max-width: 56rem !important;
+    }
+    #detailContent {
+      padding: 1rem 1.5rem !important;
+    }
+    #detailGalleryViewport {
+      height: 20rem !important;
+      aspect-ratio: auto !important;
+      border-radius: 1rem;
+    }
+    #detailGalleryThumbs {
+      display: grid !important;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0.5rem;
+      overflow: visible;
+      padding: 0;
+    }
+    #detailGalleryThumbs .detail-gallery-thumb {
+      width: 100% !important;
+      flex-basis: auto !important;
+      height: 4rem !important;
+      aspect-ratio: auto !important;
+      border-radius: 0.5rem;
+    }
+  }
   .order-risk-note {
     display: block !important;
   }

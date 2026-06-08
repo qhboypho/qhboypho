@@ -1,6 +1,7 @@
 export function adminInlineScript(): string {
   return `// STATE
 let adminProducts = []
+let adminProductTypes = []
 let adminOrders = []
 let adminReviews = []
 let adminReviewFormImages = []
@@ -25,6 +26,9 @@ let dashboardFilterMode = 'month'
 let dashboardFilterInitialized = false
 let settingsSubmenuOpen = false
 let settingsActiveSubPage = ''
+let productSubmenuOpen = false
+let productActiveSubPage = ''
+let productTypesEditorOpen = true
 let marketingSubmenuOpen = false
 let marketingActiveSubPage = ''
 let desktopSidebarCollapsed = false
@@ -728,7 +732,7 @@ function getDashboardStatsParams() {
 function showPage(pageName) {
   pageName = String(pageName || 'dashboard')
   ensureSettingsImagesNavItem()
-  const adminPages = ['dashboard','products','orders','returns','customers','reviews','vouchers','featured','settings','settings-social','settings-payment','settings-text-ui','settings-images','settings-notifications','settings-warehouse','flashsale']
+  const adminPages = ['dashboard','products','product-types','orders','returns','customers','reviews','vouchers','featured','settings','settings-social','settings-payment','settings-text-ui','settings-images','settings-notifications','settings-warehouse','flashsale']
   adminPages.forEach(p => {
     const section = document.getElementById('page-'+p)
     if (section) section.classList.toggle('hidden', p !== pageName)
@@ -753,6 +757,15 @@ function showPage(pageName) {
     setSettingsSubmenuOpen(false)
     if (pageName !== 'settings-social' && pageName !== 'settings-payment' && pageName !== 'settings-text-ui' && pageName !== 'settings-images' && pageName !== 'settings-notifications' && pageName !== 'settings-warehouse') settingsActiveSubPage = ''
   }
+  if (pageName === 'products' || pageName === 'product-types') {
+    const productBtn = document.getElementById('productMenuBtn')
+    if (productBtn) productBtn.classList.add('active')
+    setProductSubmenuOpen(true)
+    productActiveSubPage = pageName
+  } else {
+    setProductSubmenuOpen(false)
+    if (pageName !== 'products' && pageName !== 'product-types') productActiveSubPage = ''
+  }
   if (pageName === 'flashsale') {
     const marketingBtn = document.getElementById('marketingMenuBtn')
     if (marketingBtn) marketingBtn.classList.add('active')
@@ -766,15 +779,19 @@ function showPage(pageName) {
   if (settingsActiveSubPage) {
     document.querySelectorAll('.nav-sub-item[data-sub-page="' + settingsActiveSubPage + '"]').forEach(b => b.classList.add('active'))
   }
+  if (productActiveSubPage) {
+    document.querySelectorAll('.nav-sub-item[data-sub-page="' + productActiveSubPage + '"]').forEach(b => b.classList.add('active'))
+  }
   if (marketingActiveSubPage) {
     document.querySelectorAll('.nav-sub-item[data-sub-page="' + marketingActiveSubPage + '"]').forEach(b => b.classList.add('active'))
   }
-  const titles = {dashboard:'Dashboard', products:'Quản lý Sản phẩm', orders:'Quản lý Đơn hàng', returns:'Quản lý hoàn trả', customers:'Quản lý Khách hàng', reviews:'Quản lý Đánh giá', vouchers:'Quản lý Voucher', featured:'Sản phẩm Nổi Bật', settings:'Setting', 'settings-social':'Cấu hình MXH', 'settings-payment':'Thanh toán', 'settings-text-ui':'Text UI', 'settings-images':'Cài đặt ảnh', 'settings-notifications':'Cài đặt thông báo', 'settings-warehouse':'Cài đặt kho hàng', flashsale:'Quản lý Flashsale'}
+  const titles = {dashboard:'Dashboard', products:'Quản lý Sản phẩm', 'product-types':'Loại sản phẩm', orders:'Quản lý Đơn hàng', returns:'Quản lý hoàn trả', customers:'Quản lý Khách hàng', reviews:'Quản lý Đánh giá', vouchers:'Quản lý Voucher', featured:'Sản phẩm Nổi Bật', settings:'Setting', 'settings-social':'Cấu hình MXH', 'settings-payment':'Thanh toán', 'settings-text-ui':'Text UI', 'settings-images':'Cài đặt ảnh', 'settings-notifications':'Cài đặt thông báo', 'settings-warehouse':'Cài đặt kho hàng', flashsale:'Quản lý Flashsale'}
   document.body.dataset.adminPage = pageName
   document.getElementById('pageTitle').textContent = titles[pageName] || pageName
 
   if (pageName === 'dashboard') loadDashboard()
   else if (pageName === 'products') loadAdminProducts()
+  else if (pageName === 'product-types') loadAdminProductTypes()
   else if (pageName === 'orders') loadAdminOrders()
   else if (pageName === 'returns') loadReturns()
   else if (pageName === 'customers') loadCustomers()
@@ -917,6 +934,38 @@ function toggleDesktopSidebar() {
   const isDesktop = window.matchMedia && window.matchMedia('(min-width: 768px)').matches
   if (!isDesktop) return
   setDesktopSidebarCollapsed(!desktopSidebarCollapsed)
+}
+
+function setProductSubmenuOpen(open) {
+  productSubmenuOpen = !!open
+  const submenu = document.getElementById('productSubmenu')
+  const chevron = document.getElementById('productMenuChevron')
+  if (submenu) submenu.classList.toggle('hidden', !productSubmenuOpen)
+  if (chevron) chevron.classList.toggle('rotate-180', productSubmenuOpen)
+}
+
+function toggleProductMenu() {
+  setProductSubmenuOpen(!productSubmenuOpen)
+}
+
+function openProductsAdmin() {
+  productActiveSubPage = 'products'
+  settingsActiveSubPage = ''
+  marketingActiveSubPage = ''
+  setProductSubmenuOpen(true)
+  setSettingsSubmenuOpen(false)
+  setMarketingSubmenuOpen(false)
+  showPage('products')
+}
+
+function openProductTypesAdmin() {
+  productActiveSubPage = 'product-types'
+  settingsActiveSubPage = ''
+  marketingActiveSubPage = ''
+  setProductSubmenuOpen(true)
+  setSettingsSubmenuOpen(false)
+  setMarketingSubmenuOpen(false)
+  showPage('product-types')
 }
 
 function setSettingsSubmenuOpen(open) {
@@ -1545,11 +1594,173 @@ function getProductColorOptions(product) {
   return normalizeColorOptions(product.colors || [])
 }
 
+function normalizeAdminProductTypeSlug(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\\u0300-\\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 48)
+}
+
+function getProductTypeLabel(slug) {
+  const key = String(slug || '').trim()
+  const found = adminProductTypes.find((item) => item.slug === key)
+  return found ? found.name : key
+}
+
+function inferAdminProductType(product) {
+  const explicit = normalizeAdminProductTypeSlug(product?.product_type || product?.product_type_slug)
+  if (explicit) return explicit
+  const text = String((product?.name || '') + ' ' + (product?.description || '')).toLowerCase()
+  if (text.includes('áo phông') || text.includes('áo thun') || text.includes('t-shirt') || text.includes('tshirt')) return 'tshirt'
+  if (text.includes('quần jean') || text.includes('quần bò') || text.includes('jeans')) return 'jeans'
+  if (text.includes('áo khoác') || text.includes('jacket')) return 'jacket'
+  if (text.includes('hoodie') || text.includes('sweater') || text.includes('nỉ')) return 'hoodie'
+  if (text.includes('polo')) return 'polo'
+  if (text.includes('váy') || text.includes('đầm')) return 'dress'
+  if (text.includes('bộ') || text.includes('set')) return 'set'
+  if (text.includes('quần')) return 'pants'
+  return ''
+}
+
+function populateProductTypeControls() {
+  const activeTypes = adminProductTypes.filter((item) => item.active !== false)
+  const allTypes = adminProductTypes
+  const productTypeSelect = document.getElementById('pProductType')
+  if (productTypeSelect) {
+    const selected = productTypeSelect.value
+    productTypeSelect.innerHTML = '<option value="">Chưa phân loại</option>' + allTypes.map((item) => (
+      '<option value="' + escapeDashboardHtml(item.slug) + '">' + escapeDashboardHtml(item.name) + (item.active === false ? ' (đang ẩn)' : '') + '</option>'
+    )).join('')
+    if (selected) productTypeSelect.value = selected
+  }
+  const productTypeFilter = document.getElementById('productTypeFilter')
+  if (productTypeFilter) {
+    const selected = productTypeFilter.value
+    productTypeFilter.innerHTML = '<option value="">Tất cả loại</option>' + activeTypes.map((item) => (
+      '<option value="' + escapeDashboardHtml(item.slug) + '">' + escapeDashboardHtml(item.name) + '</option>'
+    )).join('')
+    if (selected) productTypeFilter.value = selected
+  }
+}
+
+function syncProductTypesEditorCollapse() {
+  const shell = document.getElementById('productTypesEditorShell')
+  const icon = document.getElementById('productTypesEditorChevron')
+  if (shell) shell.classList.toggle('hidden', !productTypesEditorOpen)
+  if (icon) icon.classList.toggle('rotate-180', !productTypesEditorOpen)
+}
+
+function toggleProductTypesEditor() {
+  productTypesEditorOpen = !productTypesEditorOpen
+  syncProductTypesEditorCollapse()
+}
+
+function renderAdminProductTypesEditor() {
+  const wrap = document.getElementById('adminProductTypesEditor')
+  const count = document.getElementById('adminProductTypesCount')
+  if (count) count.textContent = String(adminProductTypes.filter((item) => item && item.active !== false).length) + ' loại'
+  syncProductTypesEditorCollapse()
+  if (!wrap) return
+  if (!adminProductTypes.length) {
+    wrap.innerHTML = '<div class="rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-4 text-sm text-gray-400">Chưa có loại sản phẩm</div>'
+    return
+  }
+  wrap.innerHTML = adminProductTypes.map((item, index) => {
+    return '<div class="grid gap-2 rounded-2xl border border-gray-100 bg-gray-50 p-3 sm:grid-cols-[minmax(0,1fr)_minmax(120px,160px)_auto_auto] sm:items-center">' +
+      '<input type="text" value="' + escapeDashboardHtml(item.name) + '" oninput="updateAdminProductTypeName(' + index + ', this.value)" placeholder="Tên loại" class="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-pink-300">' +
+      '<input type="text" value="' + escapeDashboardHtml(item.slug) + '" oninput="updateAdminProductTypeSlug(' + index + ', this.value)" placeholder="slug" class="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-pink-300">' +
+      '<label class="inline-flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-semibold text-gray-600 ring-1 ring-gray-100"><input type="checkbox" class="accent-pink-500" ' + (item.active !== false ? 'checked' : '') + ' onchange="toggleAdminProductTypeActive(' + index + ', this.checked)">Hiện</label>' +
+      '<button type="button" onclick="removeAdminProductTypeRow(' + index + ')" class="rounded-xl border border-red-100 bg-white px-3 py-2 text-sm font-semibold text-red-500 hover:bg-red-50"><i class="fas fa-trash"></i></button>' +
+    '</div>'
+  }).join('')
+}
+
+async function loadAdminProductTypes() {
+  try {
+    const res = await axios.get('/api/admin/product-types')
+    adminProductTypes = Array.isArray(res.data?.data) ? res.data.data : []
+  } catch (e) {
+    adminProductTypes = []
+    showAdminToast(e?.response?.data?.error || 'Lỗi tải loại sản phẩm', 'error')
+  }
+  renderAdminProductTypesEditor()
+  populateProductTypeControls()
+}
+
+function addAdminProductTypeRow() {
+  adminProductTypes.push({ slug: '', name: '', active: true, order: adminProductTypes.length + 1 })
+  renderAdminProductTypesEditor()
+}
+
+function updateAdminProductTypeName(index, value) {
+  const item = adminProductTypes[index]
+  if (!item) return
+  item.name = String(value || '').trimStart()
+  if (!item.slug) item.slug = normalizeAdminProductTypeSlug(item.name)
+}
+
+function updateAdminProductTypeSlug(index, value) {
+  const item = adminProductTypes[index]
+  if (!item) return
+  item.slug = normalizeAdminProductTypeSlug(value)
+}
+
+function toggleAdminProductTypeActive(index, checked) {
+  const item = adminProductTypes[index]
+  if (item) item.active = !!checked
+}
+
+function removeAdminProductTypeRow(index) {
+  adminProductTypes.splice(index, 1)
+  renderAdminProductTypesEditor()
+}
+
+async function saveAdminProductTypes() {
+  const btn = document.getElementById('saveProductTypesBtn')
+  const original = btn?.innerHTML || ''
+  const normalized = adminProductTypes
+    .map((item, index) => ({
+      slug: normalizeAdminProductTypeSlug(item.slug || item.name),
+      name: String(item.name || '').trim(),
+      active: item.active !== false,
+      order: index + 1
+    }))
+    .filter((item) => item.slug && item.name)
+  const duplicate = normalized.find((item, index) => normalized.findIndex((x) => x.slug === item.slug) !== index)
+  if (duplicate) {
+    showAdminToast('Slug loại sản phẩm bị trùng: ' + duplicate.slug, 'error')
+    return
+  }
+  if (!normalized.length) {
+    showAdminToast('Cần ít nhất 1 loại sản phẩm', 'error')
+    return
+  }
+  try {
+    if (btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>Đang lưu'
+    const res = await axios.put('/api/admin/product-types', { types: normalized })
+    adminProductTypes = Array.isArray(res.data?.data) ? res.data.data : normalized
+    renderAdminProductTypesEditor()
+    populateProductTypeControls()
+    filterAdminProducts()
+    showAdminToast('Đã lưu loại sản phẩm', 'success')
+  } catch(e) {
+    showAdminToast(e?.response?.data?.error || 'Lỗi lưu loại sản phẩm', 'error')
+  } finally {
+    if (btn) btn.innerHTML = original
+  }
+}
+
 // PRODUCTS
 async function loadAdminProducts() {
   const grid = document.getElementById('adminProductsGrid')
   grid.innerHTML = '<div class="col-span-4 text-center py-12 text-gray-400"><i class="fas fa-spinner fa-spin text-3xl"></i></div>'
   try {
+    await loadAdminProductTypes()
     const res = await axios.get('/api/admin/products')
     adminProducts = res.data.data || []
     renderAdminProducts(adminProducts)
@@ -1569,9 +1780,11 @@ async function loadAdminProducts() {
 function filterAdminProducts() {
   const q = document.getElementById('productSearch').value.toLowerCase()
   const cat = document.getElementById('productCatFilter').value
+  const productType = document.getElementById('productTypeFilter')?.value || ''
   const filtered = adminProducts.filter(p => 
     (!q || String(p?.name || '').toLowerCase().includes(q) || String(p?.brand || '').toLowerCase().includes(q)) &&
-    (!cat || String(p?.category || '') === cat)
+    (!cat || String(p?.category || '') === cat) &&
+    (!productType || inferAdminProductType(p) === productType)
   )
   renderAdminProducts(filtered)
 }
@@ -1589,6 +1802,7 @@ function renderAdminProducts(products) {
       const name = String(p.name || 'Sản phẩm')
       const brand = String(p.brand || '').trim()
       const thumbnail = String(p.thumbnail || '').trim() || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'
+      const productType = inferAdminProductType(p)
       const colors = getProductColorOptions(p).map((c) => c.name).filter(Boolean)
       const sizes = safeJson(p.sizes)
       const viewCount = Number(p.view_count || 0)
@@ -1599,6 +1813,7 @@ function renderAdminProducts(products) {
           class="admin-product-thumb w-full h-full object-cover" onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'">
         <div class="absolute top-2 left-2 flex flex-wrap gap-1 pr-8">
           <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-white/90 text-gray-700">\${catLabel(p.category)}</span>
+          \${productType ? \`<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-sky-50/95 text-sky-700">\${escapeDashboardHtml(getProductTypeLabel(productType))}</span>\` : ''}
           \${p.is_featured ? '<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-400 text-white"><i class="fas fa-star mr-1"></i>Hot</span>' : ''}
           \${p.is_trending ? '<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-500 text-white"><i class="fas fa-fire mr-1"></i>Trend</span>' : ''}
           \${p.is_trending && (p.trending_order||0) > 0 ? \`<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-500 text-white">#\${p.trending_order}</span>\` : ''}
@@ -1736,6 +1951,8 @@ async function openProductModal(id = null) {
       document.getElementById('pPrice').value = p.price || ''
       document.getElementById('pOriginalPrice').value = p.original_price || ''
       document.getElementById('pCategory').value = p.category || 'unisex'
+      populateProductTypeControls()
+      document.getElementById('pProductType').value = inferAdminProductType(p)
       document.getElementById('pBrand').value = p.brand || ''
       document.getElementById('pMaterial').value = p.material || ''
       document.getElementById('pDescription').value = p.description || ''
@@ -1779,6 +1996,9 @@ function resetProductForm() {
   document.getElementById('productId').value = ''
   document.getElementById('pActive').checked = true
   document.getElementById('pTrendingOrder').value = '0'
+  populateProductTypeControls()
+  const productTypeSelect = document.getElementById('pProductType')
+  if (productTypeSelect) productTypeSelect.value = ''
   previewThumbnail('')
   for (let i = 0; i < 9; i++) clearGallerySlot(i)
   colors = []; sizes = []
@@ -1807,6 +2027,7 @@ async function saveProduct(e) {
     price: document.getElementById('pPrice').value,
     original_price: document.getElementById('pOriginalPrice').value || null,
     category: document.getElementById('pCategory').value,
+    product_type: document.getElementById('pProductType')?.value || '',
     brand: document.getElementById('pBrand').value,
     material: document.getElementById('pMaterial').value,
     description: document.getElementById('pDescription').value,

@@ -13,6 +13,16 @@ let bankTransferPollTimer = null
 const PRODUCT_PREVIEW_ROWS = 3
 const PRODUCT_MODAL_PAGE_SIZE = 24
 const MOBILE_PRODUCT_PAGE_SIZE = 8
+const DEFAULT_STOREFRONT_PRODUCT_TYPES = [
+  { slug: 'tshirt', name: 'Áo phông / thun', active: true },
+  { slug: 'polo', name: 'Áo Polo', active: true },
+  { slug: 'jacket', name: 'Áo khoác', active: true },
+  { slug: 'hoodie', name: 'Hoodie / Sweater', active: true },
+  { slug: 'pants', name: 'Quần', active: true },
+  { slug: 'jeans', name: 'Quần Jean', active: true },
+  { slug: 'dress', name: 'Váy / Đầm', active: true },
+  { slug: 'set', name: 'Bộ đồ', active: true }
+]
 let productsModalVisibleCount = PRODUCT_MODAL_PAGE_SIZE
 let mobileProductsVisibleCount = MOBILE_PRODUCT_PAGE_SIZE
 let appliedVoucher = null   // { code, discount_amount }
@@ -26,6 +36,7 @@ let detailSelectedProductId = null
 let cartVariantEditId = ''
 let activeProductCategory = 'all'
 let activeProductType = 'all'
+let storefrontProductTypes = []
 let activeProductSearch = ''
 let activeProductSort = 'newest'
 let mobileProductsLayout = 'list'
@@ -1575,9 +1586,53 @@ function addToCart(product, color, size, qty) {
 }
 
 // ── INIT ──────────────────────────────────────────
+function inferStorefrontProductType(product) {
+  const explicit = String(product?.product_type || product?.product_type_slug || '').trim()
+  if (explicit) return explicit
+  const text = String((product?.name || '') + ' ' + (product?.description || '')).toLowerCase()
+  if (text.includes('áo phông') || text.includes('áo thun') || text.includes('t-shirt') || text.includes('tshirt')) return 'tshirt'
+  if (text.includes('quần jean') || text.includes('quần bò') || text.includes('jeans')) return 'jeans'
+  if (text.includes('áo khoác') || text.includes('jacket')) return 'jacket'
+  if (text.includes('hoodie') || text.includes('sweater') || text.includes('nỉ')) return 'hoodie'
+  if (text.includes('polo')) return 'polo'
+  if (text.includes('váy') || text.includes('đầm')) return 'dress'
+  if (text.includes('bộ') || text.includes('set')) return 'set'
+  if (text.includes('quần')) return 'pants'
+  return ''
+}
+
+function renderFilterModalTypeOptions() {
+  const row = document.getElementById('filterModalTypeRow')
+  if (!row) return
+  const types = Array.isArray(storefrontProductTypes) ? storefrontProductTypes.filter((item) => item && item.active !== false) : []
+  row.innerHTML = '<button class="filter-modal-chip" data-val="all" onclick="selectFilterModalType(\\'all\\', this)">Tất cả</button>' +
+    types.map((item) => {
+      const slug = escapeHtml(item.slug || '')
+      const name = escapeHtml(item.name || item.slug || '')
+      return '<button class="filter-modal-chip" data-val="' + slug + '" onclick="selectFilterModalType(\\'' + slug + '\\', this)">' + name + '</button>'
+    }).join('')
+  document.querySelectorAll('#filterModalTypeRow .filter-modal-chip').forEach(b => {
+    b.classList.toggle('active', b.getAttribute('data-val') === activeProductType)
+  })
+  if (!row.querySelector('.filter-modal-chip.active')) {
+    const allBtn = row.querySelector('.filter-modal-chip[data-val="all"]')
+    if (allBtn) allBtn.classList.add('active')
+  }
+}
+
+async function loadProductTypes() {
+  try {
+    const res = await axios.get('/api/product-types')
+    storefrontProductTypes = Array.isArray(res.data?.data) && res.data.data.length ? res.data.data : DEFAULT_STOREFRONT_PRODUCT_TYPES
+  } catch (_) {
+    storefrontProductTypes = DEFAULT_STOREFRONT_PRODUCT_TYPES
+  }
+  renderFilterModalTypeOptions()
+}
+
 async function loadProducts() {
   try {
-    const res = await axios.get('/api/products')
+    const [res] = await Promise.all([axios.get('/api/products'), loadProductTypes()])
     allProducts = res.data.data || []
     applyProductsFilters()
     loadFlashSaleShop()
@@ -2226,15 +2281,7 @@ function applyProductsFilters() {
     
     let matchType = true
     if (activeProductType !== 'all') {
-      const n = p.name.toLowerCase()
-      if (activeProductType === 'tshirt') matchType = n.includes('áo phông') || n.includes('áo thun') || n.includes('t-shirt') || n.includes('tshirt')
-      else if (activeProductType === 'jacket') matchType = n.includes('áo khoác') || n.includes('jacket')
-      else if (activeProductType === 'hoodie') matchType = n.includes('hoodie') || n.includes('sweater') || n.includes('nỉ')
-      else if (activeProductType === 'polo') matchType = n.includes('polo')
-      else if (activeProductType === 'pants') matchType = n.includes('quần')
-      else if (activeProductType === 'jeans') matchType = n.includes('quần jean') || n.includes('quần bò') || n.includes('jeans')
-      else if (activeProductType === 'dress') matchType = n.includes('váy') || n.includes('đầm')
-      else if (activeProductType === 'set') matchType = n.includes('bộ') || n.includes('set')
+      matchType = inferStorefrontProductType(p) === activeProductType
     }
 
     return matchCat && matchSearch && matchType
@@ -2255,6 +2302,7 @@ function openFilterModal() {
   if (modal) {
     modal.classList.remove('hidden')
     modal.classList.add('flex')
+    renderFilterModalTypeOptions()
     document.querySelectorAll('#filterModalGenderRow .filter-modal-chip').forEach(b => {
       b.classList.toggle('active', b.getAttribute('data-val') === activeProductCategory)
     })

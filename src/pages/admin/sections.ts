@@ -26,7 +26,85 @@ export function adminSidebarOverlay(): string {
 }
 
 export function adminSidebarSection(): string {
-  return "<!-- SIDEBAR -->\n<aside id=\"sidebar\" data-sidebar-state=\"expanded\" class=\"sidebar w-64 min-h-screen fixed left-0 top-0 z-40 transform -translate-x-full md:translate-x-0 transition-transform duration-300 flex flex-col\">\n  <div class=\"p-6 border-b border-white/10\">\n    <div class=\"flex items-center gap-3 sidebar-brand-shell\">\n      <span class=\"inline-flex items-center justify-center sidebar-brand-logo\"><img src=\"/qh-logo.png\" alt=\"QH Clothes\" class=\"rounded-full w-9 h-9 object-cover bg-white\"></span>\n      <div class=\"sidebar-brand-copy\">\n        <p class=\"text-white font-bold text-lg leading-tight\"><span class=\"text-pink-400\">Clothes</span></p>\n        <p class=\"text-gray-400 text-xs\">Admin Panel</p>\n      </div>\n    </div>\n  </div>\n  \n  <nav class=\"p-4 flex-1 space-y-1\">\n    <button class=\"nav-item active w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium\" data-page=\"dashboard\" onclick=\"showPage('dashboard')\">\n      <i class=\"fas fa-chart-pie w-5\"></i><span class=\"sidebar-label\">Dashboard</span>\n    </button>\n    <button class=\"nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium\" data-page=\"products\" onclick=\"showPage('products')\">\n      <i class=\"fas fa-tshirt w-5\"></i><span class=\"sidebar-label\">Sản phẩm</span>\n    </button>\n    <button class=\"nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium\" data-page=\"orders\" onclick=\"showPage('orders')\">\n      <i class=\"fas fa-clipboard-list w-5\"></i><span class=\"sidebar-label\">Đơn hàng</span>\n      <span id=\"pendingBadge\" class=\"sidebar-badge ml-auto bg-pink-500 text-white text-xs rounded-full px-2 py-0.5 hidden\"></span>\n    </button>\n    <button class=\"nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium\" data-page=\"returns\" onclick=\"showPage('returns')\">\n      <i class=\"fas fa-undo w-5\"></i><span class=\"sidebar-label\">Quản lý hoàn trả</span>\n    </button>\n    <button class=\"nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium\" data-page=\"customers\" onclick=\"showPage('customers')\">\n      <i class=\"fas fa-users w-5\"></i><span class=\"sidebar-label\">Khách hàng</span>\n    </button>\n    <button class=\"nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium\" data-page=\"vouchers\" onclick=\"showPage('vouchers')\">\n      <i class=\"fas fa-ticket-alt w-5\"></i><span class=\"sidebar-label\">Voucher</span>\n    </button>\n    <button class=\"nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium\" data-page=\"featured\" onclick=\"showPage('featured')\">\n      <i class=\"fas fa-star w-5\"></i><span class=\"sidebar-label\">Sản phẩm Nổi Bật</span>\n    </button>\n    <button id=\"marketingMenuBtn\" class=\"nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium\" onclick=\"toggleMarketingMenu()\">\n      <i class=\"fas fa-bullhorn w-5\"></i>\n      <span class=\"sidebar-label\">Marketing</span>\n      <i id=\"marketingMenuChevron\" class=\"sidebar-chevron fas fa-chevron-down ml-auto text-xs transition-transform\"></i>\n    </button>\n    <div id=\"marketingSubmenu\" class=\"hidden ml-5 mt-1 space-y-1\">\n      <button class=\"nav-sub-item w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg text-gray-400 text-sm font-medium\" data-sub-page=\"flashsale\" onclick=\"openFlashSaleAdmin()\">\n        <i class=\"fas fa-bolt w-4\"></i><span class=\"sidebar-sub-label\">Flashsale</span>\n      </button>\n    </div>\n    <button class=\"nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium\" data-page=\"reviews\" onclick=\"showPage('reviews')\">\n      <i class=\"fas fa-star-half-stroke w-5\"></i><span class=\"sidebar-label\">Đánh giá</span>\n    </button>\n    <button id=\"settingsMenuBtn\" class=\"nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium\" onclick=\"toggleSettingsMenu()\">\n      <i class=\"fas fa-gear w-5\"></i>\n      <span class=\"sidebar-label\">Setting</span>\n      <i id=\"settingsMenuChevron\" class=\"sidebar-chevron fas fa-chevron-down ml-auto text-xs transition-transform\"></i>\n    </button>\n    <div id=\"settingsSubmenu\" class=\"hidden ml-5 mt-1 space-y-1\">\n      <button class=\"nav-sub-item w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg text-gray-400 text-sm font-medium\" data-sub-page=\"settings-social\" onclick=\"openSettingsSocial()\">\n        <i class=\"fas fa-hashtag w-4\"></i><span class=\"sidebar-sub-label\">MXH</span>\n      </button>\n      <button class=\"nav-sub-item w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg text-gray-400 text-sm font-medium\" data-sub-page=\"settings-warehouse\" onclick=\"openSettingsWarehouse()\">\n        <i class=\"fas fa-warehouse w-4\"></i><span class=\"sidebar-sub-label\">Kho hàng</span>\n      </button>\n    </div>\n  </nav>\n  \n  <div class=\"p-4 border-t border-white/10\">\n    <a href=\"/\" target=\"_blank\" class=\"flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 text-sm hover:text-pink-400 transition\">\n      <i class=\"fas fa-external-link-alt w-5\"></i><span class=\"sidebar-label\">Xem trang chủ</span>\n    </a>\n  </div>\n</aside>"
+  return `<!-- SIDEBAR -->
+<aside id="sidebar" data-sidebar-state="expanded" class="sidebar w-64 min-h-screen fixed left-0 top-0 z-40 transform -translate-x-full md:translate-x-0 transition-transform duration-300 flex flex-col">
+  <div class="p-6 border-b border-white/10">
+    <div class="flex items-center gap-3 sidebar-brand-shell">
+      <span class="inline-flex items-center justify-center sidebar-brand-logo"><img src="/qh-logo.png" alt="QH Clothes" class="rounded-full w-9 h-9 object-cover bg-white"></span>
+      <div class="sidebar-brand-copy">
+        <p class="text-white font-bold text-lg leading-tight"><span class="text-pink-400">Clothes</span></p>
+        <p class="text-gray-400 text-xs">Admin Panel</p>
+      </div>
+    </div>
+  </div>
+  
+  <nav class="p-4 flex-1 space-y-1">
+    <button class="nav-item active w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium" data-page="dashboard" onclick="showPage('dashboard')">
+      <i class="fas fa-chart-pie w-5"></i><span class="sidebar-label">Dashboard</span>
+    </button>
+    <button id="productMenuBtn" class="nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium" onclick="toggleProductMenu()">
+      <i class="fas fa-tshirt w-5"></i>
+      <span class="sidebar-label">Sản phẩm</span>
+      <i id="productMenuChevron" class="sidebar-chevron fas fa-chevron-down ml-auto text-xs transition-transform"></i>
+    </button>
+    <div id="productSubmenu" class="hidden ml-5 mt-1 space-y-1">
+      <button class="nav-sub-item w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg text-gray-400 text-sm font-medium" data-sub-page="products" onclick="openProductsAdmin()">
+        <i class="fas fa-box-open w-4"></i><span class="sidebar-sub-label">Danh sách sản phẩm</span>
+      </button>
+      <button class="nav-sub-item w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg text-gray-400 text-sm font-medium" data-sub-page="product-types" onclick="openProductTypesAdmin()">
+        <i class="fas fa-layer-group w-4"></i><span class="sidebar-sub-label">Loại sản phẩm</span>
+      </button>
+    </div>
+    <button class="nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium" data-page="orders" onclick="showPage('orders')">
+      <i class="fas fa-clipboard-list w-5"></i><span class="sidebar-label">Đơn hàng</span>
+      <span id="pendingBadge" class="sidebar-badge ml-auto bg-pink-500 text-white text-xs rounded-full px-2 py-0.5 hidden"></span>
+    </button>
+    <button class="nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium" data-page="returns" onclick="showPage('returns')">
+      <i class="fas fa-undo w-5"></i><span class="sidebar-label">Quản lý hoàn trả</span>
+    </button>
+    <button class="nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium" data-page="customers" onclick="showPage('customers')">
+      <i class="fas fa-users w-5"></i><span class="sidebar-label">Khách hàng</span>
+    </button>
+    <button class="nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium" data-page="vouchers" onclick="showPage('vouchers')">
+      <i class="fas fa-ticket-alt w-5"></i><span class="sidebar-label">Voucher</span>
+    </button>
+    <button class="nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium" data-page="featured" onclick="showPage('featured')">
+      <i class="fas fa-star w-5"></i><span class="sidebar-label">Sản phẩm Nổi Bật</span>
+    </button>
+    <button id="marketingMenuBtn" class="nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium" onclick="toggleMarketingMenu()">
+      <i class="fas fa-bullhorn w-5"></i>
+      <span class="sidebar-label">Marketing</span>
+      <i id="marketingMenuChevron" class="sidebar-chevron fas fa-chevron-down ml-auto text-xs transition-transform"></i>
+    </button>
+    <div id="marketingSubmenu" class="hidden ml-5 mt-1 space-y-1">
+      <button class="nav-sub-item w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg text-gray-400 text-sm font-medium" data-sub-page="flashsale" onclick="openFlashSaleAdmin()">
+        <i class="fas fa-bolt w-4"></i><span class="sidebar-sub-label">Flashsale</span>
+      </button>
+    </div>
+    <button class="nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium" data-page="reviews" onclick="showPage('reviews')">
+      <i class="fas fa-star-half-stroke w-5"></i><span class="sidebar-label">Đánh giá</span>
+    </button>
+    <button id="settingsMenuBtn" class="nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium" onclick="toggleSettingsMenu()">
+      <i class="fas fa-gear w-5"></i>
+      <span class="sidebar-label">Setting</span>
+      <i id="settingsMenuChevron" class="sidebar-chevron fas fa-chevron-down ml-auto text-xs transition-transform"></i>
+    </button>
+    <div id="settingsSubmenu" class="hidden ml-5 mt-1 space-y-1">
+      <button class="nav-sub-item w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg text-gray-400 text-sm font-medium" data-sub-page="settings-social" onclick="openSettingsSocial()">
+        <i class="fas fa-hashtag w-4"></i><span class="sidebar-sub-label">MXH</span>
+      </button>
+      <button class="nav-sub-item w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg text-gray-400 text-sm font-medium" data-sub-page="settings-warehouse" onclick="openSettingsWarehouse()">
+        <i class="fas fa-warehouse w-4"></i><span class="sidebar-sub-label">Kho hàng</span>
+      </button>
+    </div>
+  </nav>
+  
+  <div class="p-4 border-t border-white/10">
+    <a href="/" target="_blank" class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-400 text-sm hover:text-pink-400 transition">
+      <i class="fas fa-external-link-alt w-5"></i><span class="sidebar-label">Xem trang chủ</span>
+    </a>
+  </div>
+</aside>`
 }
 
 export function adminMainContentStart(): string {
@@ -161,7 +239,62 @@ export function adminDashboardPage(): string {
 }
 
 export function adminProductsPage(): string {
-  return "<!-- PRODUCTS PAGE -->\n  <div id=\"page-products\" class=\"p-6 hidden\">\n    <div class=\"flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6\">\n      <div class=\"flex gap-2 items-center\">\n        <input type=\"text\" id=\"productSearch\" placeholder=\"Tìm sản phẩm...\" oninput=\"filterAdminProducts()\" \n          class=\"border rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-pink-400 w-48\">\n        <select id=\"productCatFilter\" onchange=\"filterAdminProducts()\" class=\"border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-pink-400\">\n          <option value=\"\">Tất cả</option>\n          <option value=\"unisex\">Unisex</option>\n          <option value=\"male\">Nam</option>\n          <option value=\"female\">Nữ</option>\n        </select>\n      </div>\n      <button onclick=\"openProductModal()\" class=\"btn-pink text-white px-5 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2\">\n        <i class=\"fas fa-plus\"></i>Thêm sản phẩm\n      </button>\n    </div>\n    \n    <div id=\"adminProductsGrid\" class=\"admin-products-grid grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-4\"></div>\n  </div>"
+  return `<!-- PRODUCTS PAGE -->
+  <div id="page-products" class="p-3 md:p-6 hidden">
+    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
+      <div class="flex flex-wrap gap-2 items-center">
+        <input type="text" id="productSearch" placeholder="Tìm sản phẩm..." oninput="filterAdminProducts()" 
+          class="border rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-pink-400 w-48">
+        <select id="productCatFilter" onchange="filterAdminProducts()" class="border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-pink-400">
+          <option value="">Tất cả dành cho</option>
+          <option value="unisex">Unisex</option>
+          <option value="male">Nam</option>
+          <option value="female">Nữ</option>
+        </select>
+        <select id="productTypeFilter" onchange="filterAdminProducts()" class="border rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-pink-400 min-w-[180px]">
+          <option value="">Tất cả loại</option>
+        </select>
+      </div>
+      <button onclick="openProductModal()" class="btn-pink text-white px-5 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2">
+        <i class="fas fa-plus"></i>Thêm sản phẩm
+      </button>
+    </div>
+    
+    <div id="adminProductsGrid" class="admin-products-grid grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-3 md:gap-4"></div>
+  </div>
+
+  <!-- PRODUCT TYPES PAGE -->
+  <div id="page-product-types" class="p-3 md:p-6 hidden">
+    <section class="rounded-3xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+      <button type="button" onclick="toggleProductTypesEditor()" class="w-full px-4 py-4 md:px-5 flex items-center justify-between gap-4 text-left">
+        <div class="min-w-0">
+          <div class="flex items-center gap-2 text-pink-600 font-bold">
+            <i class="fas fa-layer-group"></i>
+            <span>Loại sản phẩm</span>
+          </div>
+          <p class="mt-1 text-sm text-gray-500">Quản lý loại để gán vào sản phẩm và dùng cho bộ lọc ngoài storefront.</p>
+        </div>
+        <div class="flex items-center gap-2 shrink-0">
+          <span id="adminProductTypesCount" class="hidden sm:inline-flex rounded-full bg-pink-50 px-3 py-1 text-xs font-bold text-pink-600">0 loại</span>
+          <i id="productTypesEditorChevron" class="fas fa-chevron-up text-gray-400 transition-transform"></i>
+        </div>
+      </button>
+      <div id="productTypesEditorShell" class="border-t border-gray-100 px-4 pb-4 md:px-5 md:pb-5">
+        <div class="pt-4 flex justify-end">
+          <button type="button" onclick="addAdminProductTypeRow()" class="inline-flex items-center justify-center gap-2 rounded-xl border border-pink-200 bg-pink-50 px-4 py-2.5 text-sm font-semibold text-pink-600 hover:bg-pink-100 transition">
+            <i class="fas fa-plus"></i>Thêm loại
+          </button>
+        </div>
+        <div id="adminProductTypesEditor" class="mt-4 grid gap-2"></div>
+        <div class="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <p class="text-xs font-semibold text-gray-400">Tắt hiển thị để ẩn loại khỏi filter nhưng vẫn giữ sản phẩm đang gán.</p>
+          <button type="button" onclick="saveAdminProductTypes()" id="saveProductTypesBtn" class="btn-pink inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white">
+            <i class="fas fa-save"></i>Lưu loại sản phẩm
+          </button>
+        </div>
+      </div>
+    </section>
+  </div>`
 }
 
 export function adminOrdersPage(): string {
