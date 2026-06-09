@@ -935,6 +935,8 @@ export function storefrontThemeRefreshStyles(): string {
     position: relative;
     touch-action: pan-y;
     background: #f1f5f9;
+    aspect-ratio: 1 / 1;
+    height: auto;
     max-width: 100%;
     min-width: 0;
   }
@@ -4299,8 +4301,9 @@ export function storefrontThemeRefreshStyles(): string {
       padding: 1rem 1.5rem !important;
     }
     #detailGalleryViewport {
-      height: 20rem !important;
-      aspect-ratio: auto !important;
+      width: 100% !important;
+      height: auto !important;
+      aspect-ratio: 1 / 1 !important;
       border-radius: 1rem;
     }
     #detailGalleryThumbs {
@@ -4313,8 +4316,8 @@ export function storefrontThemeRefreshStyles(): string {
     #detailGalleryThumbs .detail-gallery-thumb {
       width: 100% !important;
       flex-basis: auto !important;
-      height: 4rem !important;
-      aspect-ratio: auto !important;
+      height: auto !important;
+      aspect-ratio: 1 / 1 !important;
       border-radius: 0.5rem;
     }
   }

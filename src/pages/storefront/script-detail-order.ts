@@ -11,8 +11,9 @@ let detailGalleryDragStartX = 0
 let detailGalleryDragStartY = 0
 let detailGalleryDragDeltaX = 0
 let detailGalleryIsDragging = false
+let detailGalleryPreviewImage = ''
 
-function buildDetailGalleryImages(defaultImage, baseImages, colorOptions) {
+function buildDetailGalleryImages(defaultImage, baseImages) {
   const unique = []
   const pushImage = (value) => {
     const src = String(value || '').trim()
@@ -20,13 +21,12 @@ function buildDetailGalleryImages(defaultImage, baseImages, colorOptions) {
     unique.push(src)
   }
   pushImage(defaultImage)
-  if (Array.isArray(colorOptions)) colorOptions.forEach((item) => pushImage(item?.image))
   if (Array.isArray(baseImages)) baseImages.forEach((item) => pushImage(item))
   return unique
 }
 
 function getCurrentDetailGalleryImage() {
-  return detailGalleryImages[detailGalleryIndex] || detailGalleryImages[0] || ''
+  return detailGalleryPreviewImage || detailGalleryImages[detailGalleryIndex] || detailGalleryImages[0] || ''
 }
 
 function updateDetailGalleryUI(immediate) {
@@ -39,9 +39,20 @@ function updateDetailGalleryUI(immediate) {
   const counter = document.getElementById('detailGalleryCounter')
   if (counter) counter.textContent = Math.max(1, detailGalleryIndex + 1) + '/' + Math.max(1, detailGalleryImages.length)
 
+  const preview = document.getElementById('detailGalleryPreviewImage')
+  if (preview) {
+    if (detailGalleryPreviewImage) {
+      preview.setAttribute('src', detailGalleryPreviewImage)
+      preview.classList.remove('hidden')
+    } else {
+      preview.removeAttribute('src')
+      preview.classList.add('hidden')
+    }
+  }
+
   document.querySelectorAll('[data-detail-thumb-index]').forEach((thumb) => {
     const thumbIndex = Number(thumb.getAttribute('data-detail-thumb-index'))
-    const active = thumbIndex === detailGalleryIndex
+    const active = !detailGalleryPreviewImage && thumbIndex === detailGalleryIndex
     thumb.classList.toggle('is-active', active)
     thumb.setAttribute('aria-pressed', active ? 'true' : 'false')
     if (active) thumb.scrollIntoView({ behavior: immediate ? 'auto' : 'smooth', inline: 'center', block: 'nearest' })
@@ -64,9 +75,22 @@ function updateDetailGalleryUI(immediate) {
 function setDetailGalleryIndex(nextIndex, options) {
   if (!detailGalleryImages.length) return
   const detailOptions = options || {}
+  if (!detailOptions.keepPreview) detailGalleryPreviewImage = ''
   const bounded = Math.max(0, Math.min(detailGalleryImages.length - 1, Number(nextIndex) || 0))
   detailGalleryIndex = bounded
   updateDetailGalleryUI(!!detailOptions.immediate)
+}
+
+function showDetailGalleryPreviewImage(src) {
+  const previewSrc = String(src || '').trim()
+  if (!previewSrc) return
+  const galleryIndex = detailGalleryImages.findIndex((img) => img === previewSrc)
+  if (galleryIndex >= 0) {
+    setDetailGalleryIndex(galleryIndex)
+    return
+  }
+  detailGalleryPreviewImage = previewSrc
+  updateDetailGalleryUI(false)
 }
 
 function jumpToDetailGalleryIndex(index, event) {
@@ -154,7 +178,7 @@ async function showDetail(id, options) {
     const sizes = safeJson(p.sizes)
     const images = safeJson(p.images)
     const defaultMainImage = String(p.thumbnail || detailColorOptions[0]?.image || images[0] || '').trim()
-    const detailGalleryImageList = buildDetailGalleryImages(defaultMainImage, [p.thumbnail].concat(images), detailColorOptions)
+    const detailGalleryImageList = buildDetailGalleryImages(defaultMainImage, [p.thumbnail].concat(images))
     const defaultGalleryIndex = Math.max(0, detailGalleryImageList.findIndex((img) => img === defaultMainImage))
     const priceInfo = getProductDisplayPriceInfo(p)
     const flashMeta = priceInfo.flashMeta
@@ -169,6 +193,7 @@ async function showDetail(id, options) {
             <div id="detailGalleryTrack" class="detail-gallery-track">
               \${detailGalleryImageList.map((img, idx) => \`<div class="detail-gallery-slide"><img src="\${escapeHtml(img)}" alt="\${escapeHtml(p.name)} \${idx + 1}" class="w-full h-full object-cover select-none pointer-events-none" draggable="false"></div>\`).join('')}
             </div>
+            <img id="detailGalleryPreviewImage" src="" alt="\${escapeHtml(p.name)}" class="hidden absolute inset-0 z-10 w-full h-full object-cover select-none pointer-events-none" draggable="false">
             <button id="detailGalleryPrevBtn" type="button" onclick="stepDetailGallery(-1, event)" class="detail-gallery-arrow detail-gallery-arrow--prev hidden md:flex\${detailGalleryImageList.length <= 1 ? ' md:hidden' : ''}" aria-label="Ảnh trước">
               <i class="fas fa-chevron-left"></i>
             </button>
@@ -239,6 +264,7 @@ async function showDetail(id, options) {
     document.getElementById('detailContent').innerHTML = detailHtml
     detailGalleryImages = detailGalleryImageList.slice()
     detailGalleryIndex = defaultGalleryIndex
+    detailGalleryPreviewImage = ''
     updateDetailGalleryUI(true)
     bindDetailGalleryGestures()
     
@@ -280,8 +306,7 @@ function selectDetailColorByIndex(idx, btn) {
   detailSelectedColorIndex = idx
   detailSelectedColor = String(item.name || '').trim()
   detailSelectedColorImage = String(item.image || '').trim() || getCurrentDetailGalleryImage()
-  const galleryIndex = detailSelectedColorImage ? detailGalleryImages.findIndex((img) => img === detailSelectedColorImage) : -1
-  if (galleryIndex >= 0) setDetailGalleryIndex(galleryIndex)
+  if (detailSelectedColorImage) showDetailGalleryPreviewImage(detailSelectedColorImage)
   const label = document.getElementById('detailColorLabel')
   if (label) label.textContent = detailSelectedColor
   document.querySelectorAll('.detail-color-card').forEach(b => b.classList.remove('border-pink-500','ring-2','ring-pink-100','shadow-sm'))
