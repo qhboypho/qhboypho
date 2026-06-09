@@ -5,8 +5,13 @@ const routes = await readFile(new URL('../src/routes/productRoutes.ts', import.m
 
 const bestsellersRoute = routes.match(/app\.get\('\/api\/bestsellers'[\s\S]*?\n  \}\)/)?.[0] || ''
 
-assert.match(bestsellersRoute, /INNER JOIN\s*\(/, 'bestsellers should only join products with sold quantities')
-assert.match(bestsellersRoute, /COALESCE\(s\.total_sold,\s*0\)\s*>\s*0/, 'bestsellers should hide products with zero sold count')
-assert.doesNotMatch(bestsellersRoute, /LEFT JOIN\s*\(/, 'bestsellers should not include zero-sold products via LEFT JOIN')
+const storefrontScript = await readFile(new URL('../src/pages/storefront/script.ts', import.meta.url), 'utf8')
 
-console.log('bestsellers sold-only contract passed')
+assert.match(bestsellersRoute, /LEFT JOIN\s*\(/, 'bestsellers should still return active products when no sales exist')
+assert.match(bestsellersRoute, /COALESCE\(s\.total_sold,\s*0\)\s+as\s+total_sold/i, 'bestsellers should expose zero sold counts')
+assert.doesNotMatch(bestsellersRoute, /COALESCE\(s\.total_sold,\s*0\)\s*>\s*0/, 'bestsellers should not hide zero-sold products at API level')
+assert.match(storefrontScript, /let soldRank = 0/, 'storefront should track ranking only for sold products')
+assert.match(storefrontScript, /soldCount > 0 \? soldRank\+\+ : -1/, 'storefront should not assign rank to zero-sold products')
+assert.match(storefrontScript, /rankIndex >= 0 \?/, 'storefront should render medal only when a sold rank exists')
+
+console.log('bestsellers ranking visibility contract passed')

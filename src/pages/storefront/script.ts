@@ -1875,11 +1875,13 @@ async function loadBestSellers() {
     const medalClass = (i) => i < 3 ? 'bs-medal bs-medal-top bs-medal-top-' + (i + 1) : 'bs-medal bs-medal-n'
     const medalIcon = (i) => i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : String(i + 1)
     const fmtSold = (n) => n >= 1000 ? (n / 1000).toFixed(1) + 'k' : String(n)
+    let soldRank = 0
     track.innerHTML = products.map((p, i) => {
       const flashMeta = getFlashSaleMeta(p)
       const price = Number(flashMeta?.salePrice || p.display_price || p.price || 0)
       const originalPrice = Number(flashMeta?.basePrice || p.display_original_price || p.original_price || price)
       const soldCount = Number(p.total_sold || 0)
+      const rankIndex = soldCount > 0 ? soldRank++ : -1
       const ratingStars = renderProductRatingStars(p, 'bs-stars')
       return \`<div class="bs-card" onclick="showDetail(\${p.id})">
         <div class="relative">
@@ -1888,7 +1890,7 @@ async function loadBestSellers() {
             onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'">
           \${renderFavoriteButton(p.id, 'favorite-toggle-btn--bestseller')}
           <span class="bs-mobile-hot-badge" aria-label="Sản phẩm hot"><i class="fas fa-fire-flame-curved" aria-hidden="true"></i><span>Hot</span></span>
-          <div class="\${medalClass(i)}">\${medalIcon(i)}</div>
+          \${rankIndex >= 0 ? \`<div class="\${medalClass(rankIndex)}">\${medalIcon(rankIndex)}</div>\` : ''}
         </div>
         <div class="bs-card-body p-3">
           <p class="bs-name mb-1.5">\${escapeHtml(p.name)}</p>
