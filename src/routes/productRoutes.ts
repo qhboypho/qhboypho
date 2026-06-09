@@ -670,16 +670,16 @@ export function registerProductRoutes(app: Hono<{ Bindings: AppBindings }>, deps
       const limit = Math.min(20, Math.max(1, Number(c.req.query('limit') || 10)))
       // Sum quantity for orders with status: done/shipping/waiting_pickup (confirmed sold)
       const res = await c.env.DB.prepare(
-        `SELECT p.*, COALESCE(s.total_sold, 0) as total_sold
+        `SELECT p.*, s.total_sold as total_sold
          FROM products p
-         LEFT JOIN (
+         INNER JOIN (
            SELECT product_id, SUM(quantity) as total_sold
            FROM orders
            WHERE status IN ('done', 'shipping', 'waiting_pickup', 'pending')
            GROUP BY product_id
          ) s ON s.product_id = p.id
-         WHERE p.is_active = 1
-         ORDER BY COALESCE(s.total_sold, 0) DESC, p.id DESC
+         WHERE p.is_active = 1 AND COALESCE(s.total_sold, 0) > 0
+         ORDER BY s.total_sold DESC, p.id DESC
          LIMIT ?`
       ).bind(limit).all()
       const rows = res.results || []
