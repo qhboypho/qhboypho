@@ -6,6 +6,7 @@ import { ensureFrontendVisitorId, getVietnamDateKey, isLikelyHumanBrowser, recor
 import { shapeFlashSaleProduct, loadActiveFlashSaleProductMap } from '../lib/flashSaleHelpers.ts'
 import { attachSkuStateToProduct } from '../lib/productFlashSaleView.ts'
 import { loadProductSkusByProductIds, syncProductSkus } from '../lib/productSkuHelpers.ts'
+import { applyAutoVouchersToProducts } from '../lib/autoVoucherHelpers.ts'
 
 type ProductRouteDeps = {
   initDB: (db: D1Database) => Promise<void>
@@ -205,7 +206,7 @@ async function buildProductsWithSkus(db: D1Database, rows: any[], options?: { in
       })
     }
   }
-  return rows.map((row: any) => attachSkuStateToProduct(
+  const shaped = rows.map((row: any) => attachSkuStateToProduct(
     shapeFlashSaleProduct({
       product: {
         ...attachProductType(row, productTypeMap, productTypeNameMap),
@@ -216,6 +217,7 @@ async function buildProductsWithSkus(db: D1Database, rows: any[], options?: { in
     skuMap.get(Number(row.id)) || [],
     activeFlashSaleRows
   ))
+  return applyAutoVouchersToProducts(db, shaped)
 }
 
 async function maybeTrackFrontendProductVisit(c: any) {

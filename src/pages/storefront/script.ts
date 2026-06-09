@@ -1574,7 +1574,7 @@ function addToCart(product, color, size, qty) {
       name: product.name,
       sku: product.sku || ('SKU-'+String(product.id).padStart(4,'0')),
       thumbnail: product.thumbnail || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400',
-      price: product.price,
+      price: getProductDisplayPriceInfo(product).price,
       color,
       colorImage: getSelectedColorImageFromProduct(product, color),
       size, qty,
@@ -1877,9 +1877,10 @@ async function loadBestSellers() {
     const fmtSold = (n) => n >= 1000 ? (n / 1000).toFixed(1) + 'k' : String(n)
     let soldRank = 0
     track.innerHTML = products.map((p, i) => {
-      const flashMeta = getFlashSaleMeta(p)
-      const price = Number(flashMeta?.salePrice || p.display_price || p.price || 0)
-      const originalPrice = Number(flashMeta?.basePrice || p.display_original_price || p.original_price || price)
+      const priceInfo = getProductDisplayPriceInfo(p)
+      const flashMeta = priceInfo.flashMeta
+      const price = priceInfo.price
+      const originalPrice = priceInfo.originalPrice
       const soldCount = Number(p.total_sold || 0)
       const rankIndex = soldCount > 0 ? soldRank++ : -1
       const ratingStars = renderProductRatingStars(p, 'bs-stars')
@@ -1901,7 +1902,7 @@ async function loadBestSellers() {
             </div>
             \${ratingStars}
           </div>
-          \${p.has_flash_sale ? renderFlashSaleMiniStrip(flashMeta) : ''}
+          \${p.has_flash_sale ? renderFlashSaleMiniStrip(flashMeta) : renderAutoVoucherMiniBadge(p)}
           <div class="flex items-center gap-1.5">
             <span class="bs-sold-chip"><i class="fas fa-fire-flame-curved"></i> \${fmtSold(soldCount)} đã bán</span>
           </div>
@@ -1928,6 +1929,22 @@ function getFlashSaleMeta(product) {
     endsAt: flashSale.campaign?.end_at || flashSale.end_at || '',
     campaignName: flashSale.campaign?.name || flashSale.name || 'Flash Sale'
   }
+}
+
+function getProductDisplayPriceInfo(product) {
+  const flashMeta = getFlashSaleMeta(product)
+  const price = Number(flashMeta?.salePrice || product?.display_price || product?.price || 0)
+  const originalPrice = Number(flashMeta?.basePrice || product?.display_original_price || product?.original_price || price)
+  const autoVoucher = !flashMeta && product?.has_auto_voucher && product?.auto_voucher ? product.auto_voucher : null
+  return { price, originalPrice, flashMeta, autoVoucher }
+}
+
+function renderAutoVoucherMiniBadge(product) {
+  const info = getProductDisplayPriceInfo(product)
+  if (!info.autoVoucher) return ''
+  const discount = Number(info.autoVoucher.discount_amount || product?.display_auto_voucher_discount || 0)
+  if (!discount) return ''
+  return '<div class="auto-voucher-mini-badge" title="Voucher tự động đã áp vào giá"><i class="fas fa-ticket"></i><span>Voucher -' + fmtPrice(discount).replace(/\s/g, '') + '</span></div>'
 }
 
 function renderFlashSaleMiniStrip(flashMeta) {
@@ -1980,9 +1997,10 @@ async function loadFlashSaleShop() {
     }
     section.classList.remove('hidden')
     grid.innerHTML = products.map((product) => {
-      const meta = getFlashSaleMeta(product)
-      const price = meta?.salePrice || Number(product.display_price ?? product.price ?? 0)
-      const original = meta?.basePrice || Number(product.display_original_price ?? product.original_price ?? price)
+      const priceInfo = getProductDisplayPriceInfo(product)
+      const meta = priceInfo.flashMeta
+      const price = priceInfo.price
+      const original = priceInfo.originalPrice
       return \`
         <div class="flash-sale-shop-card shrink-0 snap-start basis-[78%] cursor-pointer sm:basis-[46%] lg:basis-[30%] xl:basis-[23%]" onclick="showDetail(\${product.id})">
           <div class="relative aspect-square overflow-hidden bg-slate-100">
@@ -2141,10 +2159,11 @@ function getProductPreviewLimit() {
 
 function renderStorefrontProductCard(p) {
   const colors = getProductColorOptions(p).map((c) => c.name)
-  const flashMeta = getFlashSaleMeta(p)
-  const displayPrice = Number(flashMeta?.salePrice || p.display_price || p.price || 0)
-  const displayOriginalPrice = Number(flashMeta?.basePrice || p.display_original_price || p.original_price || displayPrice)
-  const discount = flashMeta ? Number(flashMeta.discountPercent || 0) : (p.original_price ? Math.round((1 - p.price/p.original_price)*100) : 0)
+  const priceInfo = getProductDisplayPriceInfo(p)
+  const flashMeta = priceInfo.flashMeta
+  const displayPrice = priceInfo.price
+  const displayOriginalPrice = priceInfo.originalPrice
+  const discount = flashMeta ? Number(flashMeta.discountPercent || 0) : (displayOriginalPrice > displayPrice ? Math.round((1 - displayPrice/displayOriginalPrice)*100) : 0)
   return \`
   <div class="product-card bg-white rounded-2xl overflow-hidden card-hover shadow-sm border border-gray-100 cursor-pointer" onclick="openProductDetailFromCard(\${p.id})">
     <div class="relative overflow-hidden bg-gray-100">
@@ -2167,7 +2186,7 @@ function renderStorefrontProductCard(p) {
         \${displayOriginalPrice > displayPrice ? \`<span class="product-card-original-price text-xs line-through">\${fmtPrice(displayOriginalPrice)}</span>\` : ''}
         <span class="product-rating-stars-desktop">\${renderProductRatingStars(p)}</span>
       </div>
-      \${p.has_flash_sale ? renderFlashSaleMiniStrip(flashMeta) : ''}
+      \${p.has_flash_sale ? renderFlashSaleMiniStrip(flashMeta) : renderAutoVoucherMiniBadge(p)}
       \${renderProductCardSocialMeta(p)}
       \${colors.length > 0 ? \`
       <div class="flex gap-1 mb-3 flex-wrap">
@@ -2878,7 +2897,7 @@ async function applyCkVoucher() {
   const btn = document.getElementById('ckVoucherBtn')
   if (!code) {
     statusEl.className='mt-2 voucher-error rounded-xl px-3 py-2 text-sm text-red-600 font-medium'
-    statusEl.innerHTML='<i class="fas fa-times-circle mr-1"></i>Vui lòng nhập mã voucher'
+    statusEl.innerHTML='<i class="fas fa-times-circle mr-1"></i>Vui lòng nhập mã khuyến mãi'
     statusEl.classList.remove('hidden'); return
   }
   btn.disabled=true; btn.innerHTML='<i class="fas fa-spinner fa-spin"></i>'
@@ -2887,14 +2906,14 @@ async function applyCkVoucher() {
     const res = await axios.post('/api/vouchers/validate', { code })
     ckAppliedVoucher = res.data.data
     statusEl.className='mt-2 voucher-success rounded-xl px-3 py-2 text-sm text-green-700 font-semibold flex items-center gap-2'
-    statusEl.innerHTML='<i class="fas fa-check-circle text-green-500"></i>Ap dung thanh cong! Giam <strong>' + fmtPrice(ckAppliedVoucher.discount_amount) + '</strong>'
+    statusEl.innerHTML='<i class="fas fa-check-circle text-green-500"></i>Áp dụng thành công! Giảm <strong>' + fmtPrice(ckAppliedVoucher.discount_amount) + '</strong>'
     statusEl.classList.remove('hidden')
     document.getElementById('ckVoucher').classList.add('border-green-400','bg-green-50')
     updateCkTotal()
   } catch(err) {
     ckAppliedVoucher = null
     const errCode = err.response?.data?.error
-    const msg = errCode==='VOUCHER_LIMIT'?'Voucher đã hết lượt':errCode==='INVALID_VOUCHER'?'Mã không hợp lệ hoặc hết hạn':'Không thể áp dụng'
+    const msg = errCode==='VOUCHER_LIMIT'?'Mã khuyến mãi đã hết lượt':errCode==='INVALID_VOUCHER'?'Mã không hợp lệ hoặc hết hạn':'Không thể áp dụng'
     statusEl.className='mt-2 voucher-error rounded-xl px-3 py-2 text-sm text-red-600 font-medium flex items-center gap-1'
     statusEl.innerHTML='<i class="fas fa-times-circle mr-1"></i>' + msg
     statusEl.classList.remove('hidden')
@@ -3060,7 +3079,7 @@ async function submitCartOrder() {
     } else if (errCode === 'ORDER_DAILY_LIMIT_REACHED') {
       showBlockedCustomerModal(e.response?.data?.reason || 'Bạn đã đặt tối đa 2 đơn trong hôm nay. Vui lòng liên hệ shop nếu cần hỗ trợ.')
     } else if (errCode==='INVALID_VOUCHER'||errCode==='VOUCHER_LIMIT') {
-      setCartSubmitStatus('Voucher không còn hiệu lực.', 'error')
+      setCartSubmitStatus('Mã khuyến mãi không còn hiệu lực.', 'error')
       ckAppliedVoucher=null; updateCkTotal()
       document.getElementById('ckVoucherBtn').innerHTML='Áp dụng'
       document.getElementById('ckVoucherBtn').className='px-4 py-2.5 bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-sm font-semibold transition whitespace-nowrap'
@@ -3260,8 +3279,9 @@ function mapTrendingProductsToHeroCards(products) {
   return products.map((p) => {
     const imgs = safeJson(p.images)
     const categoryLabel = p.category === 'male' ? 'Nam' : p.category === 'female' ? 'Nu' : 'Unisex'
-    const displayPrice = Number(p.display_price || p.price || 0)
-    const displayOriginalPrice = Number(p.display_original_price || p.original_price || displayPrice)
+    const priceInfo = getProductDisplayPriceInfo(p)
+    const displayPrice = priceInfo.price
+    const displayOriginalPrice = priceInfo.originalPrice
     return {
       image_url: p.thumbnail || imgs[0] || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400',
       subtitle: categoryLabel + ' · Dang thinh hanh',

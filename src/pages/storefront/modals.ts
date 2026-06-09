@@ -196,10 +196,10 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
 
         <div id="fieldVoucher">
           <label class="block text-sm font-semibold text-gray-700 mb-1.5 field-title">
-            <i class="fas fa-tag text-pink-400 mr-1"></i>Mã giảm giá (tuỳ chọn)
+            <i class="fas fa-tag text-pink-400 mr-1"></i>Mã khuyến mãi (tuỳ chọn)
           </label>
           <div class="order-voucher-row flex gap-2">
-            <input type="text" id="orderVoucher" placeholder="Nhập mã voucher..."
+            <input type="text" id="orderVoucher" placeholder="Nhập mã khuyến mãi..."
               class="flex-1 border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200 uppercase tracking-wider"
               oninput="this.value=this.value.toUpperCase()">
             <button onclick="applyVoucher()" id="voucherBtn"
@@ -533,10 +533,10 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
 
           <div id="ckFieldVoucher">
             <label class="block text-sm font-semibold text-gray-700 mb-1.5">
-              <i class="fas fa-tag text-pink-400 mr-1"></i>Mã giảm giá (tuỳ chọn)
+              <i class="fas fa-tag text-pink-400 mr-1"></i>Mã khuyến mãi (tuỳ chọn)
             </label>
             <div class="flex gap-2">
-              <input type="text" id="ckVoucher" placeholder="Nhập mã voucher..."
+              <input type="text" id="ckVoucher" placeholder="Nhập mã khuyến mãi..."
                 class="flex-1 border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200 uppercase tracking-wider"
                 oninput="this.value=this.value.toUpperCase()">
               <button onclick="applyCkVoucher()" id="ckVoucherBtn"

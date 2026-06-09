@@ -2208,6 +2208,31 @@ export function storefrontThemeRefreshStyles(): string {
     text-shadow: 0 0 14px rgba(255,209,102,0.42);
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 0 18px rgba(93,65,255,0.22);
   }
+  .auto-voucher-mini-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.28rem;
+    width: fit-content;
+    max-width: 100%;
+    margin: 0.25rem 0 0.45rem;
+    padding: 0.25rem 0.55rem;
+    border-radius: 9999px;
+    background: linear-gradient(135deg, rgba(255,95,109,0.95), rgba(255,195,113,0.95));
+    color: #fff;
+    font-size: 0.72rem;
+    font-weight: 800;
+    line-height: 1;
+    white-space: nowrap;
+    box-shadow: 0 10px 24px rgba(255,95,109,0.22), inset 0 1px 0 rgba(255,255,255,0.28);
+  }
+  .auto-voucher-mini-badge i {
+    font-size: 0.68rem;
+    color: #fff7ad;
+  }
+  body[data-storefront-theme='dark'] .auto-voucher-mini-badge {
+    background: linear-gradient(135deg, rgba(255,86,115,0.94), rgba(255,160,67,0.88));
+    box-shadow: 0 0 24px rgba(255,95,109,0.22), inset 0 1px 0 rgba(255,255,255,0.14);
+  }
   #detailOverlay .popup-card,
   #detailContent,
   #detailContent > .grid,

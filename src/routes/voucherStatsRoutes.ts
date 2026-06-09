@@ -1,5 +1,6 @@
 import type { Hono } from 'hono'
 import type { AppBindings } from '../types/app'
+import { ensureAutoVoucherSchema, normalizeAutoVoucherInput } from '../lib/autoVoucherHelpers.ts'
 
 type VoucherStatsRouteDeps = {
   initDB: (db: D1Database) => Promise<void>
@@ -271,6 +272,116 @@ export function registerVoucherStatsRoutes(app: Hono<{ Bindings: AppBindings }>,
     try {
       const id = c.req.param('id')
       await c.env.DB.prepare(`DELETE FROM vouchers WHERE id=?`).bind(id).run()
+      return c.json({ success: true })
+    } catch (e: any) {
+      return c.json({ success: false, error: e.message }, 500)
+    }
+  })
+
+  app.get('/api/admin/auto-vouchers', async (c) => {
+    try {
+      await deps.initDB(c.env.DB)
+      await ensureAutoVoucherSchema(c.env.DB)
+      const result = await c.env.DB.prepare(`SELECT * FROM auto_vouchers ORDER BY created_at DESC, id DESC`).all()
+      const data = ((result.results || []) as any[]).map((row) => ({
+        ...row,
+        product_ids: (() => {
+          try {
+            const parsed = JSON.parse(String(row.product_ids || '[]'))
+            return Array.isArray(parsed) ? parsed : []
+          } catch {
+            return []
+          }
+        })()
+      }))
+      return c.json({ success: true, data })
+    } catch (e: any) {
+      return c.json({ success: false, error: e.message }, 500)
+    }
+  })
+
+  app.post('/api/admin/auto-vouchers', async (c) => {
+    try {
+      await deps.initDB(c.env.DB)
+      await ensureAutoVoucherSchema(c.env.DB)
+      const body = await c.req.json()
+      const input = normalizeAutoVoucherInput(body)
+      if (!input.name || input.discountAmount <= 0 || !input.validFrom || !input.validTo) {
+        return c.json({ success: false, error: 'Thiếu tên, số tiền giảm hoặc thời gian hiệu lực' }, 400)
+      }
+      if (input.scope === 'products' && input.productIds.length === 0) {
+        return c.json({ success: false, error: 'Vui lòng chọn ít nhất 1 sản phẩm' }, 400)
+      }
+      const result = await c.env.DB.prepare(`
+        INSERT INTO auto_vouchers (name, discount_amount, scope, product_ids, is_active, valid_from, valid_to)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).bind(
+        input.name,
+        input.discountAmount,
+        input.scope,
+        JSON.stringify(input.productIds),
+        input.isActive,
+        input.validFrom,
+        input.validTo
+      ).run()
+      return c.json({ success: true, id: result.meta.last_row_id })
+    } catch (e: any) {
+      return c.json({ success: false, error: e.message }, 500)
+    }
+  })
+
+  app.put('/api/admin/auto-vouchers/:id', async (c) => {
+    try {
+      await deps.initDB(c.env.DB)
+      await ensureAutoVoucherSchema(c.env.DB)
+      const id = c.req.param('id')
+      const input = normalizeAutoVoucherInput(await c.req.json())
+      if (!input.name || input.discountAmount <= 0 || !input.validFrom || !input.validTo) {
+        return c.json({ success: false, error: 'Thiếu tên, số tiền giảm hoặc thời gian hiệu lực' }, 400)
+      }
+      if (input.scope === 'products' && input.productIds.length === 0) {
+        return c.json({ success: false, error: 'Vui lòng chọn ít nhất 1 sản phẩm' }, 400)
+      }
+      await c.env.DB.prepare(`
+        UPDATE auto_vouchers
+        SET name = ?, discount_amount = ?, scope = ?, product_ids = ?, is_active = ?, valid_from = ?, valid_to = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).bind(
+        input.name,
+        input.discountAmount,
+        input.scope,
+        JSON.stringify(input.productIds),
+        input.isActive,
+        input.validFrom,
+        input.validTo,
+        id
+      ).run()
+      return c.json({ success: true })
+    } catch (e: any) {
+      return c.json({ success: false, error: e.message }, 500)
+    }
+  })
+
+  app.patch('/api/admin/auto-vouchers/:id/toggle', async (c) => {
+    try {
+      await deps.initDB(c.env.DB)
+      await ensureAutoVoucherSchema(c.env.DB)
+      const id = c.req.param('id')
+      await c.env.DB.prepare(
+        `UPDATE auto_vouchers SET is_active = CASE WHEN is_active=1 THEN 0 ELSE 1 END, updated_at = CURRENT_TIMESTAMP WHERE id=?`
+      ).bind(id).run()
+      return c.json({ success: true })
+    } catch (e: any) {
+      return c.json({ success: false, error: e.message }, 500)
+    }
+  })
+
+  app.delete('/api/admin/auto-vouchers/:id', async (c) => {
+    try {
+      await deps.initDB(c.env.DB)
+      await ensureAutoVoucherSchema(c.env.DB)
+      const id = c.req.param('id')
+      await c.env.DB.prepare(`DELETE FROM auto_vouchers WHERE id=?`).bind(id).run()
       return c.json({ success: true })
     } catch (e: any) {
       return c.json({ success: false, error: e.message }, 500)

@@ -66,7 +66,7 @@ export function adminSidebarSection(): string {
       <i class="fas fa-users w-5"></i><span class="sidebar-label">Khách hàng</span>
     </button>
     <button class="nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium" data-page="vouchers" onclick="showPage('vouchers')">
-      <i class="fas fa-ticket-alt w-5"></i><span class="sidebar-label">Voucher</span>
+      <i class="fas fa-ticket-alt w-5"></i><span class="sidebar-label">Khuyến mãi</span>
     </button>
     <button class="nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium" data-page="featured" onclick="showPage('featured')">
       <i class="fas fa-star w-5"></i><span class="sidebar-label">Sản phẩm Nổi Bật</span>
@@ -309,7 +309,155 @@ export function adminReviewsPage(): string {
 }
 
 export function adminVouchersPage(): string {
-  return "<!-- VOUCHERS PAGE -->\n  <div id=\"page-vouchers\" class=\"p-6 hidden\">\n    <div class=\"grid md:grid-cols-2 gap-6\">\n      <!-- Create Voucher Form -->\n      <div class=\"bg-white rounded-2xl shadow-sm border p-6\">\n        <h2 class=\"font-bold text-gray-800 text-lg mb-5 flex items-center gap-2\">\n          <i class=\"fas fa-plus-circle text-pink-500\"></i>Tạo Voucher mới\n        </h2>\n        <form onsubmit=\"createVoucher(event)\" class=\"space-y-4\">\n          <div>\n            <label class=\"block text-sm font-semibold text-gray-700 mb-1.5\">\n              <i class=\"fas fa-coins text-pink-400 mr-1\"></i>Số tiền giảm (VNĐ) *\n            </label>\n            <input type=\"number\" id=\"vDiscount\" placeholder=\"VD: 50000\" min=\"1000\" required\n              class=\"w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400\">\n          </div>\n          <div class=\"grid grid-cols-2 gap-3\">\n            <div>\n              <label class=\"block text-sm font-semibold text-gray-700 mb-1.5\">\n                <i class=\"fas fa-calendar-check text-pink-400 mr-1\"></i>Hiệu lực từ *\n              </label>\n              <input type=\"datetime-local\" id=\"vFrom\" required\n                class=\"w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400\">\n            </div>\n            <div>\n              <label class=\"block text-sm font-semibold text-gray-700 mb-1.5\">\n                <i class=\"fas fa-calendar-times text-pink-400 mr-1\"></i>Hết hạn *\n              </label>\n              <input type=\"datetime-local\" id=\"vTo\" required\n                class=\"w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400\">\n            </div>\n          </div>\n          <div>\n            <label class=\"block text-sm font-semibold text-gray-700 mb-1.5\">\n              <i class=\"fas fa-barcode text-pink-400 mr-1\"></i>Mã tuỳ chỉnh <span class=\"text-gray-400 font-normal\">(để trống = tự sinh)</span>\n            </label>\n            <input type=\"text\" id=\"vCode\" placeholder=\"VD: SUMMER30\"\n              class=\"w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 uppercase tracking-wider\"\n              oninput=\"this.value=this.value.toUpperCase()\">\n          </div>\n          <div>\n            <label class=\"block text-sm font-semibold text-gray-700 mb-1.5\">\n              <i class=\"fas fa-users text-pink-400 mr-1\"></i>Giới hạn lượt dùng <span class=\"text-gray-400 font-normal\">(0 = không giới hạn)</span>\n            </label>\n            <input type=\"number\" id=\"vLimit\" placeholder=\"0\" min=\"0\" value=\"0\"\n              class=\"w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400\">\n          </div>\n          <button type=\"submit\" id=\"createVoucherBtn\" class=\"btn-pink w-full text-white py-3 rounded-xl font-bold text-sm\">\n            <i class=\"fas fa-magic mr-2\"></i>Tạo & Sinh mã Voucher\n          </button>\n        </form>\n        <!-- Generated code display -->\n        <div id=\"generatedCode\" class=\"hidden mt-4 p-4 rounded-2xl bg-gradient-to-r from-pink-50 to-red-50 border border-pink-200 text-center\">\n          <p class=\"text-xs text-gray-500 mb-1\">Mã voucher vừa tạo:</p>\n          <p id=\"generatedCodeText\" class=\"text-2xl font-bold tracking-widest text-pink-600 font-mono\"></p>\n          <button onclick=\"copyCode()\" class=\"mt-2 text-xs text-gray-500 hover:text-pink-500 transition\">\n            <i class=\"fas fa-copy mr-1\"></i>Sao chép\n          </button>\n        </div>\n      </div>\n\n      <!-- Voucher List -->\n      <div class=\"bg-white rounded-2xl shadow-sm border p-6\">\n        <div class=\"flex items-center justify-between mb-4\">\n          <h2 class=\"font-bold text-gray-800 text-lg flex items-center gap-2\">\n            <i class=\"fas fa-list text-pink-500\"></i>Danh sách Voucher\n          </h2>\n          <button onclick=\"loadVouchers()\" class=\"text-sm text-pink-500 hover:underline\">\n            <i class=\"fas fa-sync-alt mr-1\"></i>Làm mới\n          </button>\n        </div>\n        <div id=\"voucherList\" class=\"space-y-3 max-h-[500px] overflow-y-auto scrollbar-thin pr-1\">\n          <div class=\"text-center py-8 text-gray-400\"><i class=\"fas fa-spinner fa-spin text-2xl\"></i></div>\n        </div>\n      </div>\n    </div>\n  </div>"
+  return `<!-- VOUCHERS PAGE -->
+  <div id="page-vouchers" class="p-6 hidden">
+    <div class="grid xl:grid-cols-2 gap-6">
+      <div class="space-y-6">
+        <div class="bg-white rounded-2xl shadow-sm border p-6">
+          <h2 class="font-bold text-gray-800 text-lg mb-2 flex items-center gap-2">
+            <i class="fas fa-barcode text-pink-500"></i>Tạo mã khuyến mãi
+          </h2>
+          <p class="text-sm text-gray-500 mb-5">Khách nhập đúng mã ở bước đặt hàng thì mới được giảm.</p>
+          <form onsubmit="createVoucher(event)" class="space-y-4">
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-1.5">
+                <i class="fas fa-coins text-pink-400 mr-1"></i>Số tiền giảm (VNĐ) *
+              </label>
+              <input type="number" id="vDiscount" placeholder="VD: 50000" min="1000" required
+                class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">
+                  <i class="fas fa-calendar-check text-pink-400 mr-1"></i>Hiệu lực từ *
+                </label>
+                <input type="datetime-local" id="vFrom" required
+                  class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
+              </div>
+              <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">
+                  <i class="fas fa-calendar-times text-pink-400 mr-1"></i>Hết hạn *
+                </label>
+                <input type="datetime-local" id="vTo" required
+                  class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
+              </div>
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-1.5">
+                <i class="fas fa-ticket text-pink-400 mr-1"></i>Mã tuỳ chỉnh <span class="text-gray-400 font-normal">(để trống = tự sinh)</span>
+              </label>
+              <input type="text" id="vCode" placeholder="VD: SUMMER30"
+                class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 uppercase tracking-wider"
+                oninput="this.value=this.value.toUpperCase()">
+            </div>
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-1.5">
+                <i class="fas fa-users text-pink-400 mr-1"></i>Giới hạn lượt dùng <span class="text-gray-400 font-normal">(0 = không giới hạn)</span>
+              </label>
+              <input type="number" id="vLimit" placeholder="0" min="0" value="0"
+                class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
+            </div>
+            <button type="submit" id="createVoucherBtn" class="btn-pink w-full text-white py-3 rounded-xl font-bold text-sm">
+              <i class="fas fa-magic mr-2"></i>Tạo mã khuyến mãi
+            </button>
+          </form>
+          <div id="generatedCode" class="hidden mt-4 p-4 rounded-2xl bg-gradient-to-r from-pink-50 to-red-50 border border-pink-200 text-center">
+            <p class="text-xs text-gray-500 mb-1">Mã khuyến mãi vừa tạo:</p>
+            <p id="generatedCodeText" class="text-2xl font-bold tracking-widest text-pink-600 font-mono"></p>
+            <button onclick="copyCode()" class="mt-2 text-xs text-gray-500 hover:text-pink-500 transition">
+              <i class="fas fa-copy mr-1"></i>Sao chép
+            </button>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-sm border p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="font-bold text-gray-800 text-lg flex items-center gap-2">
+              <i class="fas fa-list text-pink-500"></i>Danh sách mã khuyến mãi
+            </h2>
+            <button onclick="loadVouchers()" class="text-sm text-pink-500 hover:underline">
+              <i class="fas fa-sync-alt mr-1"></i>Làm mới
+            </button>
+          </div>
+          <div id="voucherList" class="space-y-3 max-h-[500px] overflow-y-auto scrollbar-thin pr-1">
+            <div class="text-center py-8 text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="space-y-6">
+        <div class="bg-white rounded-2xl shadow-sm border p-6">
+          <h2 class="font-bold text-gray-800 text-lg mb-2 flex items-center gap-2">
+            <i class="fas fa-tags text-pink-500"></i>Voucher tự động
+          </h2>
+          <p class="text-sm text-gray-500 mb-5">Tự trừ vào giá hiển thị của sản phẩm. Giá gạch ngang vẫn là giá gốc.</p>
+          <form onsubmit="createAutoVoucher(event)" class="space-y-4">
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-1.5">Tên voucher *</label>
+              <input type="text" id="autoVoucherName" placeholder="VD: Giảm thêm 30K" required
+                class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">Số tiền giảm *</label>
+                <input type="number" id="autoVoucherDiscount" placeholder="30000" min="1000" required
+                  class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
+              </div>
+              <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">Phạm vi áp dụng</label>
+                <select id="autoVoucherScope" onchange="syncAutoVoucherScopeUI()" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 bg-white">
+                  <option value="all">Toàn bộ cửa hàng</option>
+                  <option value="products">Một số sản phẩm</option>
+                </select>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">Hiệu lực từ *</label>
+                <input type="datetime-local" id="autoVoucherFrom" required
+                  class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
+              </div>
+              <div>
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">Hết hạn *</label>
+                <input type="datetime-local" id="autoVoucherTo" required
+                  class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
+              </div>
+            </div>
+            <div id="autoVoucherProductsWrap" class="hidden">
+              <div class="flex items-center justify-between mb-2">
+                <label class="block text-sm font-semibold text-gray-700">Sản phẩm áp dụng</label>
+                <button type="button" onclick="loadAutoVoucherProductOptions()" class="text-xs text-pink-500 hover:underline">Tải lại</button>
+              </div>
+              <div id="autoVoucherProducts" class="max-h-64 overflow-y-auto rounded-2xl border bg-gray-50 p-2 space-y-2">
+                <div class="text-center text-gray-400 py-6 text-sm">Chọn phạm vi sản phẩm để tải danh sách.</div>
+              </div>
+            </div>
+            <label class="inline-flex items-center gap-2 text-sm font-semibold text-gray-700">
+              <input id="autoVoucherActive" type="checkbox" checked class="w-4 h-4 rounded border-gray-300 text-pink-500 focus:ring-pink-400">
+              Đang bật
+            </label>
+            <button type="submit" id="createAutoVoucherBtn" class="btn-pink w-full text-white py-3 rounded-xl font-bold text-sm">
+              <i class="fas fa-tags mr-2"></i>Tạo voucher tự động
+            </button>
+          </form>
+        </div>
+
+        <div class="bg-white rounded-2xl shadow-sm border p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="font-bold text-gray-800 text-lg flex items-center gap-2">
+              <i class="fas fa-bolt text-pink-500"></i>Danh sách voucher tự động
+            </h2>
+            <button onclick="loadAutoVouchers()" class="text-sm text-pink-500 hover:underline">
+              <i class="fas fa-sync-alt mr-1"></i>Làm mới
+            </button>
+          </div>
+          <div id="autoVoucherList" class="space-y-3 max-h-[500px] overflow-y-auto scrollbar-thin pr-1">
+            <div class="text-center py-8 text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`
 }
 
 export function adminFeaturedPage(): string {

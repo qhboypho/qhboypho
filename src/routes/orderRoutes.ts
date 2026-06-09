@@ -4,6 +4,7 @@ import type { AppBindings } from '../types/app'
 import { validateAdminSessionToken } from '../lib/adminHelpers'
 import { refreshCustomerAutoBlock } from '../lib/customerBlockHelpers'
 import { getUserSessionUserId } from '../lib/userSessionHelpers'
+import { resolveAutoVoucherProductPrice } from '../lib/autoVoucherHelpers.ts'
 
 type OrderRouteDeps = {
   initDB: (db: D1Database) => Promise<void>
@@ -449,7 +450,8 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
         await c.env.DB.prepare(`UPDATE vouchers SET used_count=used_count+1 WHERE id=?`).bind(voucher.id).run()
       }
 
-      const subtotal = product.price * qty
+      const productUnitPrice = await resolveAutoVoucherProductPrice(c.env.DB, product)
+      const subtotal = productUnitPrice * qty
       const total = Math.max(0, subtotal - discount)
       const orderCode = await generateUniqueOrderCode(c.env.DB)
       const normalizedPaymentMethod = String(payment_method || '').toUpperCase()
@@ -481,7 +483,7 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
         deviceHash || null,
         product_id,
         product.name,
-        product.price,
+        productUnitPrice,
         color || '',
         selectedColorImage || '',
         size || '',

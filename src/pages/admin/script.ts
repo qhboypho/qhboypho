@@ -785,7 +785,7 @@ function showPage(pageName) {
   if (marketingActiveSubPage) {
     document.querySelectorAll('.nav-sub-item[data-sub-page="' + marketingActiveSubPage + '"]').forEach(b => b.classList.add('active'))
   }
-  const titles = {dashboard:'Dashboard', products:'Quản lý Sản phẩm', 'product-types':'Loại sản phẩm', orders:'Quản lý Đơn hàng', returns:'Quản lý hoàn trả', customers:'Quản lý Khách hàng', reviews:'Quản lý Đánh giá', backup:'Dữ liệu', vouchers:'Quản lý Voucher', featured:'Sản phẩm Nổi Bật', settings:'Setting', 'settings-social':'Cấu hình MXH', 'settings-payment':'Thanh toán', 'settings-text-ui':'Text UI', 'settings-images':'Cài đặt ảnh', 'settings-notifications':'Cài đặt thông báo', 'settings-warehouse':'Cài đặt kho hàng', flashsale:'Quản lý Flashsale'}
+  const titles = {dashboard:'Dashboard', products:'Quản lý Sản phẩm', 'product-types':'Loại sản phẩm', orders:'Quản lý Đơn hàng', returns:'Quản lý hoàn trả', customers:'Quản lý Khách hàng', reviews:'Quản lý Đánh giá', backup:'Dữ liệu', vouchers:'Khuyến mãi', featured:'Sản phẩm Nổi Bật', settings:'Setting', 'settings-social':'Cấu hình MXH', 'settings-payment':'Thanh toán', 'settings-text-ui':'Text UI', 'settings-images':'Cài đặt ảnh', 'settings-notifications':'Cài đặt thông báo', 'settings-warehouse':'Cài đặt kho hàng', flashsale:'Quản lý Flashsale'}
   document.body.dataset.adminPage = pageName
   document.getElementById('pageTitle').textContent = titles[pageName] || pageName
 
@@ -1826,7 +1826,7 @@ function renderBackupSummary(result) {
     ['Banner', summary.hero_banners || 0],
     ['Flashsale', summary.flash_sales || 0],
     ['Mặt hàng flashsale', summary.flash_sale_items || 0],
-    ['Voucher', summary.vouchers || 0],
+    ['Mã khuyến mãi', summary.vouchers || 0],
     ['Setting hiển thị', summary.app_settings || 0],
     ['Ảnh trong ZIP', summary.images || 0],
     ['Reviews tham chiếu', summary.reviews || 0],
@@ -2814,12 +2814,15 @@ async function loadAdminReviews() {
 
 async function loadVouchers() {
   const list = document.getElementById('voucherList')
+  if (!list) return
   list.innerHTML = '<div class="text-center py-8 text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></div>'
   try {
+    loadAutoVouchers()
+    syncAutoVoucherScopeUI()
     const res = await axios.get('/api/admin/vouchers')
     const vouchers = res.data.data || []
     if (!vouchers.length) {
-      list.innerHTML = '<div class="text-center py-8 text-gray-400"><i class="fas fa-ticket-alt text-4xl mb-2"></i><p>Chưa có voucher nào</p></div>'
+      list.innerHTML = '<div class="text-center py-8 text-gray-400"><i class="fas fa-ticket-alt text-4xl mb-2"></i><p>Chưa có mã khuyến mãi nào</p></div>'
       return
     }
     list.innerHTML = vouchers.map(v => {
@@ -2861,7 +2864,7 @@ async function loadVouchers() {
       </div>\`
     }).join('')
   } catch(e) {
-    list.innerHTML = '<div class="text-center text-red-400 py-8">Lá»—i táº£i dá»¯ liá»‡u</div>'
+    list.innerHTML = '<div class="text-center text-red-400 py-8">Lỗi tải dữ liệu</div>'
   }
 }
 
@@ -2881,14 +2884,14 @@ async function createVoucher(e) {
     const code = res.data.code
     document.getElementById('generatedCode').classList.remove('hidden')
     document.getElementById('generatedCodeText').textContent = code
-    showAdminToast('Tạo voucher ' + code + ' thành công!', 'success')
+    showAdminToast('Tạo mã khuyến mãi ' + code + ' thành công!', 'success')
     e.target.reset()
     loadVouchers()
   } catch(err) {
-    showAdminToast('Lỗi tạo voucher: ' + (err.response?.data?.error || 'Unknown'), 'error')
+    showAdminToast('Lỗi tạo mã khuyến mãi: ' + (err.response?.data?.error || 'Unknown'), 'error')
   } finally {
     btn.disabled = false
-    btn.innerHTML = '<i class="fas fa-magic mr-2"></i>Tạo & Sinh mã Voucher'
+    btn.innerHTML = '<i class="fas fa-magic mr-2"></i>Tạo mã khuyến mãi'
   }
 }
 
@@ -2896,17 +2899,162 @@ async function toggleVoucher(id) {
   try {
     await axios.patch('/api/admin/vouchers/' + id + '/toggle')
     loadVouchers()
-    showAdminToast('Đã cập nhật trạng thái voucher', 'success')
+    showAdminToast('Đã cập nhật trạng thái mã khuyến mãi', 'success')
   } catch(e) { showAdminToast('Lỗi', 'error') }
 }
 
 async function deleteVoucher(id) {
-  if (!confirm('Xóa voucher này?')) return
+  if (!confirm('Xóa mã khuyến mãi này?')) return
   try {
     await axios.delete('/api/admin/vouchers/' + id)
     loadVouchers()
-    showAdminToast('Đã xóa voucher', 'success')
+    showAdminToast('Đã xóa mã khuyến mãi', 'success')
   } catch(e) { showAdminToast('Lỗi xóa', 'error') }
+}
+
+function getAutoVoucherSelectedProductIds() {
+  return Array.from(document.querySelectorAll('.auto-voucher-product-check:checked'))
+    .map((el) => Number(el.value || 0))
+    .filter((id) => Number.isFinite(id) && id > 0)
+}
+
+function syncAutoVoucherScopeUI() {
+  const scope = document.getElementById('autoVoucherScope')?.value || 'all'
+  const wrap = document.getElementById('autoVoucherProductsWrap')
+  if (wrap) wrap.classList.toggle('hidden', scope !== 'products')
+  if (scope === 'products') loadAutoVoucherProductOptions()
+}
+
+async function loadAutoVoucherProductOptions(selectedIds) {
+  const wrap = document.getElementById('autoVoucherProducts')
+  if (!wrap) return
+  const selected = new Set((Array.isArray(selectedIds) ? selectedIds : getAutoVoucherSelectedProductIds()).map((id) => Number(id)))
+  wrap.innerHTML = '<div class="text-center text-gray-400 py-6 text-sm"><i class="fas fa-spinner fa-spin mr-1"></i>Đang tải sản phẩm...</div>'
+  try {
+    if (!Array.isArray(adminProducts) || !adminProducts.length) {
+      const res = await axios.get('/api/admin/products')
+      adminProducts = Array.isArray(res.data?.data) ? res.data.data : []
+    }
+    const products = (adminProducts || []).filter(Boolean)
+    if (!products.length) {
+      wrap.innerHTML = '<div class="text-center text-gray-400 py-6 text-sm">Chưa có sản phẩm.</div>'
+      return
+    }
+    wrap.innerHTML = products.map((p) => {
+      const id = Number(p.id || 0)
+      const checked = selected.has(id) ? 'checked' : ''
+      const thumb = String(p.thumbnail || '').trim() || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200'
+      return '<label class="flex items-center gap-3 rounded-xl bg-white border px-3 py-2 cursor-pointer hover:border-pink-200">'
+        + '<input type="checkbox" class="auto-voucher-product-check w-4 h-4 rounded border-gray-300 text-pink-500 focus:ring-pink-400" value="' + id + '" ' + checked + '>'
+        + '<img src="' + escapeDashboardHtml(thumb) + '" alt="" class="w-10 h-10 rounded-lg object-cover bg-gray-100" onerror="this.src=&quot;https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=200&quot;">'
+        + '<span class="text-sm font-semibold text-gray-700 line-clamp-1">' + escapeDashboardHtml(p.name || ('Sản phẩm #' + id)) + '</span>'
+        + '<span class="ml-auto text-xs font-bold text-pink-500">' + fmtPrice(p.price || 0) + '</span>'
+      + '</label>'
+    }).join('')
+  } catch (e) {
+    wrap.innerHTML = '<div class="text-center text-red-400 py-6 text-sm">Không tải được sản phẩm</div>'
+  }
+}
+
+function renderAutoVoucherScope(v) {
+  const scope = String(v.scope || 'all')
+  const ids = Array.isArray(v.product_ids) ? v.product_ids : []
+  if (scope === 'products') return ids.length + ' sản phẩm'
+  return 'Toàn bộ cửa hàng'
+}
+
+async function loadAutoVouchers() {
+  const list = document.getElementById('autoVoucherList')
+  if (!list) return
+  list.innerHTML = '<div class="text-center py-8 text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></div>'
+  try {
+    const res = await axios.get('/api/admin/auto-vouchers')
+    const vouchers = Array.isArray(res.data?.data) ? res.data.data : []
+    if (!vouchers.length) {
+      list.innerHTML = '<div class="text-center py-8 text-gray-400"><i class="fas fa-tags text-4xl mb-2"></i><p>Chưa có voucher tự động nào</p></div>'
+      return
+    }
+    list.innerHTML = vouchers.map((v) => {
+      const now = new Date()
+      const from = new Date(v.valid_from)
+      const to = new Date(v.valid_to)
+      const expired = Number.isFinite(to.getTime()) && to < now
+      const notStarted = Number.isFinite(from.getTime()) && from > now
+      const isValid = !expired && !notStarted && Number(v.is_active || 0) === 1
+      return '<div class="border rounded-2xl p-4 ' + (!v.is_active ? 'opacity-50 bg-gray-50' : isValid ? 'bg-gradient-to-r from-pink-50 to-fuchsia-50 border-pink-200' : 'bg-gray-50 border-gray-200') + '">'
+        + '<div class="flex items-start justify-between gap-2 mb-2">'
+        + '<div class="min-w-0"><p class="font-bold text-gray-800 line-clamp-1">' + escapeDashboardHtml(v.name || 'Voucher tự động') + '</p>'
+        + '<p class="text-xs text-gray-500 mt-1"><i class="fas fa-layer-group mr-1"></i>' + escapeDashboardHtml(renderAutoVoucherScope(v)) + '</p></div>'
+        + '<div class="flex gap-1 shrink-0">'
+        + '<button onclick="toggleAutoVoucher(' + v.id + ')" class="p-1.5 rounded-lg text-xs ' + (v.is_active ? 'bg-amber-50 text-amber-600 hover:bg-amber-100' : 'bg-green-50 text-green-600 hover:bg-green-100') + ' transition" title="' + (v.is_active ? 'Tắt' : 'Bật') + '"><i class="fas fa-' + (v.is_active ? 'toggle-off' : 'toggle-on') + '"></i></button>'
+        + '<button onclick="deleteAutoVoucher(' + v.id + ')" class="p-1.5 bg-red-50 text-red-500 hover:bg-red-100 rounded-lg text-xs transition" title="Xóa"><i class="fas fa-trash"></i></button>'
+        + '</div></div>'
+        + '<div class="flex items-center gap-3 flex-wrap text-sm">'
+        + '<span class="font-bold text-pink-600 text-base">Giảm thêm ' + fmtPrice(v.discount_amount || 0) + '</span>'
+        + '<span class="text-gray-400">|</span>'
+        + '<span class="text-gray-500 text-xs"><i class="fas fa-calendar text-gray-400 mr-1"></i>' + new Date(v.valid_from).toLocaleDateString('vi-VN') + ' -> ' + new Date(v.valid_to).toLocaleDateString('vi-VN') + '</span>'
+        + '</div>'
+        + '<div class="mt-2"><span class="text-xs px-2 py-0.5 rounded-full font-medium ' + (isValid ? 'bg-green-100 text-green-700' : expired ? 'bg-gray-100 text-gray-500' : notStarted ? 'bg-blue-100 text-blue-600' : 'bg-red-100 text-red-600') + '">' + (isValid ? 'Đang áp dụng' : expired ? 'Hết hạn' : notStarted ? 'Chưa bắt đầu' : 'Đang tắt') + '</span></div>'
+      + '</div>'
+    }).join('')
+  } catch (e) {
+    list.innerHTML = '<div class="text-center text-red-400 py-8">Lỗi tải dữ liệu</div>'
+  }
+}
+
+async function createAutoVoucher(e) {
+  e.preventDefault()
+  const btn = document.getElementById('createAutoVoucherBtn')
+  const scope = document.getElementById('autoVoucherScope')?.value || 'all'
+  const productIds = scope === 'products' ? getAutoVoucherSelectedProductIds() : []
+  if (scope === 'products' && !productIds.length) {
+    showAdminToast('Vui lòng chọn ít nhất 1 sản phẩm', 'error')
+    return
+  }
+  btn.disabled = true
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Đang tạo...'
+  try {
+    await axios.post('/api/admin/auto-vouchers', {
+      name: document.getElementById('autoVoucherName').value,
+      discount_amount: document.getElementById('autoVoucherDiscount').value,
+      scope,
+      product_ids: productIds,
+      valid_from: new Date(document.getElementById('autoVoucherFrom').value).toISOString(),
+      valid_to: new Date(document.getElementById('autoVoucherTo').value).toISOString(),
+      is_active: document.getElementById('autoVoucherActive')?.checked ? 1 : 0
+    })
+    showAdminToast('Đã tạo voucher tự động', 'success')
+    e.target.reset()
+    document.getElementById('autoVoucherActive').checked = true
+    syncAutoVoucherScopeUI()
+    loadAutoVouchers()
+  } catch (err) {
+    showAdminToast(err.response?.data?.error || 'Lỗi tạo voucher tự động', 'error')
+  } finally {
+    btn.disabled = false
+    btn.innerHTML = '<i class="fas fa-tags mr-2"></i>Tạo voucher tự động'
+  }
+}
+
+async function toggleAutoVoucher(id) {
+  try {
+    await axios.patch('/api/admin/auto-vouchers/' + id + '/toggle')
+    loadAutoVouchers()
+    showAdminToast('Đã cập nhật trạng thái voucher tự động', 'success')
+  } catch (e) {
+    showAdminToast('Lỗi cập nhật voucher tự động', 'error')
+  }
+}
+
+async function deleteAutoVoucher(id) {
+  if (!confirm('Xóa voucher tự động này?')) return
+  try {
+    await axios.delete('/api/admin/auto-vouchers/' + id)
+    loadAutoVouchers()
+    showAdminToast('Đã xóa voucher tự động', 'success')
+  } catch (e) {
+    showAdminToast('Lỗi xóa voucher tự động', 'error')
+  }
 }
 
 function copyCode() {

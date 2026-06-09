@@ -156,10 +156,11 @@ async function showDetail(id, options) {
     const defaultMainImage = String(p.thumbnail || detailColorOptions[0]?.image || images[0] || '').trim()
     const detailGalleryImageList = buildDetailGalleryImages(defaultMainImage, [p.thumbnail].concat(images), detailColorOptions)
     const defaultGalleryIndex = Math.max(0, detailGalleryImageList.findIndex((img) => img === defaultMainImage))
-    const flashMeta = getFlashSaleMeta(p)
-    const detailDisplayPrice = Number(flashMeta?.salePrice || p.display_price || p.price || 0)
-    const detailDisplayOriginalPrice = Number(flashMeta?.basePrice || p.display_original_price || p.original_price || detailDisplayPrice)
-    const discount = flashMeta ? Number(flashMeta.discountPercent || 0) : (p.original_price ? Math.round((1 - p.price/p.original_price)*100) : 0)
+    const priceInfo = getProductDisplayPriceInfo(p)
+    const flashMeta = priceInfo.flashMeta
+    const detailDisplayPrice = priceInfo.price
+    const detailDisplayOriginalPrice = priceInfo.originalPrice
+    const discount = flashMeta ? Number(flashMeta.discountPercent || 0) : (detailDisplayOriginalPrice > detailDisplayPrice ? Math.round((1 - detailDisplayPrice/detailDisplayOriginalPrice)*100) : 0)
     const detailHtml = \`
     <div class="grid md:grid-cols-2 gap-6">
       <div class="-mx-2 md:mx-0">
@@ -195,7 +196,7 @@ async function showDetail(id, options) {
           <h2 id="detailProductTitle" class="detail-product-title font-display font-bold text-gray-900 min-w-0 flex-1">\${escapeHtml(p.name)}</h2>
           \${renderFavoriteButton(p.id, 'favorite-toggle-btn--detail')}
         </div>
-        \${p.has_flash_sale ? \`<div class="flex flex-wrap items-center gap-2 mb-3"><span class="flash-sale-badge"><i class="fas fa-bolt"></i> Flash Sale</span><span class="flash-sale-countdown" data-flash-sale-ends-at="\${escapeHtml(flashMeta?.endsAt || '')}">\${formatFlashSaleCountdown(flashMeta?.endsAt || '')}</span></div>\` : ''}
+        \${p.has_flash_sale ? \`<div class="flex flex-wrap items-center gap-2 mb-3"><span class="flash-sale-badge"><i class="fas fa-bolt"></i> Flash Sale</span><span class="flash-sale-countdown" data-flash-sale-ends-at="\${escapeHtml(flashMeta?.endsAt || '')}">\${formatFlashSaleCountdown(flashMeta?.endsAt || '')}</span></div>\` : renderAutoVoucherMiniBadge(p)}
         <div class="flex items-baseline gap-3 mb-4">
           <span class="text-3xl font-bold text-gradient-price">\${fmtPrice(detailDisplayPrice)}</span>
           \${detailDisplayOriginalPrice > detailDisplayPrice ? \`<span class="text-gray-400 line-through">\${fmtPrice(detailDisplayOriginalPrice)}</span><span class="badge-sale text-white text-xs px-2 py-1 rounded-full">-\${discount}%</span>\` : ''}
@@ -417,7 +418,7 @@ async function openOrder(id, options) {
 
     document.getElementById('orderProductImg').src = selectedColorImage
     document.getElementById('orderProductName').textContent = currentProduct.name
-    document.getElementById('orderProductPrice').textContent = fmtPrice(currentProduct.price)
+    document.getElementById('orderProductPrice').textContent = fmtPrice(getProductDisplayPriceInfo(currentProduct).price)
     document.getElementById('qtyDisplay').textContent = String(orderQty)
     document.getElementById('orderName').value = ''
     document.getElementById('orderPhone').value = ''
@@ -516,7 +517,7 @@ function changeQty(d) {
 }
 function updateOrderTotal() {
   if (!currentProduct) return
-  const subtotal = currentProduct.price * orderQty
+  const subtotal = getProductDisplayPriceInfo(currentProduct).price * orderQty
   const discount = appliedVoucher ? appliedVoucher.discount_amount : 0
   const total = Math.max(0, subtotal - discount)
   const label = document.getElementById('orderTotalLabel')
@@ -705,7 +706,7 @@ async function applyVoucher() {
   
   if (!code) {
     statusEl.className = 'mt-2 voucher-error rounded-xl px-3 py-2 text-sm text-red-600 font-medium'
-    statusEl.innerHTML = '<i class="fas fa-times-circle mr-1"></i>Vui lòng nhập mã voucher'
+    statusEl.innerHTML = '<i class="fas fa-times-circle mr-1"></i>Vui lòng nhập mã khuyến mãi'
     statusEl.classList.remove('hidden')
     return
   }
@@ -725,7 +726,7 @@ async function applyVoucher() {
   } catch(err) {
     appliedVoucher = null
     const errCode = err.response?.data?.error
-    const msg = errCode === 'VOUCHER_LIMIT' ? 'Voucher đã hết lượt sử dụng'
+    const msg = errCode === 'VOUCHER_LIMIT' ? 'Mã khuyến mãi đã hết lượt sử dụng'
               : errCode === 'INVALID_VOUCHER' ? 'Mã không hợp lệ hoặc đã hết hạn'
               : 'Không thể áp dụng mã này'
     statusEl.className = 'mt-2 voucher-error rounded-xl px-3 py-2 text-sm text-red-600 font-medium flex items-center gap-1'
@@ -934,7 +935,7 @@ async function submitOrder() {
     } else if (errCode === 'ORDER_DAILY_LIMIT_REACHED') {
       showBlockedCustomerModal(e.response?.data?.reason || 'Bạn đã đặt tối đa 2 đơn trong hôm nay. Vui lòng liên hệ shop nếu cần hỗ trợ.')
     } else if (errCode === 'INVALID_VOUCHER' || errCode === 'VOUCHER_LIMIT') {
-      showToast('Voucher không còn hiệu lực, vui lòng thử lại', 'error')
+      showToast('Mã khuyến mãi không còn hiệu lực, vui lòng thử lại', 'error')
       appliedVoucher = null
       updateOrderTotal()
       document.getElementById('voucherBtn').innerHTML = 'Áp dụng'
@@ -992,7 +993,7 @@ async function openVariantModal(productId, actionType, editCartId) {
 
     // Render modal UI
     document.getElementById('variantModalProductImg').src = selectedColorImage
-    document.getElementById('variantModalProductPrice').innerHTML = fmtPrice(currentProduct.price)
+    document.getElementById('variantModalProductPrice').innerHTML = fmtPrice(getProductDisplayPriceInfo(currentProduct).price)
     document.getElementById('variantQtyDisplay').textContent = '1'
     document.getElementById('variantModalColorLabel').textContent = ''
 
