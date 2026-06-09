@@ -1041,7 +1041,7 @@ export function storefrontThemeRefreshStyles(): string {
     text-align: center;
   }
   .detail-product-title {
-    font-size: clamp(1.34rem, 1.08rem + 1.05vw, 2rem);
+    font-size: clamp(1.02rem, 0.82rem + 0.46vw, 1.18rem);
     line-height: 1.18;
     letter-spacing: 0;
     overflow-wrap: anywhere;
