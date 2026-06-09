@@ -84,6 +84,9 @@ export function adminSidebarSection(): string {
     <button class="nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium" data-page="reviews" onclick="showPage('reviews')">
       <i class="fas fa-star-half-stroke w-5"></i><span class="sidebar-label">Đánh giá</span>
     </button>
+    <button class="nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium" data-page="backup" onclick="showPage('backup')">
+      <i class="fas fa-database w-5"></i><span class="sidebar-label">Dữ liệu</span>
+    </button>
     <button id="settingsMenuBtn" class="nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium" onclick="toggleSettingsMenu()">
       <i class="fas fa-gear w-5"></i>
       <span class="sidebar-label">Setting</span>
@@ -353,6 +356,66 @@ export function adminPaymentSettingsPage(): string {
           </label>
         </div>
       </div>
+    </div>
+  </div>`
+}
+
+export function adminBackupPage(): string {
+  return `<!-- BACKUP PAGE -->
+  <div id="page-backup" class="p-3 md:p-6 hidden">
+    <div class="grid gap-5 xl:grid-cols-[0.95fr_1.05fr]">
+      <section class="rounded-3xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+        <div class="border-b border-gray-100 px-5 py-5 md:px-6">
+          <p class="text-xs font-bold uppercase tracking-[0.18em] text-pink-500">Backup dữ liệu</p>
+          <h2 class="mt-1 text-xl md:text-2xl font-extrabold text-gray-900">Export sản phẩm & ảnh</h2>
+          <p class="mt-1 text-sm leading-relaxed text-gray-500">Dùng khi chuyển hosting hoặc cần sao lưu. ZIP sẽ chứa manifest, dữ liệu JSON và các ảnh lấy được từ R2/URL.</p>
+        </div>
+        <div class="p-5 md:p-6 space-y-4">
+          <div class="rounded-2xl border border-sky-100 bg-sky-50 p-4 text-sm text-sky-800">
+            <div class="flex items-start gap-3">
+              <i class="fas fa-circle-info mt-0.5 text-sky-500"></i>
+              <p>Backup không chứa token, session, khách hàng hoặc đơn hàng. Reviews chỉ được giữ trong file để tham chiếu, import không tự khôi phục reviews nếu thiếu users/orders.</p>
+            </div>
+          </div>
+          <div class="grid gap-3 sm:grid-cols-2">
+            <button type="button" onclick="downloadAdminBackup('zip')" id="backupZipBtn" class="btn-pink inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-bold text-white">
+              <i class="fas fa-file-zipper"></i>Tải ZIP đầy đủ
+            </button>
+            <button type="button" onclick="downloadAdminBackup('json')" id="backupJsonBtn" class="inline-flex items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-white px-5 py-3 text-sm font-bold text-gray-700 hover:bg-gray-50">
+              <i class="fas fa-code"></i>Tải JSON
+            </button>
+          </div>
+          <div id="backupExportStatus" class="hidden rounded-2xl border border-gray-100 bg-gray-50 p-4 text-sm text-gray-500"></div>
+        </div>
+      </section>
+
+      <section class="rounded-3xl border border-gray-200 bg-white shadow-sm overflow-hidden">
+        <div class="border-b border-gray-100 px-5 py-5 md:px-6">
+          <p class="text-xs font-bold uppercase tracking-[0.18em] text-pink-500">Restore dữ liệu</p>
+          <h2 class="mt-1 text-xl md:text-2xl font-extrabold text-gray-900">Import backup</h2>
+          <p class="mt-1 text-sm leading-relaxed text-gray-500">Nên bấm Xem trước trước khi import thật. ZIP có ảnh sẽ upload lại ảnh vào R2 hiện tại rồi tự rewrite link ảnh.</p>
+        </div>
+        <div class="p-5 md:p-6 space-y-4">
+          <label class="block">
+            <span class="mb-1.5 block text-sm font-semibold text-gray-700">File backup (.zip hoặc .json)</span>
+            <input id="backupImportFile" type="file" accept=".zip,.json,application/json,application/zip" class="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-pink-400">
+          </label>
+          <label class="flex items-start gap-3 rounded-2xl border border-amber-100 bg-amber-50 p-4 text-sm text-amber-900">
+            <input id="backupReplaceExisting" type="checkbox" checked class="mt-1 h-4 w-4 rounded border-amber-300 text-pink-500 focus:ring-pink-400">
+            <span><strong>Xoá dữ liệu hiện tại trước khi import.</strong> Nên bật khi chuyển sang host mới hoặc muốn restore đúng bản backup.</span>
+          </label>
+          <div class="grid gap-3 sm:grid-cols-2">
+            <button type="button" onclick="previewAdminBackupImport()" id="backupPreviewBtn" class="inline-flex items-center justify-center gap-2 rounded-2xl border border-gray-200 bg-white px-5 py-3 text-sm font-bold text-gray-700 hover:bg-gray-50">
+              <i class="fas fa-magnifying-glass-chart"></i>Xem trước
+            </button>
+            <button type="button" onclick="restoreAdminBackupImport()" id="backupRestoreBtn" class="btn-pink inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-bold text-white">
+              <i class="fas fa-upload"></i>Import backup
+            </button>
+          </div>
+          <div id="backupImportPreview" class="hidden rounded-2xl border border-gray-100 bg-gray-50 p-4 text-sm text-gray-600"></div>
+          <div id="backupImportStatus" class="hidden rounded-2xl border border-gray-100 bg-gray-50 p-4 text-sm text-gray-500"></div>
+        </div>
+      </section>
     </div>
   </div>`
 }

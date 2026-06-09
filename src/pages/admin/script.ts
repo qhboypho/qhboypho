@@ -732,7 +732,7 @@ function getDashboardStatsParams() {
 function showPage(pageName) {
   pageName = String(pageName || 'dashboard')
   ensureSettingsImagesNavItem()
-  const adminPages = ['dashboard','products','product-types','orders','returns','customers','reviews','vouchers','featured','settings','settings-social','settings-payment','settings-text-ui','settings-images','settings-notifications','settings-warehouse','flashsale']
+  const adminPages = ['dashboard','products','product-types','orders','returns','customers','reviews','backup','vouchers','featured','settings','settings-social','settings-payment','settings-text-ui','settings-images','settings-notifications','settings-warehouse','flashsale']
   adminPages.forEach(p => {
     const section = document.getElementById('page-'+p)
     if (section) section.classList.toggle('hidden', p !== pageName)
@@ -785,7 +785,7 @@ function showPage(pageName) {
   if (marketingActiveSubPage) {
     document.querySelectorAll('.nav-sub-item[data-sub-page="' + marketingActiveSubPage + '"]').forEach(b => b.classList.add('active'))
   }
-  const titles = {dashboard:'Dashboard', products:'Quản lý Sản phẩm', 'product-types':'Loại sản phẩm', orders:'Quản lý Đơn hàng', returns:'Quản lý hoàn trả', customers:'Quản lý Khách hàng', reviews:'Quản lý Đánh giá', vouchers:'Quản lý Voucher', featured:'Sản phẩm Nổi Bật', settings:'Setting', 'settings-social':'Cấu hình MXH', 'settings-payment':'Thanh toán', 'settings-text-ui':'Text UI', 'settings-images':'Cài đặt ảnh', 'settings-notifications':'Cài đặt thông báo', 'settings-warehouse':'Cài đặt kho hàng', flashsale:'Quản lý Flashsale'}
+  const titles = {dashboard:'Dashboard', products:'Quản lý Sản phẩm', 'product-types':'Loại sản phẩm', orders:'Quản lý Đơn hàng', returns:'Quản lý hoàn trả', customers:'Quản lý Khách hàng', reviews:'Quản lý Đánh giá', backup:'Dữ liệu', vouchers:'Quản lý Voucher', featured:'Sản phẩm Nổi Bật', settings:'Setting', 'settings-social':'Cấu hình MXH', 'settings-payment':'Thanh toán', 'settings-text-ui':'Text UI', 'settings-images':'Cài đặt ảnh', 'settings-notifications':'Cài đặt thông báo', 'settings-warehouse':'Cài đặt kho hàng', flashsale:'Quản lý Flashsale'}
   document.body.dataset.adminPage = pageName
   document.getElementById('pageTitle').textContent = titles[pageName] || pageName
 
@@ -796,6 +796,7 @@ function showPage(pageName) {
   else if (pageName === 'returns') loadReturns()
   else if (pageName === 'customers') loadCustomers()
   else if (pageName === 'reviews') loadAdminReviews()
+  else if (pageName === 'backup') loadAdminBackupPage()
   else if (pageName === 'vouchers') loadVouchers()
   else if (pageName === 'featured') loadFeaturedAdmin()
   else if (pageName === 'settings') loadSettingsAdmin()
@@ -1750,6 +1751,127 @@ async function saveAdminProductTypes() {
     showAdminToast('Đã lưu loại sản phẩm', 'success')
   } catch(e) {
     showAdminToast(e?.response?.data?.error || 'Lỗi lưu loại sản phẩm', 'error')
+  } finally {
+    if (btn) btn.innerHTML = original
+  }
+}
+
+function setBackupStatus(targetId, message, tone = 'info') {
+  const el = document.getElementById(targetId)
+  if (!el) return
+  el.classList.remove('hidden')
+  const color = tone === 'error' ? 'text-red-600 border-red-100 bg-red-50' : tone === 'success' ? 'text-emerald-700 border-emerald-100 bg-emerald-50' : 'text-gray-600 border-gray-100 bg-gray-50'
+  el.className = 'rounded-2xl border p-4 text-sm ' + color
+  el.innerHTML = message
+}
+
+function loadAdminBackupPage() {
+  const exportStatus = document.getElementById('backupExportStatus')
+  const importPreview = document.getElementById('backupImportPreview')
+  const importStatus = document.getElementById('backupImportStatus')
+  if (exportStatus) exportStatus.classList.add('hidden')
+  if (importPreview) importPreview.classList.add('hidden')
+  if (importStatus) importStatus.classList.add('hidden')
+}
+
+function downloadBlobFile(blob, filename) {
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  a.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
+async function downloadAdminBackup(format = 'zip') {
+  const normalized = format === 'json' ? 'json' : 'zip'
+  const btn = document.getElementById(normalized === 'json' ? 'backupJsonBtn' : 'backupZipBtn')
+  const original = btn?.innerHTML || ''
+  try {
+    if (btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>Đang tạo file'
+    setBackupStatus('backupExportStatus', '<i class="fas fa-spinner fa-spin mr-2"></i>Đang gom dữ liệu backup...')
+    const res = await axios.get('/api/admin/backup/export?format=' + normalized, { responseType: 'blob' })
+    const ext = normalized === 'json' ? 'json' : 'zip'
+    const stamp = new Date().toISOString().slice(0, 10)
+    downloadBlobFile(res.data, 'qhclothes-backup-' + stamp + '.' + ext)
+    setBackupStatus('backupExportStatus', '<i class="fas fa-check-circle mr-2"></i>Đã tải file backup ' + ext.toUpperCase() + '.', 'success')
+  } catch (e) {
+    setBackupStatus('backupExportStatus', '<i class="fas fa-triangle-exclamation mr-2"></i>' + escapeDashboardHtml(e?.response?.data?.error || e?.message || 'Lỗi tạo backup'), 'error')
+  } finally {
+    if (btn) btn.innerHTML = original
+  }
+}
+
+function getBackupImportFormData(previewOnly) {
+  const input = document.getElementById('backupImportFile')
+  const file = input?.files?.[0]
+  if (!file) {
+    showAdminToast('Chọn file backup trước', 'error')
+    return null
+  }
+  const form = new FormData()
+  form.append('file', file)
+  form.append('preview_only', previewOnly ? '1' : '0')
+  form.append('replace_existing', document.getElementById('backupReplaceExisting')?.checked ? '1' : '0')
+  return form
+}
+
+function renderBackupSummary(result) {
+  const summary = result?.summary || {}
+  const rows = [
+    ['Sản phẩm', summary.products || 0],
+    ['SKU', summary.product_skus || 0],
+    ['Banner', summary.hero_banners || 0],
+    ['Flashsale', summary.flash_sales || 0],
+    ['Mặt hàng flashsale', summary.flash_sale_items || 0],
+    ['Voucher', summary.vouchers || 0],
+    ['Setting hiển thị', summary.app_settings || 0],
+    ['Ảnh trong ZIP', summary.images || 0],
+    ['Reviews tham chiếu', summary.reviews || 0],
+  ]
+  const warningHtml = (result?.warnings || []).map((item) => '<li>' + escapeDashboardHtml(item) + '</li>').join('')
+  return '<div class="grid gap-2 sm:grid-cols-2">' + rows.map(([label, value]) => (
+    '<div class="flex items-center justify-between rounded-xl bg-white px-3 py-2 ring-1 ring-gray-100"><span>' + escapeDashboardHtml(label) + '</span><strong class="text-gray-900">' + escapeDashboardHtml(value) + '</strong></div>'
+  )).join('') + '</div>' +
+  (warningHtml ? '<ul class="mt-3 list-disc space-y-1 pl-5 text-xs text-amber-700">' + warningHtml + '</ul>' : '')
+}
+
+async function previewAdminBackupImport() {
+  const form = getBackupImportFormData(true)
+  if (!form) return
+  const btn = document.getElementById('backupPreviewBtn')
+  const original = btn?.innerHTML || ''
+  try {
+    if (btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>Đang xem'
+    const res = await axios.post('/api/admin/backup/import', form)
+    setBackupStatus('backupImportPreview', renderBackupSummary(res.data), 'info')
+    setBackupStatus('backupImportStatus', '<i class="fas fa-check-circle mr-2"></i>Preview xong. Kiểm tra số liệu rồi mới import thật.', 'success')
+  } catch (e) {
+    setBackupStatus('backupImportPreview', '<i class="fas fa-triangle-exclamation mr-2"></i>' + escapeDashboardHtml(e?.response?.data?.error || e?.message || 'Lỗi đọc backup'), 'error')
+  } finally {
+    if (btn) btn.innerHTML = original
+  }
+}
+
+async function restoreAdminBackupImport() {
+  const form = getBackupImportFormData(false)
+  if (!form) return
+  const replaceExisting = form.get('replace_existing') === '1'
+  const ok = window.confirm((replaceExisting ? 'Import sẽ xoá dữ liệu sản phẩm/marketing hiện tại rồi ghi backup mới.' : 'Import sẽ ghi đè các bản ghi trùng id.') + ' Tiếp tục?')
+  if (!ok) return
+  const btn = document.getElementById('backupRestoreBtn')
+  const original = btn?.innerHTML || ''
+  try {
+    if (btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>Đang import'
+    setBackupStatus('backupImportStatus', '<i class="fas fa-spinner fa-spin mr-2"></i>Đang import dữ liệu và upload lại ảnh...')
+    const res = await axios.post('/api/admin/backup/import', form)
+    setBackupStatus('backupImportPreview', renderBackupSummary(res.data), 'success')
+    setBackupStatus('backupImportStatus', '<i class="fas fa-check-circle mr-2"></i>Import xong. Ảnh upload: ' + escapeDashboardHtml(res.data?.images_uploaded || 0) + ', bỏ qua: ' + escapeDashboardHtml(res.data?.images_skipped || 0) + '.', 'success')
+    showAdminToast('Đã import backup', 'success')
+  } catch (e) {
+    setBackupStatus('backupImportStatus', '<i class="fas fa-triangle-exclamation mr-2"></i>' + escapeDashboardHtml(e?.response?.data?.error || e?.message || 'Lỗi import backup'), 'error')
   } finally {
     if (btn) btn.innerHTML = original
   }
