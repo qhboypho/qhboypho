@@ -18,7 +18,7 @@ export function adminBodyOpen(): string {
 }
 
 export function adminMobileMenuToggle(): string {
-  return "<!-- MOBILE MENU TOGGLE -->\n<button id=\"menuToggle\" type=\"button\" onclick=\"toggleSidebar()\" aria-label=\"Mở menu quản trị\" aria-expanded=\"false\" class=\"sidebar-mobile-toggle fixed top-3 left-3 z-[70] md:hidden bg-white shadow-lg rounded-xl w-11 h-11 inline-flex items-center justify-center border border-gray-200 text-gray-700\">\n  <i id=\"menuToggleIcon\" class=\"fas fa-bars text-gray-700\"></i>\n</button>"
+  return ""
 }
 
 export function adminSidebarOverlay(): string {
@@ -115,7 +115,10 @@ export function adminMainContentStart(): string {
 <main id="adminMainContent" class="flex-1 min-w-0 overflow-x-hidden min-h-screen">
   <!-- Top bar -->
   <header class="bg-white border-b px-6 py-4 flex items-center justify-between sticky top-0 z-[45] shadow-sm">
-    <div class="ml-10 md:ml-0 flex items-center gap-3 min-w-0 flex-1">
+    <div class="flex items-center gap-3 min-w-0 flex-1">
+      <button id="menuToggle" type="button" onclick="toggleSidebar()" aria-label="Mở menu quản trị" aria-expanded="false" class="sidebar-mobile-toggle z-[70] md:hidden text-gray-700">
+        <i id="menuToggleIcon" class="fas fa-bars text-gray-700"></i>
+      </button>
       <h1 id="pageTitle" class="text-lg font-bold text-gray-800 shrink-0">Dashboard</h1>
       <div id="ordersHeaderSearch" class="orders-header-search hidden">
         <div class="orders-header-search-shell">

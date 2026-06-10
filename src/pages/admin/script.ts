@@ -37,6 +37,7 @@ let adminOverlaySafetyScheduled = false
 let adminScrollLockY = 0
 let adminScrollLockActive = false
 let adminPwaInstallPrompt = null
+let adminSidebarGestureStart = null
 const adminScrollLockStyles = {
   bodyPosition: '',
   bodyTop: '',
@@ -915,6 +916,76 @@ function toggleSidebar() {
   const isOpen = !sidebar.classList.contains('-translate-x-full')
   if (isOpen) closeMobileSidebar()
   else openMobileSidebar()
+}
+
+function isAdminSidebarOpen() {
+  const sidebar = document.getElementById('sidebar')
+  return !!sidebar && !sidebar.classList.contains('-translate-x-full')
+}
+
+function isAdminSidebarGestureTargetAllowed(target) {
+  if (!(target instanceof Element)) return true
+  if (target.closest('input, textarea, select, button, a, [contenteditable="true"]')) return false
+  if (target.closest('.modal-overlay, .modal-card, #adminAvatarDropdown')) return false
+  return true
+}
+
+function bindAdminSidebarSwipeGestures() {
+  if (window.__adminSidebarSwipeBound) return
+  window.__adminSidebarSwipeBound = true
+
+  document.addEventListener('touchstart', function(e) {
+    if (window.innerWidth >= 768 || !e.touches || e.touches.length !== 1) return
+    if (!isAdminSidebarGestureTargetAllowed(e.target)) return
+    const touch = e.touches[0]
+    const sidebarOpen = isAdminSidebarOpen()
+    if (!sidebarOpen && touch.clientX > 32) return
+    adminSidebarGestureStart = {
+      x: touch.clientX,
+      y: touch.clientY,
+      sidebarOpen,
+      startedAt: Date.now(),
+      tracking: true,
+    }
+  }, { passive: true })
+
+  document.addEventListener('touchmove', function(e) {
+    if (!adminSidebarGestureStart?.tracking || !e.touches || e.touches.length !== 1) return
+    const touch = e.touches[0]
+    const dx = touch.clientX - adminSidebarGestureStart.x
+    const dy = touch.clientY - adminSidebarGestureStart.y
+    if (Math.abs(dy) > 36 && Math.abs(dy) > Math.abs(dx)) {
+      adminSidebarGestureStart = null
+      return
+    }
+    if (Math.abs(dx) > 14 && Math.abs(dx) > Math.abs(dy) * 1.2) {
+      e.preventDefault()
+    }
+  }, { passive: false })
+
+  document.addEventListener('touchend', function(e) {
+    if (!adminSidebarGestureStart?.tracking) return
+    const touch = e.changedTouches && e.changedTouches[0]
+    if (!touch) {
+      adminSidebarGestureStart = null
+      return
+    }
+    const dx = touch.clientX - adminSidebarGestureStart.x
+    const dy = touch.clientY - adminSidebarGestureStart.y
+    const elapsed = Date.now() - adminSidebarGestureStart.startedAt
+    const horizontal = Math.abs(dx) >= 64 && Math.abs(dx) > Math.abs(dy) * 1.35
+    const fastHorizontal = elapsed < 420 && Math.abs(dx) >= 46 && Math.abs(dx) > Math.abs(dy) * 1.2
+    const shouldAct = horizontal || fastHorizontal
+    const startedOpen = adminSidebarGestureStart.sidebarOpen
+    adminSidebarGestureStart = null
+    if (!shouldAct) return
+    if (!startedOpen && dx > 0) openMobileSidebar()
+    if (startedOpen && dx < 0) closeMobileSidebar()
+  }, { passive: true })
+
+  document.addEventListener('touchcancel', function() {
+    adminSidebarGestureStart = null
+  }, { passive: true })
 }
 
 function syncSidebarOverlay() {
@@ -3254,6 +3325,7 @@ document.addEventListener('DOMContentLoaded', function() {
   setDesktopSidebarCollapsed(false)
   initDashboardDateFilterDefaults()
   bindAdminOverlaySafetyObserver()
+  bindAdminSidebarSwipeGestures()
   resetAdminTransientSurface('dom-ready-reset')
   syncOrdersHeaderSearchUI()
   syncDashboardDateFilterUI()

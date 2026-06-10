@@ -6,24 +6,25 @@ export function adminMobilePwaStyles(): string {
   return `
   @media (display-mode: standalone) {
     body { background: #f8fafc; }
-    #adminMainContent > header { padding-top: calc(env(safe-area-inset-top) + 0.875rem); }
   }
 
   @media (max-width: 767px) {
+    :root {
+      --admin-mobile-header-safe-top: env(safe-area-inset-top, 0px);
+      --admin-mobile-header-base-height: 4.75rem;
+      --admin-mobile-header-height: calc(var(--admin-mobile-header-safe-top) + var(--admin-mobile-header-base-height));
+    }
     html, body { min-height: 100%; overflow-x: hidden; overscroll-behavior-x: none; }
     body { display: block !important; background: #f8fafc; padding-bottom: env(safe-area-inset-bottom); }
     body.admin-scroll-locked { touch-action: none; }
     #adminMainContent { width: 100%; max-width: 100vw; min-height: 100dvh; overflow-x: hidden; }
     #adminMainContent > header {
-      min-height: calc(4.25rem + env(safe-area-inset-top));
-      padding-top: max(0.75rem, env(safe-area-inset-top));
+      min-height: var(--admin-mobile-header-height);
+      padding-top: var(--admin-mobile-header-safe-top);
       padding-bottom: 0.75rem;
       background: rgba(255,255,255,0.94);
       backdrop-filter: blur(18px);
       -webkit-backdrop-filter: blur(18px);
-    }
-    #adminMainContent > header > div:first-child {
-      margin-left: 4.75rem !important;
     }
     #pageTitle {
       max-width: min(54vw, 16rem);
@@ -33,12 +34,39 @@ export function adminMobilePwaStyles(): string {
       font-size: clamp(1rem, 4.5vw, 1.125rem);
     }
     .sidebar-mobile-toggle {
-      top: calc(max(0.75rem, env(safe-area-inset-top)) + 0.625rem);
+      position: relative;
+      top: auto !important;
+      left: auto !important;
+      flex: 0 0 48px;
       width: 48px;
       height: 48px;
+      margin-right: 0.375rem;
+      padding: 0;
+      border: 0;
+      box-shadow: none;
+      border-radius: 1.25rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      isolation: isolate;
+    }
+    .sidebar-mobile-toggle::before {
+      content: "";
+      position: absolute;
+      width: 48px;
+      height: 48px;
+      border-radius: 1.25rem;
       background: rgba(255,255,255,0.96);
       backdrop-filter: blur(14px);
       -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(226,232,240,0.92);
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.14);
+      z-index: 0;
+    }
+    .sidebar-mobile-toggle i {
+      position: relative;
+      z-index: 1;
     }
     .sidebar {
       width: min(18rem, 84vw) !important;
@@ -47,7 +75,7 @@ export function adminMobilePwaStyles(): string {
       padding-bottom: env(safe-area-inset-bottom);
       box-shadow: 28px 0 70px rgba(15,23,42,0.28);
     }
-    body[data-mobile-sidebar-state='open'] #menuToggle { left: calc(min(18rem, 84vw) - 1.375rem); }
+    body[data-mobile-sidebar-state='open'] #menuToggle { left: auto !important; }
     body[data-mobile-sidebar-state='open'] #sidebarOverlay { left: min(18rem, 84vw); }
     #sidebarOverlay {
       background: rgba(15,23,42,0.54);
@@ -140,20 +168,14 @@ export function adminMobilePwaStyles(): string {
   }
 
   @media (display-mode: standalone) and (max-width: 767px) {
-    #adminMainContent > header {
-      padding-top: calc(env(safe-area-inset-top) + 0.875rem);
-    }
-    .sidebar-mobile-toggle {
-      top: calc(env(safe-area-inset-top) + 4.125rem);
+    :root {
+      --admin-mobile-header-base-height: 5rem;
     }
   }
 
   @media (max-width: 390px) {
-    #adminMainContent > header > div:first-child {
-      margin-left: 4.25rem !important;
-    }
     #pageTitle {
-      max-width: min(50vw, 13rem);
+      max-width: min(52vw, 13rem);
     }
     #page-dashboard, #page-products, #page-product-types, #page-orders, #page-reviews, #page-vouchers, #page-featured, #page-backup, #page-settings-social, #page-settings-payment, #page-settings-text-ui, #page-settings-images, #page-settings-notifications, #page-settings-warehouse, #page-flashsale, #page-customers, #page-returns {
       padding-left: 0.5rem !important;
