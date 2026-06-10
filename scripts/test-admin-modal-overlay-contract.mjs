@@ -21,10 +21,26 @@ assert.match(adminScriptSource, /function showAdminOverlay\(el,\s*displayMode = 
 assert.match(adminScriptSource, /function getActiveAdminModalOverlays\(\)\s*\{[\s\S]*dataset\?\.adminOverlayOpen[\s\S]*=== '1'/, 'overlay normalization should only preserve overlays that were explicitly opened by admin code')
 assert.match(adminScriptSource, /const closeFloatingMenus = options\.closeFloatingMenus === true \|\| reason === 'sanitize'[\s\S]*if \(closeFloatingMenus && !activeModals\.length\) closeAdminAvatarMenu\(\)/, 'queued overlay safety sync should not immediately close the admin avatar dropdown')
 assert.match(sectionsSource, /id=\\\"sidebarOverlay\\\"[\s\S]*class=\\\"fixed inset-0 mobile-overlay z-30 hidden md:hidden\\\"[\s\S]*style=\\\"display:none;pointer-events:none\\\"/, 'sidebar overlay should start hidden and non-interactive before admin state sync runs')
-assert.match(sectionsSource, /header class=\\\"bg-white border-b px-6 py-4 flex items-center justify-between sticky top-0 z-\[45\] shadow-sm\\\"/, 'admin header should sit above stray sidebar blockers but below real modals')
-assert.match(sectionsSource, /id=\\\"adminAvatarMenuRoot\\\" class=\\\"relative z-\[49\]\\\"/, 'admin avatar trigger should have its own stacking context above stale dashboard blockers')
-assert.match(sectionsSource, /id=\\\"adminAvatarMenuTrigger\\\" type=\\\"button\\\" onclick=\\\"toggleAdminAvatarMenu\(event\)\\\"/, 'admin avatar button should forward the click event into the shared menu toggle helper')
-assert.match(sectionsSource, /id=\\\"adminAvatarDropdown\\\" class=\\\"hidden fixed top-0 right-0 w-\[320px\][\s\S]*z-\[49\]\\\" style=\\\"display:none;pointer-events:none\\\"/, 'admin avatar dropdown should use explicit fixed positioning and pointer-event state')
+assert.ok(
+  sectionsSource.includes('header class=\\"bg-white border-b px-6 py-4 flex items-center justify-between sticky top-0 z-[45] shadow-sm\\"') ||
+  sectionsSource.includes('header class="bg-white border-b px-6 py-4 flex items-center justify-between sticky top-0 z-[45] shadow-sm"'),
+  'admin header should sit above stray sidebar blockers but below real modals'
+)
+assert.ok(
+  sectionsSource.includes('id=\\"adminAvatarMenuRoot\\" class=\\"relative z-[49]\\"') ||
+  sectionsSource.includes('id="adminAvatarMenuRoot" class="relative z-[49]"'),
+  'admin avatar trigger should have its own stacking context above stale dashboard blockers'
+)
+assert.ok(
+  sectionsSource.includes('id=\\"adminAvatarMenuTrigger\\" type=\\"button\\" onclick=\\"toggleAdminAvatarMenu(event)\\"') ||
+  sectionsSource.includes('id="adminAvatarMenuTrigger" type="button" onclick="toggleAdminAvatarMenu(event)"'),
+  'admin avatar button should forward the click event into the shared menu toggle helper'
+)
+assert.ok(
+  /id=\\\"adminAvatarDropdown\\\" class=\\\"hidden fixed top-0 right-0 w-\[320px\][\s\S]*z-\[49\]\\\" style=\\\"display:none;pointer-events:none\\\"/.test(sectionsSource) ||
+  /id="adminAvatarDropdown" class="hidden fixed top-0 right-0 w-\[320px\][\s\S]*z-\[49\]" style="display:none;pointer-events:none"/.test(sectionsSource),
+  'admin avatar dropdown should use explicit fixed positioning and pointer-event state'
+)
 assert.match(adminScriptSource, /function positionAdminAvatarMenu\(\)\s*\{[\s\S]*getBoundingClientRect\(\)/, 'admin avatar dropdown should reposition from the trigger bounds when opening')
 assert.match(adminScriptSource, /function setAdminAvatarMenuOpen\(open\)\s*\{[\s\S]*menu\.style\.display = 'block'[\s\S]*menu\.style\.pointerEvents = 'auto'[\s\S]*menu\.style\.display = 'none'[\s\S]*menu\.style\.pointerEvents = 'none'/, 'admin avatar dropdown should manage display and pointer-events explicitly when opening and closing')
 assert.match(adminScriptSource, /function toggleAdminAvatarMenu\(evt\)\s*\{[\s\S]*evt\.preventDefault\(\)[\s\S]*evt\.stopPropagation\(\)/, 'admin avatar toggle should stop the opening click from being swallowed by outside-click handlers')

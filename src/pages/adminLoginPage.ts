@@ -3,9 +3,15 @@ export function adminLoginHTML(): string {
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Đăng nhập Admin – QH Clothes</title>
+<meta name="theme-color" content="#0f172a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="QH Admin">
+<link rel="manifest" href="/admin-manifest.webmanifest">
 <link rel="icon" type="image/png" href="/qh-logo.png">
+<link rel="apple-touch-icon" href="/qh-logo.png">
 <script src="https://cdn.tailwindcss.com"></script>
 <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
@@ -204,6 +210,11 @@ export function adminLoginHTML(): string {
   }
 
   sanitizeLoginSurface()
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/admin-sw.js', { scope: '/' }).catch(() => {})
+    })
+  }
   renderAdminTurnstile()
   window.addEventListener('load', sanitizeLoginSurface)
   window.addEventListener('pageshow', sanitizeLoginSurface)

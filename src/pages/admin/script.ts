@@ -36,6 +36,7 @@ let selectedColorImage = ''
 let adminOverlaySafetyScheduled = false
 let adminScrollLockY = 0
 let adminScrollLockActive = false
+let adminPwaInstallPrompt = null
 const adminScrollLockStyles = {
   bodyPosition: '',
   bodyTop: '',
@@ -223,6 +224,47 @@ function applyAvatarSrcDirect(dataUrl) {
     img.classList.remove('hidden')
     fallback.classList.add('hidden')
   })
+}
+
+function syncAdminInstallButton() {
+  const btn = document.getElementById('adminInstallAppButton')
+  if (!btn) return
+  const standalone = window.matchMedia?.('(display-mode: standalone)')?.matches || window.navigator.standalone === true
+  const canInstall = !!adminPwaInstallPrompt && !standalone
+  btn.classList.toggle('hidden', !canInstall)
+  btn.classList.toggle('inline-flex', canInstall)
+}
+
+function registerAdminPwa() {
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/admin-sw.js', { scope: '/' }).catch(() => {})
+    })
+  }
+
+  window.addEventListener('beforeinstallprompt', (event) => {
+    event.preventDefault()
+    adminPwaInstallPrompt = event
+    syncAdminInstallButton()
+  })
+
+  window.addEventListener('appinstalled', () => {
+    adminPwaInstallPrompt = null
+    syncAdminInstallButton()
+  })
+
+  syncAdminInstallButton()
+}
+
+async function installAdminPwa() {
+  if (!adminPwaInstallPrompt) return
+  const promptEvent = adminPwaInstallPrompt
+  adminPwaInstallPrompt = null
+  syncAdminInstallButton()
+  try {
+    await promptEvent.prompt()
+    await promptEvent.userChoice
+  } catch (_) {}
 }
 
 async function loadAdminProfile() {
@@ -3207,6 +3249,7 @@ document.addEventListener('keydown', function(e) {
 })
 
 document.addEventListener('DOMContentLoaded', function() {
+  registerAdminPwa()
   ensureSettingsImagesNavItem()
   setDesktopSidebarCollapsed(false)
   initDashboardDateFilterDefaults()

@@ -111,7 +111,62 @@ export function adminSidebarSection(): string {
 }
 
 export function adminMainContentStart(): string {
-  return "<!-- MAIN CONTENT -->\n<main id=\"adminMainContent\" class=\"flex-1 min-w-0 overflow-x-hidden min-h-screen\">\n  <!-- Top bar -->\n  <header class=\"bg-white border-b px-6 py-4 flex items-center justify-between sticky top-0 z-[45] shadow-sm\">\n    <div class=\"ml-10 md:ml-0 flex items-center gap-3 min-w-0 flex-1\">\n      <h1 id=\"pageTitle\" class=\"text-lg font-bold text-gray-800 shrink-0\">Dashboard</h1>\n      <div id=\"ordersHeaderSearch\" class=\"orders-header-search hidden\">\n        <div class=\"orders-header-search-shell\">\n          <button id=\"ordersHeaderSearchButton\" type=\"button\" onclick=\"handleOrdersSearchButton()\" class=\"orders-header-search-btn\" aria-label=\"Mở tìm kiếm đơn hàng\">\n            <i id=\"ordersHeaderSearchIcon\" class=\"fas fa-search text-sm\"></i>\n          </button>\n          <input type=\"text\" id=\"orderSearch\" placeholder=\"Tìm tên/SĐT/mã...\" oninput=\"onOrderSearchInput()\" class=\"orders-header-search-input text-sm\" />\n        </div>\n      </div>\n    </div>\n    <div class=\"flex items-center gap-3\">\n      <button type=\"button\" id=\"sidebarDesktopToggle\" onclick=\"toggleDesktopSidebar()\" class=\"sidebar-toggle-desktop hidden md:inline-flex items-center justify-center w-10 h-10 rounded-xl border border-gray-200 text-gray-600 hover:text-pink-600 hover:border-pink-200 transition\" title=\"Thu gọn sidebar\">\n        <i class=\"fas fa-bars-staggered\"></i>\n      </button>\n      <div id=\"adminAvatarMenuRoot\" class=\"relative z-[49]\">\n        <button id=\"adminAvatarMenuTrigger\" type=\"button\" onclick=\"toggleAdminAvatarMenu(event)\" title=\"Tài khoản quản trị\" class=\"w-auto max-w-[260px] rounded-full bg-gray-900 text-white pl-1.5 pr-3 py-1.5 flex items-center gap-2 shadow-sm hover:bg-gray-800 transition\">\n          <span class=\"relative w-8 h-8 rounded-full overflow-hidden bg-gray-50 text-gray-700 font-bold text-xs flex items-center justify-center flex-none\">\n            <img id=\"adminHeaderAvatarImg\" src=\"\" alt=\"avatar\" class=\"w-full h-full object-cover hidden\">\n            <span id=\"adminHeaderAvatarFallback\">A</span>\n          </span>\n          <span id=\"adminHeaderProfileName\" class=\"text-sm font-semibold truncate\">QH Clothes</span>\n        </button>\n        <div id=\"adminAvatarDropdown\" class=\"hidden fixed top-0 right-0 w-[320px] bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden z-[49]\" style=\"display:none;pointer-events:none\">\n          <div class=\"p-3 bg-gray-50 border-b border-gray-200\">\n            <div class=\"flex items-center gap-3\">\n              <button type=\"button\" class=\"avatar-wrap relative w-14 h-14 rounded-full overflow-hidden bg-gray-50 text-gray-700 font-bold text-lg flex items-center justify-center cursor-pointer flex-none\">\n                <input id=\"adminAvatarInput\" type=\"file\" accept=\"image/*\" class=\"absolute inset-0 z-20 opacity-0 cursor-pointer\" onclick=\"event.stopPropagation()\" onchange=\"onAdminAvatarSelected(this)\">\n                <img id=\"adminMenuAvatarImg\" src=\"\" alt=\"avatar\" class=\"w-full h-full object-cover hidden\">\n                <span id=\"adminMenuAvatarFallback\">A</span>\n                <span class=\"avatar-edit-overlay\"><i class=\"fas fa-camera text-white text-sm\"></i></span>\n              </button>\n              <div class=\"min-w-0\">\n                <p id=\"adminMenuProfileName\" class=\"text-sm font-semibold text-gray-900 truncate\">QH Clothes</p>\n                <p id=\"adminMenuShopCode\" class=\"text-xs text-gray-400 truncate\">Shop Code: ADMIN</p>\n                <p class=\"text-xs text-gray-400\">Tự bán hàng</p>\n              </div>\n            </div>\n          </div>\n          <button type=\"button\" onclick=\"openChangeAdminPasswordModal(); closeAdminAvatarMenu();\" class=\"w-full text-left px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2\">\n            <i class=\"fas fa-key text-amber-500\"></i>Thay đổi mật khẩu\n          </button>\n          <button type=\"button\" onclick=\"logoutAdminUser(); closeAdminAvatarMenu();\" class=\"w-full text-left px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 border-t border-gray-100\">\n            <i class=\"fas fa-right-from-bracket\"></i>Logout\n          </button>\n        </div>\n      </div>\n    </div>\n  </header>"
+  return `<!-- MAIN CONTENT -->
+<main id="adminMainContent" class="flex-1 min-w-0 overflow-x-hidden min-h-screen">
+  <!-- Top bar -->
+  <header class="bg-white border-b px-6 py-4 flex items-center justify-between sticky top-0 z-[45] shadow-sm">
+    <div class="ml-10 md:ml-0 flex items-center gap-3 min-w-0 flex-1">
+      <h1 id="pageTitle" class="text-lg font-bold text-gray-800 shrink-0">Dashboard</h1>
+      <div id="ordersHeaderSearch" class="orders-header-search hidden">
+        <div class="orders-header-search-shell">
+          <button id="ordersHeaderSearchButton" type="button" onclick="handleOrdersSearchButton()" class="orders-header-search-btn" aria-label="Mở tìm kiếm đơn hàng">
+            <i id="ordersHeaderSearchIcon" class="fas fa-search text-sm"></i>
+          </button>
+          <input type="text" id="orderSearch" placeholder="Tìm tên/SĐT/mã..." oninput="onOrderSearchInput()" class="orders-header-search-input text-sm" />
+        </div>
+      </div>
+    </div>
+    <div class="flex items-center gap-3">
+      <button type="button" id="adminInstallAppButton" onclick="installAdminPwa()" class="hidden admin-install-app-btn items-center justify-center gap-2 rounded-xl border border-pink-100 bg-pink-50 px-3 py-2 text-xs font-bold text-pink-600 shadow-sm hover:bg-pink-100 transition" title="Cài dashboard như app">
+        <i class="fas fa-mobile-screen-button"></i><span class="hidden sm:inline">Cài app</span>
+      </button>
+      <button type="button" id="sidebarDesktopToggle" onclick="toggleDesktopSidebar()" class="sidebar-toggle-desktop hidden md:inline-flex items-center justify-center w-10 h-10 rounded-xl border border-gray-200 text-gray-600 hover:text-pink-600 hover:border-pink-200 transition" title="Thu gọn sidebar">
+        <i class="fas fa-bars-staggered"></i>
+      </button>
+      <div id="adminAvatarMenuRoot" class="relative z-[49]">
+        <button id="adminAvatarMenuTrigger" type="button" onclick="toggleAdminAvatarMenu(event)" title="Tài khoản quản trị" class="w-auto max-w-[260px] rounded-full bg-gray-900 text-white pl-1.5 pr-3 py-1.5 flex items-center gap-2 shadow-sm hover:bg-gray-800 transition">
+          <span class="relative w-8 h-8 rounded-full overflow-hidden bg-gray-50 text-gray-700 font-bold text-xs flex items-center justify-center flex-none">
+            <img id="adminHeaderAvatarImg" src="" alt="avatar" class="w-full h-full object-cover hidden">
+            <span id="adminHeaderAvatarFallback">A</span>
+          </span>
+          <span id="adminHeaderProfileName" class="text-sm font-semibold truncate">QH Clothes</span>
+        </button>
+        <div id="adminAvatarDropdown" class="hidden fixed top-0 right-0 w-[320px] bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden z-[49]" style="display:none;pointer-events:none">
+          <div class="p-3 bg-gray-50 border-b border-gray-200">
+            <div class="flex items-center gap-3">
+              <button type="button" class="avatar-wrap relative w-14 h-14 rounded-full overflow-hidden bg-gray-50 text-gray-700 font-bold text-lg flex items-center justify-center cursor-pointer flex-none">
+                <input id="adminAvatarInput" type="file" accept="image/*" class="absolute inset-0 z-20 opacity-0 cursor-pointer" onclick="event.stopPropagation()" onchange="onAdminAvatarSelected(this)">
+                <img id="adminMenuAvatarImg" src="" alt="avatar" class="w-full h-full object-cover hidden">
+                <span id="adminMenuAvatarFallback">A</span>
+                <span class="avatar-edit-overlay"><i class="fas fa-camera text-white text-sm"></i></span>
+              </button>
+              <div class="min-w-0">
+                <p id="adminMenuProfileName" class="text-sm font-semibold text-gray-900 truncate">QH Clothes</p>
+                <p id="adminMenuShopCode" class="text-xs text-gray-400 truncate">Shop Code: ADMIN</p>
+                <p class="text-xs text-gray-400">Tự bán hàng</p>
+              </div>
+            </div>
+          </div>
+          <button type="button" onclick="openChangeAdminPasswordModal(); closeAdminAvatarMenu();" class="w-full text-left px-3 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+            <i class="fas fa-key text-amber-500"></i>Thay đổi mật khẩu
+          </button>
+          <button type="button" onclick="logoutAdminUser(); closeAdminAvatarMenu();" class="w-full text-left px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 border-t border-gray-100">
+            <i class="fas fa-right-from-bracket"></i>Logout
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>`
 }
 
 export function adminDashboardPage(): string {
