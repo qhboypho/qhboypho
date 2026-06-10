@@ -713,33 +713,87 @@ function closeFlashSaleCreateModal(event) {
   closeFlashSaleProductPickerModal()
 }
 
-function loadSettingsWarehousePage() {
+function adminSecretFieldMarkup(opts) {
+  const id = String(opts.id || '')
+  const label = String(opts.label || '')
+  const placeholder = String(opts.placeholder || '')
+  const focusClass = String(opts.focusClass || 'focus:border-emerald-400')
+  const inputType = opts.visibleByDefault ? 'text' : 'password'
+  return '<div>' +
+    '<label class="block text-sm font-semibold text-gray-700 mb-1.5" for="' + id + '">' + label + '</label>' +
+    '<div class="relative">' +
+      '<input type="' + inputType + '" id="' + id + '" data-secret-field="true" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="' + placeholder + '" class="w-full border rounded-xl px-4 py-2.5 pr-24 text-sm font-mono tracking-tight focus:outline-none ' + focusClass + '">' +
+      '<div class="absolute inset-y-0 right-1.5 flex items-center gap-1">' +
+        '<button type="button" onclick="toggleAdminSecretField(\\'' + id + '\\')" class="admin-secret-action-btn" aria-label="Ẩn hiện ' + label + '" title="Ẩn/hiện">' +
+          '<i id="' + id + 'VisibilityIcon" class="fas ' + (inputType === 'password' ? 'fa-eye' : 'fa-eye-slash') + '"></i>' +
+        '</button>' +
+        '<button type="button" onclick="copyAdminSecretField(\\'' + id + '\\')" class="admin-secret-action-btn" aria-label="Copy ' + label + '" title="Copy">' +
+          '<i class="fas fa-copy"></i>' +
+        '</button>' +
+      '</div>' +
+    '</div>' +
+  '</div>'
+}
+
+function toggleAdminSecretField(id) {
+  const input = document.getElementById(id)
+  if (!input) return
+  const icon = document.getElementById(id + 'VisibilityIcon')
+  const show = input.type === 'password'
+  input.type = show ? 'text' : 'password'
+  if (icon) icon.className = 'fas ' + (show ? 'fa-eye-slash' : 'fa-eye')
+}
+
+async function copyAdminSecretField(id) {
+  const input = document.getElementById(id)
+  if (!input) return
+  const value = String(input.value || '')
+  if (!value) {
+    showAdminToast('Chưa có nội dung để copy', 'error')
+    return
+  }
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(value)
+    } else {
+      input.focus()
+      input.select()
+      document.execCommand('copy')
+      input.blur()
+    }
+    showAdminToast('Đã copy key', 'success')
+  } catch (e) {
+    showAdminToast('Copy thất bại', 'error')
+  }
+}
+
+async function loadSettingsWarehousePage() {
   const el = document.getElementById('settingsWarehouseContent')
   if (!el) return
   el.innerHTML = '<div class="space-y-5">' +
     '<div class="rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4">' +
       '<div class="grid gap-4 md:grid-cols-2">' +
-        '<div><label class="block text-sm font-semibold text-gray-700 mb-1.5">GHTK Token</label><input type="password" id="ghtkToken" autocomplete="off" placeholder="Nhập token GHTK" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-400"></div>' +
-        '<div><label class="block text-sm font-semibold text-gray-700 mb-1.5">GHTK Client Source</label><input type="text" id="ghtkClientSource" autocomplete="off" placeholder="Nhập client source" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-emerald-400"></div>' +
-        '<p id="ghtkCredentialHint" class="md:col-span-2 text-xs text-gray-500">Hai key này dùng cho đồng bộ kho, tạo vận đơn và đồng bộ hoàn trả từ GHTK.</p>' +
+        adminSecretFieldMarkup({ id: 'ghtkToken', label: 'GHTK Token', placeholder: 'Nhập token GHTK', focusClass: 'focus:border-emerald-400' }) +
+        adminSecretFieldMarkup({ id: 'ghtkClientSource', label: 'GHTK Client Source', placeholder: 'Nhập client source', focusClass: 'focus:border-emerald-400' }) +
+        '<p id="ghtkCredentialHint" class="md:col-span-2 text-xs text-gray-500">Đang tải key GHTK...</p>' +
       '</div>' +
     '</div>' +
     '<div class="rounded-2xl border border-sky-100 bg-sky-50/70 p-4">' +
       '<div class="mb-3"><h3 class="font-bold text-gray-800 flex items-center gap-2"><i class="fas fa-truck-fast text-sky-500"></i>SPX Express</h3><p class="text-sm text-gray-500 mt-1">Lưu thông tin tài khoản SPX để dùng làm lớp cấu hình dự phòng như GHTK.</p></div>' +
       '<div class="grid gap-4 md:grid-cols-3">' +
-        '<div><label class="block text-sm font-semibold text-gray-700 mb-1.5">SPX User ID</label><input type="text" id="spxUserId" autocomplete="off" placeholder="Nhập User ID SPX" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-sky-400"></div>' +
-        '<div><label class="block text-sm font-semibold text-gray-700 mb-1.5">SPX Secret Key</label><input type="password" id="spxSecretKey" autocomplete="off" placeholder="Nhập Secret Key SPX" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-sky-400"></div>' +
-        '<div><label class="block text-sm font-semibold text-gray-700 mb-1.5">SPX Account ID</label><input type="text" id="spxAccountId" autocomplete="off" placeholder="Nhập Account ID SPX" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-sky-400"></div>' +
-        '<p id="spxCredentialHint" class="md:col-span-3 text-xs text-gray-500">Thiếu User ID, Secret Key hoặc Account ID thì chưa thể bật tạo vận đơn SPX.</p>' +
+        adminSecretFieldMarkup({ id: 'spxUserId', label: 'SPX User ID', placeholder: 'Nhập User ID SPX', focusClass: 'focus:border-sky-400' }) +
+        adminSecretFieldMarkup({ id: 'spxSecretKey', label: 'SPX Secret Key', placeholder: 'Nhập Secret Key SPX', focusClass: 'focus:border-sky-400' }) +
+        adminSecretFieldMarkup({ id: 'spxAccountId', label: 'SPX Account ID', placeholder: 'Nhập Account ID SPX', focusClass: 'focus:border-sky-400' }) +
+        '<p id="spxCredentialHint" class="md:col-span-3 text-xs text-gray-500">Đang tải key SPX...</p>' +
       '</div>' +
     '</div>' +
     '<div class="rounded-2xl border border-orange-100 bg-orange-50/70 p-4">' +
       '<div class="mb-3"><h3 class="font-bold text-gray-800 flex items-center gap-2"><i class="fas fa-truck-ramp-box text-orange-500"></i>GHN</h3><p class="text-sm text-gray-500 mt-1">Cấu hình GHN để tạo vận đơn và in nhãn A5 theo đơn vị vận chuyển đã chọn.</p></div>' +
       '<div class="grid gap-4 md:grid-cols-3">' +
-        '<div><label class="block text-sm font-semibold text-gray-700 mb-1.5">GHN API Token</label><input type="password" id="ghnToken" autocomplete="off" placeholder="Nhập API token GHN" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-orange-400"></div>' +
-        '<div><label class="block text-sm font-semibold text-gray-700 mb-1.5">GHN Shop ID</label><input type="text" id="ghnShopId" autocomplete="off" placeholder="Nhập Shop ID GHN" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-orange-400"></div>' +
-        '<div><label class="block text-sm font-semibold text-gray-700 mb-1.5">GHN Client ID</label><input type="text" id="ghnClientId" autocomplete="off" placeholder="Nhập Client ID GHN" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-orange-400"></div>' +
-        '<p id="ghnCredentialHint" class="md:col-span-3 text-xs text-gray-500">Thiếu API token hoặc Shop ID thì chưa thể tạo vận đơn GHN.</p>' +
+        adminSecretFieldMarkup({ id: 'ghnToken', label: 'GHN API Token', placeholder: 'Nhập API token GHN', focusClass: 'focus:border-orange-400' }) +
+        adminSecretFieldMarkup({ id: 'ghnShopId', label: 'GHN Shop ID', placeholder: 'Nhập Shop ID GHN', focusClass: 'focus:border-orange-400' }) +
+        adminSecretFieldMarkup({ id: 'ghnClientId', label: 'GHN Client ID', placeholder: 'Nhập Client ID GHN', focusClass: 'focus:border-orange-400' }) +
+        '<p id="ghnCredentialHint" class="md:col-span-3 text-xs text-gray-500">Đang tải key GHN...</p>' +
       '</div>' +
     '</div>' +
     '<div class="rounded-2xl border border-purple-100 bg-purple-50/60 p-4">' +
@@ -769,7 +823,10 @@ function loadSettingsWarehousePage() {
       '</div>' +
     '</div>' +
   '</div>'
-  if (typeof loadSettingsAdmin === 'function') loadSettingsAdmin()
+  if (typeof loadSettingsAdmin === 'function') {
+    await loadSettingsAdmin({ syncPickup: false })
+    await syncGhtkPickupAddresses(true, document.getElementById('ghtkPickupAddressId')?.value || '')
+  }
 }
 
 let flashSaleAdminItems = []

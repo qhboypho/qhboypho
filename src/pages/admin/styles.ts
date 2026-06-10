@@ -4,6 +4,28 @@ export function adminStyles(): string {
 
 export function adminMobilePwaStyles(): string {
   return `
+  .admin-secret-action-btn {
+    width: 2rem;
+    height: 2rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.75rem;
+    color: #64748b;
+    background: rgba(248,250,252,0.9);
+    border: 1px solid rgba(226,232,240,0.9);
+    transition: color 0.2s ease, background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+  }
+  .admin-secret-action-btn:hover {
+    color: #e84393;
+    background: #fff;
+    border-color: #f9a8d4;
+    transform: translateY(-1px);
+  }
+  .admin-secret-action-btn:active {
+    transform: translateY(0);
+  }
+
   @media (display-mode: standalone) {
     body { background: #f8fafc; }
   }
@@ -19,6 +41,7 @@ export function adminMobilePwaStyles(): string {
     body.admin-scroll-locked { touch-action: none; }
     #adminMainContent { width: 100%; max-width: 100vw; min-height: 100dvh; overflow-x: hidden; }
     #adminMainContent > header {
+      position: sticky;
       min-height: var(--admin-mobile-header-height);
       padding-top: var(--admin-mobile-header-safe-top);
       padding-bottom: 0.75rem;
@@ -95,6 +118,52 @@ export function adminMobilePwaStyles(): string {
       height: 44px;
       padding: 0 !important;
       border-radius: 9999px !important;
+    }
+    .orders-header-search {
+      position: absolute !important;
+      top: var(--admin-mobile-header-safe-top) !important;
+      right: 3.875rem;
+      height: var(--admin-mobile-header-base-height);
+      margin-left: 0 !important;
+      align-items: center;
+      justify-content: center;
+      z-index: 48;
+      flex: 0 0 auto;
+    }
+    .orders-header-search .orders-header-search-shell {
+      width: 44px;
+      height: 44px;
+      box-shadow: 0 4px 14px rgba(15, 23, 42, 0.08);
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    .orders-header-search .orders-header-search-input {
+      width: 0;
+      padding: 0;
+      opacity: 0;
+    }
+    .orders-header-search.expanded {
+      position: fixed !important;
+      top: calc(var(--admin-mobile-header-safe-top) + 0.5rem) !important;
+      left: 4rem;
+      right: 0.5rem;
+      height: 48px;
+      max-width: calc(100vw - 4.5rem);
+      z-index: 1200;
+    }
+    .orders-header-search.expanded .orders-header-search-shell {
+      width: 100%;
+      height: 48px;
+      border-radius: 18px;
+      border-color: #f9a8d4;
+      box-shadow: 0 20px 45px rgba(15, 23, 42, 0.18);
+    }
+    .orders-header-search.expanded .orders-header-search-btn {
+      display: none;
+    }
+    .orders-header-search.expanded .orders-header-search-input {
+      width: 100%;
+      padding: 0 16px 0 0;
+      opacity: 1;
     }
     #page-products > .flex:first-child,
     #page-orders > .flex:first-child,

@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises'
 const adminPageSource = await readFile(new URL('../src/pages/adminPage.ts', import.meta.url), 'utf8')
 const adminScriptSource = await readFile(new URL('../src/pages/admin/script.ts', import.meta.url), 'utf8')
 const adminSectionsSource = await readFile(new URL('../src/pages/admin/sections.ts', import.meta.url), 'utf8')
+const adminFlashSaleSource = await readFile(new URL('../src/pages/admin/script-flashsale.ts', import.meta.url), 'utf8')
 
 const expectedScriptEmbeds = [
   '${adminInlineScript()}',
@@ -31,5 +32,11 @@ assert.match(adminScriptSource, /if \(!startedOpen && dx > 0\) openMobileSidebar
 assert.match(adminScriptSource, /if \(startedOpen && dx < 0\) closeMobileSidebar\(\)/, 'Expected swipe left to close mobile sidebar')
 assert.match(adminSectionsSource, /<header[\s\S]*id="menuToggle"[\s\S]*id="pageTitle"/, 'Expected mobile menu toggle to render inside the admin header before the page title')
 assert.match(adminSectionsSource, /export function adminMobileMenuToggle\(\): string \{\s*return ""\s*\}/, 'Expected legacy mobile menu placeholder to avoid rendering a second fixed hamburger')
+assert.match(adminFlashSaleSource, /function adminSecretFieldMarkup\(opts\)/, 'Expected warehouse credentials to use shared secret field markup')
+assert.match(adminFlashSaleSource, /function toggleAdminSecretField\(id\)/, 'Expected warehouse credential fields to support visibility toggle')
+assert.match(adminFlashSaleSource, /async function copyAdminSecretField\(id\)/, 'Expected warehouse credential fields to support copy')
+for (const fieldId of ['ghtkToken', 'ghtkClientSource', 'spxUserId', 'spxSecretKey', 'spxAccountId', 'ghnToken', 'ghnShopId', 'ghnClientId']) {
+  assert.match(adminFlashSaleSource, new RegExp(`adminSecretFieldMarkup\\(\\{ id: '${fieldId}'`), `Expected ${fieldId} to render as copyable secret field`)
+}
 
 console.log('admin source contract passed')

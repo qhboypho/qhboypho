@@ -169,12 +169,14 @@ async function saveFeaturedOrder() {
 }
 
 // ── BANNERS ──────────────────────────────────────
-async function loadSettingsAdmin() {
+async function loadSettingsAdmin(options = {}) {
   try {
     const pickupRes = await axios.get('/api/admin/ghtk/pickup-config')
     const pickupCfg = pickupRes.data.data || {}
     fillGhtkPickupConfig(pickupCfg)
-    await syncGhtkPickupAddresses(true, pickupCfg.pickAddressId || '')
+    if (options.syncPickup !== false) {
+      await syncGhtkPickupAddresses(true, pickupCfg.pickAddressId || '')
+    }
   } catch (e) {
     showAdminToast('Lỗi tải dữ liệu cài đặt kho GHTK', 'error')
   }
