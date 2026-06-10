@@ -6,7 +6,7 @@ export function adminMobilePwaStyles(): string {
   return `
   @media (display-mode: standalone) {
     body { background: #f8fafc; }
-    #adminMainContent > header { padding-top: max(0.875rem, env(safe-area-inset-top)); }
+    #adminMainContent > header { padding-top: calc(env(safe-area-inset-top) + 0.875rem); }
   }
 
   @media (max-width: 767px) {
@@ -15,22 +15,27 @@ export function adminMobilePwaStyles(): string {
     body.admin-scroll-locked { touch-action: none; }
     #adminMainContent { width: 100%; max-width: 100vw; min-height: 100dvh; overflow-x: hidden; }
     #adminMainContent > header {
-      min-height: 4.25rem;
+      min-height: calc(4.25rem + env(safe-area-inset-top));
       padding-top: max(0.75rem, env(safe-area-inset-top));
       padding-bottom: 0.75rem;
       background: rgba(255,255,255,0.94);
       backdrop-filter: blur(18px);
       -webkit-backdrop-filter: blur(18px);
     }
+    #adminMainContent > header > div:first-child {
+      margin-left: 4.75rem !important;
+    }
     #pageTitle {
-      max-width: min(44vw, 12rem);
+      max-width: min(54vw, 16rem);
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
       font-size: clamp(1rem, 4.5vw, 1.125rem);
     }
     .sidebar-mobile-toggle {
-      top: max(0.75rem, env(safe-area-inset-top));
+      top: calc(max(0.75rem, env(safe-area-inset-top)) + 0.625rem);
+      width: 48px;
+      height: 48px;
       background: rgba(255,255,255,0.96);
       backdrop-filter: blur(14px);
       -webkit-backdrop-filter: blur(14px);
@@ -134,7 +139,22 @@ export function adminMobilePwaStyles(): string {
     }
   }
 
+  @media (display-mode: standalone) and (max-width: 767px) {
+    #adminMainContent > header {
+      padding-top: calc(env(safe-area-inset-top) + 0.875rem);
+    }
+    .sidebar-mobile-toggle {
+      top: calc(env(safe-area-inset-top) + 4.125rem);
+    }
+  }
+
   @media (max-width: 390px) {
+    #adminMainContent > header > div:first-child {
+      margin-left: 4.25rem !important;
+    }
+    #pageTitle {
+      max-width: min(50vw, 13rem);
+    }
     #page-dashboard, #page-products, #page-product-types, #page-orders, #page-reviews, #page-vouchers, #page-featured, #page-backup, #page-settings-social, #page-settings-payment, #page-settings-text-ui, #page-settings-images, #page-settings-notifications, #page-settings-warehouse, #page-flashsale, #page-customers, #page-returns {
       padding-left: 0.5rem !important;
       padding-right: 0.5rem !important;
