@@ -5,6 +5,7 @@ import { validateAdminSessionToken } from '../lib/adminHelpers'
 import { refreshCustomerAutoBlock } from '../lib/customerBlockHelpers'
 import { getUserSessionUserId } from '../lib/userSessionHelpers'
 import { resolveAutoVoucherProductPrice } from '../lib/autoVoucherHelpers.ts'
+import { notifyAdminNewOrderPush } from '../lib/webPushHelpers'
 
 type OrderRouteDeps = {
   initDB: (db: D1Database) => Promise<void>
@@ -495,6 +496,22 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
         paymentMethod
       ).run()
 
+      const createdOrderForPush = {
+        id: result.meta.last_row_id,
+        order_code: orderCode,
+        customer_name,
+        customer_phone: normalizedCustomerPhone,
+        total_price: total
+      }
+      const pushTask = notifyAdminNewOrderPush(c.env, c.env.DB, createdOrderForPush)
+        .catch((error) => console.error('[web-push] failed to notify new order', error))
+      const executionCtx = (c as any).executionCtx
+      if (executionCtx && typeof executionCtx.waitUntil === 'function') {
+        executionCtx.waitUntil(pushTask)
+      } else {
+        void pushTask
+      }
+
       return c.json({ success: true, order_code: orderCode, id: result.meta.last_row_id, discount, total })
     } catch (e: any) {
       return c.json({ success: false, error: e.message }, 500)
@@ -548,6 +565,31 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
         : c.env.DB.prepare(query)
       const result = await stmt.all()
       return c.json({ success: true, data: result.results || [] })
+    } catch (e: any) {
+      return c.json({ success: false, error: e.message }, 500)
+    }
+  })
+
+  app.get('/api/admin/orders/latest', async (c) => {
+    try {
+      await deps.initDB(c.env.DB)
+      const internalFilterSql = `NOT ${deps.buildInternalTestOrderWhereSql('o')}`
+      const latestOrder = await c.env.DB.prepare(`
+        SELECT
+          o.id,
+          o.order_code,
+          o.customer_name,
+          o.customer_phone,
+          o.total_price,
+          o.status,
+          o.created_at
+        FROM orders o
+        WHERE ${internalFilterSql}
+        ORDER BY datetime(o.created_at) DESC, o.id DESC
+        LIMIT 1
+      `).first()
+
+      return c.json({ success: true, data: { latestOrder: latestOrder || null } })
     } catch (e: any) {
       return c.json({ success: false, error: e.message }, 500)
     }

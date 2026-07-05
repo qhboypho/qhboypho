@@ -72,6 +72,46 @@ self.addEventListener('fetch', (event) => {
     })
   )
 })
+
+self.addEventListener('push', (event) => {
+  let data = {}
+  try {
+    const rawText = event.data ? event.data.text() : ''
+    data = rawText ? JSON.parse(rawText) : {}
+  } catch (_) {
+    data = { title: 'Boypho có đơn mới', body: 'Có đơn hàng mới cần xử lý.' }
+  }
+  const title = data.title || 'Boypho có đơn mới'
+  const options = {
+    body: data.body || 'Có đơn hàng mới cần xử lý.',
+    icon: data.icon || '/qh-logo.png',
+    badge: data.badge || '/qh-logo.png',
+    tag: data.tag || 'boypho-new-order',
+    renotify: true,
+    requireInteraction: true,
+    data: {
+      url: data.url || '/admin/orders',
+      orderId: data.orderId || 0,
+      orderCode: data.orderCode || ''
+    }
+  }
+  event.waitUntil(self.registration.showNotification(title, options))
+})
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
+  const targetUrl = new URL(event.notification?.data?.url || '/admin/orders', self.location.origin).href
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if (client.url.startsWith(self.location.origin + '/admin')) {
+          return client.focus().then(() => client.navigate ? client.navigate(targetUrl) : client)
+        }
+      }
+      return clients.openWindow(targetUrl)
+    })
+  )
+})
 `
 }
 

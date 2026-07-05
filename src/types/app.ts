@@ -44,4 +44,7 @@ export type AppBindings = CloudflareBindings & {
   GHN_DEFAULT_WIDTH_CM?: string
   GHN_DEFAULT_HEIGHT_CM?: string
   CORS_ALLOWED_ORIGINS?: string
+  WEB_PUSH_VAPID_PUBLIC_KEY?: string
+  WEB_PUSH_VAPID_PRIVATE_KEY?: string
+  WEB_PUSH_VAPID_SUBJECT?: string
 }

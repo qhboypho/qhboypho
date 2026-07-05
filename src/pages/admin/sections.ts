@@ -133,6 +133,10 @@ export function adminMainContentStart(): string {
       <button type="button" id="adminInstallAppButton" onclick="installAdminPwa()" class="hidden admin-install-app-btn items-center justify-center gap-2 rounded-xl border border-pink-100 bg-pink-50 px-3 py-2 text-xs font-bold text-pink-600 shadow-sm hover:bg-pink-100 transition" title="Cài dashboard như app">
         <i class="fas fa-mobile-screen-button"></i><span class="hidden sm:inline">Cài app</span>
       </button>
+      <button type="button" id="adminOrderNotifyButton" onclick="enableAdminOrderNotifications()" class="inline-flex items-center justify-center gap-2 w-10 h-10 rounded-xl border border-gray-200 bg-white text-gray-500 shadow-sm hover:text-pink-600 hover:border-pink-200 hover:bg-pink-50 transition" title="Bật thông báo đơn mới" aria-label="Bật thông báo đơn mới">
+        <i id="adminOrderNotifyIcon" class="fas fa-bell text-sm"></i>
+        <span id="adminOrderNotifyLabel" class="hidden lg:inline text-xs font-bold">Thông báo</span>
+      </button>
       <button type="button" id="sidebarDesktopToggle" onclick="toggleDesktopSidebar()" class="sidebar-toggle-desktop hidden md:inline-flex items-center justify-center w-10 h-10 rounded-xl border border-gray-200 text-gray-600 hover:text-pink-600 hover:border-pink-200 transition" title="Thu gọn sidebar">
         <i class="fas fa-bars-staggered"></i>
       </button>

@@ -11,6 +11,7 @@ import { registerCustomerRoutes } from './routes/customerRoutes'
 import { registerPaymentRoutes } from './routes/paymentRoutes'
 import { registerVoucherStatsRoutes } from './routes/voucherStatsRoutes'
 import { registerAdminUtilityRoutes } from './routes/adminUtilityRoutes'
+import { registerAdminPushRoutes } from './routes/adminPushRoutes'
 import { registerFlashSaleRoutes } from './routes/flashSaleRoutes'
 import { registerReviewRoutes } from './routes/reviewRoutes'
 import { registerBlockRoutes } from './routes/blockRoutes'
@@ -136,6 +137,10 @@ registerAdminUtilityRoutes(app, {
   getAvailableShippingCarriers,
   upsertAppSettings,
   ghtkFetchPickupAddresses
+})
+
+registerAdminPushRoutes(app, {
+  initDB
 })
 
 registerAuthRoutes(app, {

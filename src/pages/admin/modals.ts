@@ -12,9 +12,9 @@ export function adminModalsSection(): string {
                 </div>`).join('')
 
   return `<!-- PRODUCT MODAL -->
-<div id="productModal" class="fixed inset-0 modal-overlay z-50 hidden items-start justify-center p-4 overflow-y-auto">
-  <div class="modal-card bg-white rounded-3xl shadow-2xl w-full max-w-3xl my-4">
-    <div class="sticky top-0 bg-white rounded-t-3xl border-b px-6 py-4 flex items-center justify-between">
+<div id="productModal" class="fixed inset-0 modal-overlay z-50 hidden items-start justify-center px-4 pb-4 pt-0 overflow-y-auto">
+  <div class="modal-card product-modal-card bg-white rounded-3xl shadow-2xl w-full max-w-3xl">
+    <div class="product-modal-header sticky top-0 bg-white rounded-t-3xl border-b px-6 py-4 flex items-center justify-between">
       <h2 id="modalTitle" class="font-bold text-xl text-gray-900">Thêm sản phẩm mới</h2>
       <button onclick="closeProductModal()" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition">
         <i class="fas fa-times text-gray-600"></i>

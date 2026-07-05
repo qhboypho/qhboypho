@@ -8,6 +8,7 @@
     "preview": "wrangler pages dev dist",
     "deploy": "npm run build && wrangler pages deploy dist",
     "deploy:prod": "npm run build && wrangler pages deploy dist --project-name qhclothes",
+    "webpush:keys": "node scripts/generate-vapid-keys.mjs",
     "cf-typegen": "wrangler types --env-interface CloudflareBindings",
     "db:migrate:local": "wrangler d1 migrations apply fashion-store-production --local",
     "db:seed": "wrangler d1 execute fashion-store-production --local --file=./migrations/0002_seed.sql",
@@ -21,6 +22,7 @@
     "check:ui-safety": "node scripts/check-ui-safety.mjs"
   },
   "dependencies": {
+    "@block65/webcrypto-web-push": "^1.0.2",
     "autotyping": "^1.2.6",
     "fflate": "^0.8.3",
     "hono": "^4.12.1",

@@ -38,6 +38,16 @@ let adminScrollLockY = 0
 let adminScrollLockActive = false
 let adminPwaInstallPrompt = null
 let adminSidebarGestureStart = null
+let adminOrderNotifyTimer = null
+let adminOrderNotifyAudioContext = null
+let adminOrderNotifyInitialized = false
+let adminOrderNotifyLastSeenId = 0
+let adminOrderNotifyEnabled = false
+let adminOrderSoundEnabled = false
+let adminOrderPushEnabled = false
+const ADMIN_ORDER_NOTIFY_ENABLED_KEY = 'boypho_admin_order_notifications_enabled'
+const ADMIN_ORDER_SOUND_ENABLED_KEY = 'boypho_admin_order_sound_enabled'
+const ADMIN_ORDER_LAST_SEEN_KEY = 'boypho_admin_order_last_seen_id'
 const adminScrollLockStyles = {
   bodyPosition: '',
   bodyTop: '',
@@ -266,6 +276,288 @@ async function installAdminPwa() {
     await promptEvent.prompt()
     await promptEvent.userChoice
   } catch (_) {}
+}
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4)
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
+  const rawData = window.atob(base64)
+  const outputArray = new Uint8Array(rawData.length)
+  for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i)
+  return outputArray
+}
+
+async function getAdminServiceWorkerRegistration() {
+  if (!('serviceWorker' in navigator)) return null
+  try {
+    const registration = await navigator.serviceWorker.register('/admin-sw.js', { scope: '/' })
+    return registration || await navigator.serviceWorker.ready
+  } catch (_) {
+    try {
+      return await navigator.serviceWorker.ready
+    } catch (_) {
+      return null
+    }
+  }
+}
+
+async function registerAdminPushSubscription() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+    return { ok: false, reason: 'unsupported' }
+  }
+  if (!('Notification' in window) || Notification.permission !== 'granted') {
+    return { ok: false, reason: 'permission' }
+  }
+  const keyRes = await axios.get('/api/admin/push/vapid-public-key', { headers: { 'Cache-Control': 'no-cache' } })
+  const pushConfig = keyRes.data?.data || {}
+  const publicKey = String(pushConfig.publicKey || '').trim()
+  if (!pushConfig.enabled || !publicKey) {
+    return { ok: false, reason: 'missing_vapid' }
+  }
+  const registration = await getAdminServiceWorkerRegistration()
+  if (!registration || !registration.pushManager) return { ok: false, reason: 'service_worker' }
+
+  let subscription = await registration.pushManager.getSubscription()
+  if (!subscription) {
+    subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(publicKey)
+    })
+  }
+  await axios.post('/api/admin/push/subscriptions', {
+    subscription: subscription.toJSON ? subscription.toJSON() : subscription
+  })
+  return { ok: true, reason: '' }
+}
+
+function readAdminOrderNotifySetting(key, fallback) {
+  try {
+    const value = localStorage.getItem(key)
+    if (value === null) return fallback
+    return value === '1'
+  } catch (_) {
+    return fallback
+  }
+}
+
+function writeAdminOrderNotifySetting(key, enabled) {
+  try {
+    localStorage.setItem(key, enabled ? '1' : '0')
+  } catch (_) {}
+}
+
+function readAdminOrderLastSeenId() {
+  try {
+    const id = Number(localStorage.getItem(ADMIN_ORDER_LAST_SEEN_KEY) || '0')
+    return Number.isFinite(id) && id > 0 ? id : 0
+  } catch (_) {
+    return 0
+  }
+}
+
+function writeAdminOrderLastSeenId(id) {
+  adminOrderNotifyLastSeenId = Math.max(Number(id || 0), adminOrderNotifyLastSeenId || 0)
+  try {
+    localStorage.setItem(ADMIN_ORDER_LAST_SEEN_KEY, String(adminOrderNotifyLastSeenId || 0))
+  } catch (_) {}
+}
+
+function syncAdminOrderNotifyButton() {
+  const btn = document.getElementById('adminOrderNotifyButton')
+  const icon = document.getElementById('adminOrderNotifyIcon')
+  const label = document.getElementById('adminOrderNotifyLabel')
+  if (!btn || !icon) return
+  const notificationBlocked = 'Notification' in window && Notification.permission === 'denied'
+  const active = adminOrderNotifyEnabled && adminOrderSoundEnabled
+  btn.classList.toggle('border-pink-200', active)
+  btn.classList.toggle('bg-pink-50', active)
+  btn.classList.toggle('text-pink-600', active)
+  btn.classList.toggle('text-gray-500', !active)
+  icon.className = active ? 'fas fa-bell text-sm' : 'far fa-bell text-sm'
+  btn.title = active
+    ? (notificationBlocked
+      ? 'Âm báo đang bật, trình duyệt đang chặn thông báo hệ thống'
+      : (adminOrderPushEnabled ? 'Thông báo đơn mới đang bật cả khi PWA đóng' : 'Thông báo đơn mới đang bật khi dashboard đang mở'))
+    : 'Bật thông báo đơn mới'
+  btn.setAttribute('aria-label', btn.title)
+  if (label) label.textContent = active ? (adminOrderPushEnabled ? 'Push bật' : 'Đang bật') : 'Thông báo'
+}
+
+function getAdminOrderAudioContext() {
+  const AudioCtor = window.AudioContext || window.webkitAudioContext
+  if (!AudioCtor) return null
+  if (!adminOrderNotifyAudioContext) adminOrderNotifyAudioContext = new AudioCtor()
+  return adminOrderNotifyAudioContext
+}
+
+async function unlockAdminOrderSound() {
+  const ctx = getAdminOrderAudioContext()
+  if (!ctx) return false
+  try {
+    if (ctx.state === 'suspended') await ctx.resume()
+    return true
+  } catch (_) {
+    return false
+  }
+}
+
+function playAdminOrderSound() {
+  if (!adminOrderSoundEnabled) return
+  const ctx = getAdminOrderAudioContext()
+  if (!ctx) return
+  try {
+    if (ctx.state === 'suspended') ctx.resume()
+    const now = ctx.currentTime
+    const master = ctx.createGain()
+    master.gain.setValueAtTime(0.0001, now)
+    master.gain.exponentialRampToValueAtTime(0.16, now + 0.025)
+    master.gain.exponentialRampToValueAtTime(0.0001, now + 0.72)
+    master.connect(ctx.destination)
+
+    ;[880, 1174].forEach((freq, index) => {
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+      const start = now + index * 0.18
+      osc.type = 'sine'
+      osc.frequency.setValueAtTime(freq, start)
+      gain.gain.setValueAtTime(0.0001, start)
+      gain.gain.exponentialRampToValueAtTime(1, start + 0.03)
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.24)
+      osc.connect(gain)
+      gain.connect(master)
+      osc.start(start)
+      osc.stop(start + 0.28)
+    })
+  } catch (_) {}
+}
+
+function formatAdminOrderNotifyBody(order) {
+  const name = String(order?.customer_name || 'Khách mới').trim()
+  const phone = String(order?.customer_phone || '').trim()
+  const total = formatAdminVnd(Number(order?.total_price || 0))
+  return name + (phone ? ' - ' + phone : '') + ' - ' + total
+}
+
+function showAdminNewOrderNotification(order) {
+  if (!order) return
+  const code = String(order.order_code || ('#' + order.id))
+  const body = formatAdminOrderNotifyBody(order)
+  showAdminToast('Có đơn hàng mới ' + code + ': ' + body, 'success')
+  playAdminOrderSound()
+  if ('Notification' in window && Notification.permission === 'granted') {
+    try {
+      const notice = new Notification('Boypho có đơn mới ' + code, {
+        body,
+        icon: '/qh-logo.png',
+        badge: '/qh-logo.png',
+        tag: 'new-order-' + order.id,
+        renotify: true,
+      })
+      notice.onclick = function() {
+        window.focus()
+        showPage('orders')
+        notice.close()
+      }
+    } catch (_) {}
+  }
+  if (document.body.dataset.adminPage === 'orders' && typeof loadOrders === 'function') {
+    loadOrders()
+  }
+  if (document.body.dataset.adminPage === 'dashboard' && typeof loadDashboard === 'function') {
+    loadDashboard()
+  }
+}
+
+async function pollAdminLatestOrder(silent) {
+  try {
+    const res = await axios.get('/api/admin/orders/latest', { headers: { 'Cache-Control': 'no-cache' } })
+    const order = res.data?.data?.latestOrder
+    if (!order) return
+    const id = Number(order.id || 0)
+    if (!Number.isFinite(id) || id <= 0) return
+    if (!adminOrderNotifyInitialized) {
+      adminOrderNotifyInitialized = true
+      const saved = readAdminOrderLastSeenId()
+      adminOrderNotifyLastSeenId = saved || id
+      writeAdminOrderLastSeenId(adminOrderNotifyLastSeenId)
+      return
+    }
+    if (id > adminOrderNotifyLastSeenId) {
+      writeAdminOrderLastSeenId(id)
+      if (!silent) showAdminNewOrderNotification(order)
+    }
+  } catch (_) {}
+}
+
+function startAdminOrderNotificationPolling() {
+  if (adminOrderNotifyTimer) clearInterval(adminOrderNotifyTimer)
+  pollAdminLatestOrder(true)
+  adminOrderNotifyTimer = setInterval(function() {
+    pollAdminLatestOrder(false)
+  }, 10000)
+}
+
+async function enableAdminOrderNotifications() {
+  adminOrderSoundEnabled = true
+  writeAdminOrderNotifySetting(ADMIN_ORDER_SOUND_ENABLED_KEY, true)
+  const soundReady = await unlockAdminOrderSound()
+  if ('Notification' in window && Notification.permission === 'default') {
+    try {
+      await Notification.requestPermission()
+    } catch (_) {}
+  }
+  adminOrderNotifyEnabled = true
+  writeAdminOrderNotifySetting(ADMIN_ORDER_NOTIFY_ENABLED_KEY, true)
+  startAdminOrderNotificationPolling()
+  let pushResult = { ok: false, reason: 'skipped' }
+  if ('Notification' in window && Notification.permission === 'granted') {
+    try {
+      pushResult = await registerAdminPushSubscription()
+      adminOrderPushEnabled = !!pushResult.ok
+    } catch (_) {
+      adminOrderPushEnabled = false
+      pushResult = { ok: false, reason: 'subscribe_failed' }
+    }
+  }
+  syncAdminOrderNotifyButton()
+  if (soundReady) playAdminOrderSound()
+  if ('Notification' in window && Notification.permission === 'denied') {
+    showAdminToast('Trình duyệt đang chặn thông báo. Vào cài đặt site để bật lại.', 'warning')
+    return
+  }
+  if (pushResult.ok) {
+    showAdminToast('Đã bật Web Push đơn mới cho dashboard/PWA', 'success')
+    return
+  }
+  if (pushResult.reason === 'missing_vapid') {
+    showAdminToast('Đã bật âm báo, nhưng chưa cấu hình VAPID để nhận khi PWA đóng.', 'warning')
+    return
+  }
+  if (pushResult.reason === 'unsupported') {
+    showAdminToast('Thiết bị này chưa hỗ trợ Web Push, âm báo trong dashboard vẫn hoạt động.', 'warning')
+    return
+  }
+  showAdminToast('Đã bật thông báo đơn mới khi dashboard đang mở', 'success')
+}
+
+function initAdminOrderNotifications() {
+  adminOrderNotifyEnabled = readAdminOrderNotifySetting(ADMIN_ORDER_NOTIFY_ENABLED_KEY, false)
+  adminOrderSoundEnabled = readAdminOrderNotifySetting(ADMIN_ORDER_SOUND_ENABLED_KEY, false)
+  adminOrderNotifyLastSeenId = readAdminOrderLastSeenId()
+  syncAdminOrderNotifyButton()
+  startAdminOrderNotificationPolling()
+  if (adminOrderNotifyEnabled && 'Notification' in window && Notification.permission === 'granted') {
+    registerAdminPushSubscription().then((result) => {
+      adminOrderPushEnabled = !!result.ok
+      syncAdminOrderNotifyButton()
+    }).catch(() => {
+      adminOrderPushEnabled = false
+      syncAdminOrderNotifyButton()
+    })
+  }
+  document.addEventListener('visibilitychange', function() {
+    if (!document.hidden) pollAdminLatestOrder(false)
+  })
 }
 
 async function loadAdminProfile() {
@@ -3447,6 +3739,7 @@ async function initAdminAuth() {
   }
   await loadAdminProfile()
   showPage('dashboard')
+  initAdminOrderNotifications()
   resetAdminTransientSurface('auth-ready-reset')
 }
 
