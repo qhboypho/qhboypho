@@ -23,7 +23,7 @@ function buildCookieHeader(setCookies) {
 const loginPageRes = await fetch(`${baseUrl}/admin/login`)
 assert.equal(loginPageRes.status, 200, `Expected /admin/login 200, got ${loginPageRes.status}`)
 const loginPageHtml = await loginPageRes.text()
-assert.match(loginPageHtml, /QH Clothes/i, 'Expected login page to include QH Clothes branding')
+assert.match(loginPageHtml, /QH Boypho/i, 'Expected login page to include QH Boypho branding')
 assert.match(loginPageHtml, /Đăng nhập Admin/i, 'Expected login page title text to be readable')
 assert.match(loginPageHtml, /Đăng nhập quản trị/i, 'Expected login card heading to be readable')
 assert.match(loginPageHtml, /sanitizeLoginSurface\(\)/, 'Expected admin login page to hard-reset stray overlays on load')

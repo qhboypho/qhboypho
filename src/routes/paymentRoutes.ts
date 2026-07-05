@@ -278,7 +278,7 @@ export function registerPaymentRoutes(app: Hono<{ Bindings: AppBindings }>, deps
         }
       ])
       const appUser = String(order.customer_phone || order.customer_name || `user_${order.id}`).slice(0, 50)
-      const description = `QHClothes - Thanh toan don hang #${order.order_code}`.slice(0, 256)
+      const description = `QHBoypho - Thanh toan don hang #${order.order_code}`.slice(0, 256)
       const callbackUrl = config.callbackUrl || ''
 
       const macInput = `${config.appIdRaw}|${appTransId}|${appUser}|${amount}|${nowMs}|${embedData}|${item}`

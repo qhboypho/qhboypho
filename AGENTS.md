@@ -14,6 +14,7 @@ Follow the global workflow in `C:\Users\DinhTungPC\AGENTS.md`.
 ## Minimal Checks
 
 - Frontend or admin flow changes: run `npm run build` and the narrowest contract or smoke checks for the touched flow.
+- UI changes: use global `browser-use` for browser-based verification whenever the task touches layout, interaction, visual regressions, mobile/PWA behavior, or modal flows. The installed command is `browser-use` and the backing venv is `C:\Users\DinhTungPC\.browser-use`.
 - Backend or shared logic: verify the changed endpoint or path and one adjacent caller path.
 - Before commit, review staged diff. If GitNexus `detect_changes` is unavailable, use `git diff --stat` plus targeted checks.
 

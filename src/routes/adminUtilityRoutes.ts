@@ -4,6 +4,15 @@ import type { AppBindings } from '../types/app'
 import type { AppSettingEntry } from '../types/admin'
 import type { GhtkPickupConfig, GhtkPickupAddressFetchResult, GhnConfig, ShippingCarrierDefinition, SpxConfig } from '../lib/shippingHelpers'
 import {
+  buildPublicAssetUrl,
+  getProductAssetBucket,
+  isUnsafeProductAssetKey,
+  normalizeProductAssetKey,
+  productAssetKeyFromUrl,
+  readProductAssetObject,
+  writeProductAssetObject
+} from '../lib/assetStorage'
+import {
   DEFAULT_QUICK_ORDER_RISK_NOTE_TEXT,
   readTextUiSettings,
   sanitizeTextUiSetting
@@ -154,12 +163,6 @@ function extensionFromMime(type: string): string {
   return 'jpg'
 }
 
-function buildPublicAssetUrl(c: any, key: string): string {
-  const base = String(c.env.PRODUCT_IMAGES_PUBLIC_BASE_URL || '').trim().replace(/\/+$/, '')
-  if (base) return `${base}/${key}`
-  return `/media/${key}`
-}
-
 function backupJsonResponse(data: unknown, filename: string) {
   return new Response(JSON.stringify(data, null, 2), {
     headers: {
@@ -251,24 +254,10 @@ function safeBackupImageName(index: number, url: string, contentType = '') {
   return `images/${String(index + 1).padStart(4, '0')}.${ext}`
 }
 
-function r2KeyFromAssetUrl(rawUrl: string): string {
-  const value = String(rawUrl || '').trim()
-  if (!value) return ''
-  if (value.startsWith('/media/')) return decodeURIComponent(value.slice('/media/'.length)).replace(/^\/+/, '')
-  try {
-    const parsed = new URL(value)
-    if (parsed.pathname.startsWith('/media/')) return decodeURIComponent(parsed.pathname.slice('/media/'.length)).replace(/^\/+/, '')
-  } catch {
-    // not absolute URL
-  }
-  return ''
-}
-
-async function readBackupImageBytes(c: any, url: string): Promise<{ bytes: Uint8Array; contentType: string } | null> {
-  const key = r2KeyFromAssetUrl(url)
-  const bucket = c.env.PRODUCT_IMAGES
-  if (key && bucket) {
-    const object = await bucket.get(key)
+async function readBackupImageBytes(env: AppBindings, url: string): Promise<{ bytes: Uint8Array; contentType: string } | null> {
+  const key = productAssetKeyFromUrl(url)
+  if (key) {
+    const object = await readProductAssetObject(env, key)
     if (object) {
       const contentType = String(object.httpMetadata?.contentType || 'application/octet-stream')
       return { bytes: new Uint8Array(await object.arrayBuffer()), contentType }
@@ -296,7 +285,7 @@ function decodeUtf8(value: Uint8Array): string {
   return new TextDecoder().decode(value)
 }
 
-async function buildShopBackupZip(c: any, data: Record<string, any[]>) {
+async function buildShopBackupZip(env: AppBindings, data: Record<string, any[]>) {
   const exportedAt = new Date().toISOString()
   const imageUrls = collectBackupImageUrls(data)
   const imageManifest: Array<{ url: string; path: string; contentType: string; included: boolean; reason?: string }> = []
@@ -306,7 +295,7 @@ async function buildShopBackupZip(c: any, data: Record<string, any[]>) {
   }
   for (let index = 0; index < imageUrls.length; index += 1) {
     const url = imageUrls[index]
-    const image = await readBackupImageBytes(c, url)
+    const image = await readBackupImageBytes(env, url)
     if (!image) {
       imageManifest.push({ url, path: '', contentType: '', included: false, reason: 'IMAGE_NOT_AVAILABLE' })
       continue
@@ -415,8 +404,8 @@ function rewriteBackupUrls(data: Record<string, any[]>, urlMap: Map<string, stri
   return rewrite(data)
 }
 
-async function uploadBackupImagesFromZip(c: any, manifest: any, files: Record<string, Uint8Array>) {
-  const bucket = c.env.PRODUCT_IMAGES
+async function uploadBackupImagesFromZip(env: AppBindings, manifest: any, files: Record<string, Uint8Array>) {
+  const bucket = getProductAssetBucket(env)
   const urlMap = new Map<string, string>()
   const imageEntries = Array.isArray(manifest?.images) ? manifest.images : []
   if (!bucket || !imageEntries.length) return { urlMap, uploaded: 0, skipped: imageEntries.length }
@@ -433,13 +422,13 @@ async function uploadBackupImagesFromZip(c: any, manifest: any, files: Record<st
     const contentType = String(entry?.contentType || 'application/octet-stream')
     const ext = getImageExtensionFromContentType(contentType)
     const key = `restored/${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID()}.${ext}`
-    await bucket.put(key, bytes, {
+    await writeProductAssetObject(env, key, bytes, {
       httpMetadata: {
         contentType,
         cacheControl: 'public, max-age=31536000, immutable',
       },
     })
-    urlMap.set(oldUrl, buildPublicAssetUrl(c, key))
+    urlMap.set(oldUrl, buildPublicAssetUrl(env, key))
     uploaded += 1
   }
   return { urlMap, uploaded, skipped }
@@ -521,7 +510,7 @@ const PAYMENT_SETTING_KEYS = [
   'wallet_topup_enabled',
 ] as const
 
-const DEFAULT_MARQUEE_TEXT = 'Mua hàng tại đây không qua sàn thương mại nên giá thành sản phẩm sẽ rẻ hơn rất nhiều và bảo hành hoàn trả trong vòng 7 ngày nếu sản phẩm bị lỗi nên quý khách yên tâm mua sắm nhé.Bảo hành đổi trả nhắn qua trang facebook : QH Boypho. Chúc quý khách có trải nghiệm mua sắm tốt tại QH Clothes'
+const DEFAULT_MARQUEE_TEXT = 'Mua hàng tại đây không qua sàn thương mại nên giá thành sản phẩm sẽ rẻ hơn rất nhiều và bảo hành hoàn trả trong vòng 7 ngày nếu sản phẩm bị lỗi nên quý khách yên tâm mua sắm nhé.Bảo hành đổi trả nhắn qua trang facebook : QH Boypho. Chúc quý khách có trải nghiệm mua sắm tốt tại QH Boypho'
 const DEFAULT_MARQUEE_SPEED_SECONDS = 48
 const DEFAULT_NOTIFICATION_DISPLAY_MODE = 'marquee'
 
@@ -616,11 +605,9 @@ async function readPaymentSettings(db: D1Database) {
 
 export function registerAdminUtilityRoutes(app: Hono<{ Bindings: AppBindings }>, deps: AdminUtilityRouteDeps) {
   app.get('/media/*', async (c) => {
-    const bucket = c.env.PRODUCT_IMAGES
-    if (!bucket) return c.notFound()
-    const key = decodeURIComponent(c.req.path.replace(/^\/media\//, '')).replace(/^\/+/, '')
-    if (!key || key.includes('..')) return c.notFound()
-    const object = await bucket.get(key)
+    const key = normalizeProductAssetKey(decodeURIComponent(c.req.path.replace(/^\/media\//, '')))
+    if (isUnsafeProductAssetKey(key)) return c.notFound()
+    const object = await readProductAssetObject(c.env, key)
     if (!object) return c.notFound()
     const headers = new Headers()
     if (object.httpMetadata?.contentType) {
@@ -632,8 +619,7 @@ export function registerAdminUtilityRoutes(app: Hono<{ Bindings: AppBindings }>,
   })
 
   app.post('/api/admin/assets/images', async (c) => {
-    const bucket = c.env.PRODUCT_IMAGES
-    if (!bucket) return c.json({ success: false, error: 'R2_NOT_CONFIGURED' }, 500)
+    if (!getProductAssetBucket(c.env)) return c.json({ success: false, error: 'R2_NOT_CONFIGURED' }, 500)
 
     const form = await c.req.raw.formData()
     const file = form.get('file')
@@ -650,13 +636,13 @@ export function registerAdminUtilityRoutes(app: Hono<{ Bindings: AppBindings }>,
     const folder = normalizeAssetFolder(form.get('folder'))
     const ext = extensionFromMime(contentType)
     const key = `${folder}/${new Date().toISOString().slice(0, 10)}/${crypto.randomUUID()}.${ext}`
-    await bucket.put(key, await file.arrayBuffer(), {
+    await writeProductAssetObject(c.env, key, await file.arrayBuffer(), {
       httpMetadata: {
         contentType,
         cacheControl: 'public, max-age=31536000, immutable',
       },
     })
-    return c.json({ success: true, key, url: buildPublicAssetUrl(c, key) })
+    return c.json({ success: true, key, url: buildPublicAssetUrl(c.env, key) })
   })
 
   app.get('/api/admin/backup/export', async (c) => {
@@ -668,7 +654,7 @@ export function registerAdminUtilityRoutes(app: Hono<{ Bindings: AppBindings }>,
       if (format === 'json') {
         return backupJsonResponse(buildBackupEnvelope(data), `qhclothes-backup-${stamp}.json`)
       }
-      const backup = await buildShopBackupZip(c, data)
+      const backup = await buildShopBackupZip(c.env, data)
       return new Response(backup.bytes, {
         headers: {
           'content-type': 'application/zip',
@@ -714,7 +700,7 @@ export function registerAdminUtilityRoutes(app: Hono<{ Bindings: AppBindings }>,
       }
 
       const upload = isZip
-        ? await uploadBackupImagesFromZip(c, parsed.manifest, parsed.files)
+        ? await uploadBackupImagesFromZip(c.env, parsed.manifest, parsed.files)
         : { urlMap: new Map<string, string>(), uploaded: 0, skipped: 0 }
       const restoredData = rewriteBackupUrls(parsed.data, upload.urlMap)
       await restoreShopBackupData(c.env.DB, restoredData, { replaceExisting })

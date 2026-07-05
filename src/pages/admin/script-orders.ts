@@ -988,7 +988,7 @@ function exportExcel() {
   ]
   const wb = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(wb, ws, 'Đơn hàng')
-  XLSX.writeFile(wb, 'DonHang_QHClothes_' + new Date().toISOString().split('T')[0] + '.xlsx')
+  XLSX.writeFile(wb, 'DonHang_QHBoypho_' + new Date().toISOString().split('T')[0] + '.xlsx')
   showAdminToast('Xuất Excel thành công!', 'success')
 }
 

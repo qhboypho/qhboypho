@@ -30,9 +30,9 @@ export function adminSidebarSection(): string {
 <aside id="sidebar" data-sidebar-state="expanded" class="sidebar w-64 min-h-screen fixed left-0 top-0 z-40 transform -translate-x-full md:translate-x-0 transition-transform duration-300 flex flex-col">
   <div class="p-6 border-b border-white/10">
     <div class="flex items-center gap-3 sidebar-brand-shell">
-      <span class="inline-flex items-center justify-center sidebar-brand-logo"><img src="/qh-logo.png" alt="QH Clothes" class="rounded-full w-9 h-9 object-cover bg-white"></span>
+      <span class="inline-flex items-center justify-center sidebar-brand-logo"><img src="/qh-logo.png" alt="QH Boypho" class="rounded-full w-9 h-9 object-cover bg-white"></span>
       <div class="sidebar-brand-copy">
-        <p class="text-white font-bold text-lg leading-tight"><span class="text-pink-400">Clothes</span></p>
+        <p class="text-white font-bold text-lg leading-tight"><span class="text-pink-400">Boypho</span></p>
         <p class="text-gray-400 text-xs">Admin Panel</p>
       </div>
     </div>
@@ -142,7 +142,7 @@ export function adminMainContentStart(): string {
             <img id="adminHeaderAvatarImg" src="" alt="avatar" class="w-full h-full object-cover hidden">
             <span id="adminHeaderAvatarFallback">A</span>
           </span>
-          <span id="adminHeaderProfileName" class="text-sm font-semibold truncate">QH Clothes</span>
+          <span id="adminHeaderProfileName" class="text-sm font-semibold truncate">QH Boypho</span>
         </button>
         <div id="adminAvatarDropdown" class="hidden fixed top-0 right-0 w-[320px] bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden z-[49]" style="display:none;pointer-events:none">
           <div class="p-3 bg-gray-50 border-b border-gray-200">
@@ -154,7 +154,7 @@ export function adminMainContentStart(): string {
                 <span class="avatar-edit-overlay"><i class="fas fa-camera text-white text-sm"></i></span>
               </button>
               <div class="min-w-0">
-                <p id="adminMenuProfileName" class="text-sm font-semibold text-gray-900 truncate">QH Clothes</p>
+                <p id="adminMenuProfileName" class="text-sm font-semibold text-gray-900 truncate">QH Boypho</p>
                 <p id="adminMenuShopCode" class="text-xs text-gray-400 truncate">Shop Code: ADMIN</p>
                 <p class="text-xs text-gray-400">Tự bán hàng</p>
               </div>
@@ -801,7 +801,7 @@ export function adminImageSettingsPage(): string {
             <div class="grid gap-3 md:grid-cols-2">
               <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-1.5">Caption nhỏ</label>
-                <input id="homeTrendingBannerSubtitle" type="text" maxlength="120" placeholder="QH Clothes · Đang thịnh hành" class="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-pink-400 focus:ring-4 focus:ring-pink-100">
+                <input id="homeTrendingBannerSubtitle" type="text" maxlength="120" placeholder="QH Boypho · Đang thịnh hành" class="w-full rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none focus:border-pink-400 focus:ring-4 focus:ring-pink-100">
               </div>
               <div>
                 <label class="block text-sm font-semibold text-gray-700 mb-1.5">Tiêu đề chính</label>
@@ -857,17 +857,21 @@ export function adminNotificationSettingsPage(): string {
     <style>
       #page-settings-notifications .notification-hero { background: radial-gradient(circle at 88% 12%, rgba(236,72,153,.38), transparent 32%), radial-gradient(circle at 14% 100%, rgba(59,130,246,.18), transparent 34%), linear-gradient(135deg,#101827 0%,#172033 48%,#9f1239 100%); }
       #page-settings-notifications .notification-card { box-shadow: 0 18px 44px -24px rgba(15,23,42,.28); }
-      #page-settings-notifications .storefront-marquee-bar { height: 34px; background: rgba(24,24,27,0.98); border-bottom: 1px solid rgba(255,255,255,0.06); overflow: hidden; }
+      #page-settings-notifications .storefront-marquee-bar { height: 34px; background: rgba(2,8,18,0.98); border-bottom: 1px solid rgba(6,182,212,0.16); overflow: hidden; }
       #page-settings-notifications .storefront-marquee-bar.storefront-marquee-bar--static { height: auto; min-height: 34px; overflow: visible; }
-      #page-settings-notifications .storefront-marquee-track { display: flex; align-items: center; width: max-content; height: 100%; animation: storefrontMarqueePreview var(--storefront-marquee-duration, 48s) linear infinite; animation-delay: 0s; will-change: transform; }
-      #page-settings-notifications .storefront-marquee-group { display: inline-flex; align-items: center; flex: 0 0 auto; gap: 0.45rem; padding: 0 1.25rem; white-space: nowrap; }
-      #page-settings-notifications .storefront-marquee-icon { flex: 0 0 auto; color: #facc15; font-size: 14px; line-height: 1; }
-      #page-settings-notifications .storefront-marquee-text { flex: 0 0 auto; color: rgba(255,255,255,0.9); font-size: 14px; font-weight: 600; line-height: 1; white-space: nowrap; letter-spacing: 0; }
+      #page-settings-notifications .storefront-marquee-track { display: flex; align-items: center; width: max-content; height: 100%; animation: storefrontMarqueePreview var(--storefront-marquee-duration, 48s) linear infinite; animation-delay: 0s; will-change: transform; backface-visibility: hidden; }
+      #page-settings-notifications .storefront-marquee-bar:hover .storefront-marquee-track { animation-play-state: paused !important; }
+      #page-settings-notifications .storefront-marquee-group { display: inline-flex; align-items: center; flex: 0 0 auto; gap: 0.5rem; padding: 0 1rem; white-space: nowrap; }
+      #page-settings-notifications .storefront-marquee-icon { flex: 0 0 auto; color: rgba(255,255,255,0.92); font-size: 12px; line-height: 1; }
+      #page-settings-notifications .storefront-marquee-text { flex: 0 0 auto; color: rgba(203,213,225,0.9); font-size: 13px; font-weight: 700; line-height: 1; white-space: nowrap; letter-spacing: 0; }
+      #page-settings-notifications .storefront-marquee-separator { width: 1px; height: 14px; margin-left: 1rem; background: rgba(148,163,184,0.24); }
       #page-settings-notifications .storefront-static-notice { display: flex; align-items: center; justify-content: center; gap: .45rem; min-height: 100%; padding: .3rem 1rem; color: rgba(255,255,255,.92); font-size: 14px; font-weight: 700; line-height: 1.35; overflow: visible; text-align: center; }
       #page-settings-notifications .storefront-static-notice i { flex: 0 0 auto; color: #facc15; font-size: 14px; }
       #page-settings-notifications .storefront-static-notice span { min-width: 0; overflow: visible; text-overflow: clip; white-space: normal; overflow-wrap: anywhere; }
+      #page-settings-notifications .notification-switch-input:checked + .notification-switch-track { background: linear-gradient(135deg,#2563eb,#ec4899); }
+      #page-settings-notifications .notification-switch-input:checked + .notification-switch-track .notification-switch-thumb { transform: translateX(1.45rem); }
       #page-settings-notifications input[type="range"] { accent-color: #ec4899; }
-      @keyframes storefrontMarqueePreview { from { transform: translateX(0); } to { transform: translateX(-33.333%); } }
+      @keyframes storefrontMarqueePreview { from { transform: translate3d(0,0,0); } to { transform: translate3d(-50%,0,0); } }
     </style>
     <div class="notification-hero mb-5 rounded-3xl border border-slate-200 p-5 md:p-6 text-white shadow-sm overflow-hidden relative">
       <div class="relative flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5">
@@ -887,33 +891,40 @@ export function adminNotificationSettingsPage(): string {
     <div class="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
       <div class="min-w-0 space-y-5">
         <section class="notification-card min-w-0 overflow-hidden rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
-          <div class="mb-5">
-            <h3 class="text-lg font-extrabold text-gray-900">Kiểu hiển thị</h3>
-            <div class="mt-3 grid gap-3 sm:grid-cols-2">
-              <label class="flex cursor-pointer items-center gap-3 rounded-2xl border border-pink-200 bg-pink-50 px-4 py-3 text-sm font-bold text-pink-700">
-                <input id="notificationModeMarquee" name="notificationDisplayMode" type="radio" value="marquee" checked onchange="previewNotificationSettings()" class="accent-pink-500">
-                <span><i class="fas fa-person-running mr-2"></i>Chạy marquee</span>
-              </label>
-              <label class="flex cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700">
-                <input id="notificationModeStatic" name="notificationDisplayMode" type="radio" value="static" onchange="previewNotificationSettings()" class="accent-pink-500">
-                <span><i class="fas fa-align-left mr-2"></i>Hiển thị tĩnh</span>
+          <div class="mb-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 class="text-lg font-extrabold text-gray-900">Kiểu hiển thị</h3>
+                <p id="notificationModeHelp" class="mt-1 text-sm font-medium text-slate-500">Bật để chạy loop tự động, tắt để hiển thị một dòng tĩnh.</p>
+              </div>
+              <label class="inline-flex cursor-pointer select-none items-center gap-3 rounded-2xl border border-pink-100 bg-white px-4 py-3 text-sm font-extrabold text-slate-800 shadow-sm">
+                <input id="notificationLoopSwitch" type="checkbox" checked onchange="toggleNotificationDisplayMode()" class="notification-switch-input sr-only">
+                <span class="notification-switch-track relative inline-flex h-7 w-14 shrink-0 rounded-full bg-slate-300 p-1 transition">
+                  <span class="notification-switch-thumb h-5 w-5 rounded-full bg-white shadow transition"></span>
+                </span>
+                <span id="notificationLoopSwitchLabel">Chạy loop</span>
               </label>
             </div>
           </div>
 
+          <div id="marqueeContentPanel">
           <div class="mb-4 flex items-start justify-between gap-4">
             <div class="min-w-0 flex items-start gap-4">
               <span class="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-pink-50 text-pink-600">
                 <i class="fas fa-a text-lg"></i>
               </span>
               <div class="min-w-0">
-                <h3 class="text-xl font-extrabold text-gray-900">Nội dung marquee</h3>
-                <p class="mt-1 text-sm text-gray-500">Nội dung này hiển thị ngay khi storefront loading, không delay.</p>
+                <h3 class="text-xl font-extrabold text-gray-900">Nội dung chạy loop</h3>
+                <p class="mt-1 text-sm text-gray-500">Thêm nhiều đoạn ngắn, storefront sẽ tự ngăn cách bằng vạch như thanh tham khảo.</p>
               </div>
             </div>
             <span id="marqueeTextCounter" class="inline-flex shrink-0 items-center rounded-full bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-500">0/600</span>
           </div>
-          <textarea id="marqueeNotificationText" rows="4" maxlength="600" oninput="previewNotificationSettings()" placeholder="Nhập nội dung thông báo chạy trên đầu trang..." class="block w-full max-w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-4 text-base font-medium leading-relaxed text-slate-900 outline-none transition focus:border-pink-300 focus:bg-white focus:ring-4 focus:ring-pink-100"></textarea>
+          <textarea id="marqueeNotificationText" maxlength="600" class="hidden" aria-hidden="true"></textarea>
+          <div id="marqueeSegmentsList" class="space-y-3"></div>
+          <button type="button" onclick="addMarqueeSegment()" class="mt-3 inline-flex items-center justify-center gap-2 rounded-2xl border border-cyan-200 bg-cyan-50 px-4 py-2.5 text-sm font-extrabold text-cyan-700 transition hover:bg-cyan-100">
+            <i class="fas fa-plus"></i>Thêm đoạn
+          </button>
           <div class="mt-4 flex flex-wrap gap-2">
             <button type="button" onclick="setNotificationQuickText('Miễn phí vận chuyển cho đơn từ 500K | Flashsale mỗi tối 20:00 | Hỗ trợ đổi size trong 7 ngày')" class="rounded-full border border-orange-100 bg-orange-50 px-3 py-2 text-xs font-bold text-orange-700 hover:bg-orange-100 transition">Ưu đãi</button>
             <button type="button" onclick="setNotificationQuickText('Flashsale mỗi tối 20:00 | Số lượng có hạn | Chốt đơn sớm để giữ size đẹp')" class="rounded-full border border-orange-100 bg-orange-50 px-3 py-2 text-xs font-bold text-orange-700 hover:bg-orange-100 transition">Flashsale</button>
@@ -921,8 +932,9 @@ export function adminNotificationSettingsPage(): string {
             <button type="button" onclick="setNotificationQuickText('Freeship cho đơn từ 500K | Giao hàng toàn quốc')" class="rounded-full border border-orange-100 bg-orange-50 px-3 py-2 text-xs font-bold text-orange-700 hover:bg-orange-100 transition">Freeship</button>
             <button type="button" onclick="clearNotificationText()" class="rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 transition">Xoá nội dung</button>
           </div>
+          </div>
 
-          <div class="mt-6 rounded-2xl border border-blue-100 bg-blue-50/70 p-4">
+          <div id="staticNotificationPanel" class="mt-6 hidden rounded-2xl border border-blue-100 bg-blue-50/70 p-4">
             <div class="mb-3 flex items-center justify-between gap-3">
               <label for="staticNotificationText" class="text-sm font-extrabold text-blue-900">Nội dung tĩnh</label>
               <span id="staticNotificationTextCounter" class="inline-flex shrink-0 items-center rounded-full bg-white px-3 py-1 text-xs font-bold text-blue-600">0/600</span>
@@ -973,7 +985,7 @@ export function adminNotificationSettingsPage(): string {
               </div>
             </div>
             <div class="bg-gradient-to-br from-indigo-950 to-pink-900 p-5">
-              <p class="text-2xl font-extrabold">QH Clothes</p>
+              <p class="text-2xl font-extrabold">QH Boypho</p>
               <p id="notificationPreviewCaption" class="mt-2 text-sm font-medium text-pink-100">Thông báo chạy ngay khi trang được load.</p>
             </div>
           </div>

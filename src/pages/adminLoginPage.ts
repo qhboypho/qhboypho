@@ -4,7 +4,7 @@ export function adminLoginHTML(): string {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>Đăng nhập Admin – QH Clothes</title>
+<title>Đăng nhập Admin – QH Boypho</title>
 <meta name="theme-color" content="#0f172a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -49,9 +49,9 @@ export function adminLoginHTML(): string {
     <div class="text-center mb-8">
       <div class="flex flex-col items-center gap-3">
         <span class="logo-spinner">
-          <img src="/qh-logo.png" alt="QH Clothes" class="rounded-full object-cover bg-white">
+          <img src="/qh-logo.png" alt="QH Boypho" class="rounded-full object-cover bg-white">
         </span>
-        <h1 class="font-display text-3xl font-bold text-white"><span class="text-pink-400">Clothes</span></h1>
+        <h1 class="font-display text-3xl font-bold text-white"><span class="text-pink-400">Boypho</span></h1>
         <p class="text-gray-400 text-sm">Admin Panel</p>
       </div>
     </div>
@@ -85,7 +85,7 @@ export function adminLoginHTML(): string {
         </button>
       </div>
     </div>
-    <p class="text-center text-gray-500 text-xs mt-6">&copy; 2026 QH Clothes. All rights reserved.</p>
+    <p class="text-center text-gray-500 text-xs mt-6">&copy; 2026 QH Boypho. All rights reserved.</p>
   </div>
 <script>
   let adminTurnstileEnabled = false

@@ -4,8 +4,8 @@ export function privacyPolicyHTML(): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chính sách bảo mật - QH Clothes</title>
-  <meta name="description" content="Chính sách bảo mật của QH Clothes: thông tin thu thập, mục đích sử dụng, thời gian lưu trữ và quyền của khách hàng.">
+  <title>Chính sách bảo mật - QH Boypho</title>
+  <meta name="description" content="Chính sách bảo mật của QH Boypho: thông tin thu thập, mục đích sử dụng, thời gian lưu trữ và quyền của khách hàng.">
   <link rel="icon" type="image/png" href="/qh-logo.png">
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
@@ -32,8 +32,8 @@ export function privacyPolicyHTML(): string {
     <header class="border-b border-white/10 bg-slate-950/72 backdrop-blur-xl">
       <div class="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4">
         <a href="/" class="inline-flex items-center gap-2 text-white">
-          <img src="/qh-logo.png" alt="QH Clothes" class="h-10 w-10 rounded-full bg-white object-cover">
-          <span class="font-display text-xl font-extrabold"><span class="text-pink-400">Clothes</span></span>
+          <img src="/qh-logo.png" alt="QH Boypho" class="h-10 w-10 rounded-full bg-white object-cover">
+          <span class="font-display text-xl font-extrabold"><span class="text-pink-400">Boypho</span></span>
         </a>
         <a href="/" class="inline-flex items-center gap-2 rounded-full border border-white/15 px-4 py-2 text-sm font-semibold text-slate-200 transition hover:border-pink-300/50 hover:text-white">
           <i class="fas fa-arrow-left"></i>
@@ -46,10 +46,10 @@ export function privacyPolicyHTML(): string {
       <div class="mb-8 max-w-3xl">
         <p class="mb-4 inline-flex items-center gap-2 rounded-full border border-sky-300/20 bg-sky-300/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.22em] text-sky-200">
           <i class="fas fa-lock"></i>
-          QH Clothes
+          QH Boypho
         </p>
         <h1 class="font-display text-4xl font-extrabold leading-tight text-white md:text-6xl">Chính sách bảo mật</h1>
-        <p class="mt-5 max-w-2xl text-base leading-8 text-slate-300 md:text-lg">Tại QH Clothes, chúng tôi tôn trọng và cam kết bảo vệ thông tin cá nhân của khách hàng khi mua sắm trên website.</p>
+        <p class="mt-5 max-w-2xl text-base leading-8 text-slate-300 md:text-lg">Tại QH Boypho, chúng tôi tôn trọng và cam kết bảo vệ thông tin cá nhân của khách hàng khi mua sắm trên website.</p>
       </div>
 
       <article class="policy-panel overflow-hidden rounded-[2rem] p-5 md:p-8">
@@ -104,7 +104,7 @@ export function privacyPolicyHTML(): string {
 
           <section class="policy-section">
             <h2 class="mb-3 flex items-center gap-2 text-xl font-extrabold text-white"><span class="policy-marker">6.</span> Cam kết của shop</h2>
-            <p>QH Clothes luôn cố gắng bảo vệ thông tin khách hàng an toàn và minh bạch. Việc khách đặt hàng trên website đồng nghĩa với việc khách đã đồng ý với chính sách bảo mật này.</p>
+            <p>QH Boypho luôn cố gắng bảo vệ thông tin khách hàng an toàn và minh bạch. Việc khách đặt hàng trên website đồng nghĩa với việc khách đã đồng ý với chính sách bảo mật này.</p>
             <p class="mt-3">Nếu có thắc mắc về chính sách bảo mật, khách vui lòng liên hệ với shop để được hỗ trợ.</p>
           </section>
         </div>

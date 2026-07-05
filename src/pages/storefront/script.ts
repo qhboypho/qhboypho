@@ -293,6 +293,7 @@ function loadStorefrontThemePreference() {
 
 function applyStorefrontTheme(theme) {
   theme = theme === 'dark' ? 'dark' : 'light'
+  document.documentElement.dataset.storefrontTheme = theme
   document.body.dataset.storefrontTheme = theme
   const icon = document.getElementById('storefrontThemeIcon')
   const btn = document.getElementById('storefrontThemeToggle')
@@ -3202,7 +3203,7 @@ async function loadSettings() {
     if (configuredTrendingImage) {
       heroBannersData = [{
         image_url: configuredTrendingImage,
-        subtitle: String(imageSettings.home_trending_banner_subtitle || '').trim() || 'QH Clothes · Đang thịnh hành',
+        subtitle: String(imageSettings.home_trending_banner_subtitle || '').trim() || 'QH Boypho · Đang thịnh hành',
         title: String(imageSettings.home_trending_banner_title || '').trim() || 'Bộ sưu tập thịnh hành',
         price: '',
         product_id: null,
@@ -3580,7 +3581,7 @@ function renderHeroSettingCaption(b, mode) {
   </div>\`
 }
 
-const DEFAULT_MARQUEE_NOTIFICATION_TEXT = 'Mua hàng tại đây không qua sàn thương mại nên giá thành sản phẩm sẽ rẻ hơn rất nhiều và bảo hành hoàn trả trong vòng 7 ngày nếu sản phẩm bị lỗi nên quý khách yên tâm mua sắm nhé.Bảo hành đổi trả nhắn qua trang facebook : QH Boypho. Chúc quý khách có trải nghiệm mua sắm tốt tại QH Clothes'
+const DEFAULT_MARQUEE_NOTIFICATION_TEXT = 'Mua hàng tại đây không qua sàn thương mại nên giá thành sản phẩm sẽ rẻ hơn rất nhiều và bảo hành hoàn trả trong vòng 7 ngày nếu sản phẩm bị lỗi nên quý khách yên tâm mua sắm nhé.Bảo hành đổi trả nhắn qua trang facebook : QH Boypho. Chúc quý khách có trải nghiệm mua sắm tốt tại QH Boypho'
 
 function normalizeStorefrontMarqueeSpeed(value) {
   const n = Number(value || 48)
@@ -3588,12 +3589,74 @@ function normalizeStorefrontMarqueeSpeed(value) {
   return Math.min(120, Math.max(8, Math.round(n)))
 }
 
+function parseStorefrontMarqueeSegments(value) {
+  const raw = String(value || DEFAULT_MARQUEE_NOTIFICATION_TEXT)
+  const lineBreak = String.fromCharCode(10)
+  const segments = raw
+    .replaceAll(String.fromCharCode(13), lineBreak)
+    .replaceAll('|', lineBreak)
+    .split(lineBreak)
+    .map(item => item.trim())
+    .filter(Boolean)
+  return segments.length ? segments.slice(0, 12) : [DEFAULT_MARQUEE_NOTIFICATION_TEXT]
+}
+
+function getStorefrontMarqueeIconClass(text) {
+  const value = String(text || '').toLowerCase()
+  const rules = [
+    { keywords: ['tìm', 'search', 'chủ đề'], icon: 'fa-search' },
+    { keywords: ['giao', 'ship', 'vận chuyển', 'freeship'], icon: 'fa-shipping-fast' },
+    { keywords: ['zalo', 'facebook', 'messenger', 'nhắn', 'hỗ trợ'], icon: 'fa-comments' },
+    { keywords: ['flash', 'sale', 'giảm', 'ưu đãi', 'khuyến mãi', 'giá'], icon: 'fa-tags' },
+    { keywords: ['nghiên cứu', 'tool', 'thị trường'], icon: 'fa-chart-line' },
+    { keywords: ['48h', 'giờ', 'thời gian'], icon: 'fa-clock' },
+    { keywords: ['đổi', 'hoàn', 'trả', 'bảo hành'], icon: 'fa-undo' },
+    { keywords: ['trực tiếp', 'cửa hàng', 'shop'], icon: 'fa-store' },
+    { keywords: ['hot', 'trend'], icon: 'fa-bolt' }
+  ]
+  const matched = rules.find(rule => rule.keywords.some(keyword => value.includes(keyword)))
+  return 'fas ' + (matched?.icon || 'fa-info-circle') + ' storefront-marquee-icon'
+}
+
 function ensureStorefrontMarqueeRuntimeStyle() {
   if (document.getElementById('storefrontMarqueeRuntimeStyle')) return
   const style = document.createElement('style')
   style.id = 'storefrontMarqueeRuntimeStyle'
-  style.textContent = '.storefront-marquee-track{animation:storefrontMarqueeImmediate var(--storefront-marquee-duration,48s) linear infinite!important;animation-delay:0s!important;transform:translateX(100vw)}@keyframes storefrontMarqueeImmediate{from{transform:translateX(100vw)}to{transform:translateX(-100%)}}'
+  style.textContent = '.storefront-marquee-track{animation:storefrontMarqueeImmediate var(--storefront-marquee-duration,48s) linear infinite!important;animation-delay:0s!important;transform:translate3d(0,0,0);backface-visibility:hidden}.storefront-marquee-bar:hover .storefront-marquee-track{animation-play-state:paused!important}@keyframes storefrontMarqueeImmediate{from{transform:translate3d(0,0,0)}to{transform:translate3d(-50%,0,0)}}'
   document.head.appendChild(style)
+}
+
+function bindStorefrontMarqueeHoverPause(bar, track) {
+  if (!bar || !track || bar.dataset.marqueeHoverPauseBound === '1') return
+  const pause = () => {
+    track.style.setProperty('animation-play-state', 'paused', 'important')
+  }
+  const resume = () => {
+    track.style.removeProperty('animation-play-state')
+  }
+  bar.addEventListener('pointerenter', pause)
+  bar.addEventListener('mouseenter', pause)
+  bar.addEventListener('pointerleave', resume)
+  bar.addEventListener('mouseleave', resume)
+  bar.dataset.marqueeHoverPauseBound = '1'
+}
+
+function appendStorefrontMarqueeGroup(track, segment) {
+  const group = document.createElement('div')
+  group.className = 'storefront-marquee-group'
+  const icon = document.createElement('i')
+  icon.className = getStorefrontMarqueeIconClass(segment)
+  icon.setAttribute('aria-hidden', 'true')
+  const span = document.createElement('span')
+  span.className = 'storefront-marquee-text'
+  span.textContent = segment
+  const separator = document.createElement('span')
+  separator.className = 'storefront-marquee-separator'
+  separator.setAttribute('aria-hidden', 'true')
+  group.appendChild(icon)
+  group.appendChild(span)
+  group.appendChild(separator)
+  track.appendChild(group)
 }
 
 function renderStorefrontMarquee(text, speedSeconds) {
@@ -3601,26 +3664,25 @@ function renderStorefrontMarquee(text, speedSeconds) {
   const track = document.querySelector('.storefront-marquee-track')
   if (!track) return
   const bar = track.closest('.storefront-marquee-bar')
-  const safeText = String(text || DEFAULT_MARQUEE_NOTIFICATION_TEXT).trim() || DEFAULT_MARQUEE_NOTIFICATION_TEXT
+  const segments = parseStorefrontMarqueeSegments(text)
   const speed = normalizeStorefrontMarqueeSpeed(speedSeconds)
   if (bar) bar.classList.remove('storefront-marquee-bar--static')
+  bindStorefrontMarqueeHoverPause(bar, track)
   track.innerHTML = ''
   track.className = 'storefront-marquee-track'
   track.style.removeProperty('animation')
   track.style.removeProperty('transform')
   track.style.removeProperty('width')
-  for (let i = 0; i < 3; i++) {
-    const group = document.createElement('div')
-    group.className = 'storefront-marquee-group'
-    const icon = document.createElement('i')
-    icon.className = 'fas fa-bullhorn storefront-marquee-icon'
-    icon.setAttribute('aria-hidden', 'true')
-    const span = document.createElement('span')
-    span.className = 'storefront-marquee-text'
-    span.textContent = safeText
-    group.appendChild(icon)
-    group.appendChild(span)
-    track.appendChild(group)
+  segments.forEach(segment => appendStorefrontMarqueeGroup(track, segment))
+  let guard = 0
+  const minWidth = Math.max(window.innerWidth * 1.25, 720)
+  while (track.scrollWidth < minWidth && guard < 8) {
+    segments.forEach(segment => appendStorefrontMarqueeGroup(track, segment))
+    guard += 1
+  }
+  const baseGroups = Array.from(track.children)
+  for (const group of baseGroups) {
+    track.appendChild(group.cloneNode(true))
   }
   track.style.setProperty('--storefront-marquee-duration', speed + 's')
 }
@@ -4285,7 +4347,7 @@ function getOrderHistoryLifecycle(order) {
     return { key: 'done', label: 'Đã nhận', icon: 'fa-circle-check', toneClass: 'order-status-chip--done', clickable: true, hasJourney: true }
   }
   if (orderStatus === 'shipping') {
-    return { key: 'shipping', label: 'Đang giao', icon: 'fa-truck-fast', toneClass: 'order-status-chip--shipping', clickable: true, hasJourney: true }
+    return { key: 'shipping', label: 'Đang giao', icon: 'fa-shipping-fast', toneClass: 'order-status-chip--shipping', clickable: true, hasJourney: true }
   }
   if (shippingArranged || hasTracking) {
     return { key: 'waiting_pickup', label: 'Đang chờ lấy hàng', icon: 'fa-truck-ramp-box', toneClass: 'order-status-chip--waiting-pickup', clickable: true, hasJourney: true }

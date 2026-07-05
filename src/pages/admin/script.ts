@@ -156,7 +156,7 @@ function applyAdminAvatarUI() {
   const rawAvatar = String(adminProfile?.avatar || '').trim()
   const lowerAvatar = rawAvatar.toLowerCase()
   const avatar = ['null', 'undefined', 'none'].includes(lowerAvatar) ? '' : rawAvatar
-  const name = String(adminProfile?.name || 'QH Clothes').trim() || 'QH Clothes'
+  const name = String(adminProfile?.name || 'QH Boypho').trim() || 'QH Boypho'
   const adminKey = String(adminProfile?.adminUserKey || 'admin').trim().toUpperCase()
 
   const bindAvatarImg = (img, fallback) => {
@@ -1388,9 +1388,9 @@ function formatDashboardRatePercent(value) {
 
 function getDashboardTaxReportFileName(range) {
   const mode = String(range?.mode || '')
-  if (mode === 'month') return 'BaoCaoThue_QHClothes_' + String(range?.label || getLocalMonthInputValue()) + '.xlsx'
-  if (mode === 'day') return 'BaoCaoThue_QHClothes_' + String(range?.label || getLocalDateInputValue()) + '.xlsx'
-  return 'BaoCaoThue_QHClothes_AllTime.xlsx'
+  if (mode === 'month') return 'BaoCaoThue_QHBoypho_' + String(range?.label || getLocalMonthInputValue()) + '.xlsx'
+  if (mode === 'day') return 'BaoCaoThue_QHBoypho_' + String(range?.label || getLocalDateInputValue()) + '.xlsx'
+  return 'BaoCaoThue_QHBoypho_AllTime.xlsx'
 }
 
 async function downloadDashboardTaxReport() {
@@ -2143,6 +2143,74 @@ async function deleteProduct(id) {
 }
 
 // PRODUCT MODAL
+const TIKTOK_MARKETPLACE_RETAIN_RATE = 0.65
+const TIKTOK_MARKETPLACE_FIXED_COST = 33000
+
+function parseAdminMoneyInput(value) {
+  const normalized = String(value || '').replace(/[^0-9]/g, '')
+  return Number(normalized || 0)
+}
+
+function formatAdminVnd(value) {
+  const amount = Number(value || 0)
+  if (!Number.isFinite(amount) || amount <= 0) return '--'
+  return amount.toLocaleString('vi-VN') + 'đ'
+}
+
+function roundUpToNearestThousand(value) {
+  const amount = Number(value || 0)
+  if (!Number.isFinite(amount) || amount <= 0) return 0
+  return Math.ceil(amount / 1000) * 1000
+}
+
+function calculateTikTokMarketplacePrice(costPrice) {
+  const cost = Number(costPrice || 0)
+  if (!Number.isFinite(cost) || cost <= 0) return 0
+  return roundUpToNearestThousand((cost + TIKTOK_MARKETPLACE_FIXED_COST) / TIKTOK_MARKETPLACE_RETAIN_RATE)
+}
+
+function updateMarketplacePriceCalculator() {
+  const input = document.getElementById('pTiktokCostInput')
+  const output = document.getElementById('pTiktokSuggestedPrice')
+  const hint = document.getElementById('pTiktokFormulaHint')
+  if (!input || !output) return
+  const cost = parseAdminMoneyInput(input.value)
+  const suggested = calculateTikTokMarketplacePrice(cost)
+  output.textContent = formatAdminVnd(suggested)
+  if (hint) {
+    hint.textContent = cost > 0
+      ? 'Làm tròn lên nghìn: (' + cost.toLocaleString('vi-VN') + ' + 33.000) / 0,65'
+      : 'Công thức: (giá gốc + 33.000) / 0,65'
+  }
+}
+
+function syncMarketplaceCostFromProductPrice(force = false) {
+  const priceInput = document.getElementById('pPrice')
+  const tiktokCostInput = document.getElementById('pTiktokCostInput')
+  if (!priceInput || !tiktokCostInput) return
+  if (!force && String(tiktokCostInput.value || '').trim()) return
+  tiktokCostInput.value = String(priceInput.value || '').trim()
+  updateMarketplacePriceCalculator()
+}
+
+function bindMarketplacePriceCalculator() {
+  const tiktokCostInput = document.getElementById('pTiktokCostInput')
+  const priceInput = document.getElementById('pPrice')
+  if (tiktokCostInput && tiktokCostInput.dataset.marketplaceCalculatorBound !== '1') {
+    tiktokCostInput.dataset.marketplaceCalculatorBound = '1'
+    tiktokCostInput.addEventListener('input', updateMarketplacePriceCalculator)
+    tiktokCostInput.addEventListener('change', updateMarketplacePriceCalculator)
+  }
+  if (priceInput && priceInput.dataset.marketplaceCalculatorBound !== '1') {
+    priceInput.dataset.marketplaceCalculatorBound = '1'
+    priceInput.addEventListener('input', () => syncMarketplaceCostFromProductPrice(false))
+    priceInput.addEventListener('change', () => syncMarketplaceCostFromProductPrice(false))
+  }
+  updateMarketplacePriceCalculator()
+}
+
+window.updateMarketplacePriceCalculator = updateMarketplacePriceCalculator
+
 async function openProductModal(id = null) {
   editingId = id
   colors = []
@@ -2185,6 +2253,7 @@ async function openProductModal(id = null) {
       document.getElementById('pName').value = p.name || ''
       document.getElementById('pPrice').value = p.price || ''
       document.getElementById('pOriginalPrice').value = p.original_price || ''
+      syncMarketplaceCostFromProductPrice(true)
       document.getElementById('pCategory').value = p.category || 'unisex'
       populateProductTypeControls()
       document.getElementById('pProductType').value = inferAdminProductType(p)
@@ -2218,6 +2287,7 @@ async function openProductModal(id = null) {
     }
   }
   
+  bindMarketplacePriceCalculator()
   showAdminOverlay(document.getElementById('productModal'))
 }
 
@@ -2231,6 +2301,9 @@ function resetProductForm() {
   document.getElementById('productId').value = ''
   document.getElementById('pActive').checked = true
   document.getElementById('pTrendingOrder').value = '0'
+  const tiktokCostInput = document.getElementById('pTiktokCostInput')
+  if (tiktokCostInput) tiktokCostInput.value = ''
+  bindMarketplacePriceCalculator()
   populateProductTypeControls()
   const productTypeSelect = document.getElementById('pProductType')
   if (productTypeSelect) productTypeSelect.value = ''

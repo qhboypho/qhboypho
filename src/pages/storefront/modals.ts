@@ -119,13 +119,13 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
                         <span id="orderProvinceLabel" class="text-gray-500">Chọn tỉnh/thành</span>
                         <i class="fas fa-chevron-down text-gray-400 text-xs"></i>
                       </button>
-                      <div id="orderProvinceMenu" class="hidden absolute z-[90] mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
+                      <div id="orderProvinceMenu" class="address-dropdown-menu hidden absolute z-[90] mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
                         <div class="p-2 border-b bg-gray-50">
                           <input type="text" id="orderProvinceSearch" placeholder="Tìm tỉnh/thành..."
                             oninput="onAddressDropdownSearchInput('order','province')"
                             class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
                         </div>
-                        <div id="orderProvinceOptions" class="max-h-56 overflow-auto"></div>
+                        <div id="orderProvinceOptions" class="address-dropdown-options max-h-56 overflow-auto"></div>
                       </div>
                       <select id="orderProvince" onchange="onAddressProvinceChange('order')" class="hidden">
                         <option value="">Chọn tỉnh/thành</option>
@@ -137,13 +137,13 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
                         <span id="orderCommuneLabel" class="text-gray-500">Chọn phường/xã</span>
                         <i class="fas fa-chevron-down text-gray-400 text-xs"></i>
                       </button>
-                      <div id="orderCommuneMenu" class="hidden absolute z-[90] mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
+                      <div id="orderCommuneMenu" class="address-dropdown-menu hidden absolute z-[90] mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
                         <div class="p-2 border-b bg-gray-50">
                           <input type="text" id="orderCommuneSearch" placeholder="Tìm phường/xã..."
                             oninput="onAddressDropdownSearchInput('order','commune')"
                             class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
                         </div>
-                        <div id="orderCommuneOptions" class="max-h-56 overflow-auto"></div>
+                        <div id="orderCommuneOptions" class="address-dropdown-options max-h-56 overflow-auto"></div>
                       </div>
                       <select id="orderCommune" onchange="onAddressCommuneChange('order')" class="hidden">
                         <option value="">Chọn phường/xã</option>
@@ -481,13 +481,13 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
                   <span id="ckProvinceLabel" class="text-gray-500">Chọn tỉnh/thành</span>
                   <i class="fas fa-chevron-down text-gray-400 text-xs"></i>
                 </button>
-                <div id="ckProvinceMenu" class="hidden absolute z-[90] mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
+                <div id="ckProvinceMenu" class="address-dropdown-menu hidden absolute z-[90] mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
                   <div class="p-2 border-b bg-gray-50">
                     <input type="text" id="ckProvinceSearch" placeholder="Tìm tỉnh/thành..."
                       oninput="onAddressDropdownSearchInput('ck','province')"
                       class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
                   </div>
-                  <div id="ckProvinceOptions" class="max-h-56 overflow-auto"></div>
+                  <div id="ckProvinceOptions" class="address-dropdown-options max-h-56 overflow-auto"></div>
                 </div>
                 <select id="ckProvince" onchange="onAddressProvinceChange('ck')" class="hidden">
                   <option value="">Chọn tỉnh/thành</option>
@@ -499,13 +499,13 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
                   <span id="ckCommuneLabel" class="text-gray-500">Chọn phường/xã</span>
                   <i class="fas fa-chevron-down text-gray-400 text-xs"></i>
                 </button>
-                <div id="ckCommuneMenu" class="hidden absolute z-[90] mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
+                <div id="ckCommuneMenu" class="address-dropdown-menu hidden absolute z-[90] mt-1 w-full bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden">
                   <div class="p-2 border-b bg-gray-50">
                     <input type="text" id="ckCommuneSearch" placeholder="Tìm phường/xã..."
                       oninput="onAddressDropdownSearchInput('ck','commune')"
                       class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
                   </div>
-                  <div id="ckCommuneOptions" class="max-h-56 overflow-auto"></div>
+                  <div id="ckCommuneOptions" class="address-dropdown-options max-h-56 overflow-auto"></div>
                 </div>
                 <select id="ckCommune" onchange="onAddressCommuneChange('ck')" class="hidden">
                   <option value="">Chọn phường/xã</option>

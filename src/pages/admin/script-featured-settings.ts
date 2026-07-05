@@ -494,7 +494,7 @@ function removeCustomShippingCarrier(code) {
   renderShippingCarrierRegistry(rows)
 }
 
-const DEFAULT_MARQUEE_NOTIFICATION_TEXT = 'Mua hàng tại đây không qua sàn thương mại nên giá thành sản phẩm sẽ rẻ hơn rất nhiều và bảo hành hoàn trả trong vòng 7 ngày nếu sản phẩm bị lỗi nên quý khách yên tâm mua sắm nhé.Bảo hành đổi trả nhắn qua trang facebook : QH Boypho. Chúc quý khách có trải nghiệm mua sắm tốt tại QH Clothes'
+const DEFAULT_MARQUEE_NOTIFICATION_TEXT = 'Mua hàng tại đây không qua sàn thương mại nên giá thành sản phẩm sẽ rẻ hơn rất nhiều và bảo hành hoàn trả trong vòng 7 ngày nếu sản phẩm bị lỗi nên quý khách yên tâm mua sắm nhé.Bảo hành đổi trả nhắn qua trang facebook : QH Boypho. Chúc quý khách có trải nghiệm mua sắm tốt tại QH Boypho'
 
 function normalizeMarqueeSpeed(value) {
   const n = Number(value || 48)
@@ -502,11 +502,126 @@ function normalizeMarqueeSpeed(value) {
   return Math.min(120, Math.max(8, Math.round(n)))
 }
 
+function parseMarqueeSegments(value) {
+  const raw = String(value || DEFAULT_MARQUEE_NOTIFICATION_TEXT)
+  const lineBreak = String.fromCharCode(10)
+  const segments = raw
+    .replaceAll(String.fromCharCode(13), lineBreak)
+    .replaceAll('|', lineBreak)
+    .split(lineBreak)
+    .map(item => item.trim())
+    .filter(Boolean)
+  return segments.length ? segments.slice(0, 12) : [DEFAULT_MARQUEE_NOTIFICATION_TEXT]
+}
+
+function syncMarqueeSegmentsFromInputs() {
+  const text = document.getElementById('marqueeNotificationText')
+  const inputs = Array.from(document.querySelectorAll('[data-marquee-segment-input]'))
+  const value = inputs.map(input => String(input.value || '').trim()).filter(Boolean).join(' | ').slice(0, 600)
+  if (text) text.value = value
+  updateMarqueeCounter()
+  return value
+}
+
+function renderMarqueeSegmentInputs(segments) {
+  const list = document.getElementById('marqueeSegmentsList')
+  if (!list) return
+  list.innerHTML = ''
+  const normalized = (Array.isArray(segments) && segments.length ? segments : ['']).slice(0, 12)
+  normalized.forEach((segment, index) => {
+    const row = document.createElement('div')
+    row.className = 'flex min-w-0 items-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 p-2'
+
+    const handle = document.createElement('span')
+    handle.className = 'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-900 text-cyan-300'
+    handle.innerHTML = '<i class="fas fa-grip-lines" aria-hidden="true"></i>'
+
+    const input = document.createElement('input')
+    input.type = 'text'
+    input.maxLength = 160
+    input.value = String(segment || '')
+    input.placeholder = 'Nhập một đoạn thông báo ngắn...'
+    input.dataset.marqueeSegmentInput = '1'
+    input.className = 'min-w-0 flex-1 rounded-xl border border-transparent bg-white px-3 py-2.5 text-sm font-bold text-slate-900 outline-none transition focus:border-cyan-300 focus:ring-4 focus:ring-cyan-100'
+    input.oninput = previewNotificationSettings
+
+    const removeBtn = document.createElement('button')
+    removeBtn.type = 'button'
+    removeBtn.className = 'inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-rose-100 bg-white text-rose-500 transition hover:bg-rose-50 disabled:opacity-40'
+    removeBtn.innerHTML = '<i class="fas fa-trash" aria-hidden="true"></i>'
+    removeBtn.disabled = normalized.length <= 1
+    removeBtn.onclick = function () {
+      row.remove()
+      syncMarqueeSegmentsFromInputs()
+      previewNotificationSettings()
+    }
+
+    row.appendChild(handle)
+    row.appendChild(input)
+    row.appendChild(removeBtn)
+    list.appendChild(row)
+  })
+  syncMarqueeSegmentsFromInputs()
+}
+
+function setMarqueeSegmentsFromText(value) {
+  renderMarqueeSegmentInputs(parseMarqueeSegments(value))
+}
+
+function addMarqueeSegment(value) {
+  const current = parseMarqueeSegments(syncMarqueeSegmentsFromInputs())
+  if (current.length >= 12) {
+    showAdminToast('Tối đa 12 đoạn thông báo', 'warning')
+    return
+  }
+  current.push(String(value || ''))
+  renderMarqueeSegmentInputs(current)
+  const inputs = document.querySelectorAll('[data-marquee-segment-input]')
+  const last = inputs[inputs.length - 1]
+  if (last) last.focus()
+  previewNotificationSettings()
+}
+
+function getMarqueeIconClass(text) {
+  const value = String(text || '').toLowerCase()
+  const rules = [
+    { keywords: ['tìm', 'search', 'chủ đề'], icon: 'fa-search' },
+    { keywords: ['giao', 'ship', 'vận chuyển', 'freeship'], icon: 'fa-shipping-fast' },
+    { keywords: ['zalo', 'facebook', 'messenger', 'nhắn', 'hỗ trợ'], icon: 'fa-comments' },
+    { keywords: ['flash', 'sale', 'giảm', 'ưu đãi', 'khuyến mãi', 'giá'], icon: 'fa-tags' },
+    { keywords: ['nghiên cứu', 'tool', 'thị trường'], icon: 'fa-chart-line' },
+    { keywords: ['48h', 'giờ', 'thời gian'], icon: 'fa-clock' },
+    { keywords: ['đổi', 'hoàn', 'trả', 'bảo hành'], icon: 'fa-undo' },
+    { keywords: ['trực tiếp', 'cửa hàng', 'shop'], icon: 'fa-store' },
+    { keywords: ['hot', 'trend'], icon: 'fa-bolt' }
+  ]
+  const matched = rules.find(rule => rule.keywords.some(keyword => value.includes(keyword)))
+  return 'fas ' + (matched?.icon || 'fa-info-circle') + ' storefront-marquee-icon'
+}
+
+function appendMarqueeSegmentGroup(track, text) {
+  const group = document.createElement('div')
+  group.className = 'storefront-marquee-group'
+  const icon = document.createElement('i')
+  icon.className = getMarqueeIconClass(text)
+  icon.setAttribute('aria-hidden', 'true')
+  const span = document.createElement('span')
+  span.className = 'storefront-marquee-text'
+  span.textContent = text
+  const separator = document.createElement('span')
+  separator.className = 'storefront-marquee-separator'
+  separator.setAttribute('aria-hidden', 'true')
+  group.appendChild(icon)
+  group.appendChild(span)
+  group.appendChild(separator)
+  track.appendChild(group)
+}
+
 function renderAdminMarqueePreview(text, speedSeconds) {
   const track = document.getElementById('adminMarqueePreviewTrack')
   if (!track) return
   const bar = track.closest('.storefront-marquee-bar')
-  const safeText = String(text || DEFAULT_MARQUEE_NOTIFICATION_TEXT).trim() || DEFAULT_MARQUEE_NOTIFICATION_TEXT
+  const segments = parseMarqueeSegments(text)
   const speed = normalizeMarqueeSpeed(speedSeconds)
   if (bar) bar.classList.remove('storefront-marquee-bar--static')
   track.innerHTML = ''
@@ -514,18 +629,15 @@ function renderAdminMarqueePreview(text, speedSeconds) {
   track.style.removeProperty('animation')
   track.style.removeProperty('transform')
   track.style.removeProperty('width')
-  for (let i = 0; i < 3; i++) {
-    const group = document.createElement('div')
-    group.className = 'storefront-marquee-group'
-    const icon = document.createElement('i')
-    icon.className = 'fas fa-bullhorn storefront-marquee-icon'
-    icon.setAttribute('aria-hidden', 'true')
-    const span = document.createElement('span')
-    span.className = 'storefront-marquee-text'
-    span.textContent = safeText
-    group.appendChild(icon)
-    group.appendChild(span)
-    track.appendChild(group)
+  segments.forEach(segment => appendMarqueeSegmentGroup(track, segment))
+  let guard = 0
+  while (track.scrollWidth < 720 && guard < 8) {
+    segments.forEach(segment => appendMarqueeSegmentGroup(track, segment))
+    guard += 1
+  }
+  const baseGroups = Array.from(track.children)
+  for (const group of baseGroups) {
+    track.appendChild(group.cloneNode(true))
   }
   track.style.setProperty('--storefront-marquee-duration', speed + 's')
 }
@@ -554,16 +666,33 @@ function renderAdminStaticNotificationPreview(text) {
 }
 
 function getNotificationDisplayMode() {
+  const loopSwitch = document.getElementById('notificationLoopSwitch')
+  if (loopSwitch) return loopSwitch.checked ? 'marquee' : 'static'
   const selected = document.querySelector('input[name="notificationDisplayMode"]:checked')
   return selected?.value === 'static' ? 'static' : 'marquee'
 }
 
 function setNotificationDisplayMode(mode) {
   const normalized = String(mode || '') === 'static' ? 'static' : 'marquee'
+  const loopSwitch = document.getElementById('notificationLoopSwitch')
+  const label = document.getElementById('notificationLoopSwitchLabel')
+  const help = document.getElementById('notificationModeHelp')
+  const marqueePanel = document.getElementById('marqueeContentPanel')
+  const staticPanel = document.getElementById('staticNotificationPanel')
+  if (loopSwitch) loopSwitch.checked = normalized === 'marquee'
+  if (label) label.textContent = normalized === 'marquee' ? 'Chạy loop' : 'Hiển thị tĩnh'
+  if (help) help.textContent = normalized === 'marquee' ? 'Đang bật chạy loop tự động cho PC và mobile.' : 'Đang tắt loop, storefront hiển thị nội dung tĩnh ở giữa.'
+  if (marqueePanel) marqueePanel.classList.toggle('hidden', normalized === 'static')
+  if (staticPanel) staticPanel.classList.toggle('hidden', normalized === 'marquee')
   const marquee = document.getElementById('notificationModeMarquee')
   const stat = document.getElementById('notificationModeStatic')
   if (marquee) marquee.checked = normalized === 'marquee'
   if (stat) stat.checked = normalized === 'static'
+}
+
+function toggleNotificationDisplayMode() {
+  setNotificationDisplayMode(getNotificationDisplayMode())
+  previewNotificationSettings()
 }
 
 function updateMarqueeCounter() {
@@ -592,7 +721,7 @@ function updateMarqueeSpeedControls(speedValue) {
 function syncMarqueeSpeedFromRange() {
   const range = document.getElementById('marqueeSpeedRange')
   const speed = updateMarqueeSpeedControls(range?.value || 48)
-  const text = document.getElementById('marqueeNotificationText')?.value || ''
+  const text = syncMarqueeSegmentsFromInputs()
   updateMarqueeCounter()
   renderAdminMarqueePreview(text, speed)
 }
@@ -601,22 +730,25 @@ function setNotificationQuickText(value) {
   const text = document.getElementById('marqueeNotificationText')
   if (!text) return
   text.value = String(value || '').slice(0, 600)
+  setMarqueeSegmentsFromText(text.value)
   previewNotificationSettings()
-  text.focus()
+  document.querySelector('[data-marquee-segment-input]')?.focus()
 }
 
 function clearNotificationText() {
   const text = document.getElementById('marqueeNotificationText')
   if (!text) return
   text.value = ''
+  renderMarqueeSegmentInputs([''])
   previewNotificationSettings()
-  text.focus()
+  document.querySelector('[data-marquee-segment-input]')?.focus()
 }
 
 function previewNotificationSettings() {
-  const text = document.getElementById('marqueeNotificationText')?.value || ''
+  const text = syncMarqueeSegmentsFromInputs()
   const staticText = document.getElementById('staticNotificationText')?.value || ''
   const mode = getNotificationDisplayMode()
+  setNotificationDisplayMode(mode)
   const speed = updateMarqueeSpeedControls(document.getElementById('marqueeSpeedSeconds')?.value || 48)
   updateMarqueeCounter()
   updateStaticNotificationCounter()
@@ -634,6 +766,7 @@ function fillNotificationSettings(cfg) {
   const staticText = document.getElementById('staticNotificationText')
   const speed = document.getElementById('marqueeSpeedSeconds')
   if (text) text.value = cfg.marquee_text || DEFAULT_MARQUEE_NOTIFICATION_TEXT
+  setMarqueeSegmentsFromText(cfg.marquee_text || DEFAULT_MARQUEE_NOTIFICATION_TEXT)
   if (staticText) staticText.value = cfg.static_notification_text || ''
   setNotificationDisplayMode(cfg.notification_display_mode || 'marquee')
   if (speed) speed.value = String(normalizeMarqueeSpeed(cfg.marquee_speed_seconds || 48))
@@ -653,8 +786,9 @@ async function loadNotificationSettings() {
 
 async function saveNotificationSettings() {
   const btn = document.getElementById('saveNotificationSettingsBtn')
+  const marqueeText = syncMarqueeSegmentsFromInputs()
   const payload = {
-    marquee_text: String(document.getElementById('marqueeNotificationText')?.value || '').trim(),
+    marquee_text: String(marqueeText || '').trim(),
     marquee_speed_seconds: normalizeMarqueeSpeed(document.getElementById('marqueeSpeedSeconds')?.value || 48),
     notification_display_mode: getNotificationDisplayMode(),
     static_notification_text: String(document.getElementById('staticNotificationText')?.value || '').trim()

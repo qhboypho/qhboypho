@@ -65,6 +65,29 @@ export function adminModalsSection(): string {
           <label class="block text-sm font-semibold mb-1.5 text-gray-700">Giá gốc (VNĐ)</label>
           <input type="number" id="pOriginalPrice" placeholder="399000" min="0" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
         </div>
+        <div class="md:col-span-2 rounded-2xl border border-pink-100 bg-gradient-to-r from-pink-50 via-white to-violet-50 p-4">
+          <div class="flex flex-col gap-3 md:flex-row md:items-end">
+            <div class="min-w-0 flex-1">
+              <label class="block text-sm font-semibold mb-1.5 text-gray-700">
+                <i class="fas fa-calculator text-pink-400 mr-1"></i>Giá bán trên TikTok
+              </label>
+              <input
+                type="number"
+                id="pTiktokCostInput"
+                placeholder="Nhập giá gốc"
+                min="0"
+                inputmode="numeric"
+                oninput="updateMarketplacePriceCalculator()"
+                class="w-full border border-pink-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 bg-white"
+              >
+            </div>
+            <div class="md:w-[260px] rounded-xl border border-white bg-white/80 px-4 py-3 shadow-sm">
+              <p class="text-[11px] font-semibold uppercase tracking-[0.16em] text-gray-400">Giá niêm yết đề xuất</p>
+              <p id="pTiktokSuggestedPrice" class="mt-1 text-2xl font-extrabold text-pink-500">--</p>
+              <p id="pTiktokFormulaHint" class="mt-1 text-xs text-gray-500">Công thức: (giá gốc + 33.000) / 0,65</p>
+            </div>
+          </div>
+        </div>
         <div>
           <label class="block text-sm font-semibold mb-1.5 text-gray-700">Danh mục</label>
           <select id="pCategory" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
@@ -81,7 +104,7 @@ export function adminModalsSection(): string {
         </div>
         <div>
           <label class="block text-sm font-semibold mb-1.5 text-gray-700">Thương hiệu</label>
-          <input type="text" id="pBrand" placeholder="VD: QH Clothes" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
+          <input type="text" id="pBrand" placeholder="VD: QH Boypho" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
         </div>
         <div>
           <label class="block text-sm font-semibold mb-1.5 text-gray-700">Chất liệu</label>

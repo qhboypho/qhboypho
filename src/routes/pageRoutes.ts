@@ -11,9 +11,9 @@ import { readTextUiSettings } from '../lib/textUiSettings'
 
 function adminManifestJson(): string {
   return JSON.stringify({
-    name: 'QH Clothes Admin',
+    name: 'QH Boypho Admin',
     short_name: 'QH Admin',
-    description: 'Dashboard quan ly QH Clothes tren dien thoai.',
+    description: 'Dashboard quan ly QH Boypho tren dien thoai.',
     start_url: '/admin/dashboard',
     scope: '/admin/',
     display: 'standalone',
