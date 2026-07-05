@@ -22,8 +22,6 @@
     }
   ],
   "vars": {
-    "PRODUCT_IMAGES_PUBLIC_BASE_URL": "",
-    "WEB_PUSH_VAPID_PUBLIC_KEY": "BJFC09Ff-ya2fIn-dGZSJIxclUilE74yr7U3JvjlCo5yt_Ht9zhWloxlym7nHUtG6szvsMmu8nuTzSfl1xRcbjk",
-    "WEB_PUSH_VAPID_SUBJECT": "mailto:admin@boypho.local"
+    "PRODUCT_IMAGES_PUBLIC_BASE_URL": ""
   }
 }
