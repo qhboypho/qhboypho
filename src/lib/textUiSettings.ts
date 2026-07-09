@@ -1,5 +1,6 @@
 export type TextUiSettings = {
   quick_order_risk_note_text: string
+  product_freeship_badge_enabled: boolean
   hero_badge_text: string
   hero_title_text: string
   hero_typed_text: string
@@ -18,6 +19,7 @@ export const DEFAULT_QUICK_ORDER_RISK_NOTE_TEXT =
 
 export const DEFAULT_TEXT_UI_SETTINGS: TextUiSettings = {
   quick_order_risk_note_text: DEFAULT_QUICK_ORDER_RISK_NOTE_TEXT,
+  product_freeship_badge_enabled: true,
   hero_badge_text: 'Bộ sưu tập mới 2026',
   hero_title_text: 'Thời Trang Giới Trẻ',
   hero_typed_text: 'Cho Cả Nam Nữ|Phong Cách Boypho',
@@ -33,6 +35,7 @@ export const DEFAULT_TEXT_UI_SETTINGS: TextUiSettings = {
 
 export const TEXT_UI_SETTING_KEYS = [
   'quick_order_risk_note_text',
+  'product_freeship_badge_enabled',
   'hero_badge_text',
   'hero_title_text',
   'hero_typed_text',
@@ -53,6 +56,14 @@ export function sanitizeTextUiSetting(value: unknown, maxLength = 800): string {
     .slice(0, maxLength)
 }
 
+function readBooleanSetting(value: unknown, fallback = true): boolean {
+  const normalized = String(value ?? '').trim().toLowerCase()
+  if (!normalized) return fallback
+  if (['1', 'true', 'yes', 'on', 'enabled'].includes(normalized)) return true
+  if (['0', 'false', 'no', 'off', 'disabled'].includes(normalized)) return false
+  return fallback
+}
+
 export async function readTextUiSettings(db: D1Database): Promise<TextUiSettings> {
   const query = `SELECT key, value FROM app_settings WHERE key IN (${TEXT_UI_SETTING_KEYS.map(() => '?').join(',')})`
   const result = await db.prepare(query).bind(...TEXT_UI_SETTING_KEYS).all()
@@ -61,6 +72,10 @@ export async function readTextUiSettings(db: D1Database): Promise<TextUiSettings
     map.set(String(row.key || ''), String(row.value || '').trim())
   }
   return TEXT_UI_SETTING_KEYS.reduce((settings, key) => {
+    if (key === 'product_freeship_badge_enabled') {
+      settings[key] = readBooleanSetting(map.get(key), DEFAULT_TEXT_UI_SETTINGS[key])
+      return settings
+    }
     const maxLength = key === 'quick_order_risk_note_text' || key === 'hero_description_text' ? 800 : 220
     settings[key] = sanitizeTextUiSetting(map.get(key), maxLength) || DEFAULT_TEXT_UI_SETTINGS[key]
     return settings

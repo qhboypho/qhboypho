@@ -2,6 +2,7 @@ import { getCookie } from 'hono/cookie'
 import type { Hono } from 'hono'
 import type { AppBindings } from '../types/app'
 import { storefrontHTML } from '../pages/storefrontPage'
+import { hotTrendNuHTML } from '../pages/hottrendnuPage'
 import { privacyPolicyHTML } from '../pages/privacyPolicyPage'
 import { returnPolicyHTML } from '../pages/returnPolicyPage'
 import { adminHTML } from '../pages/adminPage'
@@ -149,6 +150,14 @@ export function registerPageRoutes(app: Hono<{ Bindings: AppBindings }>) {
   }
 
   app.get('/', renderStorefront)
+
+  app.get('/hottrendnu', async (c) => {
+    const textUiSettings = await readTextUiSettings(c.env.DB).catch(() => undefined)
+    const requestUrl = new URL(c.req.url)
+    const canonicalUrl = requestUrl.origin + '/hottrendnu'
+    const ogImageUrl = requestUrl.origin + '/og/qh-clothes-share-16x9.png'
+    return c.html(hotTrendNuHTML({ textUiSettings, canonicalUrl, ogImageUrl }))
+  })
 
   app.get('/chinh-sach-doi-tra', (c) => c.html(returnPolicyHTML()))
   app.get('/return-policy', (c) => c.redirect('/chinh-sach-doi-tra'))

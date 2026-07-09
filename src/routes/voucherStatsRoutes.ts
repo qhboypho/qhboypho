@@ -313,13 +313,14 @@ export function registerVoucherStatsRoutes(app: Hono<{ Bindings: AppBindings }>,
         return c.json({ success: false, error: 'Vui lòng chọn ít nhất 1 sản phẩm' }, 400)
       }
       const result = await c.env.DB.prepare(`
-        INSERT INTO auto_vouchers (name, discount_amount, scope, product_ids, is_active, valid_from, valid_to)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO auto_vouchers (name, discount_amount, scope, product_ids, show_badge, is_active, valid_from, valid_to)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `).bind(
         input.name,
         input.discountAmount,
         input.scope,
         JSON.stringify(input.productIds),
+        input.showBadge,
         input.isActive,
         input.validFrom,
         input.validTo
@@ -344,13 +345,14 @@ export function registerVoucherStatsRoutes(app: Hono<{ Bindings: AppBindings }>,
       }
       await c.env.DB.prepare(`
         UPDATE auto_vouchers
-        SET name = ?, discount_amount = ?, scope = ?, product_ids = ?, is_active = ?, valid_from = ?, valid_to = ?, updated_at = CURRENT_TIMESTAMP
+        SET name = ?, discount_amount = ?, scope = ?, product_ids = ?, show_badge = ?, is_active = ?, valid_from = ?, valid_to = ?, updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
       `).bind(
         input.name,
         input.discountAmount,
         input.scope,
         JSON.stringify(input.productIds),
+        input.showBadge,
         input.isActive,
         input.validFrom,
         input.validTo,

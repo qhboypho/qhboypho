@@ -74,6 +74,7 @@ type PaymentSettingsInput = {
 
 type TextUiSettingsInput = {
   quick_order_risk_note_text?: unknown
+  product_freeship_badge_enabled?: unknown
   hero_badge_text?: unknown
   hero_title_text?: unknown
   hero_typed_text?: unknown
@@ -116,6 +117,7 @@ const SHOP_BACKUP_SETTING_ALLOWLIST = new Set([
   'static_notification_text',
   'wallet_topup_enabled',
   'quick_order_risk_note_text',
+  'product_freeship_badge_enabled',
   'hero_badge_text',
   'hero_title_text',
   'hero_typed_text',
@@ -1011,8 +1013,12 @@ export function registerAdminUtilityRoutes(app: Hono<{ Bindings: AppBindings }>,
     try {
       await deps.initDB(c.env.DB)
       const body: TextUiSettingsInput = await c.req.json<TextUiSettingsInput>().catch(() => ({} as TextUiSettingsInput))
+      const freeshipBadgeEnabled = body.product_freeship_badge_enabled === undefined
+        ? true
+        : body.product_freeship_badge_enabled === true || body.product_freeship_badge_enabled === 1 || body.product_freeship_badge_enabled === '1'
       const payload = {
         quick_order_risk_note_text: sanitizeTextUiSetting(body.quick_order_risk_note_text) || DEFAULT_QUICK_ORDER_RISK_NOTE_TEXT,
+        product_freeship_badge_enabled: freeshipBadgeEnabled ? '1' : '0',
         hero_badge_text: sanitizeTextUiSetting(body.hero_badge_text, 220),
         hero_title_text: sanitizeTextUiSetting(body.hero_title_text, 220),
         hero_typed_text: sanitizeTextUiSetting(body.hero_typed_text, 220),

@@ -244,14 +244,25 @@ export function storefrontThemeRefreshStyles(): string {
     min-height: 24px;
     overflow: visible !important;
   }
+  .storefront-marquee-track {
+    transform: translateX(0);
+    backface-visibility: visible;
+  }
+  .storefront-marquee-seq {
+    display: flex;
+    align-items: center;
+    flex: none;
+  }
   .storefront-marquee-text {
     color: rgba(203,213,225,0.9) !important;
     font-size: 0.78rem !important;
-    font-weight: 700 !important;
+    font-weight: 600 !important;
+    -webkit-font-smoothing: antialiased;
   }
   .storefront-marquee-icon {
     color: rgba(255,255,255,0.92) !important;
     font-size: 0.74rem !important;
+    -webkit-font-smoothing: antialiased;
   }
   .storefront-marquee-separator {
     background: rgba(148,163,184,0.24) !important;
@@ -2291,30 +2302,115 @@ export function storefrontThemeRefreshStyles(): string {
     text-shadow: 0 0 14px rgba(255,209,102,0.42);
     box-shadow: inset 0 1px 0 rgba(255,255,255,0.08), 0 0 18px rgba(93,65,255,0.22);
   }
-  .auto-voucher-mini-badge {
+  .product-commerce-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.24rem;
+    min-width: 0;
+    margin: 0.1rem 0 0.45rem;
+  }
+  .product-sold-line {
     display: inline-flex;
     align-items: center;
-    gap: 0.28rem;
+    gap: 0.22rem;
     width: fit-content;
     max-width: 100%;
-    margin: 0.25rem 0 0.45rem;
-    padding: 0.25rem 0.55rem;
-    border-radius: 9999px;
-    background: linear-gradient(135deg, rgba(255,95,109,0.95), rgba(255,195,113,0.95));
+    color: var(--qh-muted);
+    font-size: 0.66rem;
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .product-sold-line i {
+    color: #f97316;
+    font-size: 0.62rem;
+  }
+  .product-perk-badges {
+    display: flex;
+    align-items: center;
+    gap: 0.24rem;
+    max-width: 100%;
+    flex-wrap: wrap;
+  }
+  .product-perk-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.18rem;
+    width: fit-content;
+    max-width: 100%;
+    padding: 0.16rem 0.34rem;
+    border-radius: 0.2rem;
     color: #fff;
-    font-size: 0.72rem;
+    font-size: 0.58rem;
     font-weight: 800;
     line-height: 1;
     white-space: nowrap;
-    box-shadow: 0 10px 24px rgba(255,95,109,0.22), inset 0 1px 0 rgba(255,255,255,0.28);
+    letter-spacing: 0.01em;
   }
-  .auto-voucher-mini-badge i {
-    font-size: 0.68rem;
+  .product-perk-badge--freeship {
+    background: linear-gradient(135deg, rgba(14,165,233,0.96), rgba(16,185,129,0.94));
+    box-shadow: 0 6px 14px rgba(14,165,233,0.18), inset 0 1px 0 rgba(255,255,255,0.24);
+  }
+  .product-perk-badge--voucher {
+    background: linear-gradient(135deg, rgba(255,95,109,0.95), rgba(255,195,113,0.95));
+    box-shadow: 0 6px 14px rgba(255,95,109,0.18), inset 0 1px 0 rgba(255,255,255,0.24);
+  }
+  .product-perk-badge i {
+    font-size: 0.54rem;
+  }
+  .product-perk-badge--freeship i {
+    color: #e0f2fe;
+  }
+  .product-perk-badge--voucher i {
     color: #fff7ad;
   }
-  body[data-storefront-theme='dark'] .auto-voucher-mini-badge {
+  body[data-storefront-theme='dark'] .product-perk-badge--freeship {
+    background: linear-gradient(135deg, rgba(14,165,233,0.88), rgba(20,184,166,0.78));
+    box-shadow: 0 0 22px rgba(34,211,238,0.18), inset 0 1px 0 rgba(255,255,255,0.12);
+  }
+  body[data-storefront-theme='dark'] .product-perk-badge--voucher {
     background: linear-gradient(135deg, rgba(255,86,115,0.94), rgba(255,160,67,0.88));
     box-shadow: 0 0 24px rgba(255,95,109,0.22), inset 0 1px 0 rgba(255,255,255,0.14);
+  }
+  .auto-voucher-mini-badge {
+    margin: 0;
+  }
+  .product-commerce-meta--hero {
+    gap: 0.18rem;
+    margin: -0.05rem 0 0.08rem;
+  }
+  .product-commerce-meta--hero .product-sold-line,
+  .product-commerce-meta--hero .product-perk-badge {
+    font-size: 0.58rem;
+  }
+  .product-commerce-meta--hero .product-sold-line i,
+  .product-commerce-meta--hero .product-perk-badge i {
+    font-size: 0.54rem;
+  }
+  .product-commerce-meta--detail {
+    margin: -0.45rem 0 1rem;
+  }
+  .product-commerce-meta--flash-sale {
+    margin-bottom: 0;
+  }
+  @media (max-width: 768px) {
+    .hero-carousel-title {
+      -webkit-line-clamp: 1 !important;
+      min-height: 1.22em;
+    }
+    .product-commerce-meta--hero {
+      gap: 0.14rem;
+      margin: -0.02rem 0 0.02rem;
+    }
+    .product-commerce-meta--hero .product-sold-line,
+    .product-commerce-meta--hero .product-perk-badge {
+      font-size: 0.54rem;
+    }
+    .product-commerce-meta--hero .product-perk-badge {
+      padding: 0.13rem 0.3rem;
+    }
   }
   #detailOverlay .popup-card,
   #detailContent,

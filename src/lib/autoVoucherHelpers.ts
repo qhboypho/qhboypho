@@ -6,6 +6,7 @@ export type AutoVoucher = {
   discount_amount: number
   scope: AutoVoucherScope
   product_ids: number[]
+  show_badge: number
   is_active: number
   valid_from: string
   valid_to: string
@@ -45,6 +46,7 @@ function normalizeAutoVoucher(row: any): AutoVoucher {
     discount_amount: roundMoney(toNumber(row?.discount_amount, 0)),
     scope: normalizeScope(row?.scope),
     product_ids: parseProductIds(row?.product_ids),
+    show_badge: toNumber(row?.show_badge, 1) === 0 ? 0 : 1,
     is_active: toNumber(row?.is_active, 0) === 1 ? 1 : 0,
     valid_from: String(row?.valid_from || '').trim(),
     valid_to: String(row?.valid_to || '').trim(),
@@ -63,10 +65,11 @@ export function normalizeAutoVoucherInput(input: any) {
   const discountAmount = roundMoney(toNumber(input?.discount_amount, 0))
   const scope = normalizeScope(input?.scope)
   const productIds = scope === 'products' ? [...new Set(parseProductIds(input?.product_ids))] : []
+  const showBadge = input?.show_badge === undefined ? 1 : (toNumber(input?.show_badge, 0) === 1 || input?.show_badge === true ? 1 : 0)
   const isActive = input?.is_active === undefined ? 1 : (toNumber(input?.is_active, 0) === 1 || input?.is_active === true ? 1 : 0)
   const validFrom = String(input?.valid_from || '').trim()
   const validTo = String(input?.valid_to || '').trim()
-  return { name, discountAmount, scope, productIds, isActive, validFrom, validTo }
+  return { name, discountAmount, scope, productIds, showBadge, isActive, validFrom, validTo }
 }
 
 export async function ensureAutoVoucherSchema(db: D1Database) {
@@ -77,6 +80,7 @@ export async function ensureAutoVoucherSchema(db: D1Database) {
       discount_amount REAL NOT NULL,
       scope TEXT NOT NULL DEFAULT 'all',
       product_ids TEXT NOT NULL DEFAULT '[]',
+      show_badge INTEGER NOT NULL DEFAULT 1,
       is_active INTEGER NOT NULL DEFAULT 1,
       valid_from DATETIME,
       valid_to DATETIME,
@@ -84,6 +88,11 @@ export async function ensureAutoVoucherSchema(db: D1Database) {
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `).run()
+  const columns = await db.prepare(`PRAGMA table_info(auto_vouchers)`).all()
+  const columnNames = new Set(((columns.results || []) as any[]).map((row) => String(row.name || '')))
+  if (!columnNames.has('show_badge')) {
+    await db.prepare(`ALTER TABLE auto_vouchers ADD COLUMN show_badge INTEGER NOT NULL DEFAULT 1`).run()
+  }
   await db.prepare(`CREATE INDEX IF NOT EXISTS idx_auto_vouchers_active ON auto_vouchers(is_active)`).run()
   await db.prepare(`CREATE INDEX IF NOT EXISTS idx_auto_vouchers_scope ON auto_vouchers(scope)`).run()
 }
@@ -132,7 +141,8 @@ export function applyAutoVoucherToProduct(product: Record<string, any>, voucher:
       id: voucher.id,
       name: voucher.name,
       discount_amount: discount,
-      scope: voucher.scope
+      scope: voucher.scope,
+      show_badge: voucher.show_badge
     }
   }
 }

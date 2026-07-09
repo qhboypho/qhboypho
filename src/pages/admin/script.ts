@@ -380,7 +380,7 @@ function syncAdminOrderNotifyButton() {
       : (adminOrderPushEnabled ? 'Thông báo đơn mới đang bật cả khi PWA đóng' : 'Thông báo đơn mới đang bật khi dashboard đang mở'))
     : 'Bật thông báo đơn mới'
   btn.setAttribute('aria-label', btn.title)
-  if (label) label.textContent = active ? (adminOrderPushEnabled ? 'Push bật' : 'Đang bật') : 'Thông báo'
+  if (label) label.textContent = 'Thông báo'
 }
 
 function getAdminOrderAudioContext() {
@@ -3470,6 +3470,8 @@ async function loadAutoVouchers() {
         + '<div class="flex items-center gap-3 flex-wrap text-sm">'
         + '<span class="font-bold text-pink-600 text-base">Giảm thêm ' + fmtPrice(v.discount_amount || 0) + '</span>'
         + '<span class="text-gray-400">|</span>'
+        + '<span class="text-xs px-2 py-0.5 rounded-full font-semibold ' + (Number(v.show_badge ?? 1) === 1 ? 'bg-pink-100 text-pink-700' : 'bg-gray-100 text-gray-500') + '"><i class="fas fa-ticket mr-1"></i>' + (Number(v.show_badge ?? 1) === 1 ? 'Hiện badge' : 'Ẩn badge') + '</span>'
+        + '<span class="text-gray-400">|</span>'
         + '<span class="text-gray-500 text-xs"><i class="fas fa-calendar text-gray-400 mr-1"></i>' + new Date(v.valid_from).toLocaleDateString('vi-VN') + ' -> ' + new Date(v.valid_to).toLocaleDateString('vi-VN') + '</span>'
         + '</div>'
         + '<div class="mt-2"><span class="text-xs px-2 py-0.5 rounded-full font-medium ' + (isValid ? 'bg-green-100 text-green-700' : expired ? 'bg-gray-100 text-gray-500' : notStarted ? 'bg-blue-100 text-blue-600' : 'bg-red-100 text-red-600') + '">' + (isValid ? 'Đang áp dụng' : expired ? 'Hết hạn' : notStarted ? 'Chưa bắt đầu' : 'Đang tắt') + '</span></div>'
@@ -3499,11 +3501,13 @@ async function createAutoVoucher(e) {
       product_ids: productIds,
       valid_from: new Date(document.getElementById('autoVoucherFrom').value).toISOString(),
       valid_to: new Date(document.getElementById('autoVoucherTo').value).toISOString(),
+      show_badge: document.getElementById('autoVoucherShowBadge')?.checked ? 1 : 0,
       is_active: document.getElementById('autoVoucherActive')?.checked ? 1 : 0
     })
     showAdminToast('Đã tạo voucher tự động', 'success')
     e.target.reset()
     document.getElementById('autoVoucherActive').checked = true
+    document.getElementById('autoVoucherShowBadge').checked = true
     syncAutoVoucherScopeUI()
     loadAutoVouchers()
   } catch (err) {

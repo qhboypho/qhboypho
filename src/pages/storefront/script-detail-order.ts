@@ -221,11 +221,12 @@ async function showDetail(id, options) {
           <h2 id="detailProductTitle" class="detail-product-title font-display font-bold text-gray-900 min-w-0 flex-1">\${escapeHtml(p.name)}</h2>
           \${renderFavoriteButton(p.id, 'favorite-toggle-btn--detail')}
         </div>
-        \${p.has_flash_sale ? \`<div class="flex flex-wrap items-center gap-2 mb-3"><span class="flash-sale-badge"><i class="fas fa-bolt"></i> Flash Sale</span><span class="flash-sale-countdown" data-flash-sale-ends-at="\${escapeHtml(flashMeta?.endsAt || '')}">\${formatFlashSaleCountdown(flashMeta?.endsAt || '')}</span></div>\` : renderAutoVoucherMiniBadge(p)}
+        \${p.has_flash_sale ? \`<div class="flex flex-wrap items-center gap-2 mb-3"><span class="flash-sale-badge"><i class="fas fa-bolt"></i> Flash Sale</span><span class="flash-sale-countdown" data-flash-sale-ends-at="\${escapeHtml(flashMeta?.endsAt || '')}">\${formatFlashSaleCountdown(flashMeta?.endsAt || '')}</span></div>\` : ''}
         <div class="flex items-baseline gap-3 mb-4">
           <span class="text-3xl font-bold text-gradient-price">\${fmtPrice(detailDisplayPrice)}</span>
           \${detailDisplayOriginalPrice > detailDisplayPrice ? \`<span class="text-gray-400 line-through">\${fmtPrice(detailDisplayOriginalPrice)}</span><span class="badge-sale text-white text-xs px-2 py-1 rounded-full">-\${discount}%</span>\` : ''}
         </div>
+        \${renderProductCommerceMeta(p, { className: 'product-commerce-meta--detail' })}
         \${p.description ? \`<p class="text-gray-600 text-sm leading-relaxed mb-4">\${escapeHtml(p.description)}</p>\` : ''}
         \${p.material ? \`<p class="text-sm text-gray-500 mb-4"><strong>Chất liệu:</strong> \${escapeHtml(p.material)}</p>\` : ''}
         \${detailColorOptions.length ? \`

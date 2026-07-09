@@ -133,9 +133,9 @@ export function adminMainContentStart(): string {
       <button type="button" id="adminInstallAppButton" onclick="installAdminPwa()" class="hidden admin-install-app-btn items-center justify-center gap-2 rounded-xl border border-pink-100 bg-pink-50 px-3 py-2 text-xs font-bold text-pink-600 shadow-sm hover:bg-pink-100 transition" title="Cài dashboard như app">
         <i class="fas fa-mobile-screen-button"></i><span class="hidden sm:inline">Cài app</span>
       </button>
-      <button type="button" id="adminOrderNotifyButton" onclick="enableAdminOrderNotifications()" class="inline-flex items-center justify-center gap-2 w-10 h-10 rounded-xl border border-gray-200 bg-white text-gray-500 shadow-sm hover:text-pink-600 hover:border-pink-200 hover:bg-pink-50 transition" title="Bật thông báo đơn mới" aria-label="Bật thông báo đơn mới">
+      <button type="button" id="adminOrderNotifyButton" onclick="enableAdminOrderNotifications()" class="inline-flex items-center justify-center gap-2 w-10 h-10 lg:w-auto lg:px-3 rounded-xl border border-gray-200 bg-white text-gray-500 shadow-sm hover:text-pink-600 hover:border-pink-200 hover:bg-pink-50 transition" title="Bật thông báo đơn mới" aria-label="Bật thông báo đơn mới">
         <i id="adminOrderNotifyIcon" class="fas fa-bell text-sm"></i>
-        <span id="adminOrderNotifyLabel" class="hidden lg:inline text-xs font-bold">Thông báo</span>
+        <span id="adminOrderNotifyLabel" class="hidden lg:inline text-xs font-bold whitespace-nowrap leading-none">Thông báo</span>
       </button>
       <button type="button" id="sidebarDesktopToggle" onclick="toggleDesktopSidebar()" class="sidebar-toggle-desktop hidden md:inline-flex items-center justify-center w-10 h-10 rounded-xl border border-gray-200 text-gray-600 hover:text-pink-600 hover:border-pink-200 transition" title="Thu gọn sidebar">
         <i class="fas fa-bars-staggered"></i>
@@ -498,6 +498,13 @@ export function adminVouchersPage(): string {
               <input id="autoVoucherActive" type="checkbox" checked class="w-4 h-4 rounded border-gray-300 text-pink-500 focus:ring-pink-400">
               Đang bật
             </label>
+            <label class="flex items-start gap-3 rounded-2xl border border-pink-100 bg-pink-50 px-4 py-3 text-sm font-semibold text-gray-700">
+              <input id="autoVoucherShowBadge" type="checkbox" checked class="mt-0.5 w-4 h-4 rounded border-gray-300 text-pink-500 focus:ring-pink-400">
+              <span>
+                <span class="block text-gray-800">Hiển thị badge ngoài storefront</span>
+                <span class="block text-xs font-medium text-gray-500">Bật để hiện badge voucher cạnh Freeship trên card sản phẩm, mẫu bán chạy và hero.</span>
+              </span>
+            </label>
             <button type="submit" id="createAutoVoucherBtn" class="btn-pink w-full text-white py-3 rounded-xl font-bold text-sm">
               <i class="fas fa-tags mr-2"></i>Tạo voucher tự động
             </button>
@@ -705,6 +712,22 @@ export function adminTextUiSettingsPage(): string {
       </div>
     </section>
 
+    <section class="mb-5 rounded-3xl border border-gray-200 bg-white p-5 md:p-6 shadow-sm">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div class="min-w-0">
+          <p class="text-xs font-bold uppercase tracking-[0.18em] text-emerald-500">Badge sản phẩm</p>
+          <h3 class="mt-1 text-xl font-extrabold text-gray-900">Hiển thị freeship</h3>
+          <p class="mt-1 text-sm text-gray-500">Bật/tắt badge Freeship trên card sản phẩm, mẫu bán chạy và hero.</p>
+        </div>
+        <label class="inline-flex w-full items-center justify-between gap-4 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3 md:w-auto">
+          <span class="inline-flex items-center gap-2 text-sm font-bold text-emerald-700">
+            <i class="fas fa-truck-fast"></i>Freeship
+          </span>
+          <input id="productFreeshipBadgeEnabled" data-setting-key="product_freeship_badge_enabled" type="checkbox" checked class="h-5 w-5 rounded border-emerald-200 text-pink-500 focus:ring-pink-300">
+        </label>
+      </div>
+    </section>
+
     <div class="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
       <section class="rounded-3xl border border-gray-200 bg-white p-5 md:p-6 shadow-sm">
         <div class="flex items-start justify-between gap-3 mb-5">
@@ -863,11 +886,12 @@ export function adminNotificationSettingsPage(): string {
       #page-settings-notifications .notification-card { box-shadow: 0 18px 44px -24px rgba(15,23,42,.28); }
       #page-settings-notifications .storefront-marquee-bar { height: 34px; background: rgba(2,8,18,0.98); border-bottom: 1px solid rgba(6,182,212,0.16); overflow: hidden; }
       #page-settings-notifications .storefront-marquee-bar.storefront-marquee-bar--static { height: auto; min-height: 34px; overflow: visible; }
-      #page-settings-notifications .storefront-marquee-track { display: flex; align-items: center; width: max-content; height: 100%; animation: storefrontMarqueePreview var(--storefront-marquee-duration, 48s) linear infinite; animation-delay: 0s; will-change: transform; backface-visibility: hidden; }
+      #page-settings-notifications .storefront-marquee-track { display: flex; align-items: center; width: max-content; height: 100%; animation: storefrontMarqueePreview var(--storefront-marquee-duration, 48s) linear infinite; animation-delay: 0s; will-change: transform; transform: translateX(0); backface-visibility: visible; }
+      #page-settings-notifications .storefront-marquee-seq { display: flex; align-items: center; flex: none; }
       #page-settings-notifications .storefront-marquee-bar:hover .storefront-marquee-track { animation-play-state: paused !important; }
       #page-settings-notifications .storefront-marquee-group { display: inline-flex; align-items: center; flex: 0 0 auto; gap: 0.5rem; padding: 0 1rem; white-space: nowrap; }
       #page-settings-notifications .storefront-marquee-icon { flex: 0 0 auto; color: rgba(255,255,255,0.92); font-size: 12px; line-height: 1; }
-      #page-settings-notifications .storefront-marquee-text { flex: 0 0 auto; color: rgba(203,213,225,0.9); font-size: 13px; font-weight: 700; line-height: 1; white-space: nowrap; letter-spacing: 0; }
+      #page-settings-notifications .storefront-marquee-text { flex: 0 0 auto; color: rgba(203,213,225,0.9); font-size: 13px; font-weight: 600; line-height: 1; white-space: nowrap; letter-spacing: 0; }
       #page-settings-notifications .storefront-marquee-separator { width: 1px; height: 14px; margin-left: 1rem; background: rgba(148,163,184,0.24); }
       #page-settings-notifications .storefront-static-notice { display: flex; align-items: center; justify-content: center; gap: .45rem; min-height: 100%; padding: .3rem 1rem; color: rgba(255,255,255,.92); font-size: 14px; font-weight: 700; line-height: 1.35; overflow: visible; text-align: center; }
       #page-settings-notifications .storefront-static-notice i { flex: 0 0 auto; color: #facc15; font-size: 14px; }
@@ -875,7 +899,7 @@ export function adminNotificationSettingsPage(): string {
       #page-settings-notifications .notification-switch-input:checked + .notification-switch-track { background: linear-gradient(135deg,#2563eb,#ec4899); }
       #page-settings-notifications .notification-switch-input:checked + .notification-switch-track .notification-switch-thumb { transform: translateX(1.45rem); }
       #page-settings-notifications input[type="range"] { accent-color: #ec4899; }
-      @keyframes storefrontMarqueePreview { from { transform: translate3d(0,0,0); } to { transform: translate3d(-50%,0,0); } }
+      @keyframes storefrontMarqueePreview { from { transform: translateX(0); } to { transform: translateX(-50%); } }
     </style>
     <div class="notification-hero mb-5 rounded-3xl border border-slate-200 p-5 md:p-6 text-white shadow-sm overflow-hidden relative">
       <div class="relative flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5">

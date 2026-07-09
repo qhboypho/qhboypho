@@ -617,6 +617,21 @@ function appendMarqueeSegmentGroup(track, text) {
   track.appendChild(group)
 }
 
+function getAdminMarqueeFillWidth(track) {
+  const bar = track?.closest?.('.storefront-marquee-bar')
+  const barWidth = Number(bar?.clientWidth || bar?.getBoundingClientRect?.().width || 0)
+  const viewportWidth = Number(window.innerWidth || document.documentElement.clientWidth || 0)
+  return Math.max(barWidth, viewportWidth, 720)
+}
+
+function fillAdminMarqueePattern(sequence, segments, minWidth) {
+  let guard = 0
+  while (sequence.scrollWidth < minWidth && guard < 80) {
+    segments.forEach(segment => appendMarqueeSegmentGroup(sequence, segment))
+    guard += 1
+  }
+}
+
 function renderAdminMarqueePreview(text, speedSeconds) {
   const track = document.getElementById('adminMarqueePreviewTrack')
   if (!track) return
@@ -629,16 +644,15 @@ function renderAdminMarqueePreview(text, speedSeconds) {
   track.style.removeProperty('animation')
   track.style.removeProperty('transform')
   track.style.removeProperty('width')
-  segments.forEach(segment => appendMarqueeSegmentGroup(track, segment))
-  let guard = 0
-  while (track.scrollWidth < 720 && guard < 8) {
-    segments.forEach(segment => appendMarqueeSegmentGroup(track, segment))
-    guard += 1
-  }
-  const baseGroups = Array.from(track.children)
-  for (const group of baseGroups) {
-    track.appendChild(group.cloneNode(true))
-  }
+  track.style.removeProperty('--storefront-marquee-translate')
+  const sequence = document.createElement('div')
+  sequence.className = 'storefront-marquee-seq'
+  segments.forEach(segment => appendMarqueeSegmentGroup(sequence, segment))
+  track.appendChild(sequence)
+  fillAdminMarqueePattern(sequence, segments, getAdminMarqueeFillWidth(track))
+  const clone = sequence.cloneNode(true)
+  clone.setAttribute('aria-hidden', 'true')
+  track.appendChild(clone)
   track.style.setProperty('--storefront-marquee-duration', speed + 's')
 }
 
@@ -653,6 +667,7 @@ function renderAdminStaticNotificationPreview(text) {
   track.style.animation = 'none'
   track.style.transform = 'none'
   track.style.width = '100%'
+  track.style.removeProperty('--storefront-marquee-translate')
   const notice = document.createElement('div')
   notice.className = 'storefront-static-notice'
   const icon = document.createElement('i')
@@ -830,7 +845,7 @@ function getTextUiPayload() {
   getTextUiSettingInputs().forEach(input => {
     const key = input.dataset.settingKey
     if (!key) return
-    payload[key] = String(input.value || '').trim()
+    payload[key] = input.type === 'checkbox' ? (input.checked ? '1' : '0') : String(input.value || '').trim()
   })
   return payload
 }
@@ -855,6 +870,10 @@ function fillTextUiSettings(cfg) {
   getTextUiSettingInputs().forEach(input => {
     const key = input.dataset.settingKey
     if (!key) return
+    if (input.type === 'checkbox') {
+      input.checked = cfg?.[key] === true || cfg?.[key] === 1 || cfg?.[key] === '1'
+      return
+    }
     input.value = String(cfg?.[key] || getTextUiInputDefault(input)).slice(0, Number(input.maxLength) > 0 ? Number(input.maxLength) : 800)
   })
   previewTextUiSettings()

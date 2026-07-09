@@ -24,6 +24,12 @@ type StorefrontPageOptions = {
   ogImageUrl?: string
 }
 
+function serializeStorefrontRuntimeConfig(options: StorefrontPageOptions): string {
+  return JSON.stringify({
+    product_freeship_badge_enabled: options.textUiSettings?.product_freeship_badge_enabled !== false,
+  }).replace(/</g, '\\u003c')
+}
+
 export function storefrontHTML(options: StorefrontPageOptions = {}): string {
   const canonicalUrl = String(options.canonicalUrl || 'https://qhclothes.pages.dev/').trim()
   const ogImageUrl = String(options.ogImageUrl || 'https://qhclothes.pages.dev/og/qh-clothes-share-16x9.png').trim()
@@ -95,6 +101,7 @@ ${storefrontModalsSection(options.textUiSettings)}
 ${storefrontMobileBottomNavSection()}
 
 <script>
+window.STOREFRONT_RUNTIME_CONFIG = ${serializeStorefrontRuntimeConfig(options)};
 ${storefrontInlineScript()}
 ${storefrontPurchaseToastScript()}
 </script>

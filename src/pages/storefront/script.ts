@@ -13,6 +13,23 @@ let bankTransferPollTimer = null
 const PRODUCT_PREVIEW_ROWS = 3
 const PRODUCT_MODAL_PAGE_SIZE = 24
 const MOBILE_PRODUCT_PAGE_SIZE = 8
+
+function isHotTrendWomenContext() {
+  const ctx = typeof window !== 'undefined' ? (window.STOREFRONT_SEGMENT_CONTEXT || window.storefrontSegmentContext) : null
+  return String(ctx?.key || '').trim() === 'hottrendnu'
+}
+
+function scopeStorefrontProductsForPage(products) {
+  if (!Array.isArray(products)) return []
+  if (isHotTrendWomenContext()) {
+    return products.filter((p) => {
+      const g = String(p.gender || p.category || '').toLowerCase()
+      const t = String(p.type || p.product_type || '').toLowerCase()
+      return g === 'female' || g === 'women' || g === 'girls' || p.is_women === true || t === 'dress' || t === 'set'
+    })
+  }
+  return products
+}
 const DEFAULT_STOREFRONT_PRODUCT_TYPES = [
   { slug: 'tshirt', name: 'Áo phông / thun', active: true },
   { slug: 'polo', name: 'Áo Polo', active: true },
@@ -39,6 +56,9 @@ let activeProductType = 'all'
 let storefrontProductTypes = []
 let activeProductSearch = ''
 let activeProductSort = 'newest'
+let activeProductColor = 'all'
+let activeProductSize = 'all'
+let activeProductPrice = 'all'
 let mobileProductsLayout = 'list'
 let favoriteProductIds = []
 let activeUserMenuView = ''
@@ -284,6 +304,7 @@ function getStorefrontDeviceId() {
 }
 
 function loadStorefrontThemePreference() {
+  if (isHotTrendWomenContext()) return 'light'
   try {
     const saved = localStorage.getItem(STOREFRONT_THEME_KEY)
     if (saved === 'dark' || saved === 'light') return saved
@@ -292,7 +313,11 @@ function loadStorefrontThemePreference() {
 }
 
 function applyStorefrontTheme(theme) {
-  theme = theme === 'dark' ? 'dark' : 'light'
+  if (isHotTrendWomenContext()) {
+    theme = 'light'
+  } else {
+    theme = theme === 'dark' ? 'dark' : 'light'
+  }
   document.documentElement.dataset.storefrontTheme = theme
   document.body.dataset.storefrontTheme = theme
   const icon = document.getElementById('storefrontThemeIcon')
@@ -1634,7 +1659,8 @@ async function loadProductTypes() {
 async function loadProducts() {
   try {
     const [res] = await Promise.all([axios.get('/api/products'), loadProductTypes()])
-    allProducts = res.data.data || []
+    allProducts = scopeStorefrontProductsForPage(res.data.data || [])
+    updateHotTrendNuFilterOptions()
     applyProductsFilters()
     loadFlashSaleShop()
     checkUrlDeepLink()
@@ -1871,7 +1897,22 @@ async function loadBestSellers() {
   try {
     ensureBestsellerRuntimeStyle()
     const res = await axios.get('/api/bestsellers?limit=10')
-    const products = Array.isArray(res.data?.data) ? res.data.data : []
+    const products = scopeStorefrontProductsForPage(Array.isArray(res.data?.data) ? res.data.data : [])
+    if (isHotTrendWomenContext()) {
+      const merged = products.slice()
+      if (Array.isArray(allProducts) && allProducts.length) {
+        const usedIds = new Set(merged.map((p) => Number(p?.id || 0)))
+        allProducts.forEach((p) => {
+          const id = Number(p?.id || 0)
+          if (merged.length >= 3 || usedIds.has(id)) return
+          usedIds.add(id)
+          merged.push(p)
+        })
+      }
+      if (!merged.length) { track.innerHTML = '<p class="text-gray-400 text-sm py-4 px-2">Chưa có dữ liệu bán hàng.</p>'; return }
+      track.innerHTML = buildHotTrendNuPreviewProducts(merged, 3).map((p, i) => renderHotTrendNuBestsellerCard(p, i)).join('')
+      return
+    }
     if (!products.length) { track.innerHTML = '<p class="text-gray-400 text-sm py-4 px-2">Chưa có dữ liệu bán hàng.</p>'; return }
     const medalClass = (i) => i < 3 ? 'bs-medal bs-medal-top bs-medal-top-' + (i + 1) : 'bs-medal bs-medal-n'
     const medalIcon = (i) => i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : String(i + 1)
@@ -1991,12 +2032,28 @@ async function loadFlashSaleShop() {
   if (!section || !grid) return
   try {
     const res = await axios.get('/api/flash-sales/active-products')
-    const products = Array.isArray(res.data?.data) ? res.data.data : []
+    const products = scopeStorefrontProductsForPage(Array.isArray(res.data?.data) ? res.data.data : [])
     if (!products.length) {
+      if (isHotTrendWomenContext()) {
+        const fallbackProducts = buildHotTrendNuPreviewProducts(allProducts, 7)
+        if (fallbackProducts.length) {
+          section.classList.remove('hidden')
+          document.getElementById('dealsGridRow')?.classList.add('has-flashsale')
+          grid.innerHTML = fallbackProducts.map((product) => renderHotTrendNuFlashSaleCard(product)).join('')
+          return
+        }
+      }
       section.classList.add('hidden')
+      document.getElementById('dealsGridRow')?.classList.remove('has-flashsale')
       return
     }
     section.classList.remove('hidden')
+    document.getElementById('dealsGridRow')?.classList.add('has-flashsale')
+    if (isHotTrendWomenContext()) {
+      grid.innerHTML = buildHotTrendNuPreviewProducts(products, Math.max(7, products.length)).map((product) => renderHotTrendNuFlashSaleCard(product)).join('')
+      startFlashSaleCountdownTicker()
+      return
+    }
     grid.innerHTML = products.map((product) => {
       const priceInfo = getProductDisplayPriceInfo(product)
       const meta = priceInfo.flashMeta
@@ -2159,6 +2216,7 @@ function getProductPreviewLimit() {
 }
 
 function renderStorefrontProductCard(p) {
+  if (isHotTrendWomenContext()) return renderHotTrendNuProductCard(p)
   const colors = getProductColorOptions(p).map((c) => c.name)
   const priceInfo = getProductDisplayPriceInfo(p)
   const flashMeta = priceInfo.flashMeta
@@ -2246,6 +2304,162 @@ function renderProductsModal() {
   startFlashSaleCountdownTicker()
 }
 
+function renderProductPerkBadges(product) {
+  const config = typeof window !== 'undefined' ? (window.STOREFRONT_RUNTIME_CONFIG || {}) : {}
+  const freeshipEnabled = config.product_freeship_badge_enabled !== false
+  if (!freeshipEnabled) return ''
+  return '<div class="product-perk-badges flex items-center gap-1">'
+    + '<span class="product-perk-badge bg-rose-50 text-rose-500 text-[10px] font-extrabold px-1.5 py-0.5 rounded-md flex items-center gap-0.5" style="font-family: Be Vietnam Pro, sans-serif;"><i class="fas fa-shipping-fast text-[9px]"></i>Freeship</span>'
+    + '</div>'
+}
+
+function renderProductSoldLine(product, className) {
+  const soldCount = Number(product?.total_sold || 0)
+  if (soldCount <= 0) return ''
+  const c = className ? ' ' + className : ''
+  return '<div class="product-sold-line' + c + '" style="font-family: Be Vietnam Pro, sans-serif; font-size: 11px; font-weight: 700;">Đã bán ' + fmtSold(soldCount) + '</div>'
+}
+
+function renderProductCommerceMeta(product, options) {
+  const opts = options || {}
+  const classes = ['product-commerce-meta', 'flex', 'items-center', 'justify-between', 'w-full']
+  if (opts.className) classes.push(opts.className)
+  const soldHtml = renderProductSoldLine(product)
+  const perkHtml = renderProductPerkBadges(product)
+  if (!soldHtml && !perkHtml) return ''
+  return '<div class="' + classes.join(' ') + '">' + soldHtml + perkHtml + '</div>'
+}
+
+function resolveColorNameToHex(name) {
+  const n = String(name || '').trim().toLowerCase()
+  if (n.includes('trắng') || n.includes('white')) return '#FFFFFF'
+  if (n.includes('đen') || n.includes('black')) return '#171114'
+  if (n.includes('hồng') || n.includes('pink') || n.includes('phấn')) return '#E9A2B2'
+  if (n.includes('be') || n.includes('beige') || n.includes('kem') || n.includes('cream')) return '#F1E8E2'
+  if (n.includes('nâu') || n.includes('brown')) return '#8B5A2B'
+  if (n.includes('xám') || n.includes('grey') || n.includes('gray')) return '#9CA3AF'
+  if (n.includes('navy') || n.includes('xanh đậm') || n.includes('xanh biển')) return '#1E3A8A'
+  if (n.includes('xanh') || n.includes('green') || n.includes('lá')) return '#10B981'
+  if (n.includes('đỏ') || n.includes('red')) return '#EF4444'
+  if (n.includes('vàng') || n.includes('yellow')) return '#F59E0B'
+  return '#cbd5e1'
+}
+
+function renderHotTrendNuActions(productId, compact) {
+  if (isCurrentUserBlocked()) {
+    return '<div class="htn-actions htn-actions--blocked">' + renderBlockedPurchaseActions('htn-buy htn-buy--blocked') + '</div>'
+  }
+  const bagIcon = '<i class="fas fa-shopping-bag htn-buy-cart-icon" aria-hidden="true"></i>'
+  return '<div class="htn-actions htn-actions--single ' + (compact ? 'htn-actions--compact' : '') + '">'
+    + '<button onclick="event.stopPropagation();openOrderFromProductCard(' + productId + ')" title="Mua nhanh" class="htn-buy"><span>Mua nhanh</span>' + bagIcon + '</button>'
+    + '</div>'
+}
+
+function buildHotTrendNuPreviewProducts(source, count) {
+  const list = Array.isArray(source) ? source.filter(Boolean) : []
+  const limit = Number(count || 0)
+  if (!list.length || limit <= 0) return []
+  const out = []
+  for (let i = 0; i < limit; i += 1) out.push(list[i % list.length])
+  return out
+}
+
+function renderHotTrendNuProductCard(p) {
+  const colors = getProductColorOptions(p).map((c) => c.name).filter(Boolean)
+  const sizes = (Array.isArray(p.sizes) ? p.sizes : safeJson(p.sizes || '[]')).map((s) => String(s || '').trim()).filter(Boolean)
+  const priceInfo = getProductDisplayPriceInfo(p)
+  const flashMeta = priceInfo.flashMeta
+  const displayPrice = priceInfo.price
+  const displayOriginalPrice = priceInfo.originalPrice
+  const type = inferStorefrontProductType(p)
+  const discount = flashMeta ? Number(flashMeta.discountPercent || 0) : (displayOriginalPrice > displayPrice ? Math.round((1 - displayPrice / displayOriginalPrice) * 100) : 0)
+  const badgeLabel = p.is_featured ? 'HOT' : discount > 0 ? '-' + discount + '%' : 'NEW'
+  const colorDots = colors.slice(0, 4).map((c) => '<span class="htn-color-dot" style="background: ' + resolveColorNameToHex(c) + '" title="' + escapeHtml(c) + '"></span>').join('')
+  const sizePills = sizes.length ? '<div class="htn-size-row">' + sizes.slice(0, 4).map((s) => '<span>' + escapeHtml(s) + '</span>').join('') + (sizes.length > 4 ? '<span>+' + (sizes.length - 4) + '</span>' : '') + '</div>' : ''
+  return \`
+  <article class="product-card htn-product-card" onclick="openProductDetailFromCard(\${p.id})">
+    <div class="htn-product-media">
+      <img src="\${escapeHtml(p.thumbnail || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=500')}" alt="\${escapeHtml(p.name)}" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=500'">
+      <div class="htn-product-media-top">
+        <span class="htn-product-type">\${escapeHtml(badgeLabel)}</span>
+        \${renderFavoriteButton(p.id)}
+      </div>
+    </div>
+    <div class="htn-product-body">
+      <div class="htn-product-title-row">
+        <h3>\${escapeHtml(p.name)}</h3>
+      </div>
+      <div class="htn-product-price-row">
+        <span class="htn-product-price">\${fmtPrice(displayPrice)}</span>
+        \${displayOriginalPrice > displayPrice ? \`<span class="htn-product-original">\${fmtPrice(displayOriginalPrice)}</span>\` : ''}
+      </div>
+      \${renderProductCommerceMeta(p, { className: 'product-commerce-meta--hottrendnu' })}
+      \${p.has_flash_sale ? renderFlashSaleMiniStrip(flashMeta) : ''}
+      \${colors.length ? '<div class="htn-color-row">' + colorDots + '</div>' : ''}
+      \${sizePills}
+      \${renderHotTrendNuActions(p.id, false)}
+    </div>
+  </article>\`
+}
+
+function renderHotTrendNuBestsellerCard(p, index) {
+  const priceInfo = getProductDisplayPriceInfo(p)
+  const price = priceInfo.price
+  const originalPrice = priceInfo.originalPrice
+  const soldCount = Number(p.total_sold || 0)
+  const discount = originalPrice > price ? Math.round((1 - price / originalPrice) * 100) : 0
+  const badge = discount > 0 ? '-' + discount + '%' : 'NEW'
+  return \`
+  <article class="htn-rank-card" onclick="showDetail(\${p.id})">
+    <div class="htn-rank-image">
+      <img src="\${escapeHtml(p.thumbnail || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=500')}" alt="\${escapeHtml(p.name)}" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=500'">
+      <span class="qhher-mini-badge">\${escapeHtml(badge)}</span>
+    </div>
+    <div class="htn-rank-body">
+      <h3>\${escapeHtml(p.name)}</h3>
+      <div class="htn-product-price-row">
+        <span class="htn-product-price">\${fmtPrice(price)}</span>
+        \${originalPrice > price ? \`<span class="htn-product-original">\${fmtPrice(originalPrice)}</span>\` : ''}
+      </div>
+    </div>
+  </article>\`
+}
+
+function renderHotTrendNuFlashSaleCard(product) {
+  const priceInfo = getProductDisplayPriceInfo(product)
+  const meta = priceInfo.flashMeta
+  const price = priceInfo.price
+  const original = priceInfo.originalPrice
+  const discount = meta ? Number(meta.discountPercent || 0) : (original > price ? Math.round((1 - price / original) * 100) : 0)
+  const badge = discount > 0 ? '-' + discount + '%' : 'SALE'
+  return \`
+  <div class="flash-sale-shop-card shrink-0 snap-start cursor-pointer htn-deal-card" onclick="showDetail(\${product.id})">
+    <div class="htn-deal-media">
+      <img src="\${product.thumbnail || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=500'}" alt="\${product.name}" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=500'">
+      <span class="qhher-mini-badge">\${escapeHtml(badge)}</span>
+    </div>
+    <div class="htn-deal-body">
+      <h3>\${escapeHtml(product.name)}</h3>
+      <div class="htn-product-price-row">
+        <span class="htn-product-price">\${fmtPrice(price)}</span>
+        \${original > price ? \`<span class="htn-product-original">\${fmtPrice(original)}</span>\` : ''}
+      </div>
+    </div>
+  </div>\`
+}
+
+function filterProductType(type, btn) {
+  document.querySelectorAll('.hottrendnu-type-chip').forEach((b) => b.classList.remove('active'))
+  if (btn) {
+    btn.classList.add('active')
+  } else {
+    const matchingTypeChip = document.querySelector('.hottrendnu-type-chip[data-type="' + type + '"]')
+    if (matchingTypeChip) matchingTypeChip.classList.add('active')
+  }
+  activeProductType = type
+  applyProductsFilters()
+}
+
 // ── FILTER & SEARCH ────────────────────────────────
 function getProductTimeValue(product) {
   const createdAt = Date.parse(product?.created_at || '')
@@ -2256,6 +2470,14 @@ function getProductTimeValue(product) {
 function sortProductsList(products) {
   const list = Array.isArray(products) ? [...products] : []
   list.sort((a, b) => {
+    if (activeProductSort === 'price_asc' || activeProductSort === 'price_desc') {
+      const av = Number(getProductDisplayPriceInfo(a).price || 0)
+      const bv = Number(getProductDisplayPriceInfo(b).price || 0)
+      return activeProductSort === 'price_asc' ? av - bv : bv - av
+    }
+    if (activeProductSort === 'best_selling') {
+      return Number(b?.total_sold || 0) - Number(a?.total_sold || 0)
+    }
     const av = getProductTimeValue(a)
     const bv = getProductTimeValue(b)
     return activeProductSort === 'oldest' ? av - bv : bv - av
@@ -2263,11 +2485,112 @@ function sortProductsList(products) {
   return list
 }
 
+function normalizeProductFilterText(value) {
+  return String(value || '').trim().toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+}
+
+function formatHotTrendNuColorLabel(label) {
+  const raw = String(label || '').trim()
+  const key = raw.toLowerCase()
+    .normalize('NFD')
+    .replace(/[\\u0300-\\u036f]/g, '')
+    .replace(/đ/g, 'd')
+  const common = {
+    'hoa vang': 'Hoa vàng',
+    'vang': 'Vàng',
+    'hong': 'Hồng',
+    'hoa hong': 'Hoa hồng',
+    'xanh': 'Xanh',
+    'xanh than': 'Xanh than',
+    'den': 'Đen',
+    'trang': 'Trắng',
+    'kem': 'Kem',
+    'do': 'Đỏ',
+    'do man': 'Đỏ mận',
+    'nau': 'Nâu',
+    'xam': 'Xám'
+  }
+  return common[key] || raw
+}
+
+function updateSelectPreservingValue(select, options, placeholder, activeValue) {
+  if (!select) return
+  const current = String(activeValue || select.value || 'all')
+  select.innerHTML = '<option value="all">' + escapeHtml(placeholder) + '</option>' + options.map((option) => {
+    const value = escapeHtml(option.value)
+    const label = escapeHtml(option.label)
+    return '<option value="' + value + '">' + label + '</option>'
+  }).join('')
+  select.value = options.some((option) => String(option.value) === current) ? current : 'all'
+}
+
+function updateHotTrendNuFilterOptions() {
+  if (!isHotTrendWomenContext()) return
+  const source = Array.isArray(allProducts) ? allProducts : []
+  const colorMap = new Map()
+  const sizeSet = new Set()
+  source.forEach((product) => {
+    getProductColorOptions(product).forEach((color) => {
+      const label = formatHotTrendNuColorLabel(color?.name)
+      const key = normalizeProductFilterText(color?.name || label)
+      if (key && !colorMap.has(key)) colorMap.set(key, label)
+    })
+    const sizes = Array.isArray(product?.sizes) ? product.sizes : safeJson(product?.sizes || '[]')
+    sizes.forEach((size) => {
+      const label = String(size || '').trim()
+      if (label) sizeSet.add(label)
+    })
+  })
+  const colors = Array.from(colorMap.entries()).map(([value, label]) => ({ value, label }))
+  const sizes = Array.from(sizeSet).sort((a, b) => String(a).localeCompare(String(b), 'vi')).map((label) => ({ value: label, label }))
+  updateSelectPreservingValue(document.getElementById('productsColorFilter'), colors, 'Màu sắc', activeProductColor)
+  updateSelectPreservingValue(document.getElementById('productsSizeFilter'), sizes, 'Size', activeProductSize)
+}
+
+function productMatchesColorFilter(product) {
+  if (!activeProductColor || activeProductColor === 'all') return true
+  return getProductColorOptions(product).some((color) => normalizeProductFilterText(color?.name) === activeProductColor)
+}
+
+function productMatchesSizeFilter(product) {
+  if (!activeProductSize || activeProductSize === 'all') return true
+  const sizes = Array.isArray(product?.sizes) ? product.sizes : safeJson(product?.sizes || '[]')
+  return sizes.some((size) => String(size || '').trim() === activeProductSize)
+}
+
+function productMatchesPriceFilter(product) {
+  if (!activeProductPrice || activeProductPrice === 'all') return true
+  const price = Number(getProductDisplayPriceInfo(product).price || 0)
+  if (activeProductPrice === 'under_200') return price > 0 && price < 200000
+  if (activeProductPrice === '200_400') return price >= 200000 && price <= 400000
+  if (activeProductPrice === 'over_400') return price > 400000
+  return true
+}
+
+function setHotTrendNuProductFilter(kind, value) {
+  const normalized = String(value || 'all').trim() || 'all'
+  if (kind === 'color') activeProductColor = normalized === 'all' ? 'all' : normalizeProductFilterText(normalized)
+  if (kind === 'size') activeProductSize = normalized
+  if (kind === 'price') activeProductPrice = normalized
+  applyProductsFilters()
+}
+
 function updateProductsFilterMeta(total) {
   const countLabel = document.getElementById('productsCountLabel')
   if (countLabel) countLabel.textContent = String(total || 0) + ' mặt hàng'
-  const sortSelect = document.getElementById('productsSortSelect')
-  if (sortSelect && sortSelect.value !== activeProductSort) sortSelect.value = activeProductSort
+  const sortSelects = [document.getElementById('productsSortSelect'), document.getElementById('productsSortSelectMobile')]
+  sortSelects.forEach((sortSelect) => {
+    if (sortSelect && sortSelect.value !== activeProductSort) sortSelect.value = activeProductSort
+  })
+  const colorSelect = document.getElementById('productsColorFilter')
+  if (colorSelect && colorSelect.value !== activeProductColor) colorSelect.value = activeProductColor
+  const sizeSelect = document.getElementById('productsSizeFilter')
+  if (sizeSelect && sizeSelect.value !== activeProductSize) sizeSelect.value = activeProductSize
+  const priceSelect = document.getElementById('productsPriceFilter')
+  if (priceSelect && priceSelect.value !== activeProductPrice) priceSelect.value = activeProductPrice
   applyProductsMobileLayout()
 }
 
@@ -2306,7 +2629,7 @@ function applyProductsFilters() {
       matchType = inferStorefrontProductType(p) === activeProductType
     }
 
-    return matchCat && matchSearch && matchType
+    return matchCat && matchSearch && matchType && productMatchesColorFilter(p) && productMatchesSizeFilter(p) && productMatchesPriceFilter(p)
   }))
   renderProducts(filteredProducts)
 }
@@ -2376,6 +2699,10 @@ function resetFilterModal() {
   document.querySelectorAll('#filterModalTypeRow .filter-modal-chip').forEach(b => {
     b.classList.toggle('active', b.getAttribute('data-val') === 'all')
   })
+  activeProductColor = 'all'
+  activeProductSize = 'all'
+  activeProductPrice = 'all'
+  updateProductsFilterMeta(filteredProducts.length)
 }
 
 function applyFilterModal() {
@@ -2390,6 +2717,12 @@ function applyFilterModal() {
   if (matchingDesktopChip && activeProductType === 'all') {
     matchingDesktopChip.classList.add('active')
   }
+  document.querySelectorAll('.hottrendnu-type-chip').forEach((b) => {
+    b.classList.toggle('active', b.getAttribute('data-type') === activeProductType)
+  })
+  if (!document.querySelector('.hottrendnu-type-chip.active')) {
+    document.querySelector('.hottrendnu-type-chip[data-type="all"]')?.classList.add('active')
+  }
 
   applyProductsFilters()
   closeFilterModal()
@@ -2401,7 +2734,7 @@ function searchProducts(q) {
 }
 
 function sortProductsByTime(value) {
-  activeProductSort = value === 'oldest' ? 'oldest' : 'newest'
+  activeProductSort = ['oldest', 'price_asc', 'price_desc', 'best_selling'].includes(value) ? value : 'newest'
   applyProductsFilters()
 }
 
@@ -3448,6 +3781,26 @@ function renderHeroCarouselCard(b, index) {
   const detailAction = b.product_id ? \`onclick="showDetail(\${Number(b.product_id)})"\` : 'onclick="document.getElementById(&quot;products&quot;)?.scrollIntoView({behavior:&quot;smooth&quot;})"'
   const footerAction = b.product_id ? \`onclick="event.stopPropagation();openOrder(\${Number(b.product_id)})"\` : detailAction
   const footerLabel = b.product_id ? 'Đặt nhanh' : 'Xem sản phẩm'
+  if (isHotTrendWomenContext()) {
+    return \`<article class="hero-carousel-card htn-hero-card" data-hero-index="\${index}" data-offset="hidden" aria-hidden="true" \${detailAction}>
+      <div class="htn-hero-card-media">
+        <img src="\${image}" alt="\${title}" onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'">
+        <span class="htn-hero-card-index">\${String(index + 1).padStart(2, '0')}</span>
+      </div>
+      <div class="htn-hero-card-copy">
+        <p>\${subtitle}</p>
+        <h3>\${title}</h3>
+        \${renderProductCommerceMeta(b, { className: 'product-commerce-meta--hottrendnu product-commerce-meta--hero' })}
+        <div class="htn-hero-card-footer">
+          <div class="htn-product-price-row">
+            <span class="htn-product-price">\${price}</span>
+            \${originalPrice ? \`<span class="htn-product-original">\${originalPrice}</span>\` : ''}
+          </div>
+          <button type="button" class="htn-hero-card-cta" \${footerAction}>\${footerLabel} <i class="fas fa-arrow-right" aria-hidden="true"></i></button>
+        </div>
+      </div>
+    </article>\`
+  }
   return \`<article class="hero-carousel-card" data-hero-index="\${index}" data-offset="hidden" aria-hidden="true" \${detailAction}>
     <div class="hero-carousel-media">
       <img src="\${image}" alt="\${title}" onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'">
@@ -3734,6 +4087,10 @@ async function loadNotificationSettings() {
   }
 }
 
+window.filterProductType = filterProductType
+window.setHotTrendNuProductFilter = setHotTrendNuProductFilter
+window.isHotTrendWomenContext = isHotTrendWomenContext
+
 window.addEventListener('popstate', function (event) {
   const params = new URLSearchParams(window.location.search)
   const productId = params.get('product')
@@ -3872,7 +4229,7 @@ function updateUserUI() {
     clearAuthFormContent()
     defaultAvatar.classList.remove('hidden')
     imgAvatar.classList.add('hidden')
-    defaultAvatar.innerHTML = '<i class="fas fa-user text-sm"></i>'
+    defaultAvatar.innerHTML = isHotTrendWomenContext() ? '<i class="far fa-user" aria-hidden="true"></i>' : '<i class="fas fa-user text-sm"></i>'
     defaultAvatar.style.background = ''
     guestSection.classList.add('hidden')
     loggedInSection.classList.remove('hidden')
@@ -3895,8 +4252,13 @@ function updateUserUI() {
     } else {
       defaultAvatar.classList.remove('hidden')
       imgAvatar.classList.add('hidden')
-      defaultAvatar.innerHTML = escapeHtml(getUserAvatarInitial(currentUser))
-      defaultAvatar.style.background = getUserAvatarStyle(currentUser)
+      if (isHotTrendWomenContext()) {
+        defaultAvatar.innerHTML = '<i class="far fa-user" aria-hidden="true"></i>'
+        defaultAvatar.style.background = ''
+      } else {
+        defaultAvatar.innerHTML = escapeHtml(getUserAvatarInitial(currentUser))
+        defaultAvatar.style.background = getUserAvatarStyle(currentUser)
+      }
     }
     guestSection.classList.add('hidden')
     loggedInSection.classList.remove('hidden')
@@ -3926,7 +4288,7 @@ function updateUserUI() {
   } else {
     defaultAvatar.classList.remove('hidden')
     imgAvatar.classList.add('hidden')
-    defaultAvatar.innerHTML = '<i class="fas fa-user text-sm"></i>'
+    defaultAvatar.innerHTML = isHotTrendWomenContext() ? '<i class="far fa-user" aria-hidden="true"></i>' : '<i class="fas fa-user text-sm"></i>'
     defaultAvatar.style.background = ''
     guestSection.classList.remove('hidden')
     loggedInSection.classList.add('hidden')
