@@ -58,8 +58,8 @@ export function adminModalsSection(): string {
           </div>
         </div>
         <div>
-          <label class="block text-sm font-semibold mb-1.5 text-gray-700">Giá bán (VNĐ) *</label>
-          <input type="number" id="pPrice" required placeholder="299000" min="0" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
+          <label class="block text-sm font-semibold mb-1.5 text-gray-700">Giá bán mặc định (VNĐ)</label>
+          <input type="number" id="pPrice" placeholder="299000" min="0" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
         </div>
         <div>
           <label class="block text-sm font-semibold mb-1.5 text-gray-700">Giá gốc (VNĐ)</label>
@@ -102,6 +102,30 @@ export function adminModalsSection(): string {
             <option value="">Chưa phân loại</option>
           </select>
         </div>
+        <div class="md:col-span-2 rounded-2xl border border-pink-100 bg-pink-50/60 px-4 py-3">
+          <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <label class="block text-sm font-semibold text-gray-800">
+                <i class="fas fa-store text-pink-500 mr-1"></i>Hiển thị trên storefront
+              </label>
+              <p class="mt-1 text-xs text-gray-500">Tick kênh bán hàng mà sản phẩm được phép hiển thị.</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <label class="inline-flex h-9 items-center gap-2 rounded-xl bg-white px-3 text-sm font-semibold text-gray-700 shadow-sm ring-1 ring-pink-100 cursor-pointer whitespace-nowrap">
+                <input type="checkbox" id="pStorefrontBoypho" value="boypho" data-storefront-visibility class="w-4 h-4 accent-pink-500">
+                <span>QH Boypho</span>
+              </label>
+              <label class="inline-flex h-9 items-center gap-2 rounded-xl bg-white px-3 text-sm font-semibold text-gray-700 shadow-sm ring-1 ring-pink-100 cursor-pointer whitespace-nowrap">
+                <input type="checkbox" id="pStorefrontHer" value="hottrendnu" data-storefront-visibility class="w-4 h-4 accent-pink-500">
+                <span>QH Clothes</span>
+              </label>
+              <label class="inline-flex h-9 items-center gap-2 rounded-xl bg-white px-3 text-sm font-semibold text-gray-700 shadow-sm ring-1 ring-pink-100 cursor-pointer whitespace-nowrap">
+                <input type="checkbox" id="pStorefrontAll" class="w-4 h-4 accent-pink-500">
+                <span>Tất cả</span>
+              </label>
+            </div>
+          </div>
+        </div>
         <div>
           <label class="block text-sm font-semibold mb-1.5 text-gray-700">Thương hiệu</label>
           <input type="text" id="pBrand" placeholder="VD: QH Boypho" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
@@ -114,12 +138,13 @@ export function adminModalsSection(): string {
           <label class="block text-sm font-semibold mb-1.5 text-gray-700">Mô tả</label>
           <textarea id="pDescription" rows="3" placeholder="Mô tả chi tiết về sản phẩm..." class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 resize-none"></textarea>
         </div>
-        <div class="md:col-span-2 grid grid-cols-[150px_1fr] items-end gap-4 pt-4">
-          <div class="min-w-0">
+        <div class="md:col-span-2 pt-4">
+          <div class="max-w-[180px] min-w-0">
             <label class="block text-sm font-medium text-gray-700 mb-1.5">Số lượng tồn kho</label>
             <input type="number" id="pStock" placeholder="100" min="0" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
           </div>
-          <div class="min-w-0 rounded-2xl border border-gray-100 bg-gray-50 px-3 py-2.5">
+        </div>
+        <div class="md:col-span-2 rounded-2xl border border-gray-100 bg-gray-50 px-3 py-2.5">
             <div class="flex flex-wrap items-center gap-2">
               <label class="inline-flex h-9 items-center gap-2 rounded-xl bg-white px-3 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-gray-100 cursor-pointer whitespace-nowrap">
                 <input type="checkbox" id="pFeatured" class="w-4 h-4 accent-pink-500">
@@ -128,6 +153,10 @@ export function adminModalsSection(): string {
               <label class="inline-flex h-9 items-center gap-2 rounded-xl bg-white px-3 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-gray-100 cursor-pointer whitespace-nowrap">
                 <input type="checkbox" id="pTrending" class="w-4 h-4 accent-pink-500">
                 <span>Thịnh hành</span>
+              </label>
+              <label class="inline-flex h-9 items-center gap-2 rounded-xl bg-white px-3 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-gray-100 cursor-pointer whitespace-nowrap">
+                <input type="checkbox" id="pNewArrival" class="w-4 h-4 accent-pink-500">
+                <span>Hàng mới về</span>
               </label>
               <label class="inline-flex h-9 items-center gap-2 rounded-xl bg-white px-3 text-sm font-medium text-gray-700 shadow-sm ring-1 ring-gray-100 cursor-pointer whitespace-nowrap">
                 <input type="checkbox" id="pActive" checked class="w-4 h-4 accent-pink-500">
@@ -152,12 +181,11 @@ export function adminModalsSection(): string {
                 </select>
               </div>
             </div>
-          </div>
         </div>
       </div>
       <!-- Colors -->
       <div>
-        <label class="block text-sm font-semibold mb-2 text-gray-700"><i class="fas fa-palette text-pink-400 mr-1"></i>Màu sắc</label>
+        <label class="block text-sm font-semibold mb-2 text-gray-700"><i class="fas fa-palette text-pink-400 mr-1"></i>Phân loại / Màu sắc</label>
         <div id="colorOptionsEditor" class="space-y-2"></div>
         <button type="button" onclick="addColorOptionRow()" class="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-gray-600 hover:text-pink-600 transition">
           <i class="fas fa-plus"></i>Thêm lựa chọn
@@ -177,6 +205,58 @@ export function adminModalsSection(): string {
           <input type="text" id="sizeInput" placeholder="VD: S, M, L, XL, 28, 29..." class="flex-1 border rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-pink-400"
             onkeydown="if(event.key==='Enter'){event.preventDefault();addTag('size')}">
           <button type="button" onclick="addTag('size')" class="btn-pink text-white px-4 py-2 rounded-xl text-sm">Thêm</button>
+        </div>
+      </div>
+
+      <!-- SKU Matrix -->
+      <div class="rounded-2xl border border-pink-100 bg-pink-50/50 p-4">
+        <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div>
+            <label class="block text-sm font-semibold text-gray-800">
+              <i class="fas fa-table-cells text-pink-400 mr-1"></i>Định giá theo từng SKU
+            </label>
+            <p class="mt-1 text-xs text-gray-500">Bật khi mỗi phân loại/size có giá, tồn kho hoặc mã SKU riêng.</p>
+          </div>
+          <label class="inline-flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-semibold text-gray-700 shadow-sm ring-1 ring-pink-100 cursor-pointer">
+            <input type="checkbox" id="pSkuPricingEnabled" onchange="toggleProductSkuPricing(this.checked)" class="w-4 h-4 accent-pink-500">
+            <span>Bật bảng SKU</span>
+          </label>
+        </div>
+        <div id="skuMatrixSection" class="hidden mt-4 rounded-2xl bg-white border border-pink-100 overflow-hidden">
+          <div class="flex items-center justify-between gap-3 border-b border-pink-100 px-4 py-3">
+            <div>
+              <p class="text-sm font-bold text-gray-900">Danh sách biến thể</p>
+              <p class="text-xs text-gray-500">Tự sinh từ Phân loại/Màu sắc × Size số.</p>
+            </div>
+            <span id="skuMatrixCount" class="rounded-full bg-pink-50 px-2.5 py-1 text-xs font-bold text-pink-600">0 SKU</span>
+          </div>
+          <div class="border-b border-pink-100 bg-gray-50/80 px-4 py-3">
+            <div class="grid gap-2 md:grid-cols-[110px_130px_130px_1fr_auto] md:items-center">
+              <input type="number" min="0" id="skuBulkStock" placeholder="Số lượng" class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-pink-400 bg-white">
+              <input type="number" min="0" id="skuBulkPrice" placeholder="Giá bán" class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-pink-400 bg-white">
+              <input type="number" min="0" id="skuBulkOriginalPrice" placeholder="Giá gốc" class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-pink-400 bg-white">
+              <input type="text" id="skuBulkCodePrefix" placeholder="Tiền tố SKU (tuỳ chọn)" class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-pink-400 bg-white">
+              <button type="button" onclick="applySkuBulkValues()" class="h-10 rounded-lg bg-gray-900 px-4 text-sm font-bold text-white hover:bg-gray-700 whitespace-nowrap">
+                Áp dụng
+              </button>
+            </div>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full min-w-[860px] text-left">
+              <thead class="bg-gray-50 text-xs font-bold uppercase tracking-wide text-gray-500">
+                <tr>
+                  <th class="px-3 py-2">Phân loại / Màu</th>
+                  <th class="px-3 py-2">Size</th>
+                  <th class="px-3 py-2">Tồn kho</th>
+                  <th class="px-3 py-2">Giá bán</th>
+                  <th class="px-3 py-2">Giá gốc</th>
+                  <th class="px-3 py-2">SKU người bán</th>
+                  <th class="px-3 py-2 text-center">Hiện</th>
+                </tr>
+              </thead>
+              <tbody id="skuMatrixBody" class="divide-y divide-gray-100"></tbody>
+            </table>
+          </div>
         </div>
       </div>
       

@@ -20,6 +20,7 @@ type ProductTypeDefinition = {
   name: string
   active: boolean
   order: number
+  thumbnail?: string
 }
 
 const DEFAULT_PRODUCT_TYPES: ProductTypeDefinition[] = [
@@ -32,6 +33,121 @@ const DEFAULT_PRODUCT_TYPES: ProductTypeDefinition[] = [
   { slug: 'dress', name: 'Váy / Đầm', active: true, order: 7 },
   { slug: 'set', name: 'Bộ đồ', active: true, order: 8 }
 ]
+
+const STOREFRONT_KEYS = ['boypho', 'hottrendnu'] as const
+type StorefrontKey = typeof STOREFRONT_KEYS[number]
+let storefrontVisibilityColumnReady = false
+let productNewArrivalColumnReady = false
+
+async function ensureProductNewArrivalColumn(db: D1Database) {
+  if (productNewArrivalColumnReady) return
+  try {
+    await db.prepare(`ALTER TABLE products ADD COLUMN is_new_arrival INTEGER DEFAULT 0`).run()
+  } catch (error: any) {
+    const message = String(error?.message || error || '').toLowerCase()
+    if (!message.includes('duplicate column') && !message.includes('already exists')) {
+      throw error
+    }
+  }
+  await db.prepare(`
+    UPDATE products
+    SET is_new_arrival = 0
+    WHERE is_new_arrival IS NULL
+  `).run()
+  productNewArrivalColumnReady = true
+}
+
+async function ensureStorefrontVisibilityColumn(db: D1Database) {
+  if (storefrontVisibilityColumnReady) {
+    await ensureProductNewArrivalColumn(db)
+    return
+  }
+  let createdColumn = false
+  try {
+    await db.prepare(`ALTER TABLE products ADD COLUMN storefront_visibility TEXT NOT NULL DEFAULT '["boypho"]'`).run()
+    createdColumn = true
+  } catch (error: any) {
+    const message = String(error?.message || error || '').toLowerCase()
+    if (!message.includes('duplicate column') && !message.includes('already exists')) {
+      throw error
+    }
+  }
+  await db.prepare(`
+    UPDATE products
+    SET storefront_visibility = '["boypho"]'
+    WHERE storefront_visibility IS NULL OR TRIM(storefront_visibility) = ''
+  `).run()
+  if (createdColumn) {
+    await db.prepare(`
+      UPDATE products
+      SET storefront_visibility = '["boypho","hottrendnu"]'
+      WHERE LOWER(COALESCE(category, '')) IN ('female', 'women', 'girls')
+         OR LOWER(COALESCE(name, '')) LIKE '%váy%'
+         OR LOWER(COALESCE(name, '')) LIKE '%đầm%'
+         OR LOWER(COALESCE(name, '')) LIKE '%nữ%'
+         OR LOWER(COALESCE(name, '')) LIKE '%set%'
+         OR LOWER(COALESCE(description, '')) LIKE '%váy%'
+         OR LOWER(COALESCE(description, '')) LIKE '%đầm%'
+         OR LOWER(COALESCE(description, '')) LIKE '%thời trang nữ%'
+    `).run()
+  }
+  storefrontVisibilityColumnReady = true
+  await ensureProductNewArrivalColumn(db)
+}
+
+function normalizeStorefrontKey(value: unknown): StorefrontKey | '' {
+  const key = String(value || '').trim().toLowerCase()
+  return (STOREFRONT_KEYS as readonly string[]).includes(key) ? key as StorefrontKey : ''
+}
+
+function normalizeStorefrontVisibility(input: unknown): StorefrontKey[] {
+  const source = (() => {
+    if (Array.isArray(input)) return input
+    if (typeof input === 'string') {
+      const trimmed = input.trim()
+      if (!trimmed) return []
+      try {
+        const parsed = JSON.parse(trimmed)
+        return Array.isArray(parsed) ? parsed : [trimmed]
+      } catch {
+        return trimmed.split(',')
+      }
+    }
+    return []
+  })()
+  const rawKeys = source.map((item) => String(item || '').trim().toLowerCase())
+  if (rawKeys.includes('all')) return [...STOREFRONT_KEYS]
+  const keys = STOREFRONT_KEYS.filter((key) => rawKeys.includes(key))
+  return keys.length ? keys : ['boypho']
+}
+
+function serializeStorefrontVisibility(input: unknown): string {
+  return JSON.stringify(normalizeStorefrontVisibility(input))
+}
+
+function attachStorefrontVisibility<T extends Record<string, any>>(product: T): T & { storefront_visibility: StorefrontKey[] } {
+  return {
+    ...product,
+    storefront_visibility: normalizeStorefrontVisibility(product?.storefront_visibility)
+  }
+}
+
+function buildStorefrontVisibilityWhere(storefront: unknown, alias = 'p') {
+  const key = normalizeStorefrontKey(storefront)
+  if (!key) return { clause: '', binds: [] as string[] }
+  const column = alias ? `${alias}.storefront_visibility` : 'storefront_visibility'
+  const binds = [`%"${key}"%`]
+  if (key === 'boypho') {
+    return {
+      clause: ` AND (${column} IS NULL OR TRIM(${column}) = '' OR ${column} LIKE ?)`,
+      binds
+    }
+  }
+  return {
+    clause: ` AND ${column} LIKE ?`,
+    binds
+  }
+}
 
 function normalizeProductTypeSlug(value: unknown): string {
   return String(value || '')
@@ -67,7 +183,8 @@ function normalizeProductTypes(input: unknown): ProductTypeDefinition[] {
       slug,
       name: name.slice(0, 80),
       active: item?.active === undefined ? true : !!item.active,
-      order: Number.isFinite(Number(item?.order)) ? Number(item.order) : index + 1
+      order: Number.isFinite(Number(item?.order)) ? Number(item.order) : index + 1,
+      thumbnail: String(item?.thumbnail || item?.image || '').trim()
     })
   })
   return out.sort((a, b) => a.order - b.order || a.name.localeCompare(b.name, 'vi'))
@@ -126,9 +243,116 @@ function attachProductType(product: any, typeMap: Record<string, string>, typeNa
   }
 }
 
+function getProductPrimaryImage(product: any): string {
+  const thumbnail = String(product?.thumbnail || '').trim()
+  if (thumbnail) return thumbnail
+  try {
+    const images = JSON.parse(String(product?.images || '[]'))
+    if (Array.isArray(images)) {
+      const first = images.map((item) => String(item || '').trim()).find(Boolean)
+      if (first) return first
+    }
+  } catch {
+    // ignore malformed legacy image data
+  }
+  return ''
+}
+
+async function enrichProductTypesWithStats(db: D1Database, types: ProductTypeDefinition[], storefront?: unknown) {
+  const storefrontWhere = buildStorefrontVisibilityWhere(storefront, '')
+  const rows = await db.prepare(`
+    SELECT id, name, description, thumbnail, images, storefront_visibility
+    FROM products
+    WHERE is_active = 1${storefrontWhere.clause}
+  `).bind(...storefrontWhere.binds).all()
+  const typeMap = await loadProductTypeMap(db)
+  const buckets = new Map<string, string[]>()
+  const counts = new Map<string, number>()
+  ;((rows.results || []) as any[]).forEach((product) => {
+    const slug = typeMap[String(product?.id)] || inferProductTypeFromProduct(product)
+    if (!slug) return
+    counts.set(slug, (counts.get(slug) || 0) + 1)
+    const image = getProductPrimaryImage(product)
+    if (!image) return
+    const list = buckets.get(slug) || []
+    list.push(image)
+    buckets.set(slug, list)
+  })
+  return types.map((type) => {
+    const images = buckets.get(type.slug) || []
+    const randomImage = images.length ? images[Math.floor(Math.random() * images.length)] : ''
+    const manualThumbnail = String(type.thumbnail || '').trim()
+    return {
+      ...type,
+      product_count: counts.get(type.slug) || 0,
+      resolved_thumbnail: manualThumbnail || randomImage,
+      fallback_thumbnail: randomImage
+    }
+  })
+}
+
 function normalizeImageList(input: any): string[] {
   if (!Array.isArray(input)) return []
   return input.map((v) => String(v || '').trim()).filter(Boolean)
+}
+
+function normalizeRouteMoney(value: unknown) {
+  if (value === null || value === undefined) return null
+  const raw = String(value).trim()
+  if (!raw) return null
+  const num = Number(raw)
+  return Number.isFinite(num) ? num : null
+}
+
+function resolveProductBasePricing(input: {
+  price: unknown
+  original_price: unknown
+  stock: unknown
+  product_skus: unknown
+}) {
+  const skuRows = Array.isArray(input.product_skus) ? input.product_skus : []
+  const activeSkuRows = skuRows
+    .filter((row: any) => Number(row?.is_active ?? 1) !== 0 && normalizeRouteMoney(row?.price) !== null && Number(row?.price) > 0)
+    .sort((a: any, b: any) => Number(a.price || 0) - Number(b.price || 0))
+  const cheapest = activeSkuRows[0] as any
+  const price = normalizeRouteMoney(input.price) ?? normalizeRouteMoney(cheapest?.price)
+  const originalPrice = normalizeRouteMoney(input.original_price) ?? normalizeRouteMoney(cheapest?.original_price)
+  const stock = normalizeRouteMoney(input.stock)
+  const skuStock = activeSkuRows.reduce((sum: number, row: any) => sum + Math.max(0, Math.floor(normalizeRouteMoney(row?.stock) ?? 0)), 0)
+  return {
+    price,
+    originalPrice,
+    stock: Math.max(0, Math.floor(stock ?? skuStock ?? 0))
+  }
+}
+
+async function validateUniqueTrendingOrder(
+  db: D1Database,
+  isTrending: unknown,
+  trendingOrder: unknown,
+  currentProductId: unknown = null
+) {
+  const order = parseInt(String(trendingOrder || '0'), 10) || 0
+  if (!isTrending || order <= 0) return { ok: true, order: 0 }
+  const currentId = Number(currentProductId || 0)
+  const result = await db.prepare(
+    `SELECT id, name FROM products WHERE is_trending=1 AND COALESCE(trending_order, 0)=? AND (? <= 0 OR id != ?) ORDER BY updated_at DESC, id DESC`
+  ).bind(order, currentId, currentId).all()
+  const conflicts = Array.isArray((result as any).results) ? (result as any).results : []
+  if (conflicts.length === 0) return { ok: true, order }
+  if (conflicts.length > 0) return { ok: true, order, staleConflictIds: conflicts.map((row: any) => Number(row?.id || 0)).filter(Boolean) }
+  return { ok: true, order }
+}
+
+async function clearStaleTrendingOrderConflicts(db: D1Database, validation: any) {
+  const ids = Array.isArray(validation?.staleConflictIds)
+    ? validation.staleConflictIds.map((id: any) => Number(id || 0)).filter((id: number) => id > 0)
+    : []
+  for (const id of ids) {
+    await db.prepare(
+      `UPDATE products SET trending_order=0, updated_at=CURRENT_TIMESTAMP WHERE id=?`
+    ).bind(id).run()
+  }
 }
 
 function normalizeColorOptionsInput(input: any): Array<{ name: string; image: string }> {
@@ -209,7 +433,7 @@ async function buildProductsWithSkus(db: D1Database, rows: any[], options?: { in
   const shaped = rows.map((row: any) => attachSkuStateToProduct(
     shapeFlashSaleProduct({
       product: {
-        ...attachProductType(row, productTypeMap, productTypeNameMap),
+        ...attachStorefrontVisibility(attachProductType(row, productTypeMap, productTypeNameMap)),
         avg_rating: reviewStats.get(Number(row.id))?.avg_rating || 0,
         total_reviews: reviewStats.get(Number(row.id))?.total_reviews || 0
       }
@@ -292,8 +516,10 @@ export function registerProductRoutes(app: Hono<{ Bindings: AppBindings }>, deps
   app.get('/api/product-types', async (c) => {
     try {
       await deps.initDB(c.env.DB)
+      await ensureStorefrontVisibilityColumn(c.env.DB)
       const types = await loadProductTypes(c.env.DB)
-      return c.json({ success: true, data: types })
+      const data = await enrichProductTypesWithStats(c.env.DB, types, c.req.query('storefront'))
+      return c.json({ success: true, data })
     } catch (e: any) {
       return c.json({ success: false, error: e.message }, 500)
     }
@@ -303,7 +529,8 @@ export function registerProductRoutes(app: Hono<{ Bindings: AppBindings }>, deps
     try {
       await deps.initDB(c.env.DB)
       const types = await loadProductTypes(c.env.DB, { includeInactive: true })
-      return c.json({ success: true, data: types })
+      const data = await enrichProductTypesWithStats(c.env.DB, types)
+      return c.json({ success: true, data })
     } catch (e: any) {
       return c.json({ success: false, error: e.message }, 500)
     }
@@ -331,9 +558,11 @@ export function registerProductRoutes(app: Hono<{ Bindings: AppBindings }>, deps
   app.get('/api/products', async (c) => {
     try {
       await deps.initDB(c.env.DB)
+      await ensureStorefrontVisibilityColumn(c.env.DB)
+      const storefrontWhere = buildStorefrontVisibilityWhere(c.req.query('storefront'), '')
       const result = await c.env.DB.prepare(
-        `SELECT * FROM products WHERE is_active = 1 ORDER BY created_at DESC`
-      ).all()
+        `SELECT * FROM products WHERE is_active = 1${storefrontWhere.clause} ORDER BY created_at DESC`
+      ).bind(...storefrontWhere.binds).all()
       const rows = result.results || []
       const data = await buildProductsWithSkus(c.env.DB, rows)
       await maybeTrackFrontendProductVisit(c)
@@ -349,6 +578,7 @@ export function registerProductRoutes(app: Hono<{ Bindings: AppBindings }>, deps
   app.get('/api/products/:id', async (c) => {
     try {
       await deps.initDB(c.env.DB)
+      await ensureStorefrontVisibilityColumn(c.env.DB)
       const id = c.req.param('id')
       const row = await c.env.DB.prepare(`SELECT * FROM products WHERE id = ?`).bind(id).first()
       if (!row) return c.json({ success: false, error: 'Not found' }, 404)
@@ -360,6 +590,7 @@ export function registerProductRoutes(app: Hono<{ Bindings: AppBindings }>, deps
         success: true,
         data: {
           ...shaped,
+          storefront_visibility: normalizeStorefrontVisibility((row as any).storefront_visibility),
           color_options: parseColorOptions((row as any).colors),
           color_names: compactColorNamesJson((row as any).colors)
         }
@@ -372,6 +603,7 @@ export function registerProductRoutes(app: Hono<{ Bindings: AppBindings }>, deps
   app.post('/api/products/:id/view', async (c) => {
     try {
       await deps.initDB(c.env.DB)
+      await ensureStorefrontVisibilityColumn(c.env.DB)
       const productId = Number(c.req.param('id'))
       const counted = await recordProductDetailView(c, productId)
       return c.json({ success: true, counted })
@@ -384,6 +616,7 @@ export function registerProductRoutes(app: Hono<{ Bindings: AppBindings }>, deps
   app.get('/api/admin/products/:id', async (c) => {
     try {
       await deps.initDB(c.env.DB)
+      await ensureStorefrontVisibilityColumn(c.env.DB)
       const id = c.req.param('id')
       const productTypes = await loadProductTypes(c.env.DB, { includeInactive: true })
       const productTypeMap = await loadProductTypeMap(c.env.DB)
@@ -420,7 +653,7 @@ export function registerProductRoutes(app: Hono<{ Bindings: AppBindings }>, deps
       return c.json({
         success: true,
         data: {
-          ...attachProductType(row, productTypeMap, productTypeNameMap),
+          ...attachStorefrontVisibility(attachProductType(row, productTypeMap, productTypeNameMap)),
           image_list: images,
           size_list: sizes,
           skus: skuMap.get(Number(id)) || [],
@@ -437,13 +670,14 @@ export function registerProductRoutes(app: Hono<{ Bindings: AppBindings }>, deps
   app.get('/api/admin/products', async (c) => {
     try {
       await deps.initDB(c.env.DB)
+      await ensureStorefrontVisibilityColumn(c.env.DB)
       const productTypes = await loadProductTypes(c.env.DB, { includeInactive: true })
       const productTypeMap = await loadProductTypeMap(c.env.DB)
       const productTypeNameMap = new Map(productTypes.map((item) => [item.slug, item.name]))
       const result = await c.env.DB.prepare(
         `SELECT p.id, p.name, p.description, p.price, p.original_price, p.category, p.brand, p.material,
-                p.thumbnail, p.colors, p.sizes, p.stock, p.is_active, p.is_featured, p.is_trending,
-                p.trending_order, p.created_at, p.updated_at, p.display_order,
+                p.thumbnail, p.colors, p.sizes, p.stock, p.is_active, p.is_featured, p.is_trending, p.is_new_arrival,
+                p.trending_order, p.created_at, p.updated_at, p.display_order, p.storefront_visibility,
                 COALESCE(v.view_count, 0) AS view_count
          FROM products p
          LEFT JOIN (
@@ -458,7 +692,7 @@ export function registerProductRoutes(app: Hono<{ Bindings: AppBindings }>, deps
       return c.json({
         success: true,
         data: rows.map((row: any) => ({
-          ...attachProductType(row, productTypeMap, productTypeNameMap),
+          ...attachStorefrontVisibility(attachProductType(row, productTypeMap, productTypeNameMap)),
           colors: compactColorNamesJson(row.colors),
           color_names: compactColorNamesJson(row.colors),
           skus: skuMap.get(Number(row.id)) || [],
@@ -473,14 +707,16 @@ export function registerProductRoutes(app: Hono<{ Bindings: AppBindings }>, deps
   app.post('/api/admin/products', async (c) => {
     try {
       await deps.initDB(c.env.DB)
+      await ensureStorefrontVisibilityColumn(c.env.DB)
       const body = await c.req.json()
       const {
         name, description, price, original_price,
         category, product_type, brand, material, thumbnail,
-        images, colors, sizes, stock, is_featured, is_trending, trending_order
+        images, colors, sizes, stock, is_featured, is_trending, is_new_arrival, trending_order, storefront_visibility, product_skus
       } = body
+      const basePricing = resolveProductBasePricing({ price, original_price, stock, product_skus })
 
-      if (!name || !price) {
+      if (!name || !basePricing.price) {
         return c.json({ success: false, error: 'Name and price are required' }, 400)
       }
       const normalizedImages = normalizeImageList(images)
@@ -489,16 +725,21 @@ export function registerProductRoutes(app: Hono<{ Bindings: AppBindings }>, deps
       if (!normalizedThumbnail && normalizedImages.length === 0) {
         return c.json({ success: false, error: 'Product image is required' }, 400)
       }
+      const trendingOrderValidation = await validateUniqueTrendingOrder(c.env.DB, is_trending, trending_order)
+      if (!trendingOrderValidation.ok) {
+        return c.json({ success: false, error: trendingOrderValidation.error }, 400)
+      }
+      await clearStaleTrendingOrderConflicts(c.env.DB, trendingOrderValidation)
 
       const result = await c.env.DB.prepare(`
         INSERT INTO products
-          (name, description, price, original_price, category, brand, material, thumbnail, images, colors, sizes, stock, is_featured, is_trending, trending_order)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          (name, description, price, original_price, category, brand, material, thumbnail, images, colors, sizes, stock, is_featured, is_trending, is_new_arrival, trending_order, storefront_visibility)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).bind(
         name,
         description || '',
-        parseFloat(price),
-        original_price ? parseFloat(original_price) : null,
+        basePricing.price,
+        basePricing.originalPrice,
         category || 'unisex',
         brand || '',
         material || '',
@@ -506,10 +747,12 @@ export function registerProductRoutes(app: Hono<{ Bindings: AppBindings }>, deps
         JSON.stringify(normalizedImages),
         JSON.stringify(normalizedColors),
         JSON.stringify(sizes || []),
-        parseInt(stock) || 0,
+        basePricing.stock,
         is_featured ? 1 : 0,
         is_trending ? 1 : 0,
-        parseInt(trending_order) || 0
+        is_new_arrival ? 1 : 0,
+        trendingOrderValidation.order,
+        serializeStorefrontVisibility(storefront_visibility)
       ).run()
 
       const createdId = result.meta.last_row_id
@@ -520,7 +763,7 @@ export function registerProductRoutes(app: Hono<{ Bindings: AppBindings }>, deps
         await saveProductTypeMap(c.env.DB, typeMap)
       }
       const created = await c.env.DB.prepare(`SELECT * FROM products WHERE id = ?`).bind(createdId).first()
-      if (created) await syncProductSkus(c.env.DB, created as any)
+      if (created) await syncProductSkus(c.env.DB, { ...(created as any), product_skus })
 
       return c.json({ success: true, id: createdId })
     } catch (e: any) {
@@ -531,13 +774,18 @@ export function registerProductRoutes(app: Hono<{ Bindings: AppBindings }>, deps
   app.put('/api/admin/products/:id', async (c) => {
     try {
       await deps.initDB(c.env.DB)
+      await ensureStorefrontVisibilityColumn(c.env.DB)
       const id = c.req.param('id')
       const body = await c.req.json()
       const {
         name, description, price, original_price,
         category, product_type, brand, material, thumbnail,
-        images, colors, sizes, stock, is_active, is_featured, is_trending, trending_order
+        images, colors, sizes, stock, is_active, is_featured, is_trending, is_new_arrival, trending_order, storefront_visibility, product_skus
       } = body
+      const basePricing = resolveProductBasePricing({ price, original_price, stock, product_skus })
+      if (!name || !basePricing.price) {
+        return c.json({ success: false, error: 'Name and price are required' }, 400)
+      }
 
       const normalizedImages = normalizeImageList(images)
       const normalizedColors = normalizeColorOptionsInput(colors)
@@ -545,19 +793,24 @@ export function registerProductRoutes(app: Hono<{ Bindings: AppBindings }>, deps
       if (!normalizedThumbnail && normalizedImages.length === 0) {
         return c.json({ success: false, error: 'Product image is required' }, 400)
       }
+      const trendingOrderValidation = await validateUniqueTrendingOrder(c.env.DB, is_trending, trending_order, id)
+      if (!trendingOrderValidation.ok) {
+        return c.json({ success: false, error: trendingOrderValidation.error }, 400)
+      }
+      await clearStaleTrendingOrderConflicts(c.env.DB, trendingOrderValidation)
 
       await c.env.DB.prepare(`
         UPDATE products SET
           name=?, description=?, price=?, original_price=?,
           category=?, brand=?, material=?, thumbnail=?,
-          images=?, colors=?, sizes=?, stock=?, is_active=?, is_featured=?, is_trending=?, trending_order=?,
+          images=?, colors=?, sizes=?, stock=?, is_active=?, is_featured=?, is_trending=?, is_new_arrival=?, trending_order=?, storefront_visibility=?,
           updated_at=CURRENT_TIMESTAMP
         WHERE id=?
       `).bind(
         name,
         description || '',
-        parseFloat(price),
-        original_price ? parseFloat(original_price) : null,
+        basePricing.price,
+        basePricing.originalPrice,
         category || 'unisex',
         brand || '',
         material || '',
@@ -565,11 +818,13 @@ export function registerProductRoutes(app: Hono<{ Bindings: AppBindings }>, deps
         JSON.stringify(normalizedImages),
         JSON.stringify(normalizedColors),
         JSON.stringify(sizes || []),
-        parseInt(stock) || 0,
+        basePricing.stock,
         is_active !== undefined ? (is_active ? 1 : 0) : 1,
         is_featured ? 1 : 0,
         is_trending ? 1 : 0,
-        parseInt(trending_order) || 0,
+        is_new_arrival ? 1 : 0,
+        trendingOrderValidation.order,
+        serializeStorefrontVisibility(storefront_visibility),
         id
       ).run()
 
@@ -580,7 +835,7 @@ export function registerProductRoutes(app: Hono<{ Bindings: AppBindings }>, deps
       await saveProductTypeMap(c.env.DB, typeMap)
 
       const updated = await c.env.DB.prepare(`SELECT * FROM products WHERE id = ?`).bind(id).first()
-      if (updated) await syncProductSkus(c.env.DB, updated as any)
+      if (updated) await syncProductSkus(c.env.DB, { ...(updated as any), product_skus })
 
       return c.json({ success: true })
     } catch (e: any) {
@@ -636,9 +891,11 @@ export function registerProductRoutes(app: Hono<{ Bindings: AppBindings }>, deps
   app.get('/api/featured-products', async (c) => {
     try {
       await deps.initDB(c.env.DB)
+      await ensureStorefrontVisibilityColumn(c.env.DB)
+      const storefrontWhere = buildStorefrontVisibilityWhere(c.req.query('storefront'), '')
       const res = await c.env.DB.prepare(
-        `SELECT * FROM products WHERE is_active=1 AND is_featured=1 ORDER BY display_order ASC, id DESC`
-      ).all()
+        `SELECT * FROM products WHERE is_active=1 AND is_featured=1${storefrontWhere.clause} ORDER BY display_order ASC, id DESC`
+      ).bind(...storefrontWhere.binds).all()
       const data = await buildProductsWithSkus(c.env.DB, res.results || [])
       await maybeTrackFrontendProductVisit(c)
       return c.json({ success: true, data })
@@ -650,14 +907,35 @@ export function registerProductRoutes(app: Hono<{ Bindings: AppBindings }>, deps
   app.get('/api/trending-products', async (c) => {
     try {
       await deps.initDB(c.env.DB)
+      await ensureStorefrontVisibilityColumn(c.env.DB)
+      const storefrontWhere = buildStorefrontVisibilityWhere(c.req.query('storefront'), '')
       const res = await c.env.DB.prepare(
-        `SELECT * FROM products WHERE is_active=1 AND is_trending=1
+        `SELECT * FROM products WHERE is_active=1 AND is_trending=1${storefrontWhere.clause}
          ORDER BY
            CASE WHEN COALESCE(trending_order, 0) > 0 THEN 0 ELSE 1 END ASC,
            CASE WHEN COALESCE(trending_order, 0) > 0 THEN trending_order ELSE 999999 END ASC,
            datetime(updated_at) DESC,
            id DESC`
-      ).all()
+      ).bind(...storefrontWhere.binds).all()
+      const data = await buildProductsWithSkus(c.env.DB, res.results || [])
+      await maybeTrackFrontendProductVisit(c)
+      return c.json({ success: true, data })
+    } catch (e: any) {
+      return c.json({ success: false, error: e.message }, 500)
+    }
+  })
+
+  app.get('/api/new-arrival-products', async (c) => {
+    try {
+      await deps.initDB(c.env.DB)
+      await ensureStorefrontVisibilityColumn(c.env.DB)
+      const limit = Math.min(20, Math.max(1, Number(c.req.query('limit') || 10)))
+      const storefrontWhere = buildStorefrontVisibilityWhere(c.req.query('storefront'), '')
+      const res = await c.env.DB.prepare(
+        `SELECT * FROM products WHERE is_active=1 AND is_new_arrival=1${storefrontWhere.clause}
+         ORDER BY datetime(updated_at) DESC, datetime(created_at) DESC, id DESC
+         LIMIT ?`
+      ).bind(...storefrontWhere.binds, limit).all()
       const data = await buildProductsWithSkus(c.env.DB, res.results || [])
       await maybeTrackFrontendProductVisit(c)
       return c.json({ success: true, data })
@@ -669,7 +947,9 @@ export function registerProductRoutes(app: Hono<{ Bindings: AppBindings }>, deps
   app.get('/api/bestsellers', async (c) => {
     try {
       await deps.initDB(c.env.DB)
+      await ensureStorefrontVisibilityColumn(c.env.DB)
       const limit = Math.min(20, Math.max(1, Number(c.req.query('limit') || 10)))
+      const storefrontWhere = buildStorefrontVisibilityWhere(c.req.query('storefront'), 'p')
       // Sum quantity for orders with status: done/shipping/waiting_pickup (confirmed sold)
       const res = await c.env.DB.prepare(
         `SELECT p.*, COALESCE(s.total_sold, 0) as total_sold
@@ -680,10 +960,10 @@ export function registerProductRoutes(app: Hono<{ Bindings: AppBindings }>, deps
            WHERE status IN ('done', 'shipping', 'waiting_pickup', 'pending')
            GROUP BY product_id
          ) s ON s.product_id = p.id
-         WHERE p.is_active = 1
+         WHERE p.is_active = 1${storefrontWhere.clause}
          ORDER BY COALESCE(s.total_sold, 0) DESC, p.id DESC
          LIMIT ?`
-      ).bind(limit).all()
+      ).bind(...storefrontWhere.binds, limit).all()
       const rows = res.results || []
       const shaped = await buildProductsWithSkus(c.env.DB, rows)
       // Attach total_sold from the raw rows since buildProductsWithSkus may not preserve it

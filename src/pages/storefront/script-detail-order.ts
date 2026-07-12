@@ -13,6 +13,29 @@ let detailGalleryDragDeltaX = 0
 let detailGalleryIsDragging = false
 let detailGalleryPreviewImage = ''
 
+function getQhHerColorSwatchStyle(name) {
+  const key = normalizeProductFilterText(name)
+  const colors = {
+    'hong': '#EBA0B1',
+    'hong phan': '#F2A1B6',
+    'hoa hong': '#EBA0B1',
+    'do': '#C94F7C',
+    'do man': '#8F263F',
+    'vang': '#E79B19',
+    'hoa vang': '#E79B19',
+    'xanh': '#21B98C',
+    'xanh than': '#172A55',
+    'xanh navy': '#172A55',
+    'den': '#161216',
+    'trang': '#FDF8F6',
+    'kem': '#EFE2D8',
+    'nau': '#B68A6F',
+    'xam': '#CBD5DF',
+    'hoa tim': '#B993D1'
+  }
+  return 'background:' + (colors[key] || '#EADBE1') + ';'
+}
+
 function buildDetailGalleryImages(defaultImage, baseImages) {
   const unique = []
   const pushImage = (value) => {
@@ -56,6 +79,13 @@ function updateDetailGalleryUI(immediate) {
     thumb.classList.toggle('is-active', active)
     thumb.setAttribute('aria-pressed', active ? 'true' : 'false')
     if (active) thumb.scrollIntoView({ behavior: immediate ? 'auto' : 'smooth', inline: 'center', block: 'nearest' })
+  })
+
+  document.querySelectorAll('[data-detail-dot-index]').forEach((dot) => {
+    const dotIndex = Number(dot.getAttribute('data-detail-dot-index'))
+    const active = !detailGalleryPreviewImage && dotIndex === detailGalleryIndex
+    dot.classList.toggle('is-active', active)
+    dot.setAttribute('aria-pressed', active ? 'true' : 'false')
   })
 
   const prevBtn = document.getElementById('detailGalleryPrevBtn')
@@ -174,6 +204,7 @@ async function showDetail(id, options) {
     detailSelectedColor = ''
     detailSelectedColorImage = ''
     detailSelectedSize = ''
+    detailQty = 1
 
     const sizes = safeJson(p.sizes)
     const images = safeJson(p.images)
@@ -185,9 +216,16 @@ async function showDetail(id, options) {
     const detailDisplayPrice = priceInfo.price
     const detailDisplayOriginalPrice = priceInfo.originalPrice
     const discount = flashMeta ? Number(flashMeta.discountPercent || 0) : (detailDisplayOriginalPrice > detailDisplayPrice ? Math.round((1 - detailDisplayPrice/detailDisplayOriginalPrice)*100) : 0)
+    const isQhHerDetail = isHotTrendWomenContext()
+    const detailBadge = isQhHerDetail
+      ? (p.is_new_arrival ? 'NEW' : (p.is_featured ? 'HOT' : ''))
+      : (p.is_featured ? 'HOT' : (discount > 0 ? '-' + discount + '%' : 'NEW'))
+    const detailPriceClass = isQhHerDetail
+      ? 'qhher-detail-current-price'
+      : 'text-gradient-price'
     const detailHtml = \`
-    <div class="grid md:grid-cols-2 gap-6">
-      <div class="-mx-2 md:mx-0">
+    <div class="detail-layout-grid grid md:grid-cols-2 gap-6">
+      <div class="detail-media-column -mx-2 md:mx-0">
         <div class="detail-gallery-shell relative mb-2">
           <div id="detailGalleryViewport" class="detail-gallery-viewport relative w-full aspect-square overflow-hidden bg-slate-100">
             <div id="detailGalleryTrack" class="detail-gallery-track">
@@ -200,7 +238,13 @@ async function showDetail(id, options) {
             <button id="detailGalleryNextBtn" type="button" onclick="stepDetailGallery(1, event)" class="detail-gallery-arrow detail-gallery-arrow--next hidden md:flex\${detailGalleryImageList.length <= 1 ? ' md:hidden' : ''}" aria-label="Ảnh sau">
               <i class="fas fa-chevron-right"></i>
             </button>
-            <div id="detailGalleryCounter" class="detail-gallery-counter md:hidden">\${defaultGalleryIndex + 1}/\${Math.max(1, detailGalleryImageList.length)}</div>
+          </div>
+          \${isQhHerDetail && detailBadge ? \`<span class="qhher-detail-title-badge">\${escapeHtml(detailBadge)}</span>\` : ''}
+        </div>
+        <div class="qhher-detail-slider-meta md:hidden">
+          <span id="detailGalleryCounter" class="detail-gallery-counter">\${defaultGalleryIndex + 1}/\${Math.max(1, detailGalleryImageList.length)}</span>
+          <div id="detailGalleryDots" class="qhher-detail-dots" aria-label="Chọn ảnh sản phẩm">
+            \${detailGalleryImageList.map((img, idx) => \`<button type="button" class="qhher-detail-dot\${idx === defaultGalleryIndex ? ' is-active' : ''}" data-detail-dot-index="\${idx}" onclick="jumpToDetailGalleryIndex(\${idx}, event)" aria-label="Ảnh \${idx + 1}" aria-pressed="\${idx === defaultGalleryIndex ? 'true' : 'false'}"></button>\`).join('')}
           </div>
         </div>
         <div id="detailGalleryThumbs" class="img-gallery detail-gallery-thumbs px-2 md:px-0">
@@ -215,27 +259,29 @@ async function showDetail(id, options) {
           </div>
         </div>
       </div>
-      <div>
+      <div class="detail-info-column">
         \${p.brand ? \`<p class="text-sm text-pink-500 font-medium mb-1">\${escapeHtml(p.brand)}</p>\` : ''}
         <div class="detail-product-heading-row flex items-center justify-between gap-3 mb-3">
-          <h2 id="detailProductTitle" class="detail-product-title font-display font-bold text-gray-900 min-w-0 flex-1">\${escapeHtml(p.name)}</h2>
+          <div class="detail-title-stack min-w-0 flex-1">
+            <h2 id="detailProductTitle" class="detail-product-title font-display font-bold text-gray-900 min-w-0">\${escapeHtml(p.name)}</h2>
+          </div>
           \${renderFavoriteButton(p.id, 'favorite-toggle-btn--detail')}
         </div>
         \${p.has_flash_sale ? \`<div class="flex flex-wrap items-center gap-2 mb-3"><span class="flash-sale-badge"><i class="fas fa-bolt"></i> Flash Sale</span><span class="flash-sale-countdown" data-flash-sale-ends-at="\${escapeHtml(flashMeta?.endsAt || '')}">\${formatFlashSaleCountdown(flashMeta?.endsAt || '')}</span></div>\` : ''}
-        <div class="flex items-baseline gap-3 mb-4">
-          <span class="text-3xl font-bold text-gradient-price">\${fmtPrice(detailDisplayPrice)}</span>
-          \${detailDisplayOriginalPrice > detailDisplayPrice ? \`<span class="text-gray-400 line-through">\${fmtPrice(detailDisplayOriginalPrice)}</span><span class="badge-sale text-white text-xs px-2 py-1 rounded-full">-\${discount}%</span>\` : ''}
+        <div class="detail-price-row flex items-baseline gap-3 mb-4">
+          <span id="detailCurrentPrice" class="text-3xl font-bold \${detailPriceClass}">\${fmtPrice(detailDisplayPrice)}</span>
+          <span id="detailOriginalPrice" class="\${detailDisplayOriginalPrice > detailDisplayPrice ? 'text-gray-400 line-through' : 'hidden'}">\${detailDisplayOriginalPrice > detailDisplayPrice ? fmtPrice(detailDisplayOriginalPrice) : ''}</span>
+          <span id="detailDiscountBadge" class="\${detailDisplayOriginalPrice > detailDisplayPrice ? 'badge-sale text-white text-xs px-2 py-1 rounded-full' : 'hidden'}">\${detailDisplayOriginalPrice > detailDisplayPrice ? '-' + discount + '%' : ''}</span>
         </div>
         \${renderProductCommerceMeta(p, { className: 'product-commerce-meta--detail' })}
-        \${p.description ? \`<p class="text-gray-600 text-sm leading-relaxed mb-4">\${escapeHtml(p.description)}</p>\` : ''}
-        \${p.material ? \`<p class="text-sm text-gray-500 mb-4"><strong>Chất liệu:</strong> \${escapeHtml(p.material)}</p>\` : ''}
         \${detailColorOptions.length ? \`
-        <div class="mb-4 hidden md:block">
+        <div class="detail-option-section detail-color-section mb-4 hidden md:block">
           <p class="text-sm font-semibold mb-2">Màu sắc: <span class="text-pink-500" id="detailColorLabel"></span></p>
           <div class="grid grid-cols-2 sm:grid-cols-3 gap-3" id="detailColorGrid">
             \${detailColorOptions.map((item, idx) => \`<button type="button"
               class="detail-color-card group overflow-hidden rounded-2xl border-2 border-gray-200 bg-white text-left transition hover:border-pink-300 hover:shadow-sm"
               onclick="selectDetailColorByIndex(\${idx}, this)">
+              <span class="qhher-detail-color-dot" style="\${getQhHerColorSwatchStyle(item.name)}"></span>
               <div class="relative aspect-square bg-gray-100 overflow-hidden">
                 \${item.image
                   ? \`<img src="\${escapeHtml(item.image)}" alt="\${escapeHtml(item.name)}" class="w-full h-full object-cover transition duration-300 group-hover:scale-[1.02]">\`
@@ -248,12 +294,25 @@ async function showDetail(id, options) {
           </div>
         </div>\` : ''}
         \${sizes.length ? \`
-        <div class="mb-6 hidden md:block">
+        <div class="detail-option-section detail-size-section mb-6 hidden md:block">
           <p class="text-sm font-semibold mb-2">Size:</p>
           <div class="flex flex-wrap gap-2">
             \${sizes.map(s => \`<button type="button" class="size-btn w-12 h-10 border rounded-lg text-sm font-medium hover:border-pink-400 transition" onclick="selectDetailSize('\${escapeJsString(s)}',this)">\${escapeHtml(s)}</button>\`).join('')}
           </div>
         </div>\` : ''}
+        <div class="qhher-detail-qty-row md:hidden">
+          <span>Số lượng</span>
+          <div class="qhher-detail-qty-control">
+            <button type="button" onclick="changeDetailQty(-1)" aria-label="Giảm số lượng">−</button>
+            <strong id="detailQtyDisplay">1</strong>
+            <button type="button" onclick="changeDetailQty(1)" aria-label="Tăng số lượng">+</button>
+          </div>
+        </div>
+        <div class="qhher-detail-description">
+          <h3>Mô tả sản phẩm</h3>
+          \${p.description ? \`<p>\${escapeHtml(p.description)}</p>\` : '<p>Sản phẩm được chọn lọc cho phong cách trẻ trung, dễ phối đồ hằng ngày.</p>'}
+          \${p.material ? \`<p><strong>Chất liệu:</strong> \${escapeHtml(p.material)}</p>\` : ''}
+        </div>
       </div>
     </div>
     
@@ -263,26 +322,39 @@ async function showDetail(id, options) {
       </div>
     </div>\`
     document.getElementById('detailContent').innerHTML = detailHtml
+    const detailHeaderActions = document.getElementById('detailHeaderActions')
+    if (detailHeaderActions) {
+      detailHeaderActions.innerHTML = isQhHerDetail
+        ? \`<button type="button" onclick="copyProductLink()" aria-label="Chia sẻ sản phẩm"><i class="fas fa-arrow-up-from-bracket"></i></button>
+           \${renderFavoriteButton(p.id, 'favorite-toggle-btn--detail-header')}
+           <button type="button" onclick="openCart()" aria-label="Mở giỏ hàng" class="qhher-detail-cart-action"><i class="fas fa-shopping-bag"></i><span id="cartBadgeDetailHeader" class="hidden">0</span></button>\`
+        : ''
+    }
     detailGalleryImages = detailGalleryImageList.slice()
     detailGalleryIndex = defaultGalleryIndex
     detailGalleryPreviewImage = ''
     updateDetailGalleryUI(true)
     bindDetailGalleryGestures()
     
-    document.getElementById('detailActionBarContainer').innerHTML = isCurrentUserBlocked()
+    const detailActionBar = document.getElementById('detailActionBarContainer')
+    detailActionBar.innerHTML = isCurrentUserBlocked()
       ? renderBlockedPurchaseActions('w-full py-3.5 rounded-xl font-bold text-base')
-      : \`<button onclick="openOrderFromDetail(\${p.id})" style="border-radius: 0.75rem !important;" class="hidden md:flex btn-primary flex-1 justify-center items-center gap-2 text-white py-3.5 font-bold text-base"><i class="fas fa-shopping-cart"></i><span class="quick-order-label-desktop">Đặt hàng ngay</span></button>
-         <button onclick="addDetailToCart()" id="detailAddToCartBtn" style="border-radius: 0.75rem !important;" class="hidden md:flex add-to-cart-btn detail-cart-btn flex-1 justify-center items-center gap-2 text-white py-3.5 font-bold text-base">\${detailOptions.cartItemId ? '<i class="fas fa-check"></i><span>Cập nhật lựa chọn</span>' : '<i class="fas fa-cart-plus"></i><span class="quick-order-label-desktop">Thêm vào giỏ hàng</span>'}</button>
-         <button onclick="openVariantModal(\${p.id}, 'add_to_cart', \${detailOptions.cartItemId ? \\\`'\${detailOptions.cartItemId}'\\\` : 'null'})" id="detailAddToCartBtnMobile" style="border-radius: 0.75rem !important;" class="flex md:hidden add-to-cart-btn detail-cart-btn flex-1 justify-center items-center gap-2 text-white py-3.5 font-bold text-base">\${detailOptions.cartItemId ? '<i class="fas fa-check"></i><span>Cập nhật lựa chọn</span>' : '<i class="fas fa-cart-plus"></i><span class="quick-order-label-mobile">Thêm vào giỏ</span>'}</button>
-         <button onclick="openOrderFromDetail(\${p.id})" style="border-radius: 0.75rem !important;" class="flex md:hidden btn-primary flex-1 justify-center items-center gap-2 text-white py-3.5 font-bold text-base"><i class="fas fa-shopping-cart"></i><span class="quick-order-label-mobile">Đặt ngay</span></button>\`
+      : \`<button onclick="addDetailToCart()" id="detailAddToCartBtn" class="hidden md:flex qhher-detail-desktop-action \${isQhHerDetail ? 'qhher-detail-cart-btn' : 'add-to-cart-btn'} detail-cart-btn flex-1 justify-center items-center gap-2 text-white py-3.5 font-bold text-base">\${detailOptions.cartItemId ? '<i class="fas fa-check"></i><span>Cập nhật lựa chọn</span>' : '<i class="fas fa-cart-plus"></i><span class="quick-order-label-desktop">Thêm vào giỏ hàng</span>'}</button>
+         <button onclick="openOrderFromDetail(\${p.id})" class="hidden md:flex qhher-detail-desktop-action btn-primary flex-1 justify-center items-center gap-2 text-white py-3.5 font-bold text-base"><i class="fas fa-shopping-cart"></i><span class="quick-order-label-desktop">\${isQhHerDetail ? 'Mua ngay' : 'Đặt hàng ngay'}</span></button>
+         <button onclick="\${isQhHerDetail ? 'addDetailToCart()' : \`openVariantModal(\${p.id}, 'add_to_cart', \${detailOptions.cartItemId ? \\\`'\${detailOptions.cartItemId}'\\\` : 'null'})\`}" id="detailAddToCartBtnMobile" class="flex md:hidden qhher-detail-mobile-action \${isQhHerDetail ? 'qhher-detail-cart-btn' : 'add-to-cart-btn'} detail-cart-btn flex-1 justify-center items-center gap-2 text-white py-3.5 font-bold text-base">\${detailOptions.cartItemId ? '<i class="fas fa-check"></i><span>Cập nhật lựa chọn</span>' : '<i class="fas fa-cart-plus"></i><span class="quick-order-label-mobile">Thêm giỏ</span>'}</button>
+         <button onclick="openOrderFromDetail(\${p.id})" class="flex md:hidden qhher-detail-mobile-action btn-primary flex-1 justify-center items-center gap-2 text-white py-3.5 font-bold text-base"><i class="fas fa-shopping-cart"></i><span class="quick-order-label-mobile">\${isQhHerDetail ? 'Mua ngay' : 'Đặt ngay'}</span></button>\`
+    detailActionBar.classList.toggle('sticky', !isQhHerDetail)
+    detailActionBar.classList.toggle('qhher-detail-action-bar', isQhHerDetail)
+    detailActionBar.style.zIndex = isQhHerDetail ? '10030' : '10'
       
     if (detailOptions.cartItemId) {
-      document.getElementById('detailActionBarContainer').classList.add('detail-action-bar--cart-edit')
+      detailActionBar.classList.add('detail-action-bar--cart-edit')
     } else {
-      document.getElementById('detailActionBarContainer').classList.remove('detail-action-bar--cart-edit')
+      detailActionBar.classList.remove('detail-action-bar--cart-edit')
     }
     
     document.getElementById('detailOverlay').classList.remove('hidden')
+    document.body.classList.add('qhher-detail-open')
     lockStorefrontPageScroll('detailOverlay')
     trackProductDetailView(p.id || id)
     startFlashSaleCountdownTicker()
@@ -301,6 +373,26 @@ async function showDetail(id, options) {
   } catch(e) { showToast('Không thể tải chi tiết sản phẩm', 'error') }
 }
 
+function refreshDetailSelectedSkuState() {
+  if (!currentProduct) return
+  const sku = getProductSkuBySelection(currentProduct, detailSelectedColor, detailSelectedSize)
+  const priceInfo = getProductDisplayPriceInfo(currentProduct, sku)
+  const priceNode = document.getElementById('detailCurrentPrice')
+  const originalNode = document.getElementById('detailOriginalPrice')
+  const badgeNode = document.getElementById('detailDiscountBadge')
+  if (priceNode) priceNode.textContent = fmtPrice(priceInfo.price)
+  const showOriginal = priceInfo.originalPrice > priceInfo.price
+  if (originalNode) {
+    originalNode.textContent = showOriginal ? fmtPrice(priceInfo.originalPrice) : ''
+    originalNode.classList.toggle('hidden', !showOriginal)
+  }
+  if (badgeNode) {
+    const discount = showOriginal ? Math.round((1 - priceInfo.price / priceInfo.originalPrice) * 100) : 0
+    badgeNode.textContent = discount > 0 ? '-' + discount + '%' : ''
+    badgeNode.classList.toggle('hidden', discount <= 0)
+  }
+}
+
 function selectDetailColorByIndex(idx, btn) {
   const item = Array.isArray(detailColorOptions) ? detailColorOptions[idx] : null
   if (!item) return
@@ -312,6 +404,7 @@ function selectDetailColorByIndex(idx, btn) {
   if (label) label.textContent = detailSelectedColor
   document.querySelectorAll('.detail-color-card').forEach(b => b.classList.remove('border-pink-500','ring-2','ring-pink-100','shadow-sm'))
   if (btn) btn.classList.add('border-pink-500')
+  refreshDetailSelectedSkuState()
 }
 function selectDetailSize(s, btn) {
   detailSelectedSize = String(s || '').trim()
@@ -320,6 +413,12 @@ function selectDetailSize(s, btn) {
     group.querySelectorAll('button').forEach(b => b.classList.remove('active','bg-gray-900','text-white'))
   }
   if (btn) btn.classList.add('active','bg-gray-900','text-white')
+  refreshDetailSelectedSkuState()
+}
+function changeDetailQty(delta) {
+  detailQty = Math.max(1, Math.min(99, Number(detailQty || 1) + Number(delta || 0)))
+  const display = document.getElementById('detailQtyDisplay')
+  if (display) display.textContent = String(detailQty)
 }
 function scrollDetailToVariantPicker() {
   const target = document.getElementById('detailColorGrid') || document.querySelector('#detailContent .size-btn')
@@ -328,6 +427,7 @@ function scrollDetailToVariantPicker() {
 function closeDetail(skipHistory) {
   const overlay = document.getElementById('detailOverlay')
   if (overlay) overlay.classList.add('hidden')
+  document.body.classList.remove('qhher-detail-open')
   cartVariantEditId = ''
   unlockStorefrontPageScroll('detailOverlay')
   
@@ -386,8 +486,9 @@ function addDetailToCart() {
 
   const color = detailSelectedColor || ''
   const size = detailSelectedSize || ''
+  const detailSku = getProductSkuBySelection(currentProduct, color, size)
   if (cartVariantEditId) {
-    updateCartItemVariant(cartVariantEditId, color, size)
+    updateCartItemVariant(cartVariantEditId, color, size, detailSku)
     cartVariantEditId = ''
     closeDetail()
     renderCartStep1()
@@ -396,23 +497,31 @@ function addDetailToCart() {
   }
   revealMobileBottomNavForCartFeedback()
   animateFlyToCart(resolveFlyImage(currentProduct), document.getElementById('detailGalleryViewport'))
-  if (addToCart(currentProduct, color, size, 1)) {
+  if (addToCart(currentProduct, color, size, detailQty || 1, detailSku)) {
     showToast('Đã thêm "' + currentProduct.name + '" vào giỏ hàng!', 'success', 2500)
     closeDetail()
   }
 }
 
-function updateCartItemVariant(cartId, color, size) {
+function updateCartItemVariant(cartId, color, size, skuOverride) {
   const item = cart.find(i => i.cartId === cartId)
   if (!item || !currentProduct) return
-  const duplicate = cart.find(i => i.cartId !== cartId && i.productId === item.productId && i.color === color && i.size === size)
+  const sku = skuOverride || getProductSkuBySelection(currentProduct, color, size)
+  const skuId = sku?.id ? String(sku.id) : ''
+  const duplicate = cart.find(i => i.cartId !== cartId && (skuId
+    ? String(i.productSkuId || '') === skuId
+    : (i.productId === item.productId && i.color === color && i.size === size)))
   if (duplicate) {
     duplicate.qty = Math.min(99, Number(duplicate.qty || 1) + Number(item.qty || 1))
     cart = cart.filter(i => i.cartId !== cartId)
   } else {
     item.color = color
     item.size = size
-    item.colorImage = getSelectedColorImageFromProduct(currentProduct, color)
+    item.productSkuId = sku?.id || ''
+    item.sku = sku?.sku_code || item.sku
+    item.price = getProductDisplayPriceInfo(currentProduct, sku).price
+    item.colorImage = sku?.image
+      || getSelectedColorImageFromProduct(currentProduct, color)
       || detailSelectedColorImage
       || item.colorImage
       || currentProduct.thumbnail
@@ -422,11 +531,37 @@ function updateCartItemVariant(cartId, color, size) {
 }
 
 function openOrderFromDetail(id, options) {
+  const nextOptions = options && typeof options === 'object' ? { ...options } : {}
+  if (Number(detailSelectedProductId || 0) === Number(id || 0)) {
+    const detailSku = getProductSkuBySelection(currentProduct, detailSelectedColor, detailSelectedSize)
+    nextOptions.prefill = {
+      ...(nextOptions.prefill || {}),
+      color: detailSelectedColor || nextOptions.prefill?.color || '',
+      colorImage: detailSelectedColorImage || nextOptions.prefill?.colorImage || '',
+      size: detailSelectedSize || nextOptions.prefill?.size || '',
+      qty: detailQty || nextOptions.prefill?.qty || 1,
+      productSkuId: detailSku?.id || nextOptions.prefill?.productSkuId || ''
+    }
+  }
   closeDetail()
-  return openOrder(id, options)
+  return openOrder(id, nextOptions)
 }
 
 // ── ORDER POPUP ────────────────────────────────────
+function syncQuickOrderPriceTone() {
+  ;['orderProductPrice', 'orderTotal'].forEach((id) => {
+    const el = document.getElementById(id)
+    if (!el) return
+    if (isHotTrendWomenContext()) {
+      el.classList.remove('text-gradient-price')
+      el.classList.add('qhher-order-price')
+    } else {
+      el.classList.add('text-gradient-price')
+      el.classList.remove('qhher-order-price')
+    }
+  })
+}
+
 async function openOrder(id, options) {
   try {
     const orderOptions = options || {}
@@ -437,6 +572,7 @@ async function openOrder(id, options) {
     currentProduct = res.data.data
     orderQty = Math.max(1, Math.min(99, Number(prefill?.qty || 1) || 1))
     selectedColor = ''
+    selectedProductSku = null
     selectedColorImage = String(prefill?.colorImage || currentProduct.thumbnail || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400')
     selectedSize = ''
     selectedPaymentMethod = ''
@@ -445,6 +581,7 @@ async function openOrder(id, options) {
     document.getElementById('orderProductImg').src = selectedColorImage
     document.getElementById('orderProductName').textContent = currentProduct.name
     document.getElementById('orderProductPrice').textContent = fmtPrice(getProductDisplayPriceInfo(currentProduct).price)
+    syncQuickOrderPriceTone()
     document.getElementById('qtyDisplay').textContent = String(orderQty)
     document.getElementById('orderName').value = ''
     document.getElementById('orderPhone').value = ''
@@ -506,9 +643,23 @@ async function openOrder(id, options) {
       }
     }
 
+    selectedProductSku = getProductSkuBySelection(currentProduct, selectedColor, selectedSize)
+    refreshOrderSelectedSkuState()
+
     document.getElementById('orderOverlay').classList.remove('hidden')
     lockStorefrontPageScroll('orderOverlay')
   } catch(e) { showToast('Lỗi khi tải sản phẩm', 'error') }
+}
+
+function refreshOrderSelectedSkuState() {
+  if (!currentProduct) return
+  selectedProductSku = getProductSkuBySelection(currentProduct, selectedColor, selectedSize)
+  const image = selectedProductSku?.image || selectedColorImage || getSelectedColorImageFromProduct(currentProduct, selectedColor) || currentProduct.thumbnail || ''
+  const preview = document.getElementById('orderProductImg')
+  if (preview && image) preview.src = image
+  const priceNode = document.getElementById('orderProductPrice')
+  if (priceNode) priceNode.textContent = fmtPrice(getProductDisplayPriceInfo(currentProduct, selectedProductSku).price)
+  updateOrderTotal()
 }
 
 function selectOrderColor(c, colorImage, btn) {
@@ -519,6 +670,7 @@ function selectOrderColor(c, colorImage, btn) {
   const preview = document.getElementById('orderProductImg')
   if (preview && selectedColorImage) preview.src = selectedColorImage
   document.getElementById('fieldColor')?.classList.remove('field-error','shake')
+  refreshOrderSelectedSkuState()
 }
 
 function selectOrderColorByIndex(idx, btn) {
@@ -532,6 +684,7 @@ function selectOrderSize(s, btn) {
   if (btn) btn.classList.add('active','bg-gray-900','text-white','border-gray-900')
   selectedSize = s
   document.getElementById('sizeSection')?.classList.remove('field-error','shake')
+  refreshOrderSelectedSkuState()
 }
 function selectPaymentMethod(method, btn) {
   selectCheckoutPaymentMethod('order', method, btn)
@@ -543,12 +696,13 @@ function changeQty(d) {
 }
 function updateOrderTotal() {
   if (!currentProduct) return
-  const subtotal = getProductDisplayPriceInfo(currentProduct).price * orderQty
+  const subtotal = getProductDisplayPriceInfo(currentProduct, selectedProductSku).price * orderQty
   const discount = appliedVoucher ? appliedVoucher.discount_amount : 0
   const total = Math.max(0, subtotal - discount)
   const label = document.getElementById('orderTotalLabel')
   if (label) label.textContent = 'Tổng cộng (' + orderQty + ' mặt hàng):'
   document.getElementById('orderTotal').textContent = fmtPrice(total)
+  syncQuickOrderPriceTone()
   if (appliedVoucher) {
     document.getElementById('orderSubtotal').textContent = fmtPrice(subtotal)
     document.getElementById('orderDiscount').textContent = '-' + fmtPrice(discount)
@@ -939,6 +1093,7 @@ async function submitOrder() {
       customer_commune_code: payload.addressPayload.communeCode,
       address_effective_date: payload.addressPayload.effectiveDate,
       product_id: currentProduct.id,
+      product_sku_id: selectedProductSku?.id || '',
       color: selectedColor,
       selected_color_image: resolvedColorImage || selectedColorImage || (currentProduct?.thumbnail || ''),
       size: selectedSize,
@@ -991,7 +1146,7 @@ function addCurrentToCart() {
   if (!orderSelection.ok) return
   revealMobileBottomNavForCartFeedback()
   animateFlyToCart(resolveFlyImage(currentProduct), document.getElementById('addToCartBtn'))
-  if (addToCart(currentProduct, selectedColor, selectedSize, orderQty)) {
+  if (addToCart(currentProduct, selectedColor, selectedSize, orderQty, selectedProductSku)) {
     closeOrder()
     showToast('Đã thêm "' + currentProduct.name + '" vào giỏ hàng!', 'success', 2500)
   }
@@ -1010,6 +1165,7 @@ async function openVariantModal(productId, actionType, editCartId) {
     
     orderQty = 1
     selectedColor = ''
+    selectedProductSku = null
     selectedColorImage = String(currentProduct.thumbnail || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400')
     selectedSize = ''
     
@@ -1078,6 +1234,7 @@ async function openVariantModal(productId, actionType, editCartId) {
         }
       }
     }
+    refreshVariantSelectedSkuState()
 
     const btn = document.getElementById('variantSubmitBtn')
     if (btn) {
@@ -1113,6 +1270,16 @@ async function openVariantModal(productId, actionType, editCartId) {
   }
 }
 
+function refreshVariantSelectedSkuState() {
+  if (!currentProduct) return
+  selectedProductSku = getProductSkuBySelection(currentProduct, selectedColor, selectedSize)
+  const image = selectedProductSku?.image || selectedColorImage || getSelectedColorImageFromProduct(currentProduct, selectedColor) || currentProduct.thumbnail || ''
+  const preview = document.getElementById('variantModalProductImg')
+  if (preview && image) preview.src = image
+  const price = document.getElementById('variantModalProductPrice')
+  if (price) price.innerHTML = fmtPrice(getProductDisplayPriceInfo(currentProduct, selectedProductSku).price)
+}
+
 function selectVariantColorByIndex(idx, btn) {
   const item = Array.isArray(orderColorOptions) ? orderColorOptions[idx] : null
   if (!item) return
@@ -1126,6 +1293,7 @@ function selectVariantColorByIndex(idx, btn) {
 
   document.querySelectorAll('.variant-color-btn').forEach(b => b.classList.remove('border-pink-500', 'ring-2', 'ring-pink-200'))
   if (btn) btn.classList.add('border-pink-500')
+  refreshVariantSelectedSkuState()
 }
 
 function selectVariantSize(s, btn) {
@@ -1135,6 +1303,7 @@ function selectVariantSize(s, btn) {
   
   const label = document.getElementById('variantModalSizeLabel')
   if (label) label.textContent = selectedSize
+  refreshVariantSelectedSkuState()
 }
 
 function updateVariantQty(delta) {
@@ -1192,7 +1361,7 @@ function submitVariantModal() {
   if (!variantSelection.ok) return
 
   if (cartVariantEditId) {
-    updateCartItemVariant(cartVariantEditId, selectedColor, selectedSize)
+    updateCartItemVariant(cartVariantEditId, selectedColor, selectedSize, selectedProductSku)
     const i = cart.find(x => x.cartId === cartVariantEditId)
     if (i) {
       i.qty = orderQty
@@ -1208,7 +1377,7 @@ function submitVariantModal() {
   if (variantActionType === 'add_to_cart') {
     revealMobileBottomNavForCartFeedback()
     animateFlyToCart(resolveFlyImage(currentProduct), document.getElementById('variantModalProductImg') || document.getElementById('variantSubmitBtn'))
-    if (addToCart(currentProduct, selectedColor, selectedSize, orderQty)) {
+    if (addToCart(currentProduct, selectedColor, selectedSize, orderQty, selectedProductSku)) {
       closeVariantModal()
       showToast('Đã thêm "' + currentProduct.name + '" vào giỏ hàng!', 'success', 2500)
     }
@@ -1217,7 +1386,8 @@ function submitVariantModal() {
       color: selectedColor,
       colorImage: selectedColorImage,
       size: selectedSize,
-      qty: orderQty
+      qty: orderQty,
+      productSkuId: selectedProductSku?.id || ''
     }
     closeVariantModal()
     if (document.getElementById('detailOverlay')?.classList.contains('hidden')) {

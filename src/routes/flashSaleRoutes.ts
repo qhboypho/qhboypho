@@ -12,6 +12,65 @@ type FlashSaleRouteDeps = {
   initDB: (db: D1Database) => Promise<void>
 }
 
+const FLASH_SALE_STOREFRONT_KEYS = ['boypho', 'hottrendnu'] as const
+type FlashSaleStorefrontKey = typeof FLASH_SALE_STOREFRONT_KEYS[number]
+let flashSaleStorefrontVisibilityColumnReady = false
+
+async function ensureFlashSaleStorefrontVisibilityColumn(db: D1Database) {
+  if (flashSaleStorefrontVisibilityColumnReady) return
+  let createdColumn = false
+  try {
+    await db.prepare(`ALTER TABLE products ADD COLUMN storefront_visibility TEXT NOT NULL DEFAULT '["boypho"]'`).run()
+    createdColumn = true
+  } catch (error: any) {
+    const message = String(error?.message || error || '').toLowerCase()
+    if (!message.includes('duplicate column') && !message.includes('already exists')) {
+      throw error
+    }
+  }
+  await db.prepare(`
+    UPDATE products
+    SET storefront_visibility = '["boypho"]'
+    WHERE storefront_visibility IS NULL OR TRIM(storefront_visibility) = ''
+  `).run()
+  if (createdColumn) {
+    await db.prepare(`
+      UPDATE products
+      SET storefront_visibility = '["boypho","hottrendnu"]'
+      WHERE LOWER(COALESCE(category, '')) IN ('female', 'women', 'girls')
+         OR LOWER(COALESCE(name, '')) LIKE '%váy%'
+         OR LOWER(COALESCE(name, '')) LIKE '%đầm%'
+         OR LOWER(COALESCE(name, '')) LIKE '%nữ%'
+         OR LOWER(COALESCE(name, '')) LIKE '%set%'
+         OR LOWER(COALESCE(description, '')) LIKE '%váy%'
+         OR LOWER(COALESCE(description, '')) LIKE '%đầm%'
+         OR LOWER(COALESCE(description, '')) LIKE '%thời trang nữ%'
+    `).run()
+  }
+  flashSaleStorefrontVisibilityColumnReady = true
+}
+
+function normalizeFlashSaleStorefrontKey(value: unknown): FlashSaleStorefrontKey | '' {
+  const key = String(value || '').trim().toLowerCase()
+  return (FLASH_SALE_STOREFRONT_KEYS as readonly string[]).includes(key) ? key as FlashSaleStorefrontKey : ''
+}
+
+function buildFlashSaleStorefrontWhere(storefront: unknown) {
+  const key = normalizeFlashSaleStorefrontKey(storefront)
+  if (!key) return { clause: '', binds: [] as string[] }
+  const binds = [`%"${key}"%`]
+  if (key === 'boypho') {
+    return {
+      clause: ` AND (storefront_visibility IS NULL OR TRIM(storefront_visibility) = '' OR storefront_visibility LIKE ?)`,
+      binds
+    }
+  }
+  return {
+    clause: ` AND storefront_visibility LIKE ?`,
+    binds
+  }
+}
+
 type FlashSaleCreateItemInput = {
   product_id?: number | string | null
   product_sku_id?: number | string | null
@@ -194,8 +253,12 @@ async function loadSkuOwnership(db: D1Database, skuIds: number[]) {
   return new Map((rows.results || []).map((row) => [Number(row.id), { id: Number(row.id), product_id: Number(row.product_id) }]))
 }
 
-async function buildActiveFlashSaleProducts(db: D1Database) {
-  const productRes = await db.prepare(`SELECT * FROM products WHERE is_active = 1 ORDER BY created_at DESC`).all()
+async function buildActiveFlashSaleProducts(db: D1Database, storefront?: unknown) {
+  await ensureFlashSaleStorefrontVisibilityColumn(db)
+  const storefrontWhere = buildFlashSaleStorefrontWhere(storefront)
+  const productRes = await db.prepare(
+    `SELECT * FROM products WHERE is_active = 1${storefrontWhere.clause} ORDER BY created_at DESC`
+  ).bind(...storefrontWhere.binds).all()
   const rows = productRes.results || []
   const skuMap = await loadProductSkusByProductIds(db, rows.map((row: any) => row.id))
   const activeFlashSaleMap = await loadActiveFlashSaleProductMap(db, rows.map((row: any) => row.id))
@@ -302,6 +365,47 @@ export function registerFlashSaleRoutes(app: Hono<{ Bindings: AppBindings }>, de
             ? new Set((itemsResult.results as any[]).map((item) => item.product_id).filter(Boolean)).size
             : 0
         }
+      })
+    } catch (e: any) {
+      return c.json({ success: false, error: e.message }, 500)
+    }
+  })
+
+  app.patch('/api/admin/flash-sales/:id/active', async (c) => {
+    try {
+      await deps.initDB(c.env.DB)
+      const id = Number(c.req.param('id'))
+      if (!Number.isFinite(id) || id <= 0) {
+        return c.json({ success: false, error: 'ID flashsale không hợp lệ' }, 400)
+      }
+
+      const existing = await c.env.DB.prepare(`SELECT * FROM flash_sales WHERE id = ?`).bind(id).first() as any
+      if (!existing) {
+        return c.json({ success: false, error: 'Không tìm thấy flashsale' }, 404)
+      }
+
+      const body = await c.req.json().catch(() => ({})) as { is_active?: unknown }
+      if (!Object.prototype.hasOwnProperty.call(body, 'is_active')) {
+        return c.json({ success: false, error: 'Thiếu trạng thái flashsale' }, 400)
+      }
+      const isActive = normalizeBooleanFlag(body?.is_active)
+      await c.env.DB.prepare(`
+        UPDATE flash_sales
+        SET is_active = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `).bind(isActive, id).run()
+
+      const updatedCampaign = await c.env.DB.prepare(`SELECT * FROM flash_sales WHERE id = ?`).bind(id).first() as any
+      const itemsResult = await c.env.DB.prepare(`
+        SELECT product_id, is_enabled
+        FROM flash_sale_items
+        WHERE flash_sale_id = ?
+      `).bind(id).all() as { results?: Array<{ product_id: number; is_enabled?: number | string }> }
+      const summary = buildCampaignSummary(updatedCampaign || { ...existing, is_active: isActive }, itemsResult.results || [])
+
+      return c.json({
+        success: true,
+        data: summary
       })
     } catch (e: any) {
       return c.json({ success: false, error: e.message }, 500)
@@ -416,7 +520,7 @@ export function registerFlashSaleRoutes(app: Hono<{ Bindings: AppBindings }>, de
 
       await c.env.DB.prepare(`
         UPDATE flash_sales
-        SET name = ?, start_at = ?, end_at = ?, is_active = 1, updated_at = CURRENT_TIMESTAMP
+        SET name = ?, start_at = ?, end_at = ?, updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
       `).bind(name, startAt, endAt, id).run()
 
@@ -524,7 +628,7 @@ export function registerFlashSaleRoutes(app: Hono<{ Bindings: AppBindings }>, de
   app.get('/api/flash-sales/active-products', async (c) => {
     try {
       await deps.initDB(c.env.DB)
-      const data = await buildActiveFlashSaleProducts(c.env.DB)
+      const data = await buildActiveFlashSaleProducts(c.env.DB, c.req.query('storefront'))
       await maybeTrackFrontendProductVisit(c)
       return c.json({ success: true, data })
     } catch (e: any) {

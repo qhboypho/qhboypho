@@ -2,6 +2,7 @@ export function adminFlashSaleScript(): string {
   return `let flashSaleCreateSelectedItems = []
 let flashSaleProductPickerItems = []
 let flashSaleProductPickerQuery = ''
+let flashSaleProductPickerStorefrontFilter = 'all'
 let flashSaleCreateSubmitting = false
 let flashSaleEditingId = null
 let flashSaleDuplicatingFromId = null
@@ -337,6 +338,7 @@ async function loadFlashSaleProductPickerProducts() {
       thumbnail: String(product && (product.thumbnail ?? product.product_thumbnail ?? product.image ?? '')),
       price: flashSaleNormalizeNumber(product && (product.price ?? product.original_price ?? product.product_price ?? 0)),
       category: String(product && (product.category ?? product.category_name ?? '')),
+      storefront_visibility: flashSaleNormalizeStorefrontVisibility(product && product.storefront_visibility),
       is_active: Number(product && (product.is_active ?? 1)) === 1,
       product_skus: flashSaleGetProductSkus(product)
     }))
@@ -354,8 +356,12 @@ function renderFlashSaleProductPicker() {
   flashSaleProductPickerQuery = queryEl ? String(queryEl.value || '').trim() : flashSaleProductPickerQuery
   const query = flashSaleProductPickerQuery.toLowerCase()
   const products = flashSaleProductPickerItems.filter((product) => {
+    if (!flashSaleProductMatchesStorefrontFilter(product)) return false
     if (!query) return true
-    return String(product.name || '').toLowerCase().includes(query) || String(product.id || '').includes(query)
+    const storefrontLabel = flashSaleGetStorefrontLabel(product.storefront_visibility).toLowerCase()
+    return String(product.name || '').toLowerCase().includes(query) ||
+      String(product.id || '').includes(query) ||
+      storefrontLabel.includes(query)
   })
   if (count) count.innerHTML = '<i class="fas fa-layer-group"></i><span>' + products.length + ' mặt hàng</span>'
   if (!flashSaleProductPickerItems.length) {
@@ -377,6 +383,7 @@ function renderFlashSaleProductPicker() {
     const buttonClass = selected ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-pink-600 text-white border-pink-600 hover:bg-pink-700'
     const buttonText = selected ? 'Đã chọn ' + selectedCount + '/' + skuCount : 'Chọn toàn bộ'
     const buttonIcon = selected ? 'fa-check' : 'fa-plus'
+    const storefrontBadges = flashSaleRenderStorefrontBadges(product.storefront_visibility)
     return '' +
       '<div class="p-4 flex items-center gap-4 hover:bg-pink-50/40 transition">' +
         thumbHtml +
@@ -386,6 +393,7 @@ function renderFlashSaleProductPicker() {
             '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 text-[11px] font-semibold">#' + product.id + '</span>' +
             (product.category ? '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-pink-50 text-pink-600 text-[11px] font-semibold">' + flashSaleEscapeHtml(product.category) + '</span>' : '') +
             '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[11px] font-semibold">' + skuCount + ' SKU</span>' +
+            storefrontBadges +
           '</div>' +
           '<p class="text-sm text-gray-500 mt-1">Giá gốc: ' + (product.price > 0 ? flashSaleNormalizeNumber(product.price).toLocaleString('vi-VN') + 'đ' : '—') + '</p>' +
         '</div>' +
@@ -397,6 +405,7 @@ function renderFlashSaleProductPicker() {
 function openFlashSaleProductPickerModal() {
   const modal = document.getElementById('flashSaleProductPickerModal')
   if (!modal) return
+  flashSaleEnsureProductPickerStorefrontFilters()
   showAdminOverlay(modal)
   if (!flashSaleProductPickerItems.length) {
     loadFlashSaleProductPickerProducts()
@@ -409,10 +418,79 @@ function openFlashSaleProductPickerModal() {
   }, 0)
 }
 
+function flashSaleEnsureProductPickerStorefrontFilters() {
+  if (document.getElementById('flashSaleProductPickerStorefrontFilters')) return
+  const list = document.getElementById('flashSaleProductPickerList')
+  const listBox = list ? list.parentElement : null
+  if (!listBox || !listBox.parentElement) return
+  const filters = document.createElement('div')
+  filters.id = 'flashSaleProductPickerStorefrontFilters'
+  filters.className = 'flex flex-wrap items-center gap-2'
+  filters.innerHTML = '' +
+    '<button type="button" data-storefront="all" onclick="flashSaleSetProductPickerStorefrontFilter(\\'all\\')" class="flashsale-picker-storefront-filter inline-flex items-center gap-2 rounded-xl border border-pink-600 bg-pink-600 px-3 py-2 text-xs font-semibold text-white transition hover:border-pink-500 hover:bg-pink-500">' +
+      '<i class="fas fa-layer-group"></i><span>Tất cả</span>' +
+    '</button>' +
+    '<button type="button" data-storefront="boypho" onclick="flashSaleSetProductPickerStorefrontFilter(\\'boypho\\')" class="flashsale-picker-storefront-filter inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-600 transition hover:border-pink-200 hover:text-pink-600">' +
+      '<i class="fas fa-store"></i><span>Boypho</span>' +
+    '</button>' +
+    '<button type="button" data-storefront="hottrendnu" onclick="flashSaleSetProductPickerStorefrontFilter(\\'hottrendnu\\')" class="flashsale-picker-storefront-filter inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-600 transition hover:border-pink-200 hover:text-pink-600">' +
+      '<i class="fas fa-venus"></i><span>QH Clothes</span>' +
+    '</button>' +
+    '<button type="button" data-storefront="both" onclick="flashSaleSetProductPickerStorefrontFilter(\\'both\\')" class="flashsale-picker-storefront-filter inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-semibold text-gray-600 transition hover:border-pink-200 hover:text-pink-600">' +
+      '<i class="fas fa-link"></i><span>Cả hai</span>' +
+    '</button>'
+  listBox.parentElement.insertBefore(filters, listBox)
+  flashSaleSetProductPickerStorefrontFilter(flashSaleProductPickerStorefrontFilter)
+}
+
 function closeFlashSaleProductPickerModal(event) {
   if (event && event.target && event.currentTarget && event.target !== event.currentTarget) return
   const modal = document.getElementById('flashSaleProductPickerModal')
   forceHideAdminOverlay(modal)
+}
+
+function flashSaleNormalizeStorefrontVisibility(input) {
+  let source = []
+  if (Array.isArray(input)) {
+    source = input
+  } else if (typeof input === 'string') {
+    const trimmed = input.trim()
+    if (trimmed) {
+      try {
+        const parsed = JSON.parse(trimmed)
+        source = Array.isArray(parsed) ? parsed : [trimmed]
+      } catch (_) {
+        source = trimmed.split(',')
+      }
+    }
+  }
+  const keys = source.map((item) => String(item || '').trim().toLowerCase())
+  if (keys.includes('all')) return ['boypho', 'hottrendnu']
+  const valid = ['boypho', 'hottrendnu'].filter((key) => keys.includes(key))
+  return valid.length ? valid : ['boypho']
+}
+
+function flashSaleGetStorefrontLabel(keys) {
+  const visibility = flashSaleNormalizeStorefrontVisibility(keys)
+  if (visibility.includes('boypho') && visibility.includes('hottrendnu')) return 'Cả hai'
+  if (visibility.includes('hottrendnu')) return 'QH Clothes'
+  return 'Boypho'
+}
+
+function flashSaleRenderStorefrontBadges(keys) {
+  const visibility = flashSaleNormalizeStorefrontVisibility(keys)
+  const badges = []
+  if (visibility.includes('boypho')) badges.push('<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 text-[11px] font-semibold"><i class="fas fa-store"></i>Boypho</span>')
+  if (visibility.includes('hottrendnu')) badges.push('<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-rose-50 text-rose-600 text-[11px] font-semibold"><i class="fas fa-venus"></i>QH Clothes</span>')
+  return badges.join('')
+}
+
+function flashSaleProductMatchesStorefrontFilter(product) {
+  const filter = String(flashSaleProductPickerStorefrontFilter || 'all')
+  if (filter === 'all') return true
+  const visibility = flashSaleNormalizeStorefrontVisibility(product && product.storefront_visibility)
+  if (filter === 'both') return visibility.includes('boypho') && visibility.includes('hottrendnu')
+  return visibility.includes(filter)
 }
 
 function toggleFlashSaleProductSelection(productId) {
@@ -578,11 +656,26 @@ function flashSaleSetAdminFilter(status) {
   })
 }
 
+function flashSaleSetProductPickerStorefrontFilter(storefront) {
+  flashSaleProductPickerStorefrontFilter = String(storefront || 'all')
+  document.querySelectorAll('.flashsale-picker-storefront-filter').forEach((elBtn) => {
+    const active = String(elBtn.dataset.storefront || 'all') === flashSaleProductPickerStorefrontFilter
+    elBtn.classList.toggle('bg-pink-600', active)
+    elBtn.classList.toggle('text-white', active)
+    elBtn.classList.toggle('border-pink-600', active)
+    elBtn.classList.toggle('bg-white', !active)
+    elBtn.classList.toggle('text-gray-600', !active)
+    elBtn.classList.toggle('border-gray-200', !active)
+  })
+  renderFlashSaleProductPicker()
+}
+
 function resetFlashSaleCreateForm() {
   flashSaleEditingId = null
   flashSaleDuplicatingFromId = null
   flashSaleCreateSelectedItems = []
   flashSaleProductPickerQuery = ''
+  flashSaleProductPickerStorefrontFilter = 'all'
   flashSaleProductExpandedState = {}
   const nameInput = document.getElementById('flashSaleNameInput')
   const startInput = document.getElementById('flashSaleStartInput')
@@ -592,6 +685,7 @@ function resetFlashSaleCreateForm() {
   if (startInput) startInput.value = ''
   if (endInput) endInput.value = ''
   if (pickerSearch) pickerSearch.value = ''
+  flashSaleSetProductPickerStorefrontFilter('all')
   flashSaleSetCreateSubmitState(false)
   renderFlashSaleSelectedItems()
 }
@@ -882,6 +976,11 @@ function renderFlashSaleAdminShell(list, meta) {
     const productCount = Number((item && item.product_count) || 0)
     const itemCount = Number((item && item.item_count) || 0)
     const isEnded = statusKey === 'ended'
+    const isCampaignActiveFlag = Number(item && item.is_active) === 1
+    const isCampaignEnabled = isCampaignActiveFlag && !isEnded
+    const switchLabel = isCampaignEnabled ? 'Đang bật' : 'Đang tắt'
+    const switchTrackClass = isCampaignEnabled ? 'bg-emerald-500 border-emerald-500' : 'bg-gray-200 border-gray-300'
+    const switchKnobClass = isCampaignEnabled ? 'translate-x-5' : 'translate-x-0'
     const actionClass = isEnded
       ? 'border-gray-200 bg-gray-100 text-gray-600 hover:bg-gray-200'
       : 'border-pink-200 bg-pink-50 text-pink-600 hover:bg-pink-100'
@@ -889,6 +988,14 @@ function renderFlashSaleAdminShell(list, meta) {
     const actionText = isEnded ? 'Sao chép' : 'Xem/Sửa'
     const actionMode = isEnded ? 'duplicate' : 'edit'
     return '<tr class="border-t border-gray-100 hover:bg-pink-50/40 transition">' +
+      '<td class="px-4 py-4 align-top text-center">' +
+        '<div class="inline-flex flex-col items-center gap-1.5">' +
+          '<button type="button" data-flashsale-toggle-btn data-flashsale-id="' + itemId + '" data-next-active="' + (isCampaignEnabled ? '0' : '1') + '" aria-pressed="' + (isCampaignEnabled ? 'true' : 'false') + '" title="' + (isEnded ? 'Flashsale đã kết thúc' : (isCampaignEnabled ? 'Tắt flashsale' : 'Bật flashsale')) + '"' + (isEnded ? ' disabled' : '') + ' class="relative inline-flex h-7 w-12 items-center rounded-full border p-0.5 transition disabled:cursor-not-allowed disabled:opacity-60 ' + switchTrackClass + '">' +
+            '<span class="inline-block h-5 w-5 rounded-full bg-white shadow transition-transform ' + switchKnobClass + '"></span>' +
+          '</button>' +
+          '<span class="text-[11px] font-semibold ' + (isCampaignEnabled ? 'text-emerald-600' : 'text-gray-500') + '">' + switchLabel + '</span>' +
+        '</div>' +
+      '</td>' +
       '<td class="px-4 py-4 align-top">' +
         '<div class="font-semibold text-gray-900">' + itemName + '</div>' +
         '<div class="text-xs text-gray-500 mt-1">ID #' + itemId + '</div>' +
@@ -920,6 +1027,7 @@ function renderFlashSaleAdminShell(list, meta) {
         '<table class="min-w-full text-sm">' +
           '<thead class="bg-gray-50 text-gray-500">' +
             '<tr>' +
+              '<th class="px-4 py-3 text-center font-semibold">Bật/Tắt</th>' +
               '<th class="px-4 py-3 text-left font-semibold">Tên khuyến mãi</th>' +
               '<th class="px-4 py-3 text-center font-semibold">Trạng thái</th>' +
               '<th class="px-4 py-3 text-left font-semibold">Thời gian bắt đầu</th>' +
@@ -945,6 +1053,34 @@ function renderFlashSaleAdminShell(list, meta) {
       openFlashSaleEditModal(id)
     })
   })
+  document.querySelectorAll('[data-flashsale-toggle-btn]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const id = Number(btn.getAttribute('data-flashsale-id') || 0)
+      const nextActive = Number(btn.getAttribute('data-next-active') || 0)
+      if (!Number.isFinite(id) || id <= 0) return
+      toggleFlashSaleCampaignActive(id, nextActive, btn)
+    })
+  })
+}
+
+async function toggleFlashSaleCampaignActive(id, nextActive, btn) {
+  const activeValue = Number(nextActive) === 1 ? 1 : 0
+  const button = btn || null
+  if (button) button.disabled = true
+  try {
+    const res = await axios.patch('/api/admin/flash-sales/' + id + '/active', { is_active: activeValue })
+    if (!res.data || res.data.success === false) {
+      throw new Error(String(res.data && res.data.error ? res.data.error : 'Không thể cập nhật trạng thái flashsale'))
+    }
+    showAdminToast(activeValue === 1 ? 'Đã bật flashsale cho cả Boypho và QH Clothes' : 'Đã tắt flashsale cho cả Boypho và QH Clothes', 'success')
+    await loadFlashSaleAdmin()
+  } catch (e) {
+    const message = e && e.response && e.response.data && e.response.data.error
+      ? e.response.data.error
+      : (e && e.message ? e.message : 'Không thể cập nhật trạng thái flashsale')
+    showAdminToast(String(message), 'error')
+    if (button) button.disabled = false
+  }
 }
 
 async function loadFlashSaleAdmin() {

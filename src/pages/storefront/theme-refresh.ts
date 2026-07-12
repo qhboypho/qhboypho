@@ -1744,7 +1744,7 @@ export function storefrontThemeRefreshStyles(): string {
     padding: 0.85rem 0.25rem 0.25rem;
     background: linear-gradient(180deg, rgba(255,255,255,0), var(--qh-surface) 24%, var(--qh-surface) 100%);
   }
-  #detailActionBarContainer,
+  body:not(.hottrendnu-page) #detailActionBarContainer,
   #orderActionBarContainer,
   #filterModalPanel > div:last-child,
   #variantModalPanel > div:last-child {
@@ -1781,13 +1781,13 @@ export function storefrontThemeRefreshStyles(): string {
     margin: 0 !important;
     font-size: 0.95rem;
   }
-  #detailActionBarContainer button,
+  body:not(.hottrendnu-page) #detailActionBarContainer button,
   #orderActionBarContainer button,
   #filterModalPanel > div:last-child button,
   #variantModalPanel > div:last-child button {
     min-width: 0;
   }
-  #detailActionBarContainer button span,
+  body:not(.hottrendnu-page) #detailActionBarContainer button span,
   #orderActionBarContainer button span,
   #filterModalPanel > div:last-child button span,
   #variantModalPanel > div:last-child button span {
@@ -2058,13 +2058,13 @@ export function storefrontThemeRefreshStyles(): string {
     }
   }
   @container modal-actions (max-width: 360px) {
-    #detailActionBarContainer,
+    body:not(.hottrendnu-page) #detailActionBarContainer,
     #orderActionBarContainer,
     #filterModalPanel > div:last-child,
     #variantModalPanel > div:last-child {
       gap: 0.55rem !important;
     }
-    #detailActionBarContainer button,
+    body:not(.hottrendnu-page) #detailActionBarContainer button,
     #orderActionBarContainer button,
     #filterModalPanel > div:last-child button,
     #variantModalPanel > div:last-child button {
@@ -2074,7 +2074,7 @@ export function storefrontThemeRefreshStyles(): string {
       padding-right: 0.8rem !important;
       gap: 0.42rem !important;
     }
-    #detailActionBarContainer button i,
+    body:not(.hottrendnu-page) #detailActionBarContainer button i,
     #orderActionBarContainer button i,
     #filterModalPanel > div:last-child button i,
     #variantModalPanel > div:last-child button i {
@@ -2082,13 +2082,13 @@ export function storefrontThemeRefreshStyles(): string {
     }
   }
   @container modal-actions (max-width: 300px) {
-    #detailActionBarContainer,
+    body:not(.hottrendnu-page) #detailActionBarContainer,
     #orderActionBarContainer,
     #filterModalPanel > div:last-child,
     #variantModalPanel > div:last-child {
       gap: 0.45rem !important;
     }
-    #detailActionBarContainer button,
+    body:not(.hottrendnu-page) #detailActionBarContainer button,
     #orderActionBarContainer button,
     #filterModalPanel > div:last-child button,
     #variantModalPanel > div:last-child button {
@@ -2098,7 +2098,7 @@ export function storefrontThemeRefreshStyles(): string {
       padding-right: 0.62rem !important;
       gap: 0.34rem !important;
     }
-    #detailActionBarContainer button i,
+    body:not(.hottrendnu-page) #detailActionBarContainer button i,
     #orderActionBarContainer button i,
     #filterModalPanel > div:last-child button i,
     #variantModalPanel > div:last-child button i {
@@ -2412,29 +2412,29 @@ export function storefrontThemeRefreshStyles(): string {
       padding: 0.13rem 0.3rem;
     }
   }
-  #detailOverlay .popup-card,
-  #detailContent,
-  #detailContent > .grid,
-  #detailContent > .grid > div {
+  body:not(.hottrendnu-page) #detailOverlay .popup-card,
+  body:not(.hottrendnu-page) #detailContent,
+  body:not(.hottrendnu-page) #detailContent > .grid,
+  body:not(.hottrendnu-page) #detailContent > .grid > div {
     max-width: 100%;
     min-width: 0;
   }
-  #detailOverlay .popup-card,
-  #detailContent {
+  body:not(.hottrendnu-page) #detailOverlay .popup-card,
+  body:not(.hottrendnu-page) #detailContent {
     overflow-x: hidden;
   }
   @media (max-width: 768px) {
-    #detailOverlay .popup-card {
+    body:not(.hottrendnu-page) #detailOverlay .popup-card {
       width: 100% !important;
       max-width: calc(100vw - 1.3rem) !important;
       overflow-x: hidden !important;
     }
-    #detailContent {
+    body:not(.hottrendnu-page) #detailContent {
       width: 100% !important;
       max-width: 100% !important;
       overflow-x: hidden !important;
     }
-    .detail-gallery-thumbs {
+    body:not(.hottrendnu-page) .detail-gallery-thumbs {
       gap: 0.4rem;
       width: 100% !important;
       max-width: 100% !important;
@@ -2443,7 +2443,7 @@ export function storefrontThemeRefreshStyles(): string {
       margin-left: 0;
       margin-right: 0;
     }
-    .detail-gallery-thumb {
+    body:not(.hottrendnu-page) .detail-gallery-thumb {
       flex-basis: clamp(2.9rem, 15.5vw, 3.95rem);
       width: clamp(2.9rem, 15.5vw, 3.95rem);
       border-radius: 0.72rem;
@@ -4394,7 +4394,7 @@ export function storefrontThemeRefreshStyles(): string {
     background: rgba(148,163,184,0.16) !important;
   }
   @media (max-width: 420px) {
-    .detail-product-title {
+    body:not(.hottrendnu-page) .detail-product-title {
       font-size: 1.18rem !important;
       line-height: 1.16 !important;
     }
@@ -4469,33 +4469,33 @@ export function storefrontThemeRefreshStyles(): string {
     }
   }
   @media (max-width: 360px) {
-    .detail-product-title {
+    body:not(.hottrendnu-page) .detail-product-title {
       font-size: 1.04rem !important;
       line-height: 1.14 !important;
     }
   }
   @media (min-width: 768px) {
-    #detailOverlay .popup-card {
+    body:not(.hottrendnu-page) #detailOverlay .popup-card {
       width: 100% !important;
       max-width: 56rem !important;
     }
-    #detailContent {
+    body:not(.hottrendnu-page) #detailContent {
       padding: 1rem 1.5rem !important;
     }
-    #detailGalleryViewport {
+    body:not(.hottrendnu-page) #detailGalleryViewport {
       width: 100% !important;
       height: auto !important;
       aspect-ratio: 1 / 1 !important;
       border-radius: 1rem;
     }
-    #detailGalleryThumbs {
+    body:not(.hottrendnu-page) #detailGalleryThumbs {
       display: grid !important;
       grid-template-columns: repeat(4, minmax(0, 1fr));
       gap: 0.5rem;
       overflow: visible;
       padding: 0;
     }
-    #detailGalleryThumbs .detail-gallery-thumb {
+    body:not(.hottrendnu-page) #detailGalleryThumbs .detail-gallery-thumb {
       width: 100% !important;
       flex-basis: auto !important;
       height: auto !important;

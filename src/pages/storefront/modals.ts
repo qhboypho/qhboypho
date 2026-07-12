@@ -376,8 +376,12 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
   </div>
   <div class="popup-card bg-white rounded-3xl shadow-2xl w-full max-w-md md:max-w-[56rem] max-h-[85vh] flex flex-col relative">
     <div class="sticky top-0 bg-white rounded-t-3xl border-b px-6 py-4 flex items-center justify-between" style="z-index: 10; flex-shrink: 0;">
-      <h3 class="font-display text-xl font-bold text-gray-900">Chi tiết sản phẩm</h3>
-      <button onclick="closeDetail()" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition">
+      <button type="button" onclick="closeDetail()" class="qhher-detail-back-btn hidden w-9 h-9 items-center justify-center rounded-full bg-white text-gray-900 transition" aria-label="Quay lại">
+        <i class="fas fa-arrow-left text-sm"></i>
+      </button>
+      <h3 class="detail-modal-title font-display text-xl font-bold text-gray-900">Chi tiết sản phẩm</h3>
+      <div id="detailHeaderActions" class="qhher-detail-header-actions hidden"></div>
+      <button onclick="closeDetail()" class="detail-close-btn w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition">
         <i class="fas fa-times text-gray-600"></i>
       </button>
     </div>

@@ -27,6 +27,8 @@ type ProductLike = {
   thumbnail?: string | null
   colors?: unknown
   sizes?: unknown
+  product_skus?: unknown
+  skus?: unknown
 }
 
 export type ProductSkuDescriptor = {
@@ -102,6 +104,48 @@ export function parseProductSizes(raw: unknown): string[] {
 
 function makeSkuDescriptorKey(color: string, size: string) {
   return normalizeKeyToken(color) + '::' + normalizeKeyToken(size)
+}
+
+function normalizeSkuOverride(input: unknown): ProductSkuLike | null {
+  if (!input || typeof input !== 'object') return null
+  const item = input as ProductSkuLike
+  const color = normalizeToken(item.color)
+  const size = normalizeToken(item.size)
+  const price = normalizeNumber(item.price)
+  const stock = normalizeNumber(item.stock)
+  const skuCode = normalizeToken(item.sku_code)
+  const hasUsefulValue = color || size || price !== null || stock !== null || skuCode || item.id
+  if (!hasUsefulValue) return null
+  return {
+    id: item.id ?? null,
+    product_id: item.product_id ?? null,
+    sku_code: skuCode,
+    color,
+    size,
+    image: normalizeToken(item.image),
+    price,
+    original_price: normalizeNumber(item.original_price),
+    stock,
+    is_active: item.is_active === undefined ? 1 : (normalizeBooleanFlag(item.is_active) ? 1 : 0)
+  }
+}
+
+function getProductSkuOverrides(product: ProductLike) {
+  const source = Array.isArray(product?.product_skus)
+    ? product.product_skus
+    : (Array.isArray(product?.skus) ? product.skus : [])
+  const overrides = source
+    .map(normalizeSkuOverride)
+    .filter((item): item is ProductSkuLike => Boolean(item))
+  const byKey = new Map<string, ProductSkuLike>()
+  const byId = new Map<string, ProductSkuLike>()
+  for (const item of overrides) {
+    byKey.set(makeSkuDescriptorKey(String(item.color || ''), String(item.size || '')), item)
+    if (item.id !== null && item.id !== undefined && String(item.id).trim()) {
+      byId.set(String(item.id), item)
+    }
+  }
+  return { byKey, byId, hasOverrides: overrides.length > 0 }
 }
 
 function slugifyToken(value: string, fallback: string) {
@@ -183,6 +227,7 @@ export async function syncProductSkus(db: D1Database, product: ProductLike) {
   if (!productId) return []
 
   const desired = buildDesiredProductSkus({ ...product, id: productId })
+  const overrideState = getProductSkuOverrides(product)
   const desiredByKey = new Map(desired.map((sku) => [sku.key, sku]))
   const existingResult = await db.prepare(`
     SELECT id, product_id, sku_code, color, size, image, price, original_price, stock, is_active
@@ -195,18 +240,27 @@ export async function syncProductSkus(db: D1Database, product: ProductLike) {
 
   for (const sku of desired) {
     const existing = existingByKey.get(sku.key)
+    const override = (existing?.id ? overrideState.byId.get(String(existing.id)) : null) || overrideState.byKey.get(sku.key)
+    const nextSkuCode = normalizeToken(override?.sku_code) || normalizeToken(existing?.sku_code) || sku.sku_code
+    const nextImage = normalizeToken(override?.image) || sku.image
+    const nextPrice = normalizeNumber(override?.price) ?? sku.price
+    const nextOriginalPrice = normalizeNumber(override?.original_price) ?? sku.original_price
+    const nextStock = Math.max(0, Math.floor(normalizeNumber(override?.stock) ?? sku.stock))
+    const nextIsActive = overrideState.hasOverrides
+      ? (normalizeBooleanFlag(override?.is_active ?? sku.is_active) ? 1 : 0)
+      : sku.is_active
     if (existing?.id) {
       await db.prepare(`
         UPDATE product_skus
         SET sku_code = ?, image = ?, price = ?, original_price = ?, stock = ?, is_active = ?, updated_at = CURRENT_TIMESTAMP
         WHERE id = ?
       `).bind(
-        sku.sku_code,
-        sku.image,
-        sku.price,
-        sku.original_price,
-        sku.stock,
-        sku.is_active,
+        nextSkuCode,
+        nextImage,
+        nextPrice,
+        nextOriginalPrice,
+        nextStock,
+        nextIsActive,
         existing.id
       ).run()
       continue
@@ -217,14 +271,14 @@ export async function syncProductSkus(db: D1Database, product: ProductLike) {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).bind(
       productId,
-      sku.sku_code,
+      nextSkuCode,
       sku.color,
       sku.size,
-      sku.image,
-      sku.price,
-      sku.original_price,
-      sku.stock,
-      sku.is_active
+      nextImage,
+      nextPrice,
+      nextOriginalPrice,
+      nextStock,
+      nextIsActive
     ).run()
   }
 

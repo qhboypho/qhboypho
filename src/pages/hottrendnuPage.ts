@@ -907,7 +907,6 @@ body.hottrendnu-page #filterBar.hottrendnu-products-panel {
   color: var(--htn-rose) !important;
 }
 
-.hottrendnu-page #detailOverlay .popup-card,
 .hottrendnu-page #orderPopupCard,
 .hottrendnu-page #variantModalPanel,
 .hottrendnu-page .cart-modal,
@@ -939,14 +938,11 @@ body.hottrendnu-page #filterBar.hottrendnu-products-panel {
   flex: 0 0 auto;
 }
 
-.hottrendnu-page #detailOverlay .sticky,
 .hottrendnu-page #orderModalHeader {
   background: rgba(255, 250, 249, 0.96) !important;
   border-color: rgba(214, 63, 114, 0.16) !important;
 }
 
-.hottrendnu-page #detailOverlay h2,
-.hottrendnu-page #detailOverlay h3,
 .hottrendnu-page #orderPopupCard h2,
 .hottrendnu-page #orderPopupCard h3,
 .hottrendnu-page #variantModalPanel h3 {
@@ -965,7 +961,6 @@ body.hottrendnu-page #filterBar.hottrendnu-products-panel {
 }
 
 .hottrendnu-page #orderPopupCard .btn-primary,
-.hottrendnu-page #detailActionBarContainer .btn-primary,
 .hottrendnu-page #variantModalPanel .btn-primary {
   background: linear-gradient(135deg, var(--htn-ink), var(--htn-plum)) !important;
   border-radius: 0.8rem !important;
@@ -973,14 +968,12 @@ body.hottrendnu-page #filterBar.hottrendnu-products-panel {
 }
 
 .hottrendnu-page #orderPopupCard .add-to-cart-btn,
-.hottrendnu-page #detailActionBarContainer .add-to-cart-btn,
 .hottrendnu-page #variantModalPanel .add-to-cart-btn {
   background: linear-gradient(135deg, var(--htn-rose), var(--htn-coral)) !important;
   border-radius: 0.8rem !important;
   box-shadow: none !important;
 }
 
-body.hottrendnu-page[data-storefront-theme='dark'] #detailOverlay .popup-card,
 body.hottrendnu-page[data-storefront-theme='dark'] #orderPopupCard,
 body.hottrendnu-page[data-storefront-theme='dark'] #variantModalPanel,
 body.hottrendnu-page[data-storefront-theme='dark'] .cart-modal,
@@ -992,7 +985,6 @@ body.hottrendnu-page[data-storefront-theme='dark'] .user-menu-panel {
   color: #f8fafc;
 }
 
-body.hottrendnu-page[data-storefront-theme='dark'] #detailOverlay .sticky,
 body.hottrendnu-page[data-storefront-theme='dark'] #orderModalHeader {
   background: rgba(16, 19, 35, 0.96) !important;
   border-color: rgba(244, 114, 182, 0.18) !important;
@@ -1207,7 +1199,7 @@ body.hottrendnu-page[data-storefront-theme='dark'] #orderModalHeader {
   }
 }
 
-/* QH Her mockup implementation */
+/* QH Clothes mockup implementation */
 body.hottrendnu-page {
   --htn-bg: #FFF7F8;
   --htn-surface: #FCEEEF;
@@ -1334,6 +1326,10 @@ body.hottrendnu-page .qhher-promo-sale {
   width: min(100%, 310px);
 }
 
+.qhher-search-box {
+  position: relative;
+}
+
 .qhher-header-search input,
 .qhher-mobile-search input {
   width: 100% !important;
@@ -1356,6 +1352,105 @@ body.hottrendnu-page .qhher-promo-sale {
   color: var(--htn-muted);
   transform: translateY(-50%);
   font-size: 14px;
+}
+
+.qhher-search-suggest-panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  z-index: 90;
+  max-height: min(440px, calc(100dvh - 150px));
+  overflow-y: auto;
+  border: 1px solid var(--htn-border);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.98);
+  box-shadow: 0 22px 54px rgba(201, 79, 124, 0.16);
+  padding: 8px;
+}
+
+.qhher-search-suggest-panel.hidden {
+  display: none;
+}
+
+.qhher-search-suggest-item {
+  display: grid;
+  grid-template-columns: 48px minmax(0, 1fr);
+  gap: 10px;
+  width: 100%;
+  align-items: center;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  padding: 8px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.qhher-search-suggest-item:hover,
+.qhher-search-suggest-item:focus-visible {
+  background: var(--htn-chip);
+  outline: none;
+}
+
+.qhher-search-suggest-thumb {
+  width: 48px;
+  height: 58px;
+  overflow: hidden;
+  border-radius: 12px;
+  background: #FCEEEF;
+}
+
+.qhher-search-suggest-thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.qhher-search-suggest-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  color: var(--htn-ink);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.25;
+}
+
+.qhher-search-suggest-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  color: var(--htn-sale);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.qhher-search-suggest-original {
+  color: var(--htn-muted);
+  font-size: 11px;
+  font-weight: 600;
+  text-decoration: line-through;
+}
+
+.qhher-search-suggest-action,
+.qhher-search-suggest-empty {
+  width: 100%;
+  border: 0;
+  border-radius: 14px;
+  background: #FFF7F8;
+  color: var(--htn-rose);
+  padding: 10px 12px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.qhher-search-suggest-empty {
+  color: var(--htn-muted);
 }
 
 .qhher-icon-btn {
@@ -1676,6 +1771,252 @@ body.hottrendnu-page .qhher-promo-sale {
   object-fit: cover !important;
   border: 1px solid var(--htn-border) !important;
   background: #FCEEEF;
+}
+
+.qhher-category-avatar-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  overflow: hidden;
+  border: 1px solid var(--htn-border);
+  background: #FCEEEF;
+}
+
+.qhher-category-avatar-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.qhher-category-avatar-wrap--new {
+  color: var(--htn-rose);
+  background: linear-gradient(135deg, #FDE5EC, #FFFFFF);
+}
+
+.qhher-mobile-category-page {
+  scroll-margin-top: 104px;
+  margin: 0 auto 1rem;
+  padding: calc(96px + env(safe-area-inset-top, 0px)) 16px 88px;
+  background:
+    radial-gradient(circle at 85% 0%, rgba(253, 229, 236, 0.92), transparent 34%),
+    linear-gradient(180deg, #FFF7F8 0%, #FFFFFF 68%, #FFF7F8 100%);
+}
+
+body.hottrendnu-page.qhher-category-open .navbar-blur {
+  display: none;
+}
+
+.qhher-category-page-head {
+  display: grid;
+  grid-template-columns: 42px 1fr 42px;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+}
+
+.qhher-category-page-head h2 {
+  margin: 0;
+  color: var(--htn-ink);
+  font-size: 18px;
+  font-weight: 800;
+  text-align: center;
+  letter-spacing: -0.01em;
+}
+
+.qhher-category-back-btn,
+.qhher-category-cart-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--htn-ink);
+  font-size: 18px;
+  position: relative;
+}
+
+.qhher-category-cart-btn span {
+  position: absolute;
+  top: 3px;
+  right: 2px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--htn-sale);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 16px;
+}
+
+.qhher-category-page-search {
+  position: relative;
+  margin-top: 14px;
+}
+
+.qhher-category-page-search input {
+  width: 100%;
+  height: 44px;
+  border: 1px solid var(--htn-border);
+  border-radius: 14px;
+  background: rgba(255,255,255,0.92);
+  padding: 0 44px;
+  color: var(--htn-ink);
+  font-size: 14px;
+  font-weight: 600;
+  outline: none;
+}
+
+.qhher-category-page-search i {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--htn-muted);
+  font-size: 14px;
+}
+
+.qhher-category-page-body {
+  margin-top: 20px;
+}
+
+.qhher-category-page-kicker {
+  margin: 0 0 12px;
+  color: var(--htn-ink);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.qhher-mobile-category-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.qhher-category-card,
+.qhher-collection-card {
+  display: block;
+  width: 100%;
+  border: 1px solid var(--htn-border);
+  border-radius: 18px;
+  background: #FFFFFF;
+  overflow: hidden;
+  text-align: center;
+  box-shadow: 0 10px 26px rgba(201,79,124,0.06);
+}
+
+.qhher-category-card-media {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  overflow: hidden;
+  background: #FCEEEF;
+}
+
+.qhher-category-card-media img,
+.qhher-collection-card-media img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.qhher-category-card-fallback {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #FDE5EC, #FFFFFF);
+  color: var(--htn-rose);
+  font-size: 22px;
+}
+
+.qhher-category-card-title {
+  display: block;
+  margin-top: 7px;
+  padding: 0 8px;
+  color: var(--htn-ink);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1.35;
+}
+
+.qhher-category-card-count {
+  display: block;
+  padding: 1px 8px 10px;
+  color: var(--htn-muted);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.qhher-collection-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 22px 0 12px;
+}
+
+.qhher-collection-head h3 {
+  margin: 0;
+  color: var(--htn-ink);
+  font-size: 15px;
+  font-weight: 900;
+}
+
+.qhher-collection-head a {
+  color: var(--htn-sale);
+  font-size: 12px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.qhher-featured-collections {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.qhher-collection-card-media {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  background: #FCEEEF;
+}
+
+.qhher-collection-card-label {
+  display: block;
+  padding: 9px 8px 11px;
+  color: var(--htn-ink);
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+@media (max-width: 767px) {
+  .qhher-mobile-category-page {
+    position: fixed;
+    inset: 0 0 64px 0;
+    z-index: 45;
+    margin: 0;
+    padding: calc(14px + env(safe-area-inset-top, 0px)) 16px 24px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  body.hottrendnu-page.qhher-category-open {
+    overflow: hidden;
+  }
 }
 
 /* Sections General */
@@ -2237,7 +2578,6 @@ body.hottrendnu-page #filterBar.hottrendnu-products-panel {
 }
 
 /* Modals & Popups redone */
-.hottrendnu-page #detailOverlay .popup-card,
 .hottrendnu-page #orderPopupCard,
 .hottrendnu-page #variantModalPanel,
 .hottrendnu-page .cart-modal,
@@ -2249,7 +2589,6 @@ body.hottrendnu-page #filterBar.hottrendnu-products-panel {
   border-radius: 20px !important;
 }
 
-.hottrendnu-page #detailOverlay .sticky,
 .hottrendnu-page #orderModalHeader {
   background: #FFFFFF !important;
   border-bottom: 1px solid var(--htn-border) !important;
@@ -2267,7 +2606,6 @@ body.hottrendnu-page #filterBar.hottrendnu-products-panel {
 }
 
 .hottrendnu-page #orderPopupCard .btn-primary,
-.hottrendnu-page #detailActionBarContainer .btn-primary,
 .hottrendnu-page #variantModalPanel .btn-primary {
   background: var(--htn-rose) !important;
   border: 1px solid var(--htn-rose) !important;
@@ -2275,7 +2613,6 @@ body.hottrendnu-page #filterBar.hottrendnu-products-panel {
 }
 
 .hottrendnu-page #orderPopupCard .add-to-cart-btn,
-.hottrendnu-page #detailActionBarContainer .add-to-cart-btn,
 .hottrendnu-page #variantModalPanel .add-to-cart-btn {
   background: #FFFFFF !important;
   color: var(--htn-rose) !important;
@@ -2568,8 +2905,8 @@ body.hottrendnu-page #filterBar.hottrendnu-products-panel {
   gap: 24px;
 }
 @media (min-width: 1024px) {
-  .hottrendnu-deals-row.has-flashsale {
-    grid-template-columns: 2fr 1fr;
+  .hottrendnu-deals-row.has-trending {
+    grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr);
   }
 }
 .hottrendnu-deals-row .hottrendnu-section {
@@ -2737,7 +3074,7 @@ body.hottrendnu-page[data-storefront-theme='dark'] .hottrendnu-products-panel {
   box-shadow: none !important;
 }
 
-/* QH Her top-section final alignment: match supplied desktop mockup. */
+/* QH Clothes top-section final alignment: match supplied desktop mockup. */
 body.hottrendnu-page {
   background: #FFF7F8 !important;
 }
@@ -2757,18 +3094,21 @@ body.hottrendnu-page .storefront-marquee-bar {
 }
 
 body.hottrendnu-page .storefront-marquee-track,
+body.hottrendnu-page .storefront-marquee-seq,
 body.hottrendnu-page .storefront-marquee-group {
   height: 30px !important;
   display: flex !important;
   align-items: center !important;
-  justify-content: center !important;
   gap: 0.65rem !important;
 }
 
 body.hottrendnu-page .storefront-marquee-icon,
 body.hottrendnu-page .storefront-marquee-group i,
 body.hottrendnu-page .storefront-marquee-bar i {
-  display: none !important;
+  display: inline-flex !important;
+  color: var(--htn-rose) !important;
+  font-size: 0.74rem !important;
+  line-height: 1 !important;
 }
 
 .qhher-top-dot {
@@ -3568,8 +3908,15 @@ body.hottrendnu-page .hottrendnu-deals-row {
   gap: 16px !important;
 }
 
-body.hottrendnu-page .hottrendnu-deals-row.has-flashsale {
-  grid-template-columns: minmax(0, 2.15fr) minmax(300px, 0.85fr) !important;
+@media (min-width: 1024px) {
+  body.hottrendnu-page .hottrendnu-deals-row {
+    grid-template-columns: minmax(0, 1fr);
+    justify-content: stretch;
+  }
+
+  body.hottrendnu-page .hottrendnu-deals-row.has-trending {
+    grid-template-columns: minmax(0, 2.15fr) minmax(300px, 0.85fr);
+  }
 }
 
 body.hottrendnu-page #products {
@@ -3838,6 +4185,7 @@ body.hottrendnu-page #products .htn-buy .htn-buy-cart-icon {
 }
 
 body.hottrendnu-page #flashSaleShopSection > div,
+body.hottrendnu-page #trendingProductsSection,
 body.hottrendnu-page #bestsellersSection {
   min-height: 214px !important;
   border: 1px solid var(--htn-border) !important;
@@ -3851,6 +4199,10 @@ body.hottrendnu-page #flashSaleShopSection > div {
 }
 
 body.hottrendnu-page #bestsellersSection {
+  padding: 0.85rem 0.9rem 0.75rem !important;
+}
+
+body.hottrendnu-page #trendingProductsSection {
   padding: 0.85rem 0.9rem 0.75rem !important;
 }
 
@@ -3917,12 +4269,14 @@ body.hottrendnu-page .qhher-view-all {
 }
 
 body.hottrendnu-page .flash-sale-shop-track,
+body.hottrendnu-page .trending-products-track,
 body.hottrendnu-page .bestsellers-track {
   gap: 12px !important;
   padding-bottom: 0 !important;
 }
 
 body.hottrendnu-page #flashSaleShopGrid .htn-deal-card,
+body.hottrendnu-page #trendingProductsTrack .htn-rank-card,
 body.hottrendnu-page #bestsellersTrack .htn-rank-card {
   flex: 0 0 104px !important;
   width: 104px !important;
@@ -3932,7 +4286,8 @@ body.hottrendnu-page #bestsellersTrack .htn-rank-card {
   box-shadow: none !important;
 }
 
-body.hottrendnu-page #flashSaleShopGrid .htn-deal-card {
+body.hottrendnu-page #flashSaleShopGrid .htn-deal-card,
+body.hottrendnu-page #trendingProductsTrack .htn-rank-card {
   flex-basis: calc((100% - 72px) / 7) !important;
   width: calc((100% - 72px) / 7) !important;
   min-width: 86px !important;
@@ -3946,17 +4301,20 @@ body.hottrendnu-page #bestsellersTrack .htn-rank-card {
 }
 
 body.hottrendnu-page #flashSaleShopGrid .htn-deal-media,
+body.hottrendnu-page #trendingProductsTrack .htn-rank-image,
 body.hottrendnu-page #bestsellersTrack .htn-rank-image {
   border-radius: 8px !important;
   aspect-ratio: 4 / 5 !important;
 }
 
 body.hottrendnu-page #flashSaleShopGrid .htn-deal-body,
+body.hottrendnu-page #trendingProductsTrack .htn-rank-body,
 body.hottrendnu-page #bestsellersTrack .htn-rank-body {
   padding: 0.42rem 0 0 !important;
 }
 
 body.hottrendnu-page #flashSaleShopGrid .htn-deal-body h3,
+body.hottrendnu-page #trendingProductsTrack .htn-rank-body h3,
 body.hottrendnu-page #bestsellersTrack .htn-rank-body h3 {
   font-size: 11px !important;
   line-height: 15px !important;
@@ -3966,17 +4324,20 @@ body.hottrendnu-page #bestsellersTrack .htn-rank-body h3 {
 }
 
 body.hottrendnu-page #flashSaleShopGrid .htn-product-price,
+body.hottrendnu-page #trendingProductsTrack .htn-product-price,
 body.hottrendnu-page #bestsellersTrack .htn-product-price {
   font-size: 12px !important;
   line-height: 16px !important;
 }
 
 body.hottrendnu-page #flashSaleShopGrid .htn-product-original,
+body.hottrendnu-page #trendingProductsTrack .htn-product-original,
 body.hottrendnu-page #bestsellersTrack .htn-product-original {
   font-size: 10px !important;
 }
 
 body.hottrendnu-page #flashSaleShopGrid .htn-product-price-row,
+body.hottrendnu-page #trendingProductsTrack .htn-product-price-row,
 body.hottrendnu-page #bestsellersTrack .htn-product-price-row {
   gap: 0.25rem !important;
   margin-top: 0.22rem !important;
@@ -4023,6 +4384,11 @@ body.hottrendnu-page .qhher-mini-badge {
   body.hottrendnu-page .qhher-mobile-search {
     position: relative !important;
     padding: 0 1rem 0.75rem !important;
+  }
+
+  body.hottrendnu-page .qhher-mobile-search .qhher-search-suggest-panel {
+    left: 1rem;
+    right: 1rem;
   }
 
   body.hottrendnu-page .qhher-mobile-search .qhher-glyph-search {
@@ -4116,7 +4482,7 @@ body.hottrendnu-page .qhher-mini-badge {
   }
 
   body.hottrendnu-page .hottrendnu-deals-row,
-  body.hottrendnu-page .hottrendnu-deals-row.has-flashsale {
+  body.hottrendnu-page .hottrendnu-deals-row.has-trending {
     grid-template-columns: 1fr !important;
     margin-top: 14px !important;
     gap: 14px !important;
@@ -4124,10 +4490,15 @@ body.hottrendnu-page .qhher-mini-badge {
 
   body.hottrendnu-page .hottrendnu-mobile-filter-row {
     display: grid !important;
-    grid-template-columns: minmax(0, 1fr) auto !important;
+    grid-template-columns: auto !important;
+    justify-content: flex-end !important;
     gap: 10px !important;
     align-items: center !important;
     margin-bottom: 12px !important;
+  }
+
+  body.hottrendnu-page .hottrendnu-mobile-filter-row .hottrendnu-search {
+    display: none;
   }
 
   body.hottrendnu-page .hottrendnu-filter-strip {
@@ -4252,6 +4623,7 @@ body.hottrendnu-page .qhher-mini-badge {
   }
 
   body.hottrendnu-page #bestsellersTrack .htn-rank-card,
+  body.hottrendnu-page #trendingProductsTrack .htn-rank-card,
   body.hottrendnu-page #flashSaleShopGrid .htn-deal-card {
     flex: 0 0 94px !important;
     width: 94px !important;
@@ -4260,6 +4632,7 @@ body.hottrendnu-page .qhher-mini-badge {
   }
 
   body.hottrendnu-page #bestsellersTrack .htn-rank-image,
+  body.hottrendnu-page #trendingProductsTrack .htn-rank-image,
   body.hottrendnu-page #flashSaleShopGrid .htn-deal-media {
     width: 94px !important;
     height: auto !important;
@@ -4267,6 +4640,7 @@ body.hottrendnu-page .qhher-mini-badge {
   }
 
   body.hottrendnu-page #bestsellersTrack .htn-rank-body h3,
+  body.hottrendnu-page #trendingProductsTrack .htn-rank-body h3,
   body.hottrendnu-page #flashSaleShopGrid .htn-deal-body h3 {
     font-size: 11px !important;
     line-height: 15px !important;
@@ -4455,6 +4829,619 @@ body.hottrendnu-page .qhher-footer {
   border-bottom-color: var(--htn-border) !important;
 }
 
+body.hottrendnu-page #detailOverlay {
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(43, 32, 36, 0.34);
+  backdrop-filter: blur(14px);
+}
+
+body.hottrendnu-page #detailOverlay > .w-full.max-w-md:not(.popup-card) {
+  display: none;
+}
+
+body.hottrendnu-page #detailOverlay .popup-card {
+  width: min(100%, 68rem);
+  max-width: calc(100vw - 2rem);
+  max-height: min(86vh, 48rem);
+  overflow: hidden;
+  border: 1px solid var(--htn-border);
+  border-radius: 20px;
+  background: #FFFFFF;
+  color: var(--htn-ink);
+  box-shadow: 0 24px 70px rgba(201, 79, 124, 0.18);
+}
+
+body.hottrendnu-page #detailOverlay .sticky {
+  min-height: 4rem;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--htn-border);
+  background: #FFFFFF;
+}
+
+body.hottrendnu-page #detailOverlay .detail-modal-title {
+  color: var(--htn-ink);
+  font-family: "Be Vietnam Pro", sans-serif;
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+body.hottrendnu-page #detailOverlay .detail-close-btn {
+  background: #FDF1F5;
+  color: var(--htn-ink);
+}
+
+body.hottrendnu-page #detailContent {
+  padding: 1.15rem 1.5rem 1.25rem;
+  overflow-x: hidden;
+}
+
+body.hottrendnu-page #detailOverlay .detail-layout-grid {
+  align-items: start;
+}
+
+body.hottrendnu-page #detailOverlay #detailGalleryViewport {
+  border-radius: 18px;
+  background: var(--htn-surface);
+}
+
+body.hottrendnu-page #detailOverlay #detailGalleryThumbs {
+  gap: 0.6rem;
+  padding-top: 0.4rem;
+}
+
+body.hottrendnu-page #detailOverlay #detailGalleryThumbs .detail-gallery-thumb {
+  border-color: var(--htn-border);
+  border-radius: 10px;
+}
+
+body.hottrendnu-page #detailOverlay #detailGalleryThumbs .detail-gallery-thumb.is-active {
+  border-color: var(--htn-rose);
+  box-shadow: 0 0 0 2px rgba(201, 79, 124, 0.14);
+}
+
+body.hottrendnu-page #detailOverlay .detail-product-title {
+  color: var(--htn-ink);
+  font-family: "Be Vietnam Pro", sans-serif;
+  font-size: clamp(1.25rem, 1.05rem + 0.9vw, 1.9rem);
+  line-height: 1.18;
+  letter-spacing: 0;
+}
+
+body.hottrendnu-page #detailOverlay .detail-title-stack {
+  display: block;
+}
+
+body.hottrendnu-page #detailOverlay .qhher-detail-title-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  right: 0;
+  bottom: 1.1rem;
+  z-index: 18;
+  min-width: 3.7rem;
+  height: 1.45rem;
+  padding: 0 0.62rem 0 1rem;
+  border-radius: 0.08rem 0 0 0.08rem;
+  background: linear-gradient(90deg, #E61F45 0%, var(--htn-sale) 100%);
+  color: #FFFFFF;
+  font-size: 0.72rem;
+  font-weight: 900;
+  line-height: 1.1;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  clip-path: polygon(0 0, 0.58rem 50%, 0 100%, 100% 100%, 100% 0);
+  box-shadow: 0 10px 18px rgba(232, 77, 106, 0.24);
+  pointer-events: none;
+}
+
+body.hottrendnu-page #detailOverlay .qhher-detail-title-badge::before {
+  content: "";
+  position: absolute;
+  top: -0.28rem;
+  right: 0;
+  width: 0.48rem;
+  height: 0.3rem;
+  background: #9D163C;
+  clip-path: polygon(0 100%, 100% 0, 100% 100%);
+}
+
+body.hottrendnu-page #detailOverlay .qhher-detail-title-badge::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  bottom: -0.28rem;
+  width: 0.48rem;
+  height: 0.3rem;
+  background: #9D163C;
+  clip-path: polygon(0 0, 100% 0, 100% 100%);
+}
+
+body.hottrendnu-page #detailOverlay .detail-price-row .qhher-detail-current-price {
+  background: none;
+  background-image: none;
+  -webkit-background-clip: border-box;
+  background-clip: border-box;
+  -webkit-text-fill-color: var(--htn-sale);
+  color: var(--htn-sale);
+  font-size: 1.8rem;
+}
+
+body.hottrendnu-page #detailOverlay .detail-price-row .line-through {
+  -webkit-text-fill-color: var(--htn-muted);
+  color: var(--htn-muted);
+}
+
+body.hottrendnu-page #orderOverlay .qhher-order-price,
+body.hottrendnu-page #orderBankTransferOverlay .qhher-order-price {
+  background: none;
+  background-image: none;
+  -webkit-background-clip: border-box;
+  background-clip: border-box;
+  -webkit-text-fill-color: var(--htn-sale);
+  color: var(--htn-sale);
+}
+
+body.hottrendnu-page #detailOverlay .detail-price-row .badge-sale {
+  background: #FCEEEF;
+  color: var(--htn-sale);
+}
+
+body.hottrendnu-page #detailOverlay .product-commerce-meta--detail {
+  margin-bottom: 1rem;
+}
+
+body.hottrendnu-page #detailOverlay .detail-color-card {
+  border-color: var(--htn-border);
+  border-radius: 16px;
+  box-shadow: 0 12px 24px rgba(201, 79, 124, 0.05);
+}
+
+body.hottrendnu-page #detailOverlay .detail-color-card.border-pink-500 {
+  border-color: var(--htn-rose);
+  box-shadow: 0 0 0 3px rgba(201, 79, 124, 0.12);
+}
+
+body.hottrendnu-page #detailOverlay .qhher-detail-color-dot {
+  display: none;
+}
+
+body.hottrendnu-page #detailOverlay .size-btn {
+  border-color: var(--htn-border);
+  color: var(--htn-ink);
+}
+
+body.hottrendnu-page #detailOverlay .size-btn.active {
+  border-color: var(--htn-rose);
+  background: #FDE5EC;
+  color: var(--htn-rose);
+}
+
+body.hottrendnu-page #detailOverlay .qhher-detail-description {
+  margin-top: 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--htn-border);
+}
+
+body.hottrendnu-page #detailOverlay .qhher-detail-description h3 {
+  margin-bottom: 0.55rem;
+  color: var(--htn-ink);
+  font-size: 0.95rem;
+  font-weight: 900;
+}
+
+body.hottrendnu-page #detailOverlay .qhher-detail-description p {
+  color: var(--htn-muted);
+  font-size: 0.9rem;
+  line-height: 1.75;
+}
+
+body.hottrendnu-page #detailActionBarContainer {
+  gap: 0.85rem;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--htn-border);
+  background: rgba(255, 255, 255, 0.98);
+}
+
+body.hottrendnu-page #detailActionBarContainer button {
+  min-height: 3.15rem;
+  border-radius: 14px;
+  font-size: 0.95rem;
+  font-weight: 900;
+  box-shadow: none;
+}
+
+body.hottrendnu-page #detailActionBarContainer .qhher-detail-desktop-action {
+  display: flex;
+}
+
+body.hottrendnu-page #detailActionBarContainer .qhher-detail-mobile-action {
+  display: none;
+}
+
+body.hottrendnu-page #detailActionBarContainer .btn-primary {
+  border: 1px solid var(--htn-rose);
+  background: var(--htn-rose);
+  color: #FFFFFF;
+}
+
+body.hottrendnu-page #detailActionBarContainer .qhher-detail-cart-btn,
+body.hottrendnu-page #detailActionBarContainer .add-to-cart-btn {
+  border: 1px solid var(--htn-border);
+  background: #FFFFFF;
+  color: var(--htn-rose);
+}
+
+@media (max-width: 767px) {
+  body.hottrendnu-page.qhher-detail-open {
+    overflow: hidden;
+    touch-action: none;
+  }
+
+  body.hottrendnu-page #detailOverlay {
+    align-items: stretch;
+    justify-content: flex-start;
+    padding: 0;
+    background: #FFF7F8;
+    backdrop-filter: none;
+  }
+
+  body.hottrendnu-page #detailOverlay .popup-card {
+    width: 100%;
+    max-width: none;
+    height: 100dvh;
+    max-height: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    display: flex;
+    flex-direction: column;
+  }
+
+  body.hottrendnu-page #detailOverlay .sticky {
+    display: grid;
+    grid-template-columns: 2.5rem 1fr auto;
+    gap: 0.75rem;
+    align-items: center;
+    min-height: 56px;
+    padding: 0 1rem;
+    border-radius: 0;
+    background: #FFF7F8;
+  }
+
+  body.hottrendnu-page #detailOverlay .qhher-detail-back-btn {
+    display: inline-flex;
+    background: transparent;
+  }
+
+  body.hottrendnu-page #detailOverlay .detail-modal-title,
+  body.hottrendnu-page #detailOverlay .detail-close-btn {
+    display: none;
+  }
+
+  body.hottrendnu-page #detailOverlay .qhher-detail-header-actions {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.85rem;
+  }
+
+  body.hottrendnu-page #detailOverlay .qhher-detail-header-actions button,
+  body.hottrendnu-page #detailOverlay .qhher-detail-header-actions .favorite-toggle-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.1rem;
+    height: 2.1rem;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--htn-ink);
+    box-shadow: none;
+  }
+
+  body.hottrendnu-page #detailOverlay .qhher-detail-cart-action span {
+    position: absolute;
+    top: -0.2rem;
+    right: -0.25rem;
+    min-width: 1rem;
+    height: 1rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: var(--htn-sale);
+    color: #FFFFFF;
+    font-size: 0.62rem;
+    font-weight: 900;
+  }
+
+  body.hottrendnu-page #detailContent {
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 0 1rem 6.4rem;
+    background: #FFF7F8;
+    overscroll-behavior: contain;
+  }
+
+  body.hottrendnu-page #detailOverlay .detail-layout-grid {
+    display: block;
+  }
+
+  body.hottrendnu-page #detailOverlay .detail-media-column {
+    margin: 0;
+  }
+
+  body.hottrendnu-page #detailOverlay .detail-gallery-shell {
+    margin: 0 -1rem 0.35rem;
+    width: 100vw;
+    max-width: none;
+  }
+
+  body.hottrendnu-page #detailOverlay #detailGalleryViewport {
+    width: 100%;
+    border: 0;
+    border-radius: 0;
+    background: #FCEEEF;
+  }
+
+  body.hottrendnu-page #detailOverlay .detail-gallery-counter {
+    position: static;
+    min-width: 2.35rem;
+    padding: 0.22rem 0.55rem;
+    background: rgba(43, 32, 36, 0.48);
+    color: #FFFFFF;
+    font-size: 0.68rem;
+    line-height: 1.1;
+  }
+
+  body.hottrendnu-page #detailOverlay .qhher-detail-slider-meta {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 1.8rem;
+    margin: 0.45rem 0 0.85rem;
+  }
+
+  body.hottrendnu-page #detailOverlay .qhher-detail-slider-meta .detail-gallery-counter {
+    justify-self: start;
+  }
+
+  body.hottrendnu-page #detailOverlay .qhher-detail-dots {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.42rem;
+    margin: 0;
+  }
+
+  body.hottrendnu-page #detailOverlay .qhher-detail-dot {
+    width: 0.42rem;
+    height: 0.42rem;
+    border: 0;
+    border-radius: 999px;
+    background: #E8CED8;
+    padding: 0;
+  }
+
+  body.hottrendnu-page #detailOverlay .qhher-detail-dot.is-active {
+    width: 0.5rem;
+    height: 0.5rem;
+    background: var(--htn-rose);
+  }
+
+  body.hottrendnu-page #detailOverlay #detailGalleryThumbs,
+  body.hottrendnu-page #detailOverlay .favorite-toggle-btn--detail,
+  body.hottrendnu-page #detailOverlay .product-commerce-meta--detail {
+    display: none;
+  }
+
+  body.hottrendnu-page #detailOverlay .detail-info-column {
+    padding-top: 0.25rem;
+  }
+
+  body.hottrendnu-page #detailOverlay .detail-product-heading-row {
+    margin-bottom: 0.55rem;
+  }
+
+  body.hottrendnu-page #detailOverlay .detail-title-stack {
+    display: block;
+  }
+
+  body.hottrendnu-page #detailOverlay .detail-product-title {
+    font-size: 1.08rem;
+    line-height: 1.35;
+    font-weight: 900;
+  }
+
+  body.hottrendnu-page #detailOverlay .qhher-detail-title-badge {
+    right: 0;
+    bottom: 0.86rem;
+    min-width: 3.35rem;
+    height: 1.3rem;
+    padding: 0 0.54rem 0 0.9rem;
+    font-size: 0.66rem;
+    transform: scale(0.82);
+    transform-origin: right center;
+  }
+
+  body.hottrendnu-page #detailOverlay .detail-price-row {
+    margin-bottom: 1.15rem;
+  }
+
+  body.hottrendnu-page #detailOverlay .detail-price-row .qhher-detail-current-price {
+    font-size: 1.35rem;
+  }
+
+  body.hottrendnu-page #detailOverlay .detail-price-row .line-through {
+    font-size: 0.78rem;
+  }
+
+  body.hottrendnu-page #detailOverlay .detail-option-section {
+    display: block;
+    margin-bottom: 1.05rem;
+  }
+
+  body.hottrendnu-page #detailOverlay .detail-option-section > p {
+    margin-bottom: 0.65rem;
+    color: var(--htn-ink);
+    font-size: 0.82rem;
+    font-weight: 800;
+  }
+
+  body.hottrendnu-page #detailOverlay #detailColorGrid {
+    display: flex;
+    gap: 0.72rem;
+  }
+
+  body.hottrendnu-page #detailOverlay .detail-color-card {
+    display: inline-flex;
+    width: 1.75rem;
+    height: 1.75rem;
+    overflow: visible;
+    border: 1px solid #E7D3DA;
+    border-radius: 999px;
+    padding: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  body.hottrendnu-page #detailOverlay .detail-color-card .relative,
+  body.hottrendnu-page #detailOverlay .detail-color-card .px-2\\.5 {
+    display: none;
+  }
+
+  body.hottrendnu-page #detailOverlay .detail-color-card .qhher-detail-color-dot {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: 999px;
+    box-shadow: inset 0 0 0 1px rgba(43, 32, 36, 0.08);
+  }
+
+  body.hottrendnu-page #detailOverlay .detail-color-card.border-pink-500 {
+    border-color: var(--htn-rose);
+    box-shadow: 0 0 0 3px rgba(201, 79, 124, 0.13);
+  }
+
+  body.hottrendnu-page #detailOverlay .detail-size-section .flex {
+    gap: 0.62rem;
+  }
+
+  body.hottrendnu-page #detailOverlay .size-btn {
+    width: 2.9rem;
+    height: 2rem;
+    border: 1px solid var(--htn-border);
+    border-radius: 8px;
+    background: #FFFFFF;
+    color: var(--htn-ink);
+    font-size: 0.78rem;
+  }
+
+  body.hottrendnu-page #detailOverlay .size-btn.active {
+    border-color: var(--htn-rose);
+    background: #FFFFFF;
+    color: var(--htn-rose);
+    box-shadow: 0 0 0 2px rgba(201, 79, 124, 0.12);
+  }
+
+  body.hottrendnu-page #detailOverlay .qhher-detail-qty-row {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    margin: 0.85rem 0 1.2rem;
+    color: var(--htn-ink);
+    font-size: 0.82rem;
+  }
+
+  body.hottrendnu-page #detailOverlay .qhher-detail-qty-control {
+    display: inline-flex;
+    align-items: center;
+    overflow: hidden;
+    border: 1px solid var(--htn-border);
+    border-radius: 8px;
+    background: #FFFFFF;
+  }
+
+  body.hottrendnu-page #detailOverlay .qhher-detail-qty-control button,
+  body.hottrendnu-page #detailOverlay .qhher-detail-qty-control strong {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.05rem;
+    height: 1.8rem;
+    color: var(--htn-ink);
+    font-size: 0.85rem;
+  }
+
+  body.hottrendnu-page #detailOverlay .qhher-detail-qty-control button {
+    border: 0;
+    background: #FFF7F8;
+  }
+
+  body.hottrendnu-page #detailOverlay .qhher-detail-description {
+    margin-top: 1.1rem;
+    padding-top: 1.05rem;
+  }
+
+  body.hottrendnu-page #detailOverlay .qhher-detail-description h3 {
+    font-size: 0.9rem;
+  }
+
+  body.hottrendnu-page #detailOverlay .qhher-detail-description p {
+    font-size: 0.8rem;
+    line-height: 1.75;
+  }
+
+  body.hottrendnu-page #detailActionBarContainer {
+    position: fixed;
+    top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 10030;
+    display: grid;
+    grid-template-columns: minmax(0, 0.86fr) minmax(0, 1.14fr);
+    gap: 0.7rem;
+    height: auto;
+    min-height: 0;
+    padding: 0.7rem 1rem calc(0.7rem + env(safe-area-inset-bottom));
+    border-top: 1px solid var(--htn-border);
+    background: rgba(255, 247, 248, 0.96);
+    transform: translateZ(0);
+  }
+
+  body.hottrendnu-page.qhher-detail-open #mobileBottomNav {
+    display: none;
+  }
+
+  body.hottrendnu-page #detailActionBarContainer .qhher-detail-desktop-action {
+    display: none;
+  }
+
+  body.hottrendnu-page #detailActionBarContainer .qhher-detail-mobile-action {
+    display: flex;
+  }
+
+  body.hottrendnu-page #detailActionBarContainer button {
+    width: 100%;
+    min-height: 3.1rem;
+    border-radius: 14px;
+    font-size: 0.92rem;
+  }
+
+  body.hottrendnu-page #detailActionBarContainer .qhher-detail-cart-btn,
+  body.hottrendnu-page #detailActionBarContainer .add-to-cart-btn {
+    border-color: var(--htn-rose);
+  }
+}
+
 body.hottrendnu-page .qhher-hero-main .qhher-hero-title,
 body.hottrendnu-page[data-storefront-theme='dark'] .qhher-hero-main .qhher-hero-title {
   color: var(--htn-rose) !important;
@@ -4467,33 +5454,34 @@ function hotTrendNuNavbar(): string {
   <div class="storefront-marquee-bar flex items-center justify-center">
     <div class="storefront-marquee-track">
       <div class="storefront-marquee-group">
-        <span class="qhher-top-dot" aria-hidden="true"></span>
+        <i class="fas fa-tags storefront-marquee-icon" aria-hidden="true"></i>
         <span class="storefront-marquee-text">Mua trực tiếp giá tốt hơn</span>
         <span class="storefront-marquee-separator">•</span>
-        <span class="qhher-top-dot" aria-hidden="true"></span>
+        <i class="fas fa-info-circle storefront-marquee-icon" aria-hidden="true"></i>
         <span class="storefront-marquee-text">Không qua sàn</span>
         <span class="storefront-marquee-separator">•</span>
-        <span class="qhher-top-dot" aria-hidden="true"></span>
+        <i class="fas fa-undo storefront-marquee-icon" aria-hidden="true"></i>
         <span class="storefront-marquee-text">Đổi trả 7 ngày</span>
       </div>
     </div>
   </div>
   <div class="qhher-header-main mx-auto flex max-w-[1280px] items-center justify-between gap-4 px-4">
-    <button type="button" onclick="document.getElementById('products')?.scrollIntoView({behavior:'smooth'})" class="qhher-icon-btn md:hidden" aria-label="Mở danh mục"><i class="fas fa-bars" aria-hidden="true"></i></button>
+    <button type="button" onclick="openHotTrendNuCategoryPage(event)" class="qhher-icon-btn md:hidden" aria-label="Mở danh mục"><i class="fas fa-bars" aria-hidden="true"></i></button>
     <a href="/hottrendnu" class="flex items-center gap-3">
-      <span class="qhher-logo">QH Her</span>
+      <span class="qhher-logo">QH Clothes</span>
     </a>
     <div class="hidden items-center gap-7 md:flex">
       <a class="qhher-nav-link" href="#bestsellersSection">Hàng mới</a>
-      <a class="qhher-nav-link" href="#products">Áo</a>
+      <a class="qhher-nav-link" href="#products" onclick="filterProductType('tops', document.querySelector('[data-type=&quot;tops&quot;]'))">Áo</a>
       <a class="qhher-nav-link" href="#products" onclick="filterProductType('dress', document.querySelector('[data-type=&quot;dress&quot;]'))">Váy/Đầm</a>
       <a class="qhher-nav-link" href="#products" onclick="filterProductType('pants', document.querySelector('[data-type=&quot;pants&quot;]'))">Quần</a>
-      <a class="qhher-nav-link" href="#products" onclick="filterProductType('jacket', document.querySelector('[data-type=&quot;jacket&quot;]'))">Áo khoác</a>
+      <a class="qhher-nav-link" href="#products" onclick="filterProductType('outerwear', document.querySelector('[data-type=&quot;outerwear&quot;]'))">Áo khoác</a>
       <a class="qhher-nav-link qhher-nav-link--sale" href="#flashSaleShopSection">Sale</a>
     </div>
-    <div class="qhher-header-search hidden md:block">
-      <input type="text" placeholder="Tìm sản phẩm, danh mục..." onfocus="focusProductsSearch()" aria-label="Tìm sản phẩm">
+    <div class="qhher-header-search qhher-search-box hidden md:block">
+      <input id="qhherHeaderSearchInput" class="qhher-storefront-search-input" type="search" placeholder="Tìm sản phẩm, danh mục..." autocomplete="off" onfocus="openStorefrontHeaderSearch(this)" oninput="handleStorefrontHeaderSearchInput(this.value, this)" onkeydown="handleStorefrontHeaderSearchKeydown(event)" aria-label="Tìm sản phẩm">
       <i class="fas fa-search" aria-hidden="true"></i>
+      <div id="qhherHeaderSearchPanel" class="qhher-search-suggest-panel hidden"></div>
     </div>
     <div class="qhher-header-actions flex items-center">
       <button type="button" onclick="focusProductsSearch()" class="qhher-icon-btn hidden md:inline-flex" aria-label="Tìm sản phẩm"><i class="fas fa-search" aria-hidden="true"></i></button>
@@ -4519,9 +5507,10 @@ function hotTrendNuNavbar(): string {
       </button>
     </div>
   </div>
-  <div class="qhher-mobile-search md:hidden">
-    <input type="text" placeholder="Tìm sản phẩm, danh mục..." onfocus="focusProductsSearch()" aria-label="Tìm sản phẩm">
+  <div class="qhher-mobile-search qhher-search-box md:hidden">
+    <input id="qhherMobileSearchInput" class="qhher-storefront-search-input" type="search" placeholder="Tìm sản phẩm, danh mục..." autocomplete="off" onfocus="openStorefrontHeaderSearch(this)" oninput="handleStorefrontHeaderSearchInput(this.value, this)" onkeydown="handleStorefrontHeaderSearchKeydown(event)" aria-label="Tìm sản phẩm">
     <i class="fas fa-search" aria-hidden="true"></i>
+    <div id="qhherMobileSearchPanel" class="qhher-search-suggest-panel hidden"></div>
   </div>
 </nav>`
 }
@@ -4581,35 +5570,11 @@ function hotTrendNuHero(): string {
     </div>
   </div>
   <div class="qhher-category-shell" aria-label="Danh mục nhanh">
-    <div class="qhher-category-rail">
-      <a class="qhher-category-pill" href="#bestsellersSection">
-        <img class="qhher-category-avatar" src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=120" alt="Hàng mới">
+    <div id="qhherCategoryRailDynamic" class="qhher-category-rail">
+      <button type="button" class="qhher-category-pill" onclick="openHotTrendNuCategoryPage(event)">
+        <span class="qhher-category-avatar-wrap qhher-category-avatar-wrap--new"><i class="fas fa-star"></i></span>
         <span>Hàng mới</span>
-      </a>
-      <a class="qhher-category-pill" href="#products" onclick="filterProductType('tshirt', document.querySelector('[data-type=&quot;tshirt&quot;]'))">
-        <img class="qhher-category-avatar" src="https://images.unsplash.com/photo-1554412933-514a83d2f3c8?w=120" alt="Áo">
-        <span>Áo</span>
-      </a>
-      <a class="qhher-category-pill" href="#products" onclick="filterProductType('dress', document.querySelector('[data-type=&quot;dress&quot;]'))">
-        <img class="qhher-category-avatar" src="https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=120" alt="Váy/Đầm">
-        <span>Váy/Đầm</span>
-      </a>
-      <a class="qhher-category-pill" href="#products" onclick="filterProductType('set', document.querySelector('[data-type=&quot;set&quot;]'))">
-        <img class="qhher-category-avatar" src="https://images.unsplash.com/photo-1618244972963-dbee1a7edc95?w=120" alt="Set đồ">
-        <span>Set đồ</span>
-      </a>
-      <a class="qhher-category-pill" href="#products" onclick="filterProductType('jacket', document.querySelector('[data-type=&quot;jacket&quot;]'))">
-        <img class="qhher-category-avatar" src="https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=120" alt="Áo khoác">
-        <span>Áo khoác</span>
-      </a>
-      <a class="qhher-category-pill" href="#products">
-        <img class="qhher-category-avatar" src="https://images.unsplash.com/photo-1485968579580-b6d095142e6e?w=120" alt="Đi chơi">
-        <span>Đi chơi</span>
-      </a>
-      <a class="qhher-category-pill" href="#products">
-        <img class="qhher-category-avatar" src="https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?w=120" alt="Basic">
-        <span>Basic</span>
-      </a>
+      </button>
     </div>
     <a class="qhher-sale-tile" href="#flashSaleShopSection">
       <span class="qhher-sale-icon" aria-hidden="true"></span>
@@ -4619,22 +5584,56 @@ function hotTrendNuHero(): string {
 </section>`
 }
 
-function hotTrendNuBestsellers(): string {
-  return `<section id="bestsellersSection" class="hottrendnu-section">
-  <div class="qhher-mini-section-head">
-    <h2 class="qhher-mini-title">Hàng mới về</h2>
-    <a href="#products" class="qhher-view-all">Xem tất cả -></a>
+function hotTrendNuCategoryPage(): string {
+  return `<section id="qhherCategoryPage" class="qhher-mobile-category-page hidden md:hidden" aria-label="Danh mục QH Clothes">
+  <div class="qhher-category-page-head">
+    <button type="button" class="qhher-category-back-btn" onclick="closeHotTrendNuCategoryPage(); document.getElementById('hero')?.scrollIntoView({behavior:'smooth'})" aria-label="Quay lại">
+      <i class="fas fa-arrow-left" aria-hidden="true"></i>
+    </button>
+    <h2>Danh mục</h2>
+    <button type="button" onclick="openCart()" class="qhher-category-cart-btn" aria-label="Giỏ hàng">
+      <i class="fas fa-shopping-bag" aria-hidden="true"></i>
+      <span id="cartBadgeCategory" class="hidden">0</span>
+    </button>
   </div>
-  <div id="bestsellersTrack" class="bestsellers-track">
-    <div class="htn-rank-card h-40 animate-pulse"></div>
-    <div class="htn-rank-card h-40 animate-pulse"></div>
-    <div class="htn-rank-card h-40 animate-pulse"></div>
+  <div class="qhher-category-page-search">
+    <i class="fas fa-search" aria-hidden="true"></i>
+    <input type="search" placeholder="Tìm áo, váy, quần..." autocomplete="off" oninput="handleStorefrontHeaderSearchInput(this.value, this)" onkeydown="handleStorefrontHeaderSearchKeydown(event)" aria-label="Tìm trong danh mục">
+  </div>
+  <div class="qhher-category-page-body">
+    <p class="qhher-category-page-kicker">Khám phá danh mục</p>
+    <div id="qhherMobileCategoryGrid" class="qhher-mobile-category-grid"></div>
+    <div class="qhher-collection-head">
+      <h3>Bộ sưu tập nổi bật</h3>
+      <a href="#products" onclick="closeHotTrendNuCategoryPage()">Xem tất cả -></a>
+    </div>
+    <div id="qhherFeaturedCollections" class="qhher-featured-collections"></div>
   </div>
 </section>`
 }
 
+function hotTrendNuBestsellers(): string {
+  return `<section id="bestsellersSection" class="hottrendnu-section hidden">
+  <div class="qhher-mini-section-head">
+    <h2 class="qhher-mini-title">Hàng mới về</h2>
+    <a href="#products" class="qhher-view-all">Xem tất cả -></a>
+  </div>
+  <div id="bestsellersTrack" class="bestsellers-track"></div>
+</section>`
+}
+
+function hotTrendNuTrendingProducts(): string {
+  return `<section id="trendingProductsSection" class="hottrendnu-section hidden">
+  <div class="qhher-mini-section-head">
+    <h2 class="qhher-mini-title">Sản phẩm thịnh hành</h2>
+    <a href="#products" class="qhher-view-all">Xem tất cả -></a>
+  </div>
+  <div id="trendingProductsTrack" class="trending-products-track flex snap-x overflow-x-auto"></div>
+</section>`
+}
+
 function hotTrendNuFlashSale(): string {
-  return `<section id="flashSaleShopSection" class="hottrendnu-section">
+  return `<section id="flashSaleShopSection" class="hottrendnu-section hidden">
   <div class="overflow-hidden rounded-[1.6rem] p-4 md:p-6">
     <div class="qhher-deal-header">
       <div class="flex items-center gap-4">
@@ -4652,12 +5651,7 @@ function hotTrendNuFlashSale(): string {
       </div>
       <a href="#products" class="qhher-view-all">Xem tất cả -></a>
     </div>
-    <div id="flashSaleShopGrid" class="flash-sale-shop-track flex snap-x overflow-x-auto">
-      <div class="htn-deal-card h-40 animate-pulse"></div>
-      <div class="htn-deal-card h-40 animate-pulse"></div>
-      <div class="htn-deal-card h-40 animate-pulse"></div>
-      <div class="htn-deal-card h-40 animate-pulse"></div>
-    </div>
+    <div id="flashSaleShopGrid" class="flash-sale-shop-track flex snap-x overflow-x-auto"></div>
   </div>
 </section>`
 }
@@ -4703,11 +5697,11 @@ function hotTrendNuProducts(): string {
     <div class="hottrendnu-filter-strip">
       <div class="hottrendnu-type-row" id="filterChipRow">
         <button class="hottrendnu-type-chip active" data-type="all" onclick="filterProductType('all', this)">Tất cả</button>
-        <button class="hottrendnu-type-chip" data-type="tshirt" onclick="filterProductType('tshirt', this)">Áo</button>
+        <button class="hottrendnu-type-chip" data-type="tops" onclick="filterProductType('tops', this)">Áo</button>
         <button class="hottrendnu-type-chip" data-type="dress" onclick="filterProductType('dress', this)">Váy/Đầm</button>
         <button class="hottrendnu-type-chip" data-type="pants" onclick="filterProductType('pants', this)">Quần</button>
         <button class="hottrendnu-type-chip" data-type="set" onclick="filterProductType('set', this)">Set đồ</button>
-        <button class="hottrendnu-type-chip" data-type="jacket" onclick="filterProductType('jacket', this)">Áo khoác</button>
+        <button class="hottrendnu-type-chip" data-type="outerwear" onclick="filterProductType('outerwear', this)">Áo khoác</button>
       </div>
       <div class="hottrendnu-filter-control-row">
         ${uiSelectTemplate({
@@ -4828,7 +5822,7 @@ function hotTrendNuFooter(): string {
   return `<footer class="qhher-footer" id="contact">
   <div class="qhher-footer-grid">
     <div class="qhher-footer-brand">
-      <p class="qhher-logo">QH Her</p>
+      <p class="qhher-logo">QH Clothes</p>
       <p>Thời trang nữ trẻ trung, hiện đại<br>Xinh mỗi ngày - Giá tốt khi mua trực tiếp.</p>
       <div class="qhher-footer-socials">
         <a href="#" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
@@ -4851,10 +5845,10 @@ function hotTrendNuFooter(): string {
     <div class="qhher-footer-col">
       <p>CHÍNH SÁCH</p>
       <ul>
-        <li><a href="#">Chính sách thanh toán</a></li>
-        <li><a href="#">Chính sách vận chuyển</a></li>
-        <li><a href="/chinh-sach-doi-tra">Chính sách đổi trả</a></li>
-        <li><a href="/chinh-sach-bao-mat">Chính sách bảo mật</a></li>
+        <li><a href="/hottrendnu/chinh-sach-thanh-toan">Chính sách thanh toán</a></li>
+        <li><a href="/hottrendnu/chinh-sach-van-chuyen">Chính sách vận chuyển</a></li>
+        <li><a href="/hottrendnu/chinh-sach-doi-tra">Chính sách đổi trả</a></li>
+        <li><a href="/hottrendnu/chinh-sach-bao-mat">Chính sách bảo mật</a></li>
       </ul>
     </div>
 
@@ -4863,7 +5857,7 @@ function hotTrendNuFooter(): string {
       <ul>
         <li><a href="#">Hướng dẫn mua hàng</a></li>
         <li><a href="#">Câu hỏi thường gặp</a></li>
-        <li><a href="/chinh-sach-doi-tra">Hướng dẫn đổi trả</a></li>
+        <li><a href="/hottrendnu/chinh-sach-doi-tra">Hướng dẫn đổi trả</a></li>
         <li><a href="#">Liên hệ hỗ trợ</a></li>
       </ul>
     </div>
@@ -4878,7 +5872,7 @@ function hotTrendNuFooter(): string {
     </div>
   </div>
   <div class="qhher-footer-copy">
-    <p>© 2026 QH Her. All rights reserved.</p>
+    <p>© 2026 QH Clothes. All rights reserved.</p>
   </div>
 </footer>`
 }
@@ -4887,26 +5881,26 @@ function hotTrendNuMobileBottomNavSection(): string {
   return `<!-- MOBILE BOTTOM NAV -->
 <nav id="mobileBottomNav" class="mobile-bottom-nav md:hidden fixed bottom-0 left-0 right-0 z-50 bg-[#FFF7F8] border-t border-[#F3DDE4] safe-area-bottom pb-2">
   <div class="flex items-center justify-around h-[64px]">
-    <a href="#hero" class="mobile-bottom-nav-link is-active flex flex-col items-center justify-center gap-1 w-16 transition" style="color: var(--htn-rose) !important;">
+    <a href="#hero" onclick="closeHotTrendNuCategoryPage()" class="mobile-bottom-nav-link is-active flex flex-col items-center justify-center gap-1 w-16 transition">
       <i class="fas fa-home text-xl"></i>
       <span class="text-[10px] font-medium" style="font-family: 'Be Vietnam Pro', sans-serif;">Trang chủ</span>
     </a>
-    <a href="#products" class="mobile-bottom-nav-link flex flex-col items-center justify-center gap-1 w-16 transition" style="color: var(--htn-muted);">
+    <button type="button" data-qhher-category-nav="true" onclick="openHotTrendNuCategoryPage(event)" class="mobile-bottom-nav-link flex flex-col items-center justify-center gap-1 w-16 transition">
       <i class="fas fa-th-large text-xl"></i>
       <span class="text-[10px] font-medium" style="font-family: 'Be Vietnam Pro', sans-serif;">Danh mục</span>
-    </a>
-    <button onclick="openUserMenu(); setTimeout(showUserFavorites, 0)" class="mobile-bottom-nav-link flex flex-col items-center justify-center gap-1 w-16 transition" style="color: var(--htn-muted);">
+    </button>
+    <button onclick="openUserMenu(); setTimeout(showUserFavorites, 0)" class="mobile-bottom-nav-link flex flex-col items-center justify-center gap-1 w-16 transition">
       <i class="far fa-heart text-xl"></i>
       <span class="text-[10px] font-medium" style="font-family: 'Be Vietnam Pro', sans-serif;">Yêu thích</span>
     </button>
-    <button onclick="openCart()" id="cartBottomNavBtn" class="mobile-bottom-nav-link relative flex flex-col items-center justify-center gap-1 w-16 transition" style="color: var(--htn-muted);">
+    <button onclick="openCart()" id="cartBottomNavBtn" class="mobile-bottom-nav-link relative flex flex-col items-center justify-center gap-1 w-16 transition">
       <div class="relative">
         <i class="fas fa-shopping-bag text-xl"></i>
         <span id="cartBadgeBottom" class="absolute -top-1.5 -right-2 bg-[#E84D6A] text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center hidden font-bold">0</span>
       </div>
       <span class="text-[10px] font-medium" style="font-family: 'Be Vietnam Pro', sans-serif;">Giỏ hàng</span>
     </button>
-    <button onclick="toggleUserMenu()" class="mobile-bottom-nav-link flex flex-col items-center justify-center gap-1 w-16 transition" style="color: var(--htn-muted);">
+    <button onclick="toggleUserMenu()" class="mobile-bottom-nav-link flex flex-col items-center justify-center gap-1 w-16 transition">
       <i class="far fa-user text-xl"></i>
       <span class="text-[10px] font-medium" style="font-family: 'Be Vietnam Pro', sans-serif;">Tài khoản</span>
     </button>
@@ -4917,8 +5911,8 @@ function hotTrendNuMobileBottomNavSection(): string {
 export function hotTrendNuHTML(options: HotTrendNuPageOptions = {}): string {
   const canonicalUrl = String(options.canonicalUrl || 'https://qhclothes.pages.dev/hottrendnu').trim()
   const ogImageUrl = String(options.ogImageUrl || 'https://qhclothes.pages.dev/og/qh-clothes-share-16x9.png').trim()
-  const seoTitle = 'QH Her - Thời trang nữ trẻ, váy, set và outfit hot trend'
-  const seoDescription = 'QH Her là mặt tiền thời trang nữ trẻ dùng chung giỏ hàng, đặt nhanh và dashboard với QH Boypho.'
+  const seoTitle = 'QH Clothes - Thời trang nữ trẻ, váy, set và outfit hot trend'
+  const seoDescription = 'QH Clothes là mặt tiền thời trang nữ trẻ dùng chung giỏ hàng, đặt nhanh và dashboard với QH Boypho.'
   return `<!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -4930,7 +5924,7 @@ export function hotTrendNuHTML(options: HotTrendNuPageOptions = {}): string {
 <meta name="author" content="QH Boypho">
 <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1">
 <link rel="canonical" href="${canonicalUrl}">
-<meta property="og:site_name" content="QH Her">
+<meta property="og:site_name" content="QH Clothes">
 <meta property="og:locale" content="vi_VN">
 <meta property="og:title" content="${seoTitle}">
 <meta property="og:description" content="${seoDescription}">
@@ -4958,8 +5952,12 @@ ${hotTrendNuStyles()}
 <body class="hottrendnu-page overflow-x-hidden pb-[70px] md:pb-0" data-storefront-theme="light">
 ${hotTrendNuNavbar()}
 ${hotTrendNuHero()}
-<div id="dealsGridRow" class="hottrendnu-deals-row has-flashsale max-w-[1280px] mx-auto px-4 gap-6 my-8">
+${hotTrendNuCategoryPage()}
+<div id="flashSaleDealsRow" class="hidden max-w-[1280px] mx-auto px-4 my-8">
   ${hotTrendNuFlashSale()}
+</div>
+<div id="dealsGridRow" class="hottrendnu-deals-row hidden max-w-[1280px] mx-auto px-4 gap-6 my-8">
+  ${hotTrendNuTrendingProducts()}
   ${hotTrendNuBestsellers()}
 </div>
 ${hotTrendNuProducts()}

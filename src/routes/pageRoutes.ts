@@ -3,6 +3,7 @@ import type { Hono } from 'hono'
 import type { AppBindings } from '../types/app'
 import { storefrontHTML } from '../pages/storefrontPage'
 import { hotTrendNuHTML } from '../pages/hottrendnuPage'
+import { hotTrendNuPaymentPolicyHTML, hotTrendNuPrivacyPolicyHTML, hotTrendNuReturnPolicyHTML, hotTrendNuShippingPolicyHTML } from '../pages/hottrendnuPolicyPage'
 import { privacyPolicyHTML } from '../pages/privacyPolicyPage'
 import { returnPolicyHTML } from '../pages/returnPolicyPage'
 import { adminHTML } from '../pages/adminPage'
@@ -158,6 +159,15 @@ export function registerPageRoutes(app: Hono<{ Bindings: AppBindings }>) {
     const ogImageUrl = requestUrl.origin + '/og/qh-clothes-share-16x9.png'
     return c.html(hotTrendNuHTML({ textUiSettings, canonicalUrl, ogImageUrl }))
   })
+
+  app.get('/hottrendnu/chinh-sach-doi-tra', (c) => c.html(hotTrendNuReturnPolicyHTML()))
+  app.get('/hottrendnu/return-policy', (c) => c.redirect('/hottrendnu/chinh-sach-doi-tra'))
+  app.get('/hottrendnu/chinh-sach-thanh-toan', (c) => c.html(hotTrendNuPaymentPolicyHTML()))
+  app.get('/hottrendnu/payment-policy', (c) => c.redirect('/hottrendnu/chinh-sach-thanh-toan'))
+  app.get('/hottrendnu/chinh-sach-van-chuyen', (c) => c.html(hotTrendNuShippingPolicyHTML()))
+  app.get('/hottrendnu/shipping-policy', (c) => c.redirect('/hottrendnu/chinh-sach-van-chuyen'))
+  app.get('/hottrendnu/chinh-sach-bao-mat', (c) => c.html(hotTrendNuPrivacyPolicyHTML()))
+  app.get('/hottrendnu/privacy-policy', (c) => c.redirect('/hottrendnu/chinh-sach-bao-mat'))
 
   app.get('/chinh-sach-doi-tra', (c) => c.html(returnPolicyHTML()))
   app.get('/return-policy', (c) => c.redirect('/chinh-sach-doi-tra'))

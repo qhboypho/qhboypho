@@ -495,6 +495,16 @@ function removeCustomShippingCarrier(code) {
 }
 
 const DEFAULT_MARQUEE_NOTIFICATION_TEXT = 'Mua hàng tại đây không qua sàn thương mại nên giá thành sản phẩm sẽ rẻ hơn rất nhiều và bảo hành hoàn trả trong vòng 7 ngày nếu sản phẩm bị lỗi nên quý khách yên tâm mua sắm nhé.Bảo hành đổi trả nhắn qua trang facebook : QH Boypho. Chúc quý khách có trải nghiệm mua sắm tốt tại QH Boypho'
+const DEFAULT_HOT_TREND_NU_MARQUEE_NOTIFICATION_TEXT = 'Mua trực tiếp giá tốt hơn | Không qua sàn | Đổi trả 7 ngày'
+let activeNotificationSegment = 'index'
+
+function getNotificationSegmentDefaultText(segment) {
+  return segment === 'hottrendnu' ? DEFAULT_HOT_TREND_NU_MARQUEE_NOTIFICATION_TEXT : DEFAULT_MARQUEE_NOTIFICATION_TEXT
+}
+
+function getActiveNotificationDefaultText() {
+  return getNotificationSegmentDefaultText(activeNotificationSegment)
+}
 
 function normalizeMarqueeSpeed(value) {
   const n = Number(value || 48)
@@ -503,7 +513,8 @@ function normalizeMarqueeSpeed(value) {
 }
 
 function parseMarqueeSegments(value) {
-  const raw = String(value || DEFAULT_MARQUEE_NOTIFICATION_TEXT)
+  const fallback = getActiveNotificationDefaultText()
+  const raw = String(value || fallback)
   const lineBreak = String.fromCharCode(10)
   const segments = raw
     .replaceAll(String.fromCharCode(13), lineBreak)
@@ -511,7 +522,7 @@ function parseMarqueeSegments(value) {
     .split(lineBreak)
     .map(item => item.trim())
     .filter(Boolean)
-  return segments.length ? segments.slice(0, 12) : [DEFAULT_MARQUEE_NOTIFICATION_TEXT]
+  return segments.length ? segments.slice(0, 12) : [fallback]
 }
 
 function syncMarqueeSegmentsFromInputs() {
@@ -621,7 +632,7 @@ function getAdminMarqueeFillWidth(track) {
   const bar = track?.closest?.('.storefront-marquee-bar')
   const barWidth = Number(bar?.clientWidth || bar?.getBoundingClientRect?.().width || 0)
   const viewportWidth = Number(window.innerWidth || document.documentElement.clientWidth || 0)
-  return Math.max(barWidth, viewportWidth, 720)
+  return Math.max(barWidth, viewportWidth, 720) + 160
 }
 
 function fillAdminMarqueePattern(sequence, segments, minWidth) {
@@ -630,6 +641,14 @@ function fillAdminMarqueePattern(sequence, segments, minWidth) {
     segments.forEach(segment => appendMarqueeSegmentGroup(sequence, segment))
     guard += 1
   }
+}
+
+function resolveAdminMarqueeDuration(speedSeconds, sequence) {
+  const speed = normalizeMarqueeSpeed(speedSeconds)
+  const sequenceWidth = Number(sequence?.scrollWidth || 0)
+  const baselineWidth = 720
+  const widthScale = sequenceWidth > baselineWidth ? sequenceWidth / baselineWidth : 1
+  return Math.round(speed * widthScale)
 }
 
 function renderAdminMarqueePreview(text, speedSeconds) {
@@ -653,14 +672,15 @@ function renderAdminMarqueePreview(text, speedSeconds) {
   const clone = sequence.cloneNode(true)
   clone.setAttribute('aria-hidden', 'true')
   track.appendChild(clone)
-  track.style.setProperty('--storefront-marquee-duration', speed + 's')
+  track.style.setProperty('--storefront-marquee-duration', resolveAdminMarqueeDuration(speed, sequence) + 's')
 }
 
 function renderAdminStaticNotificationPreview(text) {
   const track = document.getElementById('adminMarqueePreviewTrack')
   if (!track) return
   const bar = track.closest('.storefront-marquee-bar')
-  const safeText = String(text || DEFAULT_MARQUEE_NOTIFICATION_TEXT).trim() || DEFAULT_MARQUEE_NOTIFICATION_TEXT
+  const fallback = getActiveNotificationDefaultText()
+  const safeText = String(text || fallback).trim() || fallback
   if (bar) bar.classList.add('storefront-marquee-bar--static')
   track.innerHTML = ''
   track.className = 'storefront-marquee-track'
@@ -773,6 +793,8 @@ function previewNotificationSettings() {
     renderAdminMarqueePreview(text, speed)
   }
   const caption = document.getElementById('notificationPreviewCaption')
+  const storeName = document.getElementById('notificationPreviewStoreName')
+  if (storeName) storeName.textContent = activeNotificationSegment === 'hottrendnu' ? 'QH Clothes' : 'QH Boypho'
   if (caption) caption.textContent = mode === 'static' ? 'Thông báo hiển thị tĩnh trên đầu trang.' : 'Thông báo chạy ngay khi trang được load.'
 }
 
@@ -780,8 +802,9 @@ function fillNotificationSettings(cfg) {
   const text = document.getElementById('marqueeNotificationText')
   const staticText = document.getElementById('staticNotificationText')
   const speed = document.getElementById('marqueeSpeedSeconds')
-  if (text) text.value = cfg.marquee_text || DEFAULT_MARQUEE_NOTIFICATION_TEXT
-  setMarqueeSegmentsFromText(cfg.marquee_text || DEFAULT_MARQUEE_NOTIFICATION_TEXT)
+  const fallback = getActiveNotificationDefaultText()
+  if (text) text.value = cfg.marquee_text || fallback
+  setMarqueeSegmentsFromText(cfg.marquee_text || fallback)
   if (staticText) staticText.value = cfg.static_notification_text || ''
   setNotificationDisplayMode(cfg.notification_display_mode || 'marquee')
   if (speed) speed.value = String(normalizeMarqueeSpeed(cfg.marquee_speed_seconds || 48))
@@ -789,9 +812,29 @@ function fillNotificationSettings(cfg) {
   previewNotificationSettings()
 }
 
+function getNotificationSegmentApiSuffix() {
+  return '?segment=' + encodeURIComponent(activeNotificationSegment)
+}
+
+function updateNotificationSegmentButtons() {
+  const indexBtn = document.getElementById('notificationSegmentIndexBtn')
+  const herBtn = document.getElementById('notificationSegmentHottrendnuBtn')
+  if (indexBtn) indexBtn.classList.toggle('is-active', activeNotificationSegment === 'index')
+  if (herBtn) herBtn.classList.toggle('is-active', activeNotificationSegment === 'hottrendnu')
+}
+
+function switchNotificationSegment(segment) {
+  const normalized = String(segment || '').trim() === 'hottrendnu' ? 'hottrendnu' : 'index'
+  if (activeNotificationSegment === normalized) return
+  activeNotificationSegment = normalized
+  updateNotificationSegmentButtons()
+  loadNotificationSettings()
+}
+
 async function loadNotificationSettings() {
   try {
-    const res = await axios.get('/api/admin/settings/notifications')
+    updateNotificationSegmentButtons()
+    const res = await axios.get('/api/admin/settings/notifications' + getNotificationSegmentApiSuffix())
     fillNotificationSettings(res.data.data || {})
   } catch (e) {
     fillNotificationSettings({})
@@ -803,6 +846,7 @@ async function saveNotificationSettings() {
   const btn = document.getElementById('saveNotificationSettingsBtn')
   const marqueeText = syncMarqueeSegmentsFromInputs()
   const payload = {
+    segment: activeNotificationSegment,
     marquee_text: String(marqueeText || '').trim(),
     marquee_speed_seconds: normalizeMarqueeSpeed(document.getElementById('marqueeSpeedSeconds')?.value || 48),
     notification_display_mode: getNotificationDisplayMode(),
@@ -813,7 +857,7 @@ async function saveNotificationSettings() {
     btn.innerHTML = '<i class="fas fa-spinner fa-spin text-amber-500"></i>Đang lưu...'
   }
   try {
-    await axios.put('/api/admin/settings/notifications', payload)
+    await axios.put('/api/admin/settings/notifications' + getNotificationSegmentApiSuffix(), payload)
     showAdminToast('Đã lưu cài đặt thông báo', 'success')
     await loadNotificationSettings()
   } catch (e) {

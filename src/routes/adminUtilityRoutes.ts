@@ -66,6 +66,7 @@ type NotificationSettingsInput = {
   marquee_speed_seconds?: unknown
   notification_display_mode?: unknown
   static_notification_text?: unknown
+  segment?: unknown
 }
 
 type PaymentSettingsInput = {
@@ -115,6 +116,10 @@ const SHOP_BACKUP_SETTING_ALLOWLIST = new Set([
   'marquee_speed_seconds',
   'notification_display_mode',
   'static_notification_text',
+  'hottrendnu_marquee_text',
+  'hottrendnu_marquee_speed_seconds',
+  'hottrendnu_notification_display_mode',
+  'hottrendnu_static_notification_text',
   'wallet_topup_enabled',
   'quick_order_risk_note_text',
   'product_freeship_badge_enabled',
@@ -508,16 +513,51 @@ const NOTIFICATION_SETTING_KEYS = [
   'static_notification_text',
 ] as const
 
+const HOT_TREND_NU_NOTIFICATION_SETTING_KEYS = [
+  'hottrendnu_marquee_text',
+  'hottrendnu_marquee_speed_seconds',
+  'hottrendnu_notification_display_mode',
+  'hottrendnu_static_notification_text',
+] as const
+
 const PAYMENT_SETTING_KEYS = [
   'wallet_topup_enabled',
 ] as const
 
 const DEFAULT_MARQUEE_TEXT = 'Mua hàng tại đây không qua sàn thương mại nên giá thành sản phẩm sẽ rẻ hơn rất nhiều và bảo hành hoàn trả trong vòng 7 ngày nếu sản phẩm bị lỗi nên quý khách yên tâm mua sắm nhé.Bảo hành đổi trả nhắn qua trang facebook : QH Boypho. Chúc quý khách có trải nghiệm mua sắm tốt tại QH Boypho'
+const DEFAULT_HOT_TREND_NU_MARQUEE_TEXT = 'Mua trực tiếp giá tốt hơn | Không qua sàn | Đổi trả 7 ngày'
 const DEFAULT_MARQUEE_SPEED_SECONDS = 48
 const DEFAULT_NOTIFICATION_DISPLAY_MODE = 'marquee'
 
+type NotificationSegment = 'index' | 'hottrendnu'
+
+function normalizeNotificationSegment(value: unknown): NotificationSegment {
+  return String(value || '').trim().toLowerCase() === 'hottrendnu' ? 'hottrendnu' : 'index'
+}
+
 function normalizeNotificationDisplayMode(value: unknown): 'marquee' | 'static' {
   return String(value || '').trim() === 'static' ? 'static' : 'marquee'
+}
+
+function getNotificationSegmentKeys(segment: NotificationSegment) {
+  if (segment === 'hottrendnu') {
+    return {
+      marqueeText: 'hottrendnu_marquee_text',
+      marqueeSpeed: 'hottrendnu_marquee_speed_seconds',
+      displayMode: 'hottrendnu_notification_display_mode',
+      staticText: 'hottrendnu_static_notification_text',
+      keys: HOT_TREND_NU_NOTIFICATION_SETTING_KEYS,
+      defaultText: DEFAULT_HOT_TREND_NU_MARQUEE_TEXT,
+    }
+  }
+  return {
+    marqueeText: 'marquee_text',
+    marqueeSpeed: 'marquee_speed_seconds',
+    displayMode: 'notification_display_mode',
+    staticText: 'static_notification_text',
+    keys: NOTIFICATION_SETTING_KEYS,
+    defaultText: DEFAULT_MARQUEE_TEXT,
+  }
 }
 
 async function readSocialHandles(db: D1Database) {
@@ -576,20 +616,22 @@ async function readImageSettings(db: D1Database) {
   }
 }
 
-async function readNotificationSettings(db: D1Database) {
-  const query = `SELECT key, value FROM app_settings WHERE key IN (${NOTIFICATION_SETTING_KEYS.map(() => '?').join(',')})`
-  const result = await db.prepare(query).bind(...NOTIFICATION_SETTING_KEYS).all()
+async function readNotificationSettings(db: D1Database, segment: NotificationSegment = 'index') {
+  const segmentKeys = getNotificationSegmentKeys(segment)
+  const query = `SELECT key, value FROM app_settings WHERE key IN (${segmentKeys.keys.map(() => '?').join(',')})`
+  const result = await db.prepare(query).bind(...segmentKeys.keys).all()
   const map = new Map<string, string>()
   for (const row of (result.results || []) as any[]) {
     map.set(String(row.key || ''), String(row.value || '').trim())
   }
-  const speed = Number(map.get('marquee_speed_seconds') || DEFAULT_MARQUEE_SPEED_SECONDS)
-  const displayMode = normalizeNotificationDisplayMode(map.get('notification_display_mode') || DEFAULT_NOTIFICATION_DISPLAY_MODE)
+  const speed = Number(map.get(segmentKeys.marqueeSpeed) || DEFAULT_MARQUEE_SPEED_SECONDS)
+  const displayMode = normalizeNotificationDisplayMode(map.get(segmentKeys.displayMode) || DEFAULT_NOTIFICATION_DISPLAY_MODE)
   return {
-    marquee_text: String(map.get('marquee_text') || DEFAULT_MARQUEE_TEXT).trim(),
+    segment,
+    marquee_text: String(map.get(segmentKeys.marqueeText) || segmentKeys.defaultText).trim(),
     marquee_speed_seconds: Number.isFinite(speed) ? Math.min(120, Math.max(8, Math.round(speed))) : DEFAULT_MARQUEE_SPEED_SECONDS,
     notification_display_mode: displayMode,
-    static_notification_text: String(map.get('static_notification_text') || '').trim(),
+    static_notification_text: String(map.get(segmentKeys.staticText) || '').trim(),
   }
 }
 
@@ -942,7 +984,8 @@ export function registerAdminUtilityRoutes(app: Hono<{ Bindings: AppBindings }>,
   app.get('/api/admin/settings/notifications', async (c) => {
     try {
       await deps.initDB(c.env.DB)
-      const settings = await readNotificationSettings(c.env.DB)
+      const segment = normalizeNotificationSegment(c.req.query('segment'))
+      const settings = await readNotificationSettings(c.env.DB, segment)
       return c.json({ success: true, data: settings })
     } catch (e: any) {
       return c.json({ success: false, error: e.message }, 500)
@@ -953,18 +996,21 @@ export function registerAdminUtilityRoutes(app: Hono<{ Bindings: AppBindings }>,
     try {
       await deps.initDB(c.env.DB)
       const body: NotificationSettingsInput = await c.req.json<NotificationSettingsInput>().catch(() => ({} as NotificationSettingsInput))
+      const segment = normalizeNotificationSegment(c.req.query('segment') || body.segment)
+      const segmentKeys = getNotificationSegmentKeys(segment)
       const rawSpeed = Number(body.marquee_speed_seconds || DEFAULT_MARQUEE_SPEED_SECONDS)
       const payload = {
+        segment,
         marquee_text: String(body.marquee_text || '').trim().slice(0, 600),
         marquee_speed_seconds: String(Number.isFinite(rawSpeed) ? Math.min(120, Math.max(8, Math.round(rawSpeed))) : DEFAULT_MARQUEE_SPEED_SECONDS),
         notification_display_mode: normalizeNotificationDisplayMode(body.notification_display_mode),
         static_notification_text: String(body.static_notification_text || '').trim().slice(0, 600),
       }
       await deps.upsertAppSettings(c.env.DB, [
-        { key: 'marquee_text', value: payload.marquee_text },
-        { key: 'marquee_speed_seconds', value: payload.marquee_speed_seconds },
-        { key: 'notification_display_mode', value: payload.notification_display_mode },
-        { key: 'static_notification_text', value: payload.static_notification_text },
+        { key: segmentKeys.marqueeText, value: payload.marquee_text },
+        { key: segmentKeys.marqueeSpeed, value: payload.marquee_speed_seconds },
+        { key: segmentKeys.displayMode, value: payload.notification_display_mode },
+        { key: segmentKeys.staticText, value: payload.static_notification_text },
       ])
       return c.json({ success: true, data: payload })
     } catch (e: any) {
@@ -1061,7 +1107,8 @@ export function registerAdminUtilityRoutes(app: Hono<{ Bindings: AppBindings }>,
   app.get('/api/public/notification-settings', async (c) => {
     try {
       await deps.initDB(c.env.DB)
-      const settings = await readNotificationSettings(c.env.DB)
+      const segment = normalizeNotificationSegment(c.req.query('segment'))
+      const settings = await readNotificationSettings(c.env.DB, segment)
       return c.json({ success: true, data: settings })
     } catch (e: any) {
       return c.json({ success: false, error: e.message }, 500)

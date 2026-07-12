@@ -155,7 +155,20 @@ export async function applyAutoVouchersToProducts(db: D1Database, products: Reco
   return list.map((product) => applyAutoVoucherToProduct(product, findBestAutoVoucherForProduct(product?.id, vouchers)))
 }
 
-export async function resolveAutoVoucherProductPrice(db: D1Database, product: Record<string, any>) {
-  const [shaped] = await applyAutoVouchersToProducts(db, [product])
+export async function resolveAutoVoucherProductPrice(db: D1Database, product: Record<string, any>, unitOverride?: Record<string, any>) {
+  const base = unitOverride
+    ? {
+        ...product,
+        price: unitOverride.price ?? product.price,
+        original_price: unitOverride.original_price ?? product.original_price,
+        has_flash_sale: unitOverride.has_flash_sale ?? product.has_flash_sale,
+        display_price: unitOverride.display_price ?? unitOverride.price ?? product.display_price,
+        display_original_price: unitOverride.display_original_price ?? unitOverride.original_price ?? product.display_original_price,
+        display_sale_price: unitOverride.display_sale_price ?? product.display_sale_price,
+        display_discount_percent: unitOverride.display_discount_percent ?? product.display_discount_percent,
+        flash_sale: unitOverride.flash_sale ?? product.flash_sale
+      }
+    : product
+  const [shaped] = await applyAutoVouchersToProducts(db, [base])
   return roundMoney(toNumber(shaped?.display_price ?? shaped?.price, 0))
 }

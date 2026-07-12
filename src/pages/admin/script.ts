@@ -16,6 +16,8 @@ let arrangedOrdersForPrint = []
 let arrangedFailedOrders = []
 let colors = []
 let sizes = []
+let skuPricingEnabled = false
+let productSkuRows = []
 let galleryImages = ['','','','','','','','','']
 let editingId = null
 let gallerySlotClickBound = false
@@ -2077,8 +2079,23 @@ function renderAdminProductTypesEditor() {
     return
   }
   wrap.innerHTML = adminProductTypes.map((item, index) => {
-    return '<div class="grid gap-2 rounded-2xl border border-gray-100 bg-gray-50 p-3 sm:grid-cols-[minmax(0,1fr)_minmax(120px,160px)_auto_auto] sm:items-center">' +
-      '<input type="text" value="' + escapeDashboardHtml(item.name) + '" oninput="updateAdminProductTypeName(' + index + ', this.value)" placeholder="Tên loại" class="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-pink-300">' +
+    const thumb = String(item.thumbnail || '').trim()
+    const fallbackThumb = String(item.resolved_thumbnail || item.fallback_thumbnail || '').trim()
+    const count = Number(item.product_count || 0)
+    return '<div class="grid gap-3 rounded-2xl border border-gray-100 bg-gray-50 p-3 lg:grid-cols-[92px_minmax(0,1fr)_minmax(120px,160px)_auto_auto] lg:items-center">' +
+      '<div class="flex items-center gap-3 lg:block">' +
+        '<label class="relative block h-20 w-20 shrink-0 overflow-hidden rounded-2xl border border-dashed border-pink-200 bg-white cursor-pointer group">' +
+          (thumb ? '<img src="' + escapeDashboardHtml(thumb) + '" alt="" class="h-full w-full object-cover">' : '<span class="flex h-full w-full flex-col items-center justify-center gap-1 text-[10px] font-bold text-pink-400"><i class="fas fa-image text-base"></i>Ảnh</span>') +
+          '<span class="absolute inset-0 hidden items-center justify-center bg-black/35 text-white group-hover:flex"><i class="fas fa-upload"></i></span>' +
+          '<input type="file" accept="image/*" class="hidden" onchange="uploadAdminProductTypeThumbnail(' + index + ', this)">' +
+        '</label>' +
+        '<button type="button" onclick="clearAdminProductTypeThumbnail(' + index + ')" class="mt-2 inline-flex h-8 items-center justify-center rounded-xl border border-gray-200 bg-white px-2 text-[11px] font-bold text-gray-500 hover:bg-gray-100">Xóa ảnh</button>' +
+      '</div>' +
+      '<div class="grid gap-2">' +
+        '<input type="text" value="' + escapeDashboardHtml(item.name) + '" oninput="updateAdminProductTypeName(' + index + ', this.value)" placeholder="Tên loại" class="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-pink-300">' +
+        '<input type="text" value="' + escapeDashboardHtml(item.thumbnail || '') + '" oninput="updateAdminProductTypeThumbnail(' + index + ', this.value)" placeholder="URL ảnh thumbnail, để trống sẽ lấy ảnh sản phẩm" class="rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs outline-none focus:border-pink-300">' +
+        '<p class="text-[11px] font-semibold text-gray-400">Đang có ' + count + ' sản phẩm. Nếu không upload ảnh, storefront tự lấy ảnh chính của sản phẩm thuộc loại này' + (fallbackThumb ? ' (đã có ảnh tự động).' : '.') + '</p>' +
+      '</div>' +
       '<input type="text" value="' + escapeDashboardHtml(item.slug) + '" oninput="updateAdminProductTypeSlug(' + index + ', this.value)" placeholder="slug" class="rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-pink-300">' +
       '<label class="inline-flex items-center gap-2 rounded-xl bg-white px-3 py-2 text-sm font-semibold text-gray-600 ring-1 ring-gray-100"><input type="checkbox" class="accent-pink-500" ' + (item.active !== false ? 'checked' : '') + ' onchange="toggleAdminProductTypeActive(' + index + ', this.checked)">Hiện</label>' +
       '<button type="button" onclick="removeAdminProductTypeRow(' + index + ')" class="rounded-xl border border-red-100 bg-white px-3 py-2 text-sm font-semibold text-red-500 hover:bg-red-50"><i class="fas fa-trash"></i></button>' +
@@ -2099,7 +2116,7 @@ async function loadAdminProductTypes() {
 }
 
 function addAdminProductTypeRow() {
-  adminProductTypes.push({ slug: '', name: '', active: true, order: adminProductTypes.length + 1 })
+  adminProductTypes.push({ slug: '', name: '', active: true, order: adminProductTypes.length + 1, thumbnail: '' })
   renderAdminProductTypesEditor()
 }
 
@@ -2121,6 +2138,32 @@ function toggleAdminProductTypeActive(index, checked) {
   if (item) item.active = !!checked
 }
 
+function updateAdminProductTypeThumbnail(index, value) {
+  const item = adminProductTypes[index]
+  if (!item) return
+  item.thumbnail = String(value || '').trim()
+}
+
+function clearAdminProductTypeThumbnail(index) {
+  updateAdminProductTypeThumbnail(index, '')
+  renderAdminProductTypesEditor()
+}
+
+async function uploadAdminProductTypeThumbnail(index, input) {
+  const item = adminProductTypes[index]
+  const file = Array.from(input?.files || []).find((f) => f.type && f.type.startsWith('image/'))
+  if (!item || !file) return
+  try {
+    item.thumbnail = await uploadProductImageFile(file, 700, 0.84, 'product-types')
+    renderAdminProductTypesEditor()
+    showAdminToast('Đã upload thumbnail danh mục', 'success')
+  } catch (_) {
+    showAdminToast('Không thể upload thumbnail danh mục', 'error')
+  } finally {
+    if (input) input.value = ''
+  }
+}
+
 function removeAdminProductTypeRow(index) {
   adminProductTypes.splice(index, 1)
   renderAdminProductTypesEditor()
@@ -2134,7 +2177,8 @@ async function saveAdminProductTypes() {
       slug: normalizeAdminProductTypeSlug(item.slug || item.name),
       name: String(item.name || '').trim(),
       active: item.active !== false,
-      order: index + 1
+      order: index + 1,
+      thumbnail: String(item.thumbnail || '').trim()
     }))
     .filter((item) => item.slug && item.name)
   const duplicate = normalized.find((item, index) => normalized.findIndex((x) => x.slug === item.slug) !== index)
@@ -2333,6 +2377,8 @@ function renderAdminProducts(products) {
       const colors = getProductColorOptions(p).map((c) => c.name).filter(Boolean)
       const sizes = safeJson(p.sizes)
       const viewCount = Number(p.view_count || 0)
+      const trendingOrder = Number(p.trending_order || 0)
+      const showTrendingOrderBadge = shouldShowTrendingOrderBadge(p)
       return \`
     <div class="admin-product-card bg-white rounded-2xl shadow-sm border overflow-hidden \${!p.is_active ? 'opacity-60' : ''}">
       <div class="admin-product-thumb-shell relative bg-gray-100 overflow-hidden">
@@ -2343,7 +2389,8 @@ function renderAdminProducts(products) {
           \${productType ? \`<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-sky-50/95 text-sky-700">\${escapeDashboardHtml(getProductTypeLabel(productType))}</span>\` : ''}
           \${p.is_featured ? '<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-400 text-white"><i class="fas fa-star mr-1"></i>Hot</span>' : ''}
           \${p.is_trending ? '<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-500 text-white"><i class="fas fa-fire mr-1"></i>Trend</span>' : ''}
-          \${p.is_trending && (p.trending_order||0) > 0 ? \`<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-500 text-white">#\${p.trending_order}</span>\` : ''}
+          \${p.is_new_arrival ? '<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-500 text-white"><i class="fas fa-box-open mr-1"></i>Hàng mới</span>' : ''}
+          \${showTrendingOrderBadge ? \`<span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-500 text-white">#\${trendingOrder}</span>\` : ''}
         </div>
         <div class="absolute top-2 right-2">
           <span class="w-2.5 h-2.5 rounded-full inline-block \${p.is_active ? 'bg-green-400' : 'bg-gray-400'}"></span>
@@ -2356,6 +2403,7 @@ function renderAdminProducts(products) {
           <span class="font-bold text-pink-600">\${fmtPrice(p.price)}</span>
           \${p.original_price ? \`<span class="text-xs text-gray-400 line-through">\${fmtPrice(p.original_price)}</span>\` : ''}
         </div>
+        \${renderAdminStorefrontBadges(p)}
         \${colors.length ? \`<div class="flex flex-wrap gap-1 mb-2">\${colors.slice(0,3).map(c=>\`<span class="text-xs bg-pink-50 text-pink-600 px-2 py-0.5 rounded-full">\${c}</span>\`).join('')}\${colors.length>3?\`<span class="text-xs text-gray-400">+\${colors.length-3}</span>\`:''}</div>\` : ''}
         \${sizes.length ? \`<div class="flex flex-wrap gap-1 mb-2">\${sizes.slice(0,4).map(s=>\`<span class="text-xs border text-gray-600 px-1.5 py-0.5 rounded">\${s}</span>\`).join('')}\${sizes.length>4?\`<span class="text-xs text-gray-400">+\${sizes.length-4}</span>\`:''}</div>\` : ''}
         <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-400 mb-2">
@@ -2437,6 +2485,82 @@ async function deleteProduct(id) {
 // PRODUCT MODAL
 const TIKTOK_MARKETPLACE_RETAIN_RATE = 0.65
 const TIKTOK_MARKETPLACE_FIXED_COST = 33000
+const PRODUCT_STOREFRONT_KEYS = ['boypho', 'hottrendnu']
+
+function normalizeAdminProductStorefrontVisibility(input) {
+  let source = []
+  if (Array.isArray(input)) {
+    source = input
+  } else if (typeof input === 'string') {
+    const trimmed = input.trim()
+    if (trimmed) {
+      try {
+        const parsed = JSON.parse(trimmed)
+        source = Array.isArray(parsed) ? parsed : [trimmed]
+      } catch (_) {
+        source = trimmed.split(',')
+      }
+    }
+  }
+  const keys = source.map((item) => String(item || '').trim().toLowerCase())
+  if (keys.includes('all')) return PRODUCT_STOREFRONT_KEYS.slice()
+  const out = PRODUCT_STOREFRONT_KEYS.filter((key) => keys.includes(key))
+  return out.length ? out : ['boypho']
+}
+
+function renderAdminStorefrontBadges(product) {
+  const keys = normalizeAdminProductStorefrontVisibility(product?.storefront_visibility)
+  const labelMap = { boypho: 'Boypho', hottrendnu: 'QH Clothes' }
+  return '<div class="flex flex-wrap gap-1 mb-2">' + keys.map((key) => {
+    const colorClass = key === 'hottrendnu' ? 'bg-rose-50 text-rose-600' : 'bg-indigo-50 text-indigo-600'
+    return '<span class="text-xs font-semibold px-2 py-0.5 rounded-full ' + colorClass + '">' + (labelMap[key] || key) + '</span>'
+  }).join('') + '</div>'
+}
+
+function syncProductStorefrontAllCheckbox() {
+  const checks = Array.from(document.querySelectorAll('[data-storefront-visibility]'))
+  const all = document.getElementById('pStorefrontAll')
+  if (!all || !checks.length) return
+  all.checked = checks.every((input) => input.checked)
+}
+
+function bindProductStorefrontVisibilityInputs() {
+  const checks = Array.from(document.querySelectorAll('[data-storefront-visibility]'))
+  const all = document.getElementById('pStorefrontAll')
+  if (all && all.dataset.boundStorefrontVisibility !== '1') {
+    all.dataset.boundStorefrontVisibility = '1'
+    all.addEventListener('change', () => {
+      checks.forEach((input) => { input.checked = all.checked })
+      if (!checks.some((input) => input.checked) && checks[0]) checks[0].checked = true
+      syncProductStorefrontAllCheckbox()
+    })
+  }
+  checks.forEach((input) => {
+    if (input.dataset.boundStorefrontVisibility === '1') return
+    input.dataset.boundStorefrontVisibility = '1'
+    input.addEventListener('change', () => {
+      if (!checks.some((item) => item.checked)) input.checked = true
+      syncProductStorefrontAllCheckbox()
+    })
+  })
+  syncProductStorefrontAllCheckbox()
+}
+
+function setProductStorefrontVisibilityInput(input) {
+  bindProductStorefrontVisibilityInputs()
+  const keys = normalizeAdminProductStorefrontVisibility(input)
+  document.querySelectorAll('[data-storefront-visibility]').forEach((checkbox) => {
+    checkbox.checked = keys.includes(String(checkbox.value || '').trim().toLowerCase())
+  })
+  syncProductStorefrontAllCheckbox()
+}
+
+function getProductStorefrontVisibilityInput() {
+  const keys = Array.from(document.querySelectorAll('[data-storefront-visibility]:checked'))
+    .map((input) => String(input.value || '').trim().toLowerCase())
+    .filter((key) => PRODUCT_STOREFRONT_KEYS.includes(key))
+  return keys.length ? keys : ['boypho']
+}
 
 function parseAdminMoneyInput(value) {
   const normalized = String(value || '').replace(/[^0-9]/g, '')
@@ -2498,6 +2622,14 @@ function bindMarketplacePriceCalculator() {
     priceInput.addEventListener('input', () => syncMarketplaceCostFromProductPrice(false))
     priceInput.addEventListener('change', () => syncMarketplaceCostFromProductPrice(false))
   }
+  ;['pPrice','pOriginalPrice','pStock'].forEach((id) => {
+    const input = document.getElementById(id)
+    if (input && input.dataset.skuMatrixBound !== '1') {
+      input.dataset.skuMatrixBound = '1'
+      input.addEventListener('input', refreshProductSkuMatrixIfEnabled)
+      input.addEventListener('change', refreshProductSkuMatrixIfEnabled)
+    }
+  })
   updateMarketplacePriceCalculator()
 }
 
@@ -2507,6 +2639,8 @@ async function openProductModal(id = null) {
   editingId = id
   colors = []
   sizes = []
+  skuPricingEnabled = false
+  productSkuRows = []
   galleryImages = ['','','','','','','','','']
   const toStringList = (raw) => {
     const arr = Array.isArray(raw) ? raw : safeJson(raw)
@@ -2549,12 +2683,14 @@ async function openProductModal(id = null) {
       document.getElementById('pCategory').value = p.category || 'unisex'
       populateProductTypeControls()
       document.getElementById('pProductType').value = inferAdminProductType(p)
+      setProductStorefrontVisibilityInput(p.storefront_visibility)
       document.getElementById('pBrand').value = p.brand || ''
       document.getElementById('pMaterial').value = p.material || ''
       document.getElementById('pDescription').value = p.description || ''
       document.getElementById('pStock').value = p.stock || 0
       document.getElementById('pFeatured').checked = !!p.is_featured
       document.getElementById('pTrending').checked = !!p.is_trending
+      document.getElementById('pNewArrival').checked = !!p.is_new_arrival
       document.getElementById('pTrendingOrder').value = String(p.trending_order || 0)
       document.getElementById('pActive').checked = !!p.is_active
       
@@ -2569,8 +2705,11 @@ async function openProductModal(id = null) {
       // Colors & sizes
       colors = normalizeColorOptionsLocal(Array.isArray(p.color_options) ? p.color_options : p.colors)
       sizes = toStringList(Array.isArray(p.size_list) ? p.size_list : p.sizes)
+      hydrateProductSkuRows(Array.isArray(p.product_skus) ? p.product_skus : p.skus)
+      skuPricingEnabled = shouldEnableSkuPricingForProduct(p)
       renderColorOptionsEditor()
       renderTags('size')
+      renderProductSkuMatrix()
     } catch(e) {
       const msg = e?.response?.data?.error || e?.message || 'Lỗi tải sản phẩm'
       console.error('openProductModal error:', e)
@@ -2580,6 +2719,8 @@ async function openProductModal(id = null) {
   }
   
   bindMarketplacePriceCalculator()
+  renderProductSkuMatrix()
+  syncTrendingOrderOptions(editingId)
   showAdminOverlay(document.getElementById('productModal'))
 }
 
@@ -2599,11 +2740,75 @@ function resetProductForm() {
   populateProductTypeControls()
   const productTypeSelect = document.getElementById('pProductType')
   if (productTypeSelect) productTypeSelect.value = ''
+  setProductStorefrontVisibilityInput(['boypho'])
   previewThumbnail('')
   for (let i = 0; i < 9; i++) clearGallerySlot(i)
   colors = []; sizes = []
+  skuPricingEnabled = false
+  productSkuRows = []
   renderColorOptionsEditor(); renderTags('size')
+  renderProductSkuMatrix()
   galleryImages = ['','','','','','','','','']
+  syncTrendingOrderOptions(editingId)
+}
+
+function getTrendingOrderBuckets(currentProductId = null) {
+  const currentId = Number(currentProductId || 0)
+  const buckets = new Map()
+  ;(Array.isArray(adminProducts) ? adminProducts : []).forEach((product) => {
+    const productId = Number(product?.id || 0)
+    const order = Number(product?.trending_order || 0)
+    if (!product?.is_trending || order <= 0) return
+    if (currentId > 0 && productId === currentId) return
+    const products = buckets.get(order) || []
+    products.push(product)
+    buckets.set(order, products)
+  })
+  return buckets
+}
+
+function getValidTrendingOrderOwnerMap(currentProductId = null) {
+  const owners = new Map()
+  getTrendingOrderBuckets(currentProductId).forEach((products, order) => {
+    if (products.length === 1) owners.set(order, products[0])
+  })
+  return owners
+}
+
+function getUsedTrendingOrderMap(currentProductId = null) {
+  return getValidTrendingOrderOwnerMap(currentProductId)
+}
+
+function shouldShowTrendingOrderBadge(product) {
+  const order = Number(product?.trending_order || 0)
+  const productId = Number(product?.id || 0)
+  if (!product?.is_trending || order <= 0 || productId <= 0) return false
+  const owner = getValidTrendingOrderOwnerMap().get(order)
+  return Number(owner?.id || 0) === productId
+}
+
+function syncTrendingOrderOptions(currentProductId = null) {
+  const select = document.getElementById('pTrendingOrder')
+  if (!select) return
+  Array.from(select.options || []).forEach((option) => {
+    const value = Number(option.value || 0)
+    if (value <= 0) {
+      option.disabled = false
+      option.textContent = 'Tự động'
+      return
+    }
+    option.disabled = false
+    option.textContent = String(value)
+  })
+  if (select.selectedOptions && select.selectedOptions[0]?.disabled) {
+    select.value = '0'
+  }
+}
+
+function isTrendingOrderTaken(order, currentProductId = null) {
+  const normalizedOrder = Number(order || 0)
+  if (normalizedOrder <= 0) return false
+  return getUsedTrendingOrderMap(currentProductId).has(normalizedOrder)
 }
 
 async function saveProduct(e) {
@@ -2621,11 +2826,24 @@ async function saveProduct(e) {
     btn.textContent = 'Lưu sản phẩm'
     return
   }
+  const skuRows = collectProductSkuRows()
+  const skuFallback = getSkuFallbackPricing(skuRows)
+  const manualPrice = String(document.getElementById('pPrice').value || '').trim()
+  const manualOriginalPrice = String(document.getElementById('pOriginalPrice').value || '').trim()
+  const resolvedPrice = manualPrice || (skuFallback.price > 0 ? String(skuFallback.price) : '')
+  const resolvedOriginalPrice = manualOriginalPrice || (skuFallback.originalPrice ? String(skuFallback.originalPrice) : null)
+  if (!resolvedPrice) {
+    showAdminToast('Vui lòng nhập giá bán mặc định hoặc bật bảng SKU và nhập giá cho ít nhất một SKU', 'error')
+    btn.textContent = 'Lưu sản phẩm'
+    return
+  }
+  const isTrendingChecked = document.getElementById('pTrending').checked
+  const selectedTrendingOrder = isTrendingChecked ? (parseInt(document.getElementById('pTrendingOrder').value) || 0) : 0
   
   const data = {
     name: document.getElementById('pName').value,
-    price: document.getElementById('pPrice').value,
-    original_price: document.getElementById('pOriginalPrice').value || null,
+    price: resolvedPrice,
+    original_price: resolvedOriginalPrice,
     category: document.getElementById('pCategory').value,
     product_type: document.getElementById('pProductType')?.value || '',
     brand: document.getElementById('pBrand').value,
@@ -2635,11 +2853,14 @@ async function saveProduct(e) {
     images: imgList,
     colors: normalizedColors,
     sizes: sizes,
-    stock: document.getElementById('pStock').value || 0,
+    product_skus: skuRows,
+    stock: document.getElementById('pStock').value || skuFallback.stock || 0,
     is_featured: document.getElementById('pFeatured').checked,
-    is_trending: document.getElementById('pTrending').checked,
-    trending_order: parseInt(document.getElementById('pTrendingOrder').value) || 0,
-    is_active: document.getElementById('pActive').checked
+    is_trending: isTrendingChecked,
+    is_new_arrival: document.getElementById('pNewArrival').checked,
+    trending_order: selectedTrendingOrder,
+    is_active: document.getElementById('pActive').checked,
+    storefront_visibility: getProductStorefrontVisibilityInput()
   }
   const payloadSize = JSON.stringify(data).length
   if (payloadSize > MAX_PRODUCT_PAYLOAD_SIZE) {
@@ -2888,6 +3109,200 @@ async function uploadProductImageFile(file, maxWidth = 1200, quality = 0.82, fol
   return url
 }
 
+function escapeAdminAttr(value) {
+  return String(value || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+}
+
+function normalizeAdminSkuKey(color, size) {
+  return String(color || '').trim().toLowerCase() + '::' + String(size || '').trim().toLowerCase()
+}
+
+function getProductSkuVariantOptions() {
+  const variantOptions = colors
+    .map((item) => ({
+      color: String(item?.name || '').trim(),
+      image: String(item?.image || '').trim()
+    }))
+    .filter((item) => item.color || item.image)
+  return variantOptions.length ? variantOptions : [{ color: '', image: '' }]
+}
+
+function getProductSkuSizeOptions() {
+  const list = sizes.map((size) => String(size || '').trim()).filter(Boolean)
+  return list.length ? list : ['']
+}
+
+function makeAdminSkuCode(color, size, index) {
+  const productId = String(document.getElementById('productId')?.value || 'NEW').trim() || 'NEW'
+  const slug = (value, fallback) => {
+    const out = String(value || '')
+      .normalize('NFD')
+      .replace(/[\\u0300-\\u036f]/g, '')
+      .replace(/[^a-zA-Z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .toUpperCase()
+    return out || fallback
+  }
+  return ['SKU', productId, slug(color, 'VAR'), slug(size, 'ONE'), String(index + 1).padStart(2, '0')].join('-')
+}
+
+function getExistingSkuRowByKey(key) {
+  return productSkuRows.find((row) => normalizeAdminSkuKey(row.color, row.size) === key) || null
+}
+
+function buildProductSkuRowsFromOptions() {
+  const variants = getProductSkuVariantOptions()
+  const sizeOptions = getProductSkuSizeOptions()
+  const price = parseAdminMoneyInput(document.getElementById('pPrice')?.value || 0)
+  const originalPriceRaw = String(document.getElementById('pOriginalPrice')?.value || '').trim()
+  const originalPrice = originalPriceRaw ? parseAdminMoneyInput(originalPriceRaw) : ''
+  const stock = Math.max(0, parseInt(document.getElementById('pStock')?.value || '0', 10) || 0)
+  const rows = []
+  variants.forEach((variant, variantIndex) => {
+    sizeOptions.forEach((size, sizeIndex) => {
+      const key = normalizeAdminSkuKey(variant.color, size)
+      const existing = getExistingSkuRowByKey(key)
+      const index = rows.length
+      rows.push({
+        id: existing?.id || '',
+        color: variant.color,
+        size,
+        image: variant.image || existing?.image || '',
+        sku_code: existing?.sku_code || makeAdminSkuCode(variant.color, size, index + variantIndex + sizeIndex),
+        price: existing?.price !== undefined && existing?.price !== null && String(existing.price) !== '' ? existing.price : price,
+        original_price: existing?.original_price !== undefined && existing?.original_price !== null ? existing.original_price : originalPrice,
+        stock: existing?.stock !== undefined && existing?.stock !== null && String(existing.stock) !== '' ? existing.stock : stock,
+        is_active: existing?.is_active === undefined ? 1 : (Number(existing.is_active) === 0 ? 0 : 1)
+      })
+    })
+  })
+  productSkuRows = rows
+  return rows
+}
+
+function hydrateProductSkuRows(rows) {
+  productSkuRows = (Array.isArray(rows) ? rows : []).map((row) => ({
+    id: row?.id || '',
+    color: String(row?.color || '').trim(),
+    size: String(row?.size || '').trim(),
+    image: String(row?.image || '').trim(),
+    sku_code: String(row?.sku_code || '').trim(),
+    price: row?.price ?? '',
+    original_price: row?.original_price ?? '',
+    stock: row?.stock ?? 0,
+    is_active: Number(row?.is_active ?? 1) === 0 ? 0 : 1
+  }))
+}
+
+function shouldEnableSkuPricingForProduct(product) {
+  const rows = Array.isArray(product?.product_skus) ? product.product_skus : (Array.isArray(product?.skus) ? product.skus : [])
+  if (!rows.length) return false
+  const productPrice = Number(product?.price || 0)
+  const productOriginal = Number(product?.original_price || 0)
+  const productStock = Number(product?.stock || 0)
+  return rows.some((row) => {
+    const rowPrice = Number(row?.price || 0)
+    const rowOriginal = Number(row?.original_price || 0)
+    const rowStock = Number(row?.stock || 0)
+    return rowPrice !== productPrice || rowOriginal !== productOriginal || rowStock !== productStock || Number(row?.is_active ?? 1) === 0
+  })
+}
+
+function renderProductSkuMatrix() {
+  const section = document.getElementById('skuMatrixSection')
+  const tbody = document.getElementById('skuMatrixBody')
+  const count = document.getElementById('skuMatrixCount')
+  const toggle = document.getElementById('pSkuPricingEnabled')
+  if (toggle) toggle.checked = !!skuPricingEnabled
+  if (!section || !tbody) return
+  section.classList.toggle('hidden', !skuPricingEnabled)
+  if (!skuPricingEnabled) {
+    tbody.innerHTML = ''
+    if (count) count.textContent = '0 SKU'
+    return
+  }
+  const rows = buildProductSkuRowsFromOptions()
+  if (count) count.textContent = rows.length + ' SKU'
+  tbody.innerHTML = rows.map((row, index) => {
+    const active = Number(row.is_active ?? 1) !== 0
+    return '<tr class="border-b last:border-b-0 align-top" data-sku-row-index="' + index + '">' +
+      '<td class="px-3 py-2 text-sm font-semibold text-gray-800 min-w-[130px]">' + (row.color ? escapeAdminAttr(row.color) : '<span class="text-gray-400">Mặc định</span>') + '</td>' +
+      '<td class="px-3 py-2 text-sm text-gray-700 min-w-[110px]">' + (row.size ? escapeAdminAttr(row.size) : '<span class="text-gray-400">Không size</span>') + '</td>' +
+      '<td class="px-3 py-2 min-w-[120px]"><input type="number" min="0" value="' + escapeAdminAttr(row.stock) + '" oninput="updateProductSkuRow(' + index + ', \\'stock\\', this.value)" class="w-full border rounded-lg px-2 py-1.5 text-sm"></td>' +
+      '<td class="px-3 py-2 min-w-[140px]"><input type="number" min="0" value="' + escapeAdminAttr(row.price) + '" oninput="updateProductSkuRow(' + index + ', \\'price\\', this.value)" class="w-full border rounded-lg px-2 py-1.5 text-sm"></td>' +
+      '<td class="px-3 py-2 min-w-[140px]"><input type="number" min="0" value="' + escapeAdminAttr(row.original_price) + '" oninput="updateProductSkuRow(' + index + ', \\'original_price\\', this.value)" class="w-full border rounded-lg px-2 py-1.5 text-sm"></td>' +
+      '<td class="px-3 py-2 min-w-[150px]"><input type="text" value="' + escapeAdminAttr(row.sku_code) + '" oninput="updateProductSkuRow(' + index + ', \\'sku_code\\', this.value)" class="w-full border rounded-lg px-2 py-1.5 text-sm"></td>' +
+      '<td class="px-3 py-2 text-center min-w-[78px]"><label class="inline-flex items-center justify-center gap-1 text-xs font-semibold text-gray-600"><input type="checkbox" ' + (active ? 'checked' : '') + ' onchange="updateProductSkuRow(' + index + ', \\'is_active\\', this.checked ? 1 : 0)" class="w-4 h-4 accent-pink-500"> Bật</label></td>' +
+    '</tr>'
+  }).join('')
+}
+
+function toggleProductSkuPricing(checked) {
+  skuPricingEnabled = !!checked
+  renderProductSkuMatrix()
+}
+
+function updateProductSkuRow(index, field, value) {
+  if (!productSkuRows[index]) return
+  productSkuRows[index][field] = value
+}
+
+function applySkuBulkValues() {
+  if (!skuPricingEnabled) return
+  buildProductSkuRowsFromOptions()
+  const stockRaw = String(document.getElementById('skuBulkStock')?.value || '').trim()
+  const priceRaw = String(document.getElementById('skuBulkPrice')?.value || '').trim()
+  const originalRaw = String(document.getElementById('skuBulkOriginalPrice')?.value || '').trim()
+  const skuPrefix = String(document.getElementById('skuBulkCodePrefix')?.value || '').trim()
+  if (!stockRaw && !priceRaw && !originalRaw && !skuPrefix) {
+    showAdminToast('Nhập ít nhất một giá trị để áp dụng', 'warning')
+    return
+  }
+  productSkuRows = productSkuRows.map((row, index) => ({
+    ...row,
+    stock: stockRaw ? Math.max(0, parseInt(stockRaw, 10) || 0) : row.stock,
+    price: priceRaw ? parseAdminMoneyInput(priceRaw) : row.price,
+    original_price: originalRaw ? parseAdminMoneyInput(originalRaw) : row.original_price,
+    sku_code: skuPrefix ? (skuPrefix + '-' + String(index + 1).padStart(2, '0')) : row.sku_code
+  }))
+  renderProductSkuMatrix()
+  showAdminToast('Đã áp dụng giá trị cho tất cả SKU', 'success')
+}
+
+function refreshProductSkuMatrixIfEnabled() {
+  if (skuPricingEnabled) renderProductSkuMatrix()
+}
+
+function collectProductSkuRows() {
+  if (!skuPricingEnabled) return []
+  buildProductSkuRowsFromOptions()
+  return productSkuRows.map((row) => ({
+    id: row.id || undefined,
+    color: String(row.color || '').trim(),
+    size: String(row.size || '').trim(),
+    image: String(row.image || '').trim(),
+    sku_code: String(row.sku_code || '').trim(),
+    price: parseAdminMoneyInput(row.price),
+    original_price: String(row.original_price ?? '').trim() ? parseAdminMoneyInput(row.original_price) : null,
+    stock: Math.max(0, parseInt(row.stock || '0', 10) || 0),
+    is_active: Number(row.is_active ?? 1) === 0 ? 0 : 1
+  }))
+}
+
+function getSkuFallbackPricing(rows) {
+  const activeRows = (Array.isArray(rows) ? rows : [])
+    .filter((row) => Number(row?.is_active ?? 1) !== 0 && Number(row?.price || 0) > 0)
+    .sort((a, b) => Number(a.price || 0) - Number(b.price || 0))
+  const cheapest = activeRows[0] || null
+  return {
+    price: cheapest ? Number(cheapest.price || 0) : 0,
+    originalPrice: cheapest && cheapest.original_price !== null && cheapest.original_price !== undefined && String(cheapest.original_price) !== ''
+      ? Number(cheapest.original_price || 0)
+      : null,
+    stock: activeRows.reduce((sum, row) => sum + (parseInt(row.stock || '0', 10) || 0), 0)
+  }
+}
+
 function fileToOptimizedDataURL(file, maxWidth = 1200, quality = 0.82) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader()
@@ -2921,6 +3336,7 @@ function addTag(type) {
   if (!val) return
   val.split(',').map(v => v.trim()).filter(v => v && !sizes.includes(v)).forEach(v => sizes.push(v))
   renderTags('size')
+  refreshProductSkuMatrixIfEnabled()
   input.value = ''
 }
 
@@ -2928,6 +3344,7 @@ function removeTag(type, val) {
   if (type !== 'size') return
   sizes = sizes.filter(s => s !== val)
   renderTags('size')
+  refreshProductSkuMatrixIfEnabled()
 }
 
 function renderTags(type) {
@@ -2970,6 +3387,7 @@ function renderColorOptionsEditor() {
 function addColorOptionRow() {
   colors.push({ name: '', image: '' })
   renderColorOptionsEditor()
+  refreshProductSkuMatrixIfEnabled()
 }
 
 function removeColorOptionRow(idx) {
@@ -2979,17 +3397,29 @@ function removeColorOptionRow(idx) {
     colors.splice(idx, 1)
   }
   renderColorOptionsEditor()
+  refreshProductSkuMatrixIfEnabled()
 }
 
 function updateColorName(idx, value) {
   if (!colors[idx]) return
+  const oldName = String(colors[idx].name || '').trim()
+  const nextName = String(value || '')
   colors[idx].name = String(value || '')
+  if (oldName !== nextName.trim()) {
+    productSkuRows = productSkuRows.map((row) => (
+      String(row.color || '').trim().toLowerCase() === oldName.toLowerCase()
+        ? { ...row, color: nextName.trim() }
+        : row
+    ))
+  }
+  refreshProductSkuMatrixIfEnabled()
 }
 
 function removeColorImage(idx) {
   if (!colors[idx]) return
   colors[idx].image = ''
   renderColorOptionsEditor()
+  refreshProductSkuMatrixIfEnabled()
 }
 
 function handleColorImageDragOver(event) {
@@ -3021,6 +3451,7 @@ async function applyColorImageFile(idx, file) {
     if (!colors[idx]) return
     colors[idx].image = await uploadProductImageFile(file, 500, 0.85, 'product-colors')
     renderColorOptionsEditor()
+    refreshProductSkuMatrixIfEnabled()
   } catch (_) {
     showAdminToast('Không thể xử lý ảnh màu', 'error')
   }
@@ -3029,6 +3460,7 @@ async function applyColorImageFile(idx, file) {
 function addPresetSizes(arr) {
   arr.forEach(s => { if (!sizes.includes(s)) sizes.push(s) })
   renderTags('size')
+  refreshProductSkuMatrixIfEnabled()
 }
 
 async function ensureAdminReviewProductsLoaded() {

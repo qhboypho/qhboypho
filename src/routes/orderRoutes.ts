@@ -6,6 +6,7 @@ import { refreshCustomerAutoBlock } from '../lib/customerBlockHelpers'
 import { getUserSessionUserId } from '../lib/userSessionHelpers'
 import { resolveAutoVoucherProductPrice } from '../lib/autoVoucherHelpers.ts'
 import { notifyAdminNewOrderPush } from '../lib/webPushHelpers'
+import { findProductSkuMatch, loadProductSkusByProductIds, type ProductSkuLike } from '../lib/productSkuHelpers.ts'
 
 type OrderRouteDeps = {
   initDB: (db: D1Database) => Promise<void>
@@ -34,6 +35,28 @@ const SUPPORTED_BUILT_IN_SHIPPING_CARRIERS = new Set(['GHTK', 'SPX', 'GHN'])
 function normalizeShippingCarrier(value: unknown) {
   const carrier = String(value || '').trim().toUpperCase().replace(/[^A-Z0-9_]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 24)
   return carrier || 'GHTK'
+}
+
+function normalizeOrderNumber(value: unknown) {
+  const num = typeof value === 'number' ? value : Number(String(value ?? '').trim())
+  return Number.isFinite(num) ? num : 0
+}
+
+async function resolveOrderProductSku(
+  db: D1Database,
+  productId: unknown,
+  productSkuId: unknown,
+  color: unknown,
+  size: unknown
+): Promise<ProductSkuLike | null> {
+  const skuMap = await loadProductSkusByProductIds(db, [productId])
+  const skus = skuMap.get(Math.floor(normalizeOrderNumber(productId))) || []
+  const requestedId = Math.floor(normalizeOrderNumber(productSkuId))
+  if (requestedId > 0) {
+    const byId = skus.find((sku) => Math.floor(normalizeOrderNumber(sku.id)) === requestedId)
+    if (byId) return byId
+  }
+  return findProductSkuMatch(skus, color, size)
 }
 
 async function getAvailableCarrierCodeSet(db: D1Database, deps: OrderRouteDeps) {
@@ -345,7 +368,7 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
       const body = await c.req.json()
       const {
         customer_name, customer_phone, customer_address,
-        product_id, color, selected_color_image, size, quantity, note, voucher_code, payment_method, device_id,
+        product_id, product_sku_id, color, selected_color_image, size, quantity, note, voucher_code, payment_method, device_id,
         customer_province_code, customer_commune_code, address_effective_date
       } = body
 
@@ -431,6 +454,7 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
 
       const product = await c.env.DB.prepare(`SELECT * FROM products WHERE id=? AND is_active=1`).bind(product_id).first() as any
       if (!product) return c.json({ success: false, error: 'Product not found' }, 404)
+      const selectedSku = await resolveOrderProductSku(c.env.DB, product_id, product_sku_id, color, size)
 
       const qty = parseInt(quantity) || 1
       let discount = 0
@@ -451,7 +475,7 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
         await c.env.DB.prepare(`UPDATE vouchers SET used_count=used_count+1 WHERE id=?`).bind(voucher.id).run()
       }
 
-      const productUnitPrice = await resolveAutoVoucherProductPrice(c.env.DB, product)
+      const productUnitPrice = await resolveAutoVoucherProductPrice(c.env.DB, product, selectedSku || undefined)
       const subtotal = productUnitPrice * qty
       const total = Math.max(0, subtotal - discount)
       const orderCode = await generateUniqueOrderCode(c.env.DB)
@@ -460,6 +484,7 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
         ? normalizedPaymentMethod
         : 'COD'
       const selectedColorImage = String(selected_color_image || '').trim()
+        || String(selectedSku?.image || '').trim()
         || deps.resolveSelectedColorImage(product.colors, color, product.thumbnail || '')
       const customerProvinceCode = normalizeAddressCode(customer_province_code)
       const customerCommuneCode = normalizeAddressCode(customer_commune_code)
@@ -467,8 +492,8 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
 
       const result = await c.env.DB.prepare(`
         INSERT INTO orders 
-          (user_id, order_code, customer_name, customer_phone, customer_email, customer_address, customer_province_code, customer_commune_code, customer_address_effective_date, client_ip_hash, customer_address_fingerprint, device_hash, product_id, product_name, product_price, color, selected_color_image, size, quantity, total_price, voucher_code, discount_amount, note, payment_method)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          (user_id, order_code, customer_name, customer_phone, customer_email, customer_address, customer_province_code, customer_commune_code, customer_address_effective_date, client_ip_hash, customer_address_fingerprint, device_hash, product_id, product_sku_id, product_name, product_price, color, selected_color_image, size, quantity, total_price, voucher_code, discount_amount, note, payment_method)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).bind(
         userId,
         orderCode,
@@ -483,6 +508,7 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
         riskIdentity.addressFingerprint || null,
         deviceHash || null,
         product_id,
+        selectedSku?.id || null,
         product.name,
         productUnitPrice,
         color || '',

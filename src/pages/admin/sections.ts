@@ -898,6 +898,7 @@ export function adminNotificationSettingsPage(): string {
       #page-settings-notifications .storefront-static-notice span { min-width: 0; overflow: visible; text-overflow: clip; white-space: normal; overflow-wrap: anywhere; }
       #page-settings-notifications .notification-switch-input:checked + .notification-switch-track { background: linear-gradient(135deg,#2563eb,#ec4899); }
       #page-settings-notifications .notification-switch-input:checked + .notification-switch-track .notification-switch-thumb { transform: translateX(1.45rem); }
+      #page-settings-notifications .notification-segment-btn.is-active { background: linear-gradient(135deg,#111827,#be185d); color: #fff; border-color: transparent; box-shadow: 0 14px 28px -18px rgba(190,24,93,.7); }
       #page-settings-notifications input[type="range"] { accent-color: #ec4899; }
       @keyframes storefrontMarqueePreview { from { transform: translateX(0); } to { transform: translateX(-50%); } }
     </style>
@@ -918,6 +919,19 @@ export function adminNotificationSettingsPage(): string {
 
     <div class="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
       <div class="min-w-0 space-y-5">
+        <section class="notification-card min-w-0 overflow-hidden rounded-3xl border border-gray-200 bg-white p-4 shadow-sm">
+          <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h3 class="text-lg font-extrabold text-gray-900">Chọn storefront</h3>
+              <p class="mt-1 text-sm font-medium text-slate-500">Mỗi trang dùng một bộ thông báo riêng, không ghi đè lẫn nhau.</p>
+            </div>
+            <div class="inline-flex rounded-2xl border border-slate-200 bg-slate-50 p-1">
+              <button id="notificationSegmentIndexBtn" type="button" onclick="switchNotificationSegment('index')" class="notification-segment-btn is-active rounded-xl border border-transparent px-4 py-2 text-sm font-extrabold text-slate-700 transition">QH Boypho</button>
+              <button id="notificationSegmentHottrendnuBtn" type="button" onclick="switchNotificationSegment('hottrendnu')" class="notification-segment-btn rounded-xl border border-transparent px-4 py-2 text-sm font-extrabold text-slate-700 transition">QH Clothes</button>
+            </div>
+          </div>
+        </section>
+
         <section class="notification-card min-w-0 overflow-hidden rounded-3xl border border-gray-200 bg-white p-5 shadow-sm">
           <div class="mb-5 rounded-2xl border border-slate-200 bg-slate-50 p-4">
             <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -1013,7 +1027,7 @@ export function adminNotificationSettingsPage(): string {
               </div>
             </div>
             <div class="bg-gradient-to-br from-indigo-950 to-pink-900 p-5">
-              <p class="text-2xl font-extrabold">QH Boypho</p>
+              <p id="notificationPreviewStoreName" class="text-2xl font-extrabold">QH Boypho</p>
               <p id="notificationPreviewCaption" class="mt-2 text-sm font-medium text-pink-100">Thông báo chạy ngay khi trang được load.</p>
             </div>
           </div>

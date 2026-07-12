@@ -7,6 +7,7 @@ let orderQty = 1
 let selectedColor = ''
 let orderColorOptions = []
 let selectedSize = ''
+let selectedProductSku = null
 let selectedPaymentMethod = ''
 let pendingBankTransferOrder = null
 let bankTransferPollTimer = null
@@ -19,16 +20,42 @@ function isHotTrendWomenContext() {
   return String(ctx?.key || '').trim() === 'hottrendnu'
 }
 
+function getCurrentStorefrontKey() {
+  return isHotTrendWomenContext() ? 'hottrendnu' : 'boypho'
+}
+
+function getStorefrontQuerySuffix(prefix = '?') {
+  return prefix + 'storefront=' + encodeURIComponent(getCurrentStorefrontKey())
+}
+
+function normalizeProductStorefrontVisibility(input) {
+  let source = []
+  if (Array.isArray(input)) {
+    source = input
+  } else if (typeof input === 'string') {
+    const trimmed = input.trim()
+    if (trimmed) {
+      try {
+        const parsed = JSON.parse(trimmed)
+        source = Array.isArray(parsed) ? parsed : [trimmed]
+      } catch (_) {
+        source = trimmed.split(',')
+      }
+    }
+  }
+  const keys = source.map((item) => String(item || '').trim().toLowerCase())
+  if (keys.includes('all')) return ['boypho', 'hottrendnu']
+  const valid = ['boypho', 'hottrendnu'].filter((key) => keys.includes(key))
+  return valid.length ? valid : ['boypho']
+}
+
+function isProductVisibleOnCurrentStorefront(product) {
+  return normalizeProductStorefrontVisibility(product?.storefront_visibility).includes(getCurrentStorefrontKey())
+}
+
 function scopeStorefrontProductsForPage(products) {
   if (!Array.isArray(products)) return []
-  if (isHotTrendWomenContext()) {
-    return products.filter((p) => {
-      const g = String(p.gender || p.category || '').toLowerCase()
-      const t = String(p.type || p.product_type || '').toLowerCase()
-      return g === 'female' || g === 'women' || g === 'girls' || p.is_women === true || t === 'dress' || t === 'set'
-    })
-  }
-  return products
+  return products.filter(isProductVisibleOnCurrentStorefront)
 }
 const DEFAULT_STOREFRONT_PRODUCT_TYPES = [
   { slug: 'tshirt', name: 'Áo phông / thun', active: true },
@@ -39,6 +66,14 @@ const DEFAULT_STOREFRONT_PRODUCT_TYPES = [
   { slug: 'jeans', name: 'Quần Jean', active: true },
   { slug: 'dress', name: 'Váy / Đầm', active: true },
   { slug: 'set', name: 'Bộ đồ', active: true }
+]
+const HOT_TREND_NU_TYPE_FILTERS = [
+  { slug: 'all', name: 'Tất cả', members: [] },
+  { slug: 'tops', name: 'Áo', members: ['tshirt', 'polo'] },
+  { slug: 'dress', name: 'Váy/Đầm', members: ['dress'] },
+  { slug: 'pants', name: 'Quần', members: ['pants', 'jeans'] },
+  { slug: 'set', name: 'Set đồ', members: ['set'] },
+  { slug: 'outerwear', name: 'Áo khoác', members: ['jacket', 'hoodie'] }
 ]
 let productsModalVisibleCount = PRODUCT_MODAL_PAGE_SIZE
 let mobileProductsVisibleCount = MOBILE_PRODUCT_PAGE_SIZE
@@ -1583,26 +1618,34 @@ function updateCartBadge() {
   updateBadge('cartBadge')
   updateBadge('cartBadgeMobile')
   updateBadge('cartBadgeBottom')
+  updateBadge('cartBadgeCategory')
   updateBadge('cartBadgeDetail')
+  updateBadge('cartBadgeDetailHeader')
 }
 function genCartId() { return Date.now().toString(36)+Math.random().toString(36).slice(2,7) }
 
-function addToCart(product, color, size, qty) {
+function addToCart(product, color, size, qty, skuOverride) {
   if (!assertCustomerCanShop()) return false
-  // check duplicate: same productId + color + size
-  const exist = cart.find(i=>i.productId===product.id && i.color===color && i.size===size)
+  const sku = skuOverride || getProductSkuBySelection(product, color, size)
+  const skuId = sku?.id ? String(sku.id) : ''
+  // check duplicate: same SKU when available, fallback productId + color + size
+  const exist = cart.find(i => skuId
+    ? String(i.productSkuId || '') === skuId
+    : (i.productId === product.id && i.color === color && i.size === size))
   if (exist) {
     exist.qty = Math.min(99, exist.qty + qty)
   } else {
+    const priceInfo = getProductDisplayPriceInfo(product, sku)
     cart.push({
       cartId: genCartId(),
       productId: product.id,
+      productSkuId: sku?.id || '',
       name: product.name,
-      sku: product.sku || ('SKU-'+String(product.id).padStart(4,'0')),
-      thumbnail: product.thumbnail || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400',
-      price: getProductDisplayPriceInfo(product).price,
+      sku: sku?.sku_code || product.sku || ('SKU-'+String(product.id).padStart(4,'0')),
+      thumbnail: sku?.image || product.thumbnail || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400',
+      price: priceInfo.price,
       color,
-      colorImage: getSelectedColorImageFromProduct(product, color),
+      colorImage: sku?.image || getSelectedColorImageFromProduct(product, color),
       size, qty,
       checked: true
     })
@@ -1627,12 +1670,35 @@ function inferStorefrontProductType(product) {
   return ''
 }
 
+function getHotTrendNuTypeFilterOptions() {
+  return HOT_TREND_NU_TYPE_FILTERS.map((item) => ({ ...item }))
+}
+
+function getHotTrendNuTypeFilterMembers(slug) {
+  const key = String(slug || 'all').trim()
+  const filter = HOT_TREND_NU_TYPE_FILTERS.find((item) => item.slug === key)
+  return filter ? filter.members : null
+}
+
+function productMatchesTypeFilter(product) {
+  if (!activeProductType || activeProductType === 'all') return true
+  const productType = String(inferStorefrontProductType(product) || '').trim().toLowerCase()
+  if (!productType) return false
+  if (isHotTrendWomenContext()) {
+    const members = getHotTrendNuTypeFilterMembers(activeProductType)
+    if (Array.isArray(members)) return members.includes(productType)
+  }
+  return productType === activeProductType
+}
+
 function renderFilterModalTypeOptions() {
   const row = document.getElementById('filterModalTypeRow')
   if (!row) return
-  const types = Array.isArray(storefrontProductTypes) ? storefrontProductTypes.filter((item) => item && item.active !== false) : []
+  const types = isHotTrendWomenContext()
+    ? getHotTrendNuTypeFilterOptions()
+    : (Array.isArray(storefrontProductTypes) ? storefrontProductTypes.filter((item) => item && item.active !== false) : [])
   row.innerHTML = '<button class="filter-modal-chip" data-val="all" onclick="selectFilterModalType(\\'all\\', this)">Tất cả</button>' +
-    types.map((item) => {
+    types.filter((item) => item && item.slug !== 'all').map((item) => {
       const slug = escapeHtml(item.slug || '')
       const name = escapeHtml(item.name || item.slug || '')
       return '<button class="filter-modal-chip" data-val="' + slug + '" onclick="selectFilterModalType(\\'' + slug + '\\', this)">' + name + '</button>'
@@ -1648,20 +1714,26 @@ function renderFilterModalTypeOptions() {
 
 async function loadProductTypes() {
   try {
-    const res = await axios.get('/api/product-types')
+    const res = await axios.get('/api/product-types' + getStorefrontQuerySuffix())
     storefrontProductTypes = Array.isArray(res.data?.data) && res.data.data.length ? res.data.data : DEFAULT_STOREFRONT_PRODUCT_TYPES
   } catch (_) {
     storefrontProductTypes = DEFAULT_STOREFRONT_PRODUCT_TYPES
   }
   renderFilterModalTypeOptions()
+  renderHotTrendNuCategorySurfaces()
 }
 
 async function loadProducts() {
   try {
-    const [res] = await Promise.all([axios.get('/api/products'), loadProductTypes()])
+    const [res] = await Promise.all([axios.get('/api/products' + getStorefrontQuerySuffix()), loadProductTypes()])
     allProducts = scopeStorefrontProductsForPage(res.data.data || [])
+    hydrateProductSearchFromUrl()
     updateHotTrendNuFilterOptions()
     applyProductsFilters()
+    if (isHotTrendWomenContext()) {
+      loadHotTrendNuTrendingProducts()
+      loadBestSellers()
+    }
     loadFlashSaleShop()
     checkUrlDeepLink()
   } catch(e) {
@@ -1894,25 +1966,25 @@ async function submitReview() {
 async function loadBestSellers() {
   const track = document.getElementById('bestsellersTrack')
   if (!track) return
+  const section = document.getElementById('bestsellersSection')
   try {
     ensureBestsellerRuntimeStyle()
-    const res = await axios.get('/api/bestsellers?limit=10')
-    const products = scopeStorefrontProductsForPage(Array.isArray(res.data?.data) ? res.data.data : [])
     if (isHotTrendWomenContext()) {
-      const merged = products.slice()
-      if (Array.isArray(allProducts) && allProducts.length) {
-        const usedIds = new Set(merged.map((p) => Number(p?.id || 0)))
-        allProducts.forEach((p) => {
-          const id = Number(p?.id || 0)
-          if (merged.length >= 3 || usedIds.has(id)) return
-          usedIds.add(id)
-          merged.push(p)
-        })
+      const res = await axios.get('/api/new-arrival-products?limit=10&storefront=' + encodeURIComponent(getCurrentStorefrontKey()))
+      const products = scopeStorefrontProductsForPage(Array.isArray(res.data?.data) ? res.data.data : [])
+      if (!products.length) {
+        track.innerHTML = ''
+        section?.classList.add('hidden')
+        syncHotTrendNuDealsRowState()
+        return
       }
-      if (!merged.length) { track.innerHTML = '<p class="text-gray-400 text-sm py-4 px-2">Chưa có dữ liệu bán hàng.</p>'; return }
-      track.innerHTML = buildHotTrendNuPreviewProducts(merged, 3).map((p, i) => renderHotTrendNuBestsellerCard(p, i)).join('')
+      section?.classList.remove('hidden')
+      track.innerHTML = products.slice(0, 3).map((p, i) => renderHotTrendNuBestsellerCard(p, i)).join('')
+      syncHotTrendNuDealsRowState()
       return
     }
+    const res = await axios.get('/api/bestsellers?limit=10&storefront=' + encodeURIComponent(getCurrentStorefrontKey()))
+    const products = scopeStorefrontProductsForPage(Array.isArray(res.data?.data) ? res.data.data : [])
     if (!products.length) { track.innerHTML = '<p class="text-gray-400 text-sm py-4 px-2">Chưa có dữ liệu bán hàng.</p>'; return }
     const medalClass = (i) => i < 3 ? 'bs-medal bs-medal-top bs-medal-top-' + (i + 1) : 'bs-medal bs-medal-n'
     const medalIcon = (i) => i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : String(i + 1)
@@ -1954,7 +2026,56 @@ async function loadBestSellers() {
     }).join('')
   } catch(e) {
     if (track) track.innerHTML = ''
+    if (isHotTrendWomenContext()) {
+      section?.classList.add('hidden')
+      syncHotTrendNuDealsRowState()
+    }
   }
+}
+
+async function loadHotTrendNuTrendingProducts() {
+  if (!isHotTrendWomenContext()) return
+  const section = document.getElementById('trendingProductsSection')
+  const track = document.getElementById('trendingProductsTrack')
+  if (!section || !track) return
+  try {
+    ensureBestsellerRuntimeStyle()
+    const res = await axios.get('/api/trending-products' + getStorefrontQuerySuffix())
+    const products = scopeStorefrontProductsForPage(Array.isArray(res.data?.data) ? res.data.data : [])
+    if (!products.length) {
+      track.innerHTML = ''
+      section.classList.add('hidden')
+      syncHotTrendNuDealsRowState()
+      return
+    }
+    section.classList.remove('hidden')
+    track.innerHTML = products.slice(0, 4).map((product, index) => renderHotTrendNuBestsellerCard(product, index)).join('')
+    syncHotTrendNuDealsRowState()
+  } catch (e) {
+    track.innerHTML = ''
+    section.classList.add('hidden')
+    syncHotTrendNuDealsRowState()
+  }
+}
+
+function syncHotTrendNuDealsRowState() {
+  if (!isHotTrendWomenContext()) return
+  const row = document.getElementById('dealsGridRow')
+  const trendingSection = document.getElementById('trendingProductsSection')
+  const bestsellersSection = document.getElementById('bestsellersSection')
+  if (!row) return
+  const hasTrending = !!trendingSection && !trendingSection.classList.contains('hidden')
+  const hasBestsellers = !!bestsellersSection && !bestsellersSection.classList.contains('hidden')
+  row.classList.toggle('hidden', !hasTrending && !hasBestsellers)
+  row.classList.toggle('has-trending', hasTrending)
+}
+
+function syncHotTrendNuFlashSaleRowState() {
+  if (!isHotTrendWomenContext()) return
+  const row = document.getElementById('flashSaleDealsRow')
+  const section = document.getElementById('flashSaleShopSection')
+  if (!row || !section) return
+  row.classList.toggle('hidden', section.classList.contains('hidden'))
 }
 
 function getFlashSaleMeta(product) {
@@ -1973,11 +2094,49 @@ function getFlashSaleMeta(product) {
   }
 }
 
-function getProductDisplayPriceInfo(product) {
-  const flashMeta = getFlashSaleMeta(product)
-  const price = Number(flashMeta?.salePrice || product?.display_price || product?.price || 0)
-  const originalPrice = Number(flashMeta?.basePrice || product?.display_original_price || product?.original_price || price)
-  const autoVoucher = !flashMeta && product?.has_auto_voucher && product?.auto_voucher ? product.auto_voucher : null
+function normalizeSkuToken(value) {
+  return String(value || '').trim().toLowerCase()
+}
+
+function getProductSkuRows(product) {
+  const source = Array.isArray(product?.product_skus)
+    ? product.product_skus
+    : (Array.isArray(product?.skus) ? product.skus : [])
+  return source.filter((sku) => Number(sku?.is_active ?? 1) !== 0)
+}
+
+function getProductSkuBySelection(product, color, size) {
+  const rows = getProductSkuRows(product)
+  if (!rows.length) return null
+  const targetColor = normalizeSkuToken(color)
+  const targetSize = normalizeSkuToken(size)
+  const exact = rows.find((sku) => normalizeSkuToken(sku.color) === targetColor && normalizeSkuToken(sku.size) === targetSize)
+  if (exact) return exact
+  if (targetColor) {
+    const colorOnly = rows.find((sku) => normalizeSkuToken(sku.color) === targetColor && !normalizeSkuToken(sku.size))
+    if (colorOnly) return colorOnly
+  }
+  if (targetSize) {
+    const sizeOnly = rows.find((sku) => normalizeSkuToken(sku.size) === targetSize && !normalizeSkuToken(sku.color))
+    if (sizeOnly) return sizeOnly
+  }
+  return rows[0] || null
+}
+
+function getProductDisplayPriceInfo(product, sku) {
+  const source = sku || product
+  const flashMeta = getFlashSaleMeta(source)
+  const rawPrice = Number(source?.display_price ?? source?.price ?? product?.display_price ?? product?.price ?? 0)
+  const rawOriginal = Number(source?.display_original_price ?? source?.original_price ?? product?.display_original_price ?? product?.original_price ?? rawPrice)
+  let price = Number(flashMeta?.salePrice || rawPrice || 0)
+  let originalPrice = Number(flashMeta?.basePrice || rawOriginal || price)
+  const productAutoVoucher = !flashMeta && product?.has_auto_voucher && product?.auto_voucher ? product.auto_voucher : null
+  const autoVoucher = productAutoVoucher
+  if (autoVoucher && sku) {
+    const discount = Math.min(price, Number(autoVoucher.discount_amount || product?.display_auto_voucher_discount || 0))
+    price = Math.max(0, price - discount)
+    originalPrice = rawOriginal > 0 ? rawOriginal : Number(source?.price || price)
+  }
   return { price, originalPrice, flashMeta, autoVoucher }
 }
 
@@ -2009,6 +2168,19 @@ function formatFlashSaleCountdown(endAt) {
   return [hours, minutes, seconds].map((value) => String(value).padStart(2, '0')).join(':')
 }
 
+function getFlashSaleCountdownParts(endAt) {
+  if (!endAt) return ['00', '00', '00', '00']
+  const target = new Date(endAt).getTime()
+  if (!target || Number.isNaN(target)) return ['00', '00', '00', '00']
+  const diff = Math.max(0, target - Date.now())
+  const totalSeconds = Math.floor(diff / 1000)
+  const days = Math.floor(totalSeconds / 86400)
+  const hours = Math.floor((totalSeconds % 86400) / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
+  const seconds = totalSeconds % 60
+  return [days, hours, minutes, seconds].map((value) => String(value).padStart(2, '0'))
+}
+
 let flashSaleCountdownTicker = null
 
 function updateFlashSaleCountdownNode(node) {
@@ -2017,9 +2189,21 @@ function updateFlashSaleCountdownNode(node) {
   node.textContent = formatFlashSaleCountdown(endAt)
 }
 
+function updateHotTrendNuFlashSaleHeaderCountdown() {
+  const timer = document.querySelector('.qhher-deal-timer[data-flash-sale-ends-at]')
+  if (!timer) return
+  const digits = timer.querySelectorAll('.qhher-timer-digit')
+  if (digits.length < 4) return
+  const parts = getFlashSaleCountdownParts(timer.getAttribute('data-flash-sale-ends-at') || '')
+  digits.forEach((digit, index) => {
+    digit.textContent = parts[index] || '00'
+  })
+}
+
 async function startFlashSaleCountdownTicker() {
   const updateAll = () => {
     document.querySelectorAll('.flash-sale-countdown[data-flash-sale-ends-at]').forEach((node) => updateFlashSaleCountdownNode(node))
+    updateHotTrendNuFlashSaleHeaderCountdown()
   }
   updateAll()
   if (flashSaleCountdownTicker) clearInterval(flashSaleCountdownTicker)
@@ -2031,26 +2215,20 @@ async function loadFlashSaleShop() {
   const grid = document.getElementById('flashSaleShopGrid')
   if (!section || !grid) return
   try {
-    const res = await axios.get('/api/flash-sales/active-products')
+    const res = await axios.get('/api/flash-sales/active-products' + getStorefrontQuerySuffix())
     const products = scopeStorefrontProductsForPage(Array.isArray(res.data?.data) ? res.data.data : [])
     if (!products.length) {
-      if (isHotTrendWomenContext()) {
-        const fallbackProducts = buildHotTrendNuPreviewProducts(allProducts, 7)
-        if (fallbackProducts.length) {
-          section.classList.remove('hidden')
-          document.getElementById('dealsGridRow')?.classList.add('has-flashsale')
-          grid.innerHTML = fallbackProducts.map((product) => renderHotTrendNuFlashSaleCard(product)).join('')
-          return
-        }
-      }
+      grid.innerHTML = ''
       section.classList.add('hidden')
-      document.getElementById('dealsGridRow')?.classList.remove('has-flashsale')
+      syncHotTrendNuFlashSaleRowState()
       return
     }
     section.classList.remove('hidden')
-    document.getElementById('dealsGridRow')?.classList.add('has-flashsale')
+    syncHotTrendNuFlashSaleRowState()
     if (isHotTrendWomenContext()) {
-      grid.innerHTML = buildHotTrendNuPreviewProducts(products, Math.max(7, products.length)).map((product) => renderHotTrendNuFlashSaleCard(product)).join('')
+      const timer = section.querySelector('.qhher-deal-timer')
+      if (timer) timer.setAttribute('data-flash-sale-ends-at', getFlashSaleMeta(products[0])?.endsAt || '')
+      grid.innerHTML = products.map((product) => renderHotTrendNuFlashSaleCard(product)).join('')
       startFlashSaleCountdownTicker()
       return
     }
@@ -2079,7 +2257,9 @@ async function loadFlashSaleShop() {
     }).join('')
     startFlashSaleCountdownTicker()
   } catch (e) {
+    grid.innerHTML = ''
     section.classList.add('hidden')
+    syncHotTrendNuFlashSaleRowState()
   }
 }
 
@@ -2090,6 +2270,7 @@ function renderProducts(products) {
   const moreCount = document.getElementById('productsMoreCount')
   if (!products.length) {
     grid.innerHTML = ''
+    renderProductsEmptyState()
     empty.classList.remove('hidden')
     if (moreWrap) moreWrap.classList.add('hidden')
     updateProductsFilterMeta(0)
@@ -2355,6 +2536,22 @@ function renderHotTrendNuActions(productId, compact) {
     + '</div>'
 }
 
+function renderProductsEmptyState() {
+  const empty = document.getElementById('emptyState')
+  if (!empty) return
+  const keyword = String(activeProductSearch || '').trim()
+  if (isHotTrendWomenContext() && keyword) {
+    empty.innerHTML = '<i class="fas fa-search mb-4 text-5xl"></i>' +
+      '<p class="text-lg font-bold">Không có sản phẩm bạn đang tìm</p>' +
+      '<p class="mx-auto mt-2 max-w-sm text-sm text-[#7B6870]">Thử từ khóa khác hoặc xoá bộ lọc để xem thêm sản phẩm phù hợp.</p>' +
+      '<button type="button" class="mt-5 rounded-full border border-[#F3DDE4] bg-white px-5 py-2 text-sm font-bold text-[#C94F7C]" onclick="submitStorefrontHeaderSearch(\\'\\')">Xem tất cả sản phẩm</button>'
+    return
+  }
+  if (isHotTrendWomenContext()) {
+    empty.innerHTML = '<i class="fas fa-box-open mb-4 text-5xl"></i><p class="text-lg font-bold">Chưa có sản phẩm nữ phù hợp</p>'
+  }
+}
+
 function buildHotTrendNuPreviewProducts(source, count) {
   const list = Array.isArray(source) ? source.filter(Boolean) : []
   const limit = Number(count || 0)
@@ -2366,7 +2563,6 @@ function buildHotTrendNuPreviewProducts(source, count) {
 
 function renderHotTrendNuProductCard(p) {
   const colors = getProductColorOptions(p).map((c) => c.name).filter(Boolean)
-  const sizes = (Array.isArray(p.sizes) ? p.sizes : safeJson(p.sizes || '[]')).map((s) => String(s || '').trim()).filter(Boolean)
   const priceInfo = getProductDisplayPriceInfo(p)
   const flashMeta = priceInfo.flashMeta
   const displayPrice = priceInfo.price
@@ -2375,7 +2571,6 @@ function renderHotTrendNuProductCard(p) {
   const discount = flashMeta ? Number(flashMeta.discountPercent || 0) : (displayOriginalPrice > displayPrice ? Math.round((1 - displayPrice / displayOriginalPrice) * 100) : 0)
   const badgeLabel = p.is_featured ? 'HOT' : discount > 0 ? '-' + discount + '%' : 'NEW'
   const colorDots = colors.slice(0, 4).map((c) => '<span class="htn-color-dot" style="background: ' + resolveColorNameToHex(c) + '" title="' + escapeHtml(c) + '"></span>').join('')
-  const sizePills = sizes.length ? '<div class="htn-size-row">' + sizes.slice(0, 4).map((s) => '<span>' + escapeHtml(s) + '</span>').join('') + (sizes.length > 4 ? '<span>+' + (sizes.length - 4) + '</span>' : '') + '</div>' : ''
   return \`
   <article class="product-card htn-product-card" onclick="openProductDetailFromCard(\${p.id})">
     <div class="htn-product-media">
@@ -2396,7 +2591,6 @@ function renderHotTrendNuProductCard(p) {
       \${renderProductCommerceMeta(p, { className: 'product-commerce-meta--hottrendnu' })}
       \${p.has_flash_sale ? renderFlashSaleMiniStrip(flashMeta) : ''}
       \${colors.length ? '<div class="htn-color-row">' + colorDots + '</div>' : ''}
-      \${sizePills}
       \${renderHotTrendNuActions(p.id, false)}
     </div>
   </article>\`
@@ -2458,6 +2652,97 @@ function filterProductType(type, btn) {
   }
   activeProductType = type
   applyProductsFilters()
+}
+
+function getHotTrendNuCategoryItems() {
+  const productTypes = Array.isArray(storefrontProductTypes) ? storefrontProductTypes : []
+  const bySlug = new Map(productTypes.map((item) => [String(item.slug || ''), item]))
+  const pickImage = (members) => {
+    const found = members.map((slug) => bySlug.get(slug)).find((item) => String(item?.resolved_thumbnail || item?.thumbnail || item?.fallback_thumbnail || '').trim())
+    return String(found?.resolved_thumbnail || found?.thumbnail || found?.fallback_thumbnail || '').trim()
+  }
+  const countMembers = (members) => members.reduce((sum, slug) => sum + Number(bySlug.get(slug)?.product_count || 0), 0)
+  return getHotTrendNuTypeFilterOptions()
+    .filter((item) => item.slug !== 'all')
+    .map((item) => ({
+      ...item,
+      count: countMembers(item.members || []),
+      image: pickImage(item.members || [])
+    }))
+}
+
+function renderHotTrendNuCategoryImage(src, alt) {
+  const safeAlt = escapeHtml(alt || 'Danh mục')
+  if (!src) return '<div class="qhher-category-card-fallback" aria-hidden="true"><i class="fas fa-shirt"></i></div>'
+  return '<img src="' + escapeHtml(src) + '" alt="' + safeAlt + '" loading="lazy" onerror="if(this.parentElement){this.parentElement.innerHTML=\\'<div class=&quot;qhher-category-card-fallback&quot; aria-hidden=&quot;true&quot;><i class=&quot;fas fa-shirt&quot;></i></div>\\'}">'
+}
+
+function renderHotTrendNuCategorySurfaces() {
+  if (!isHotTrendWomenContext()) return
+  const categories = getHotTrendNuCategoryItems()
+  const quickRail = document.getElementById('qhherCategoryRailDynamic')
+  if (quickRail) {
+    quickRail.innerHTML = [
+      '<button type="button" class="qhher-category-pill" onclick="openHotTrendNuCategoryPage(event)">',
+        '<span class="qhher-category-avatar-wrap qhher-category-avatar-wrap--new"><i class="fas fa-star"></i></span>',
+        '<span>Hàng mới</span>',
+      '</button>'
+    ].concat(categories.map((item) => (
+      '<button type="button" class="qhher-category-pill" onclick="selectHotTrendNuCategory(\\'' + escapeHtml(item.slug) + '\\')">' +
+        '<span class="qhher-category-avatar-wrap">' + renderHotTrendNuCategoryImage(item.image, item.name) + '</span>' +
+        '<span>' + escapeHtml(item.name) + '</span>' +
+      '</button>'
+    ))).join('')
+  }
+  const grid = document.getElementById('qhherMobileCategoryGrid')
+  if (grid) {
+    grid.innerHTML = categories.map((item) => (
+      '<button type="button" class="qhher-category-card" onclick="selectHotTrendNuCategory(\\'' + escapeHtml(item.slug) + '\\')">' +
+        '<span class="qhher-category-card-media">' + renderHotTrendNuCategoryImage(item.image, item.name) + '</span>' +
+        '<span class="qhher-category-card-title">' + escapeHtml(item.name) + '</span>' +
+        '<span class="qhher-category-card-count">' + Number(item.count || 0) + ' sản phẩm</span>' +
+      '</button>'
+    )).join('')
+  }
+  const collection = document.getElementById('qhherFeaturedCollections')
+  if (collection) {
+    const featured = categories.filter((item) => item.image).slice(0, 2)
+    collection.innerHTML = featured.map((item, index) => (
+      '<button type="button" class="qhher-collection-card" onclick="selectHotTrendNuCategory(\\'' + escapeHtml(item.slug) + '\\')">' +
+        '<span class="qhher-collection-card-media">' + renderHotTrendNuCategoryImage(item.image, item.name) + '</span>' +
+        '<span class="qhher-collection-card-label">' + (index === 0 ? 'Đi làm thanh lịch' : 'Đi chơi cuối tuần') + '</span>' +
+      '</button>'
+    )).join('')
+  }
+}
+
+function openHotTrendNuCategoryPage(event) {
+  if (event) event.preventDefault()
+  const section = document.getElementById('qhherCategoryPage')
+  if (!section) return
+  renderHotTrendNuCategorySurfaces()
+  const categoryNavItem = document.querySelector('[data-qhher-category-nav="true"]')
+  if (categoryNavItem && typeof setMobileBottomNavActive === 'function') {
+    setMobileBottomNavActive(categoryNavItem)
+  }
+  document.body.classList.add('qhher-category-open')
+  section.classList.remove('hidden')
+  section.scrollTop = 0
+  setMobileBottomNavHidden(false)
+}
+
+function closeHotTrendNuCategoryPage() {
+  const section = document.getElementById('qhherCategoryPage')
+  document.body.classList.remove('qhher-category-open')
+  if (section) section.classList.add('hidden')
+}
+
+function selectHotTrendNuCategory(type) {
+  const slug = String(type || 'all').trim() || 'all'
+  closeHotTrendNuCategoryPage()
+  filterProductType(slug, document.querySelector('.hottrendnu-type-chip[data-type="' + slug + '"]'))
+  const products = document.getElementById('products')
+  if (products) products.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
 // ── FILTER & SEARCH ────────────────────────────────
@@ -2525,6 +2810,10 @@ function updateSelectPreservingValue(select, options, placeholder, activeValue) 
     return '<option value="' + value + '">' + label + '</option>'
   }).join('')
   select.value = options.some((option) => String(option.value) === current) ? current : 'all'
+  select.dispatchEvent(new Event('change', { bubbles: true }))
+  if (typeof window !== 'undefined' && typeof window.refreshUiSelects === 'function') {
+    window.requestAnimationFrame(window.refreshUiSelects)
+  }
 }
 
 function updateHotTrendNuFilterOptions() {
@@ -2552,13 +2841,13 @@ function updateHotTrendNuFilterOptions() {
 
 function productMatchesColorFilter(product) {
   if (!activeProductColor || activeProductColor === 'all') return true
-  return getProductColorOptions(product).some((color) => normalizeProductFilterText(color?.name) === activeProductColor)
+  return getProductColorOptions(product).some((color) => normalizeProductFilterText(color?.name) === normalizeProductFilterText(activeProductColor))
 }
 
 function productMatchesSizeFilter(product) {
   if (!activeProductSize || activeProductSize === 'all') return true
   const sizes = Array.isArray(product?.sizes) ? product.sizes : safeJson(product?.sizes || '[]')
-  return sizes.some((size) => String(size || '').trim() === activeProductSize)
+  return sizes.some((size) => normalizeProductFilterText(size) === normalizeProductFilterText(activeProductSize))
 }
 
 function productMatchesPriceFilter(product) {
@@ -2592,6 +2881,9 @@ function updateProductsFilterMeta(total) {
   const priceSelect = document.getElementById('productsPriceFilter')
   if (priceSelect && priceSelect.value !== activeProductPrice) priceSelect.value = activeProductPrice
   applyProductsMobileLayout()
+  if (typeof window !== 'undefined' && typeof window.refreshUiSelects === 'function') {
+    window.requestAnimationFrame(window.refreshUiSelects)
+  }
 }
 
 function applyProductsMobileLayout() {
@@ -2622,12 +2914,9 @@ function applyProductsFilters() {
   resetMobileProductsVisibleCount()
   filteredProducts = sortProductsList(allProducts.filter((p) => {
     const matchCat = activeProductCategory === 'all' || p.category === activeProductCategory
-    const matchSearch = !activeProductSearch || p.name.toLowerCase().includes(activeProductSearch) || (p.brand || '').toLowerCase().includes(activeProductSearch)
-    
-    let matchType = true
-    if (activeProductType !== 'all') {
-      matchType = inferStorefrontProductType(p) === activeProductType
-    }
+    const searchHaystack = normalizeProductFilterText([p.name, p.brand, p.sku, p.description].filter(Boolean).join(' '))
+    const matchSearch = !activeProductSearch || searchHaystack.includes(normalizeProductFilterText(activeProductSearch))
+    const matchType = productMatchesTypeFilter(p)
 
     return matchCat && matchSearch && matchType && productMatchesColorFilter(p) && productMatchesSizeFilter(p) && productMatchesPriceFilter(p)
   }))
@@ -2730,8 +3019,143 @@ function applyFilterModal() {
 
 function searchProducts(q) {
   activeProductSearch = String(q || '').toLowerCase().trim()
+  syncStorefrontSearchInputs(activeProductSearch)
   applyProductsFilters()
 }
+
+function getSearchPanelForInput(input) {
+  const box = input?.closest?.('.qhher-search-box')
+  return box ? box.querySelector('.qhher-search-suggest-panel') : null
+}
+
+function getPrimaryProductImage(product) {
+  const direct = String(product?.thumbnail || '').trim()
+  if (direct) return direct
+  const images = Array.isArray(product?.images) ? product.images : safeJson(product?.images || '[]')
+  return String((images || []).find(Boolean) || '').trim()
+}
+
+function getStorefrontSearchMatches(query, limit) {
+  const keyword = normalizeProductFilterText(query)
+  const source = Array.isArray(allProducts) ? allProducts : []
+  if (!keyword) return source.slice(0, limit || 5)
+  return source.filter((product) => {
+    const text = normalizeProductFilterText([product.name, product.brand, product.sku, product.description, inferStorefrontProductType(product)].filter(Boolean).join(' '))
+    return text.includes(keyword)
+  }).slice(0, limit || 6)
+}
+
+function renderStorefrontSearchSuggestions(input) {
+  if (!isHotTrendWomenContext()) return
+  const panel = getSearchPanelForInput(input)
+  if (!panel) return
+  const query = String(input?.value || '').trim()
+  const matches = getStorefrontSearchMatches(query, query ? 6 : 4)
+  const safeQuery = escapeHtml(query)
+  if (!matches.length) {
+    panel.innerHTML = '<div class="qhher-search-suggest-empty">Không có sản phẩm phù hợp' + (safeQuery ? ' với "' + safeQuery + '"' : '') + '</div>'
+    panel.classList.remove('hidden')
+    return
+  }
+  const encodedQuery = encodeURIComponent(query)
+  panel.innerHTML = matches.map((product) => {
+    const image = getPrimaryProductImage(product)
+    const priceInfo = getProductDisplayPriceInfo(product)
+    const price = Number(priceInfo.price || product.price || 0)
+    const original = Number(priceInfo.original || product.original_price || 0)
+    return '<button type="button" class="qhher-search-suggest-item" onclick="openStorefrontSearchSuggestionProduct(' + Number(product.id || 0) + ')">' +
+      '<span class="qhher-search-suggest-thumb">' + (image ? '<img src="' + escapeHtml(image) + '" alt="">' : '') + '</span>' +
+      '<span class="min-w-0">' +
+        '<span class="qhher-search-suggest-title">' + escapeHtml(product.name || 'Sản phẩm') + '</span>' +
+        '<span class="qhher-search-suggest-meta"><span>' + fmtPrice(price) + '</span>' + (original > price ? '<span class="qhher-search-suggest-original">' + fmtPrice(original) + '</span>' : '') + '</span>' +
+      '</span>' +
+    '</button>'
+  }).join('') + (query ? '<button type="button" class="qhher-search-suggest-action" onclick="submitStorefrontHeaderSearch(decodeURIComponent(\\'' + encodedQuery + '\\'))">Xem tất cả kết quả cho "' + safeQuery + '"</button>' : '')
+  panel.classList.remove('hidden')
+}
+
+function openStorefrontHeaderSearch(input) {
+  if (!isHotTrendWomenContext()) {
+    focusProductsSearch()
+    return
+  }
+  renderStorefrontSearchSuggestions(input)
+}
+
+function handleStorefrontHeaderSearchInput(value, input) {
+  if (!isHotTrendWomenContext()) {
+    searchProducts(value)
+    return
+  }
+  renderStorefrontSearchSuggestions(input)
+}
+
+function handleStorefrontHeaderSearchKeydown(event) {
+  if (!event) return
+  if (event.key === 'Enter') {
+    event.preventDefault()
+    submitStorefrontHeaderSearch(event.currentTarget?.value || '')
+  }
+  if (event.key === 'Escape') {
+    closeStorefrontHeaderSearchPanels()
+  }
+}
+
+function closeStorefrontHeaderSearchPanels() {
+  document.querySelectorAll('.qhher-search-suggest-panel').forEach((panel) => panel.classList.add('hidden'))
+}
+
+function syncStorefrontSearchInputs(value) {
+  const keyword = String(value || '').trim()
+  document.querySelectorAll('.qhher-storefront-search-input, #searchInput').forEach((input) => {
+    if (input && input.value !== keyword) input.value = keyword
+  })
+}
+
+function updateStorefrontSearchUrl(keyword) {
+  if (!isHotTrendWomenContext()) return
+  try {
+    const url = new URL(window.location.href)
+    const value = String(keyword || '').trim()
+    if (value) url.searchParams.set('search', value)
+    else url.searchParams.delete('search')
+    window.history.replaceState({}, '', url.pathname + (url.searchParams.toString() ? '?' + url.searchParams.toString() : '') + url.hash)
+  } catch (_) {}
+}
+
+function submitStorefrontHeaderSearch(value) {
+  const keyword = String(value || '').trim()
+  activeProductSearch = keyword.toLowerCase()
+  syncStorefrontSearchInputs(keyword)
+  updateStorefrontSearchUrl(keyword)
+  closeStorefrontHeaderSearchPanels()
+  applyProductsFilters()
+  const products = document.getElementById('products')
+  if (products) products.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+function openStorefrontSearchSuggestionProduct(productId) {
+  closeStorefrontHeaderSearchPanels()
+  const id = Number(productId || 0)
+  if (id && typeof showDetail === 'function') showDetail(id)
+}
+
+function hydrateProductSearchFromUrl() {
+  if (!isHotTrendWomenContext()) return
+  try {
+    const params = new URLSearchParams(window.location.search)
+    const keyword = String(params.get('search') || '').trim()
+    if (!keyword) return
+    activeProductSearch = keyword.toLowerCase()
+    syncStorefrontSearchInputs(keyword)
+  } catch (_) {}
+}
+
+document.addEventListener('click', function(event) {
+  if (!isHotTrendWomenContext()) return
+  if (event.target?.closest?.('.qhher-search-box')) return
+  closeStorefrontHeaderSearchPanels()
+})
 
 function sortProductsByTime(value) {
   activeProductSort = ['oldest', 'price_asc', 'price_desc', 'best_selling'].includes(value) ? value : 'newest'
@@ -2864,6 +3288,7 @@ function renderProductCardActions(productId) {
 
 function refreshStorefrontPurchaseControls() {
   if (Array.isArray(filteredProducts) && filteredProducts.length) renderProducts(filteredProducts)
+  if (isHotTrendWomenContext()) loadHotTrendNuTrendingProducts()
   loadBestSellers()
   loadFlashSaleShop()
 }
@@ -2874,6 +3299,20 @@ function toggleMobileMenu() {
 }
 
 function focusProductsSearch() {
+  if (isHotTrendWomenContext()) {
+    const input = window.innerWidth < 768
+      ? document.getElementById('qhherMobileSearchInput')
+      : document.getElementById('qhherHeaderSearchInput')
+    if (!input) return
+    try {
+      input.focus({ preventScroll: true })
+    } catch (_) {
+      input.focus()
+    }
+    if (String(input.value || '').trim()) input.select()
+    renderStorefrontSearchSuggestions(input)
+    return
+  }
   const navbar = document.querySelector('nav.navbar-blur')
   const filterBar = document.getElementById('filterBar')
   const input = document.getElementById('searchInput')
@@ -3376,6 +3815,7 @@ async function submitCartOrder() {
         customer_commune_code: payload.addressPayload.communeCode,
         address_effective_date: payload.addressPayload.effectiveDate,
         product_id: item.productId, color: item.color, size: item.size,
+        product_sku_id: item.productSkuId || '',
         selected_color_image: item.colorImage || '',
         quantity: item.qty,
         voucher_code: ckAppliedVoucher ? ckAppliedVoucher.code : '',
@@ -3533,8 +3973,7 @@ async function loadSettings() {
     const imageSettingsRes = await axios.get('/api/public/image-settings').catch(() => ({ data: { data: {} } }))
     const imageSettings = (imageSettingsRes.data && imageSettingsRes.data.data) ? imageSettingsRes.data.data : {}
     const configuredTrendingImage = String(imageSettings.home_trending_banner_image || '').trim()
-    if (configuredTrendingImage) {
-      heroBannersData = [{
+    const settingBannerCards = configuredTrendingImage ? [{
         image_url: configuredTrendingImage,
         subtitle: String(imageSettings.home_trending_banner_subtitle || '').trim() || 'QH Boypho · Đang thịnh hành',
         title: String(imageSettings.home_trending_banner_title || '').trim() || 'Bộ sưu tập thịnh hành',
@@ -3544,15 +3983,12 @@ async function loadSettings() {
         trending_order: 0,
         updated_at: '',
         created_at: ''
-      }]
-      renderCollapsedBanners(heroBannersData)
-      return
-    }
+      }] : []
 
-    const trendingRes = await axios.get('/api/trending-products').catch(() => ({ data: { data: [] } }))
+    const trendingRes = await axios.get('/api/trending-products' + getStorefrontQuerySuffix()).catch(() => ({ data: { data: [] } }))
     const trendingProducts = (trendingRes.data && trendingRes.data.data) ? trendingRes.data.data : []
-    const fallbackProducts = trendingProducts.length ? [] : await loadHeroFallbackProducts()
-    heroBannersData = sortHeroCards(mapTrendingProductsToHeroCards(trendingProducts.length ? trendingProducts : fallbackProducts))
+    const fallbackProducts = trendingProducts.length || settingBannerCards.length ? [] : await loadHeroFallbackProducts()
+    heroBannersData = sortHeroCards([...mapTrendingProductsToHeroCards(trendingProducts.length ? trendingProducts : fallbackProducts), ...settingBannerCards])
     renderCollapsedBanners(heroBannersData)
   } catch (e) {
     console.error('Failed to load banners', e)
@@ -3569,7 +4005,7 @@ async function loadPublicPaymentSettings() {
 
 async function loadHeroFallbackProducts() {
   if (Array.isArray(allProducts) && allProducts.length) return allProducts.slice(0, 6)
-  const productsRes = await axios.get('/api/products').catch(() => ({ data: { data: [] } }))
+  const productsRes = await axios.get('/api/products' + getStorefrontQuerySuffix()).catch(() => ({ data: { data: [] } }))
   const products = (productsRes.data && productsRes.data.data) ? productsRes.data.data : []
   return Array.isArray(products) ? products.slice(0, 6) : []
 }
@@ -3935,6 +4371,11 @@ function renderHeroSettingCaption(b, mode) {
 }
 
 const DEFAULT_MARQUEE_NOTIFICATION_TEXT = 'Mua hàng tại đây không qua sàn thương mại nên giá thành sản phẩm sẽ rẻ hơn rất nhiều và bảo hành hoàn trả trong vòng 7 ngày nếu sản phẩm bị lỗi nên quý khách yên tâm mua sắm nhé.Bảo hành đổi trả nhắn qua trang facebook : QH Boypho. Chúc quý khách có trải nghiệm mua sắm tốt tại QH Boypho'
+const DEFAULT_HOT_TREND_NU_MARQUEE_NOTIFICATION_TEXT = 'Mua trực tiếp giá tốt hơn | Không qua sàn | Đổi trả 7 ngày'
+
+function getStorefrontMarqueeDefaultText() {
+  return isHotTrendWomenContext() ? DEFAULT_HOT_TREND_NU_MARQUEE_NOTIFICATION_TEXT : DEFAULT_MARQUEE_NOTIFICATION_TEXT
+}
 
 function normalizeStorefrontMarqueeSpeed(value) {
   const n = Number(value || 48)
@@ -3942,8 +4383,18 @@ function normalizeStorefrontMarqueeSpeed(value) {
   return Math.min(120, Math.max(8, Math.round(n)))
 }
 
+function normalizeHotTrendNuBrandText(text) {
+  const value = String(text || '')
+  const isHotTrendNuPage = isHotTrendWomenContext()
+    || document.body?.classList?.contains('hottrendnu-page')
+    || window.location.pathname.indexOf('/hottrendnu') === 0
+  if (!isHotTrendNuPage) return value
+  return value.replace(/QH\\s*Her/gi, 'QH Clothes')
+}
+
 function parseStorefrontMarqueeSegments(value) {
-  const raw = String(value || DEFAULT_MARQUEE_NOTIFICATION_TEXT)
+  const fallback = getStorefrontMarqueeDefaultText()
+  const raw = normalizeHotTrendNuBrandText(value || fallback)
   const lineBreak = String.fromCharCode(10)
   const segments = raw
     .replaceAll(String.fromCharCode(13), lineBreak)
@@ -3951,7 +4402,7 @@ function parseStorefrontMarqueeSegments(value) {
     .split(lineBreak)
     .map(item => item.trim())
     .filter(Boolean)
-  return segments.length ? segments.slice(0, 12) : [DEFAULT_MARQUEE_NOTIFICATION_TEXT]
+  return segments.length ? segments.slice(0, 12) : [fallback]
 }
 
 function getStorefrontMarqueeIconClass(text) {
@@ -3975,7 +4426,7 @@ function ensureStorefrontMarqueeRuntimeStyle() {
   if (document.getElementById('storefrontMarqueeRuntimeStyle')) return
   const style = document.createElement('style')
   style.id = 'storefrontMarqueeRuntimeStyle'
-  style.textContent = '.storefront-marquee-track{animation:storefrontMarqueeImmediate var(--storefront-marquee-duration,48s) linear infinite!important;animation-delay:0s!important;transform:translate3d(0,0,0);backface-visibility:hidden}.storefront-marquee-bar:hover .storefront-marquee-track{animation-play-state:paused!important}@keyframes storefrontMarqueeImmediate{from{transform:translate3d(0,0,0)}to{transform:translate3d(-50%,0,0)}}'
+  style.textContent = '.storefront-marquee-track{display:flex!important;align-items:center!important;gap:0!important;width:max-content!important;animation:storefrontMarqueeImmediate var(--storefront-marquee-duration,48s) linear infinite!important;animation-delay:0s!important;transform:translate3d(0,0,0);backface-visibility:hidden}.storefront-marquee-seq{display:flex!important;align-items:center!important;flex:0 0 auto!important;gap:0!important}.storefront-marquee-group{padding-left:.65rem!important;padding-right:.65rem!important}.storefront-marquee-separator{margin-left:.45rem!important}.storefront-marquee-bar:hover .storefront-marquee-track{animation-play-state:paused!important}@keyframes storefrontMarqueeImmediate{from{transform:translate3d(0,0,0)}to{transform:translate3d(-50%,0,0)}}'
   document.head.appendChild(style)
 }
 
@@ -3994,7 +4445,7 @@ function bindStorefrontMarqueeHoverPause(bar, track) {
   bar.dataset.marqueeHoverPauseBound = '1'
 }
 
-function appendStorefrontMarqueeGroup(track, segment) {
+function appendStorefrontMarqueeGroup(container, segment) {
   const group = document.createElement('div')
   group.className = 'storefront-marquee-group'
   const icon = document.createElement('i')
@@ -4009,7 +4460,30 @@ function appendStorefrontMarqueeGroup(track, segment) {
   group.appendChild(icon)
   group.appendChild(span)
   group.appendChild(separator)
-  track.appendChild(group)
+  container.appendChild(group)
+}
+
+function getStorefrontMarqueeFillWidth(track) {
+  const bar = track?.closest?.('.storefront-marquee-bar')
+  const barWidth = Number(bar?.clientWidth || bar?.getBoundingClientRect?.().width || 0)
+  const viewportWidth = Number(window.innerWidth || document.documentElement.clientWidth || 0)
+  return Math.max(barWidth, viewportWidth, 720) + 160
+}
+
+function fillStorefrontMarqueeSequence(sequence, segments, minWidth) {
+  let guard = 0
+  while (sequence.scrollWidth < minWidth && guard < 80) {
+    segments.forEach(segment => appendStorefrontMarqueeGroup(sequence, segment))
+    guard += 1
+  }
+}
+
+function resolveStorefrontMarqueeDuration(speedSeconds, sequence) {
+  const speed = normalizeStorefrontMarqueeSpeed(speedSeconds)
+  const sequenceWidth = Number(sequence?.scrollWidth || 0)
+  const baselineWidth = 720
+  const widthScale = sequenceWidth > baselineWidth ? sequenceWidth / baselineWidth : 1
+  return Math.round(speed * widthScale)
 }
 
 function renderStorefrontMarquee(text, speedSeconds) {
@@ -4026,25 +4500,22 @@ function renderStorefrontMarquee(text, speedSeconds) {
   track.style.removeProperty('animation')
   track.style.removeProperty('transform')
   track.style.removeProperty('width')
-  segments.forEach(segment => appendStorefrontMarqueeGroup(track, segment))
-  let guard = 0
-  const minWidth = Math.max(window.innerWidth * 1.25, 720)
-  while (track.scrollWidth < minWidth && guard < 8) {
-    segments.forEach(segment => appendStorefrontMarqueeGroup(track, segment))
-    guard += 1
-  }
-  const baseGroups = Array.from(track.children)
-  for (const group of baseGroups) {
-    track.appendChild(group.cloneNode(true))
-  }
-  track.style.setProperty('--storefront-marquee-duration', speed + 's')
+  const sequence = document.createElement('div')
+  sequence.className = 'storefront-marquee-seq'
+  fillStorefrontMarqueeSequence(sequence, segments, getStorefrontMarqueeFillWidth(track))
+  track.appendChild(sequence)
+  const clone = sequence.cloneNode(true)
+  clone.setAttribute('aria-hidden', 'true')
+  track.appendChild(clone)
+  track.style.setProperty('--storefront-marquee-duration', resolveStorefrontMarqueeDuration(speed, sequence) + 's')
 }
 
 function renderStorefrontStaticNotification(text) {
   const track = document.querySelector('.storefront-marquee-track')
   if (!track) return
   const bar = track.closest('.storefront-marquee-bar')
-  const safeText = String(text || DEFAULT_MARQUEE_NOTIFICATION_TEXT).trim() || DEFAULT_MARQUEE_NOTIFICATION_TEXT
+  const fallback = getStorefrontMarqueeDefaultText()
+  const safeText = normalizeHotTrendNuBrandText(text || fallback).trim() || normalizeHotTrendNuBrandText(fallback)
   if (bar) bar.classList.add('storefront-marquee-bar--static')
   track.innerHTML = ''
   track.className = 'storefront-marquee-track storefront-marquee-track--static'
@@ -4066,24 +4537,26 @@ function renderStorefrontStaticNotification(text) {
 
 function renderStorefrontNotificationSettings(cfg) {
   const mode = String(cfg?.notification_display_mode || '').trim() === 'static' ? 'static' : 'marquee'
+  const fallback = getStorefrontMarqueeDefaultText()
   if (mode === 'static') {
-    renderStorefrontStaticNotification(cfg?.static_notification_text || cfg?.marquee_text || DEFAULT_MARQUEE_NOTIFICATION_TEXT)
+    renderStorefrontStaticNotification(cfg?.static_notification_text || cfg?.marquee_text || fallback)
     return
   }
-  renderStorefrontMarquee(cfg?.marquee_text || DEFAULT_MARQUEE_NOTIFICATION_TEXT, cfg?.marquee_speed_seconds || 48)
+  renderStorefrontMarquee(cfg?.marquee_text || fallback, cfg?.marquee_speed_seconds || 48)
 }
 
 function initStorefrontMarquee() {
-  renderStorefrontMarquee(DEFAULT_MARQUEE_NOTIFICATION_TEXT, 48)
+  renderStorefrontMarquee(getStorefrontMarqueeDefaultText(), 48)
 }
 
 async function loadNotificationSettings() {
   try {
-    const res = await axios.get('/api/public/notification-settings')
+    const suffix = isHotTrendWomenContext() ? '?segment=hottrendnu' : ''
+    const res = await axios.get('/api/public/notification-settings' + suffix)
     const cfg = (res.data && res.data.data) || {}
     renderStorefrontNotificationSettings(cfg)
   } catch (_) {
-    renderStorefrontMarquee(DEFAULT_MARQUEE_NOTIFICATION_TEXT, 48)
+    renderStorefrontMarquee(getStorefrontMarqueeDefaultText(), 48)
   }
 }
 
@@ -5019,7 +5492,17 @@ function openOrderBankTransferModal(info) {
   const qrImage = getVietQRUrl(amount, transferContent)
   pendingBankTransferOrder = { orderCode, amount, transferContent, paymentLinkId: info?.paymentLinkId || '' }
   document.getElementById('orderBankOrderCode').textContent = orderCode
-  document.getElementById('orderBankAmountDisplay').textContent = fmtPrice(amount)
+  const amountDisplay = document.getElementById('orderBankAmountDisplay')
+  if (amountDisplay) {
+    amountDisplay.textContent = fmtPrice(amount)
+    if (isHotTrendWomenContext()) {
+      amountDisplay.classList.remove('text-gradient-price')
+      amountDisplay.classList.add('qhher-order-price')
+    } else {
+      amountDisplay.classList.add('text-gradient-price')
+      amountDisplay.classList.remove('qhher-order-price')
+    }
+  }
   document.getElementById('orderBankAccountNo').textContent = BANK_CONFIG.accountNo
   document.getElementById('orderBankAccountName').textContent = BANK_CONFIG.accountName
   document.getElementById('orderBankTransferContent').textContent = transferContent
@@ -5255,6 +5738,7 @@ document.addEventListener('click', function(e) {
 
 // Load bestsellers on page start
 loadBestSellers()
+if (isHotTrendWomenContext()) loadHotTrendNuTrendingProducts()
 
 
 function openTopupModal() {

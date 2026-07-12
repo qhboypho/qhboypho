@@ -103,6 +103,12 @@ export function attachSkuStateToProduct(
 ) {
   const sourceRows = Array.isArray(skuRows) ? skuRows : []
   const skus = sourceRows.map((sku) => shapeSkuWithFlashSale(sku, activeFlashSaleRows.get(Number(sku.id))))
+  const activeSkus = skus.filter((sku) => normalizeOptionalBoolean(sku.is_active))
+  const cheapestSku = [...activeSkus].sort((left, right) => {
+    const leftPrice = Number(left.display_price ?? left.price ?? 0)
+    const rightPrice = Number(right.display_price ?? right.price ?? 0)
+    return leftPrice - rightPrice
+  })[0] || null
   const activeSkuSales = skus.filter((sku) => sku.has_flash_sale)
   const bestSkuSale = activeSkuSales.sort((left, right) => {
     const leftPrice = Number(left.display_price ?? left.price ?? 0)
@@ -113,6 +119,11 @@ export function attachSkuStateToProduct(
   if (!bestSkuSale) {
     return {
       ...product,
+      price: Number(cheapestSku?.price ?? product.price ?? 0),
+      original_price: cheapestSku
+        ? (cheapestSku.original_price === null || cheapestSku.original_price === undefined ? product.original_price : cheapestSku.original_price)
+        : product.original_price,
+      stock: cheapestSku ? Number(cheapestSku.stock ?? product.stock ?? 0) : product.stock,
       skus,
       product_skus: skus
     }
