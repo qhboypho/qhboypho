@@ -685,7 +685,11 @@ export function registerProductRoutes(app: Hono<{ Bindings: AppBindings }>, deps
            FROM product_daily_views
            GROUP BY product_id
          ) v ON v.product_id = p.id
-         ORDER BY p.created_at DESC`
+         ORDER BY
+           CASE WHEN p.is_trending=1 AND COALESCE(p.trending_order, 0) > 0 THEN 0 ELSE 1 END ASC,
+           CASE WHEN p.is_trending=1 AND COALESCE(p.trending_order, 0) > 0 THEN p.trending_order ELSE 999999 END ASC,
+           datetime(p.created_at) DESC,
+           p.id DESC`
       ).all()
       const rows = result.results || []
       const skuMap = await loadProductSkusByProductIds(c.env.DB, rows.map((row: any) => row.id), { includeInactive: true })

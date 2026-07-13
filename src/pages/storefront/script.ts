@@ -2502,7 +2502,7 @@ function renderProductPerkBadges(product) {
     badges.push('<span class="product-perk-badge product-perk-badge--voucher" title="Voucher tự động đã áp vào giá" style="font-family: Be Vietnam Pro, sans-serif;"><i class="fas fa-ticket"></i><span>-' + fmtCompactPrice(voucherDiscount) + '</span></span>')
   }
   if (!badges.length) return ''
-  return '<div class="product-perk-badges flex items-center gap-1">' + badges.join('') + '</div>'
+  return '<div class="product-perk-badges">' + badges.join('') + '</div>'
 }
 
 function renderProductSoldLine(product, className) {
@@ -2514,7 +2514,7 @@ function renderProductSoldLine(product, className) {
 
 function renderProductCommerceMeta(product, options) {
   const opts = options || {}
-  const classes = ['product-commerce-meta', 'flex', 'items-center', 'justify-between', 'w-full']
+  const classes = ['product-commerce-meta']
   if (opts.className) classes.push(opts.className)
   const soldHtml = renderProductSoldLine(product)
   const perkHtml = renderProductPerkBadges(product)

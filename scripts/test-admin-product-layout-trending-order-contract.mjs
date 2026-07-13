@@ -4,6 +4,7 @@ import path from 'node:path'
 
 const root = process.cwd()
 const modalSource = fs.readFileSync(path.join(root, 'src', 'pages', 'admin', 'modals.ts'), 'utf8')
+const adminScript = fs.readFileSync(path.join(root, 'src', 'pages', 'admin', 'script.ts'), 'utf8')
 const storefrontScript = fs.readFileSync(path.join(root, 'src', 'pages', 'storefront', 'script.ts'), 'utf8')
 const routeSource = fs.readFileSync(path.join(root, 'src', 'routes', 'productRoutes.ts'), 'utf8')
 
@@ -38,9 +39,27 @@ assert.match(
 )
 
 assert.match(
+  storefrontScript,
+  /if \(aHas && bHas && ao !== bo\) return ao - bo/,
+  'storefront hero sorter should place smaller explicit trending_order first'
+)
+
+assert.match(
+  adminScript,
+  /function sortAdminProductsForDisplay\(products\)/,
+  'admin frontend should sort product cards defensively before rendering ranked trending products'
+)
+
+assert.match(
   routeSource,
   /CASE WHEN COALESCE\(trending_order, 0\) > 0 THEN trending_order ELSE 999999 END ASC/,
   'trending endpoint should keep explicit trending_order before automatic items'
+)
+
+assert.match(
+  routeSource,
+  /ORDER BY\s+CASE WHEN p\.is_trending=1 AND COALESCE\(p\.trending_order, 0\) > 0 THEN 0 ELSE 1 END ASC,\s+CASE WHEN p\.is_trending=1 AND COALESCE\(p\.trending_order, 0\) > 0 THEN p\.trending_order ELSE 999999 END ASC,\s+datetime\(p\.created_at\) DESC/s,
+  'admin product list should place explicitly ranked trending products first, then automatic products'
 )
 
 console.log('admin product layout and trending order contract ok')

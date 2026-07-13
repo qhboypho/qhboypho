@@ -81,13 +81,19 @@ assert.match(
 assert.match(
   adminScript,
   /function shouldShowTrendingOrderBadge\(product\)/,
-  'admin product card should use the same valid owner logic as the dropdown'
+  'admin product card should use a dedicated helper for explicit rank badges'
 )
 
 assert.match(
   adminScript,
-  /const showTrendingOrderBadge = shouldShowTrendingOrderBadge\(p\)/,
-  'admin product card should hide stale duplicate rank badges when no product uniquely owns that rank'
+  /return !!product\?\.is_trending && order > 0/,
+  'admin product card should show #rank for any explicit positive trending_order; backend owns duplicate cleanup'
+)
+
+assert.doesNotMatch(
+  adminScript,
+  /getValidTrendingOrderOwnerMap\(\)\.get\(order\)/,
+  'admin product card should not hide #rank because of stale duplicate rows'
 )
 
 assert.match(

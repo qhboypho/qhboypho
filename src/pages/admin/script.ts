@@ -2333,7 +2333,7 @@ async function loadAdminProducts() {
   try {
     await loadAdminProductTypes()
     const res = await axios.get('/api/admin/products')
-    adminProducts = res.data.data || []
+    adminProducts = sortAdminProductsForDisplay(res.data.data || [])
     renderAdminProducts(adminProducts)
   } catch(e) {
     if (e && e.response && e.response.status === 401) {
@@ -2357,7 +2357,33 @@ function filterAdminProducts() {
     (!cat || String(p?.category || '') === cat) &&
     (!productType || inferAdminProductType(p) === productType)
   )
-  renderAdminProducts(filtered)
+  renderAdminProducts(sortAdminProductsForDisplay(filtered))
+}
+
+function getAdminProductExplicitTrendingOrder(product) {
+  const order = Number(product?.trending_order || 0)
+  return product?.is_trending && order > 0 ? order : 0
+}
+
+function getAdminProductSortTime(product) {
+  const parsed = Date.parse(product?.created_at || product?.updated_at || '')
+  return Number.isNaN(parsed) ? 0 : parsed
+}
+
+function sortAdminProductsForDisplay(products) {
+  return (Array.isArray(products) ? [...products] : []).sort((a, b) => {
+    const ao = getAdminProductExplicitTrendingOrder(a)
+    const bo = getAdminProductExplicitTrendingOrder(b)
+    const aRanked = ao > 0
+    const bRanked = bo > 0
+    if (aRanked && !bRanked) return -1
+    if (!aRanked && bRanked) return 1
+    if (aRanked && bRanked && ao !== bo) return ao - bo
+    const at = getAdminProductSortTime(a)
+    const bt = getAdminProductSortTime(b)
+    if (at !== bt) return bt - at
+    return Number(b?.id || 0) - Number(a?.id || 0)
+  })
 }
 
 function renderAdminProducts(products) {
@@ -2781,10 +2807,7 @@ function getUsedTrendingOrderMap(currentProductId = null) {
 
 function shouldShowTrendingOrderBadge(product) {
   const order = Number(product?.trending_order || 0)
-  const productId = Number(product?.id || 0)
-  if (!product?.is_trending || order <= 0 || productId <= 0) return false
-  const owner = getValidTrendingOrderOwnerMap().get(order)
-  return Number(owner?.id || 0) === productId
+  return !!product?.is_trending && order > 0
 }
 
 function syncTrendingOrderOptions(currentProductId = null) {

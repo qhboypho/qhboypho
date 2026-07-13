@@ -2306,9 +2306,12 @@ export function storefrontThemeRefreshStyles(): string {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
+    justify-content: flex-start;
     gap: 0.24rem;
+    width: 100%;
     min-width: 0;
     margin: 0.1rem 0 0.45rem;
+    text-align: left;
   }
   .product-sold-line {
     display: inline-flex;
@@ -2329,6 +2332,8 @@ export function storefrontThemeRefreshStyles(): string {
   .product-perk-badges {
     display: flex;
     align-items: center;
+    justify-content: flex-start;
+    align-self: flex-start;
     gap: 0.24rem;
     max-width: 100%;
     flex-wrap: wrap;

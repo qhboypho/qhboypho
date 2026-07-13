@@ -42,8 +42,13 @@ assert(adminScript.includes('loadAutoVouchers'), 'admin auto voucher list loader
 assert(adminScript.includes('/api/admin/auto-vouchers'), 'admin script does not call auto voucher API')
 
 const storefrontScript = read('src/pages/storefront/script.ts')
+const storefrontTheme = read('src/pages/storefront/theme-refresh.ts')
 assert(storefrontScript.includes('getProductDisplayPriceInfo'), 'storefront display price helper is missing')
 assert(storefrontScript.includes('renderAutoVoucherMiniBadge'), 'storefront auto voucher badge is missing')
+assert(storefrontScript.includes("const classes = ['product-commerce-meta']"), 'product commerce meta should not include utility classes that push badges away from the left edge')
+assert(storefrontScript.includes('return \'<div class="product-perk-badges">\' + badges.join(\'\') + \'</div>\''), 'product perk badges should use the shared left-aligned badge container')
+assert(/\.product-commerce-meta \{[\s\S]*align-items: flex-start;[\s\S]*justify-content: flex-start;[\s\S]*text-align: left;/m.test(storefrontTheme), 'product commerce meta should align all badge rows to the left')
+assert(/\.product-perk-badges \{[\s\S]*justify-content: flex-start;[\s\S]*align-self: flex-start;/m.test(storefrontTheme), 'product perk badge groups should stay on the left in cards, hero, and modals')
 assert(
   storefrontScript.includes('price: getProductDisplayPriceInfo(product).price')
     || (storefrontScript.includes('const priceInfo = getProductDisplayPriceInfo(product, sku)') && storefrontScript.includes('price: priceInfo.price')),
