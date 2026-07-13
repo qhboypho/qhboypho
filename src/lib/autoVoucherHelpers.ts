@@ -124,11 +124,26 @@ export function findBestAutoVoucherForProduct(productId: unknown, vouchers: Auto
 
 export function applyAutoVoucherToProduct(product: Record<string, any>, voucher: AutoVoucher | null | undefined) {
   const baseProduct = { ...product }
-  if (!voucher || baseProduct.has_flash_sale) return baseProduct
+  if (!voucher) return baseProduct
   const price = roundMoney(toNumber(baseProduct.price, 0))
   if (price <= 0) return baseProduct
   const discount = Math.min(price, roundMoney(toNumber(voucher.discount_amount, 0)))
   if (discount <= 0) return baseProduct
+  const autoVoucher = {
+    id: voucher.id,
+    name: voucher.name,
+    discount_amount: discount,
+    scope: voucher.scope,
+    show_badge: voucher.show_badge
+  }
+  if (baseProduct.has_flash_sale) {
+    return {
+      ...baseProduct,
+      has_auto_voucher: true,
+      display_auto_voucher_discount: discount,
+      auto_voucher: autoVoucher
+    }
+  }
   const finalPrice = roundMoney(price - discount)
   const originalPrice = roundMoney(toNumber(baseProduct.original_price, price))
   return {
@@ -137,13 +152,7 @@ export function applyAutoVoucherToProduct(product: Record<string, any>, voucher:
     display_price: finalPrice,
     display_original_price: originalPrice > 0 ? originalPrice : price,
     display_auto_voucher_discount: discount,
-    auto_voucher: {
-      id: voucher.id,
-      name: voucher.name,
-      discount_amount: discount,
-      scope: voucher.scope,
-      show_badge: voucher.show_badge
-    }
+    auto_voucher: autoVoucher
   }
 }
 
