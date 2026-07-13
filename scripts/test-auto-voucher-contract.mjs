@@ -44,7 +44,11 @@ assert(adminScript.includes('/api/admin/auto-vouchers'), 'admin script does not 
 const storefrontScript = read('src/pages/storefront/script.ts')
 assert(storefrontScript.includes('getProductDisplayPriceInfo'), 'storefront display price helper is missing')
 assert(storefrontScript.includes('renderAutoVoucherMiniBadge'), 'storefront auto voucher badge is missing')
-assert(storefrontScript.includes('price: getProductDisplayPriceInfo(product).price'), 'cart does not store display price')
+assert(
+  storefrontScript.includes('price: getProductDisplayPriceInfo(product).price')
+    || (storefrontScript.includes('const priceInfo = getProductDisplayPriceInfo(product, sku)') && storefrontScript.includes('price: priceInfo.price')),
+  'cart does not store display price'
+)
 assert(storefrontScript.includes('Mã khuyến mãi không còn hiệu lực'), 'checkout error copy is not updated')
 
 console.log('PASS: auto voucher contract')

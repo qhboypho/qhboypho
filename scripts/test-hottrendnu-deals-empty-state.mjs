@@ -51,6 +51,11 @@ assert.match(
   /body\.hottrendnu-page #trendingProductsSection \{\s*padding: 0\.85rem 0\.9rem 0\.75rem !important;/,
   'QH Clothes trending section needs explicit padding so the title does not sit on the border'
 )
+assert.match(
+  pageSource,
+  /body\.hottrendnu-page \.qhher-mini-empty/,
+  'QH Clothes should style a compact empty state for the trending section when no products are checked as trending'
+)
 assert.doesNotMatch(
   pageSource,
   /id="flashSaleShopGrid"[\s\S]{0,240}animate-pulse/,
@@ -75,6 +80,11 @@ assert.match(
   scriptSource,
   /axios\.get\('\/api\/trending-products' \+ getStorefrontQuerySuffix\(\)\)/,
   'QH Clothes trending products should use the storefront-scoped trending endpoint'
+)
+assert.match(
+  scriptSource,
+  /Đang cập nhật sản phẩm thịnh hành/,
+  'QH Clothes should keep the left trending block present with an empty state instead of collapsing the row when no trending products exist'
 )
 assert.match(
   scriptSource,

@@ -2016,10 +2016,8 @@ async function loadBestSellers() {
             </div>
             \${ratingStars}
           </div>
-          \${p.has_flash_sale ? renderFlashSaleMiniStrip(flashMeta) : renderAutoVoucherMiniBadge(p)}
-          <div class="flex items-center gap-1.5">
-            <span class="bs-sold-chip"><i class="fas fa-fire-flame-curved"></i> \${fmtSold(soldCount)} đã bán</span>
-          </div>
+          \${p.has_flash_sale ? renderFlashSaleMiniStrip(flashMeta) : ''}
+          \${renderProductCommerceMeta(p, { className: 'product-commerce-meta--bestseller' })}
           \${isCurrentUserBlocked() ? \`<div class="flash-sale-shop-actions flash-sale-shop-actions--blocked">\${renderBlockedPurchaseActions('flash-sale-shop-blocked-btn text-xs font-bold')}</div>\` : \`<div class="flash-sale-shop-actions"><button onclick="event.stopPropagation();openOrder(\${p.id})" class="btn-primary flash-sale-shop-buy-btn text-sm font-semibold text-white"><i class="fas fa-bolt mr-1"></i><span class="quick-order-label-desktop">Đặt nhanh</span><span class="quick-order-label-mobile">Đặt nhanh</span></button><button onclick="event.stopPropagation();addToCartFromProductCard(event, \${p.id})" title="Thêm vào giỏ hàng" class="flash-sale-shop-cart-btn add-to-cart-btn flex items-center justify-center text-white transition group relative"><i class="fas fa-cart-plus text-sm"></i></button></div>\`}
         </div>
       </div>\`
@@ -2043,11 +2041,16 @@ async function loadHotTrendNuTrendingProducts() {
     const res = await axios.get('/api/trending-products' + getStorefrontQuerySuffix())
     const products = scopeStorefrontProductsForPage(Array.isArray(res.data?.data) ? res.data.data : [])
     if (!products.length) {
-      track.innerHTML = ''
-      section.classList.add('hidden')
+      const hasStorefrontProducts = Array.isArray(allProducts) && allProducts.length > 0
+      track.innerHTML = hasStorefrontProducts
+        ? '<div class="qhher-mini-empty">Đang cập nhật sản phẩm thịnh hành</div>'
+        : ''
+      section.classList.toggle('hidden', !hasStorefrontProducts)
+      section.dataset.empty = hasStorefrontProducts ? 'true' : ''
       syncHotTrendNuDealsRowState()
       return
     }
+    section.dataset.empty = ''
     section.classList.remove('hidden')
     track.innerHTML = products.slice(0, 4).map((product, index) => renderHotTrendNuBestsellerCard(product, index)).join('')
     syncHotTrendNuDealsRowState()
@@ -2426,8 +2429,8 @@ function renderStorefrontProductCard(p) {
         \${displayOriginalPrice > displayPrice ? \`<span class="product-card-original-price text-xs line-through">\${fmtPrice(displayOriginalPrice)}</span>\` : ''}
         <span class="product-rating-stars-desktop">\${renderProductRatingStars(p)}</span>
       </div>
-      \${p.has_flash_sale ? renderFlashSaleMiniStrip(flashMeta) : renderAutoVoucherMiniBadge(p)}
-      \${renderProductCardSocialMeta(p)}
+      \${p.has_flash_sale ? renderFlashSaleMiniStrip(flashMeta) : ''}
+      \${renderProductCommerceMeta(p, { className: 'product-commerce-meta--card' })}
       \${colors.length > 0 ? \`
       <div class="flex gap-1 mb-3 flex-wrap">
         \${colors.slice(0,4).map(c => \`<span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">\${escapeHtml(c)}</span>\`).join('')}
@@ -2488,10 +2491,18 @@ function renderProductsModal() {
 function renderProductPerkBadges(product) {
   const config = typeof window !== 'undefined' ? (window.STOREFRONT_RUNTIME_CONFIG || {}) : {}
   const freeshipEnabled = config.product_freeship_badge_enabled !== false
-  if (!freeshipEnabled) return ''
-  return '<div class="product-perk-badges flex items-center gap-1">'
-    + '<span class="product-perk-badge bg-rose-50 text-rose-500 text-[10px] font-extrabold px-1.5 py-0.5 rounded-md flex items-center gap-0.5" style="font-family: Be Vietnam Pro, sans-serif;"><i class="fas fa-shipping-fast text-[9px]"></i>Freeship</span>'
-    + '</div>'
+  const autoVoucher = product?.has_auto_voucher && product?.auto_voucher ? product.auto_voucher : null
+  const showVoucherBadge = autoVoucher && autoVoucher?.show_badge !== false
+  const voucherDiscount = showVoucherBadge ? Number(autoVoucher.discount_amount || product?.display_auto_voucher_discount || 0) : 0
+  const badges = []
+  if (freeshipEnabled) {
+    badges.push('<span class="product-perk-badge product-perk-badge--freeship" title="Freeship theo chính sách cửa hàng" style="font-family: Be Vietnam Pro, sans-serif;"><i class="fas fa-shipping-fast"></i><span>Freeship</span></span>')
+  }
+  if (voucherDiscount > 0) {
+    badges.push('<span class="product-perk-badge product-perk-badge--voucher" title="Voucher tự động đã áp vào giá" style="font-family: Be Vietnam Pro, sans-serif;"><i class="fas fa-ticket"></i><span>-' + fmtCompactPrice(voucherDiscount) + '</span></span>')
+  }
+  if (!badges.length) return ''
+  return '<div class="product-perk-badges flex items-center gap-1">' + badges.join('') + '</div>'
 }
 
 function renderProductSoldLine(product, className) {
@@ -3166,6 +3177,16 @@ function sortProductsByTime(value) {
 ${storefrontDetailOrderScript()}
 
 function fmtPrice(p) { return new Intl.NumberFormat('vi-VN',{style:'currency',currency:'VND'}).format(p) }
+function fmtCompactPrice(p) {
+  const value = Number(p || 0)
+  if (!Number.isFinite(value) || value <= 0) return '0đ'
+  if (value >= 1000000) {
+    const compact = value / 1000000
+    return (Number.isInteger(compact) ? compact.toFixed(0) : compact.toFixed(1).replace(/\.0$/, '')) + 'tr'
+  }
+  if (value >= 1000) return Math.round(value / 1000) + 'K'
+  return new Intl.NumberFormat('vi-VN').format(value) + 'đ'
+}
 function fmtSold(n) {
   const value = Number(n || 0)
   if (!Number.isFinite(value) || value <= 0) return '0'
@@ -4061,6 +4082,10 @@ function mapTrendingProductsToHeroCards(products) {
       description: String(p.description || '').trim(),
       tags: [],
       product_id: p.id,
+      total_sold: Number(p.total_sold || 0),
+      has_auto_voucher: !!p.has_auto_voucher,
+      display_auto_voucher_discount: p.display_auto_voucher_discount || 0,
+      auto_voucher: p.auto_voucher,
       trending_order: Number(p.trending_order || 0),
       updated_at: p.updated_at || '',
       created_at: p.created_at || ''
@@ -4245,6 +4270,7 @@ function renderHeroCarouselCard(b, index) {
     </div>
     <div class="hero-carousel-body">
       <h3 class="hero-carousel-title">\${title}</h3>
+      \${renderProductCommerceMeta(b, { className: 'product-commerce-meta--hero' })}
       <div class="hero-carousel-footer">
         <div class="hero-carousel-price-wrap">
           <span class="hero-carousel-price text-gradient-price">\${price}</span>

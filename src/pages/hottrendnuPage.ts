@@ -4275,6 +4275,22 @@ body.hottrendnu-page .bestsellers-track {
   padding-bottom: 0 !important;
 }
 
+body.hottrendnu-page .qhher-mini-empty {
+  width: 100%;
+  min-height: 132px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed #f3dde4;
+  border-radius: 14px;
+  background: rgba(255, 247, 248, 0.64);
+  color: #7b6870;
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+  padding: 0.75rem;
+}
+
 body.hottrendnu-page #flashSaleShopGrid .htn-deal-card,
 body.hottrendnu-page #trendingProductsTrack .htn-rank-card,
 body.hottrendnu-page #bestsellersTrack .htn-rank-card {
@@ -4295,9 +4311,10 @@ body.hottrendnu-page #trendingProductsTrack .htn-rank-card {
 }
 
 body.hottrendnu-page #bestsellersTrack .htn-rank-card {
-  flex-basis: calc((100% - 24px) / 3) !important;
-  width: calc((100% - 24px) / 3) !important;
-  min-width: 88px !important;
+  flex-basis: 104px !important;
+  width: 104px !important;
+  min-width: 104px !important;
+  max-width: 104px !important;
 }
 
 body.hottrendnu-page #flashSaleShopGrid .htn-deal-media,
