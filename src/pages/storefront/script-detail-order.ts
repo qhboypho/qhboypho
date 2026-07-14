@@ -267,13 +267,13 @@ async function showDetail(id, options) {
           </div>
           \${renderFavoriteButton(p.id, 'favorite-toggle-btn--detail')}
         </div>
-        \${p.has_flash_sale ? \`<div class="flex flex-wrap items-center gap-2 mb-3"><span class="flash-sale-badge"><i class="fas fa-bolt"></i> Flash Sale</span><span class="flash-sale-countdown" data-flash-sale-ends-at="\${escapeHtml(flashMeta?.endsAt || '')}">\${formatFlashSaleCountdown(flashMeta?.endsAt || '')}</span></div>\` : ''}
         <div class="detail-price-row flex items-baseline gap-3 mb-4">
           <span id="detailCurrentPrice" class="text-3xl font-bold \${detailPriceClass}">\${fmtPrice(detailDisplayPrice)}</span>
           <span id="detailOriginalPrice" class="\${detailDisplayOriginalPrice > detailDisplayPrice ? 'text-gray-400 line-through' : 'hidden'}">\${detailDisplayOriginalPrice > detailDisplayPrice ? fmtPrice(detailDisplayOriginalPrice) : ''}</span>
           <span id="detailDiscountBadge" class="\${detailDisplayOriginalPrice > detailDisplayPrice ? 'badge-sale text-white text-xs px-2 py-1 rounded-full' : 'hidden'}">\${detailDisplayOriginalPrice > detailDisplayPrice ? '-' + discount + '%' : ''}</span>
         </div>
         \${renderProductCommerceMeta(p, { className: 'product-commerce-meta--detail' })}
+        \${p.has_flash_sale ? \`<div class="flex flex-wrap items-center gap-2 mb-3"><span class="flash-sale-badge"><i class="fas fa-bolt"></i> Flash Sale</span><span class="flash-sale-countdown" data-flash-sale-ends-at="\${escapeHtml(flashMeta?.endsAt || '')}">\${formatFlashSaleCountdown(flashMeta?.endsAt || '')}</span></div>\` : ''}
         \${detailColorOptions.length ? \`
         <div class="detail-option-section detail-color-section mb-4 hidden md:block">
           <p class="text-sm font-semibold mb-2">Màu sắc: <span class="text-pink-500" id="detailColorLabel"></span></p>

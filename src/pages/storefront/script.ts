@@ -2016,8 +2016,8 @@ async function loadBestSellers() {
             </div>
             \${ratingStars}
           </div>
-          \${p.has_flash_sale ? renderFlashSaleMiniStrip(flashMeta) : ''}
           \${renderProductCommerceMeta(p, { className: 'product-commerce-meta--bestseller' })}
+          \${p.has_flash_sale ? renderFlashSaleMiniStrip(flashMeta) : ''}
           \${isCurrentUserBlocked() ? \`<div class="flash-sale-shop-actions flash-sale-shop-actions--blocked">\${renderBlockedPurchaseActions('flash-sale-shop-blocked-btn text-xs font-bold')}</div>\` : \`<div class="flash-sale-shop-actions"><button onclick="event.stopPropagation();openOrder(\${p.id})" class="btn-primary flash-sale-shop-buy-btn text-sm font-semibold text-white"><i class="fas fa-bolt mr-1"></i><span class="quick-order-label-desktop">Đặt nhanh</span><span class="quick-order-label-mobile">Đặt nhanh</span></button><button onclick="event.stopPropagation();addToCartFromProductCard(event, \${p.id})" title="Thêm vào giỏ hàng" class="flash-sale-shop-cart-btn add-to-cart-btn flex items-center justify-center text-white transition group relative"><i class="fas fa-cart-plus text-sm"></i></button></div>\`}
         </div>
       </div>\`
@@ -2227,37 +2227,19 @@ async function loadFlashSaleShop() {
       return
     }
     section.classList.remove('hidden')
+    const isHerPage = isHotTrendWomenContext()
+    grid.className = isHerPage
+      ? 'flash-sale-shop-track flex gap-4 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-2 pr-2'
+      : 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-6'
     syncHotTrendNuFlashSaleRowState()
-    if (isHotTrendWomenContext()) {
+    if (isHerPage) {
       const timer = section.querySelector('.qhher-deal-timer')
       if (timer) timer.setAttribute('data-flash-sale-ends-at', getFlashSaleMeta(products[0])?.endsAt || '')
       grid.innerHTML = products.map((product) => renderHotTrendNuFlashSaleCard(product)).join('')
       startFlashSaleCountdownTicker()
       return
     }
-    grid.innerHTML = products.map((product) => {
-      const priceInfo = getProductDisplayPriceInfo(product)
-      const meta = priceInfo.flashMeta
-      const price = priceInfo.price
-      const original = priceInfo.originalPrice
-      return \`
-        <div class="flash-sale-shop-card shrink-0 snap-start basis-[78%] cursor-pointer sm:basis-[46%] lg:basis-[30%] xl:basis-[23%]" onclick="showDetail(\${product.id})">
-          <div class="relative aspect-square overflow-hidden bg-slate-100">
-            <img src="\${product.thumbnail || 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'}" alt="\${product.name}" class="h-full w-full object-cover" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400'">
-            \${renderFavoriteButton(product.id)}
-          </div>
-          <div class="flash-sale-shop-body space-y-3 p-4">
-            <h3 class="line-clamp-2 text-sm font-semibold leading-6 text-slate-900">\${product.name}</h3>
-            <div class="flex items-end gap-2">
-              <span class="text-2xl font-bold text-gradient-price">\${fmtPrice(price)}</span>
-              \${original > price ? \`<span class="pb-0.5 text-sm text-slate-400 line-through">\${fmtPrice(original)}</span>\` : ''}
-            </div>
-            \${renderFlashSaleMiniStrip(meta)}
-            \${isCurrentUserBlocked() ? \`<div class="flash-sale-shop-actions flash-sale-shop-actions--blocked">\${renderBlockedPurchaseActions('flash-sale-shop-blocked-btn text-xs font-bold')}</div>\` : \`<div class="flash-sale-shop-actions"><button onclick="event.stopPropagation();openOrder(\${product.id})" class="btn-primary flash-sale-shop-buy-btn text-sm font-semibold text-white"><i class="fas fa-bolt mr-1"></i><span class="quick-order-label-desktop">Đặt nhanh</span><span class="quick-order-label-mobile">Đặt nhanh</span></button><button onclick="event.stopPropagation();addToCartFromProductCard(event, \${product.id})" title="Thêm vào giỏ hàng" class="flash-sale-shop-cart-btn add-to-cart-btn flex items-center justify-center text-white transition group relative"><i class="fas fa-cart-plus text-sm"></i></button></div>\`}
-          </div>
-        </div>
-      \`
-    }).join('')
+    grid.innerHTML = products.map((product) => renderStorefrontProductCard(product)).join('')
     startFlashSaleCountdownTicker()
   } catch (e) {
     grid.innerHTML = ''
@@ -2429,13 +2411,8 @@ function renderStorefrontProductCard(p) {
         \${displayOriginalPrice > displayPrice ? \`<span class="product-card-original-price text-xs line-through">\${fmtPrice(displayOriginalPrice)}</span>\` : ''}
         <span class="product-rating-stars-desktop">\${renderProductRatingStars(p)}</span>
       </div>
-      \${p.has_flash_sale ? renderFlashSaleMiniStrip(flashMeta) : ''}
       \${renderProductCommerceMeta(p, { className: 'product-commerce-meta--card' })}
-      \${colors.length > 0 ? \`
-      <div class="flex gap-1 mb-3 flex-wrap">
-        \${colors.slice(0,4).map(c => \`<span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">\${escapeHtml(c)}</span>\`).join('')}
-        \${colors.length > 4 ? \`<span class="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">+\${colors.length-4}</span>\` : ''}
-      </div>\` : ''}
+      \${p.has_flash_sale ? renderFlashSaleMiniStrip(flashMeta) : ''}
       \${renderProductCardActions(p.id)}
     </div>
   </div>\`
