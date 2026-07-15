@@ -13,12 +13,35 @@ type AuthRouteDeps = {
   upsertAppSettings: (db: D1Database, entries: Array<{ key: string, value: string }>) => Promise<void>
 }
 
-function buildGoogleAuthErrorRedirect(requestUrl: string, step = 'google_config_missing', error = 'GOOGLE_AUTH_NOT_CONFIGURED') {
-  const url = new URL('/', requestUrl)
-  url.searchParams.set('login', 'error')
-  url.searchParams.set('step', step)
-  url.searchParams.set('error', error)
+function normalizeStorefrontAuthReturnPath(raw: unknown) {
+  const value = String(raw || '').trim()
+  if (!value || !value.startsWith('/') || value.startsWith('//') || value.startsWith('/\\')) return '/'
+  try {
+    const parsed = new URL(value, 'https://local.invalid')
+    if (parsed.origin !== 'https://local.invalid') return '/'
+    if (parsed.pathname.startsWith('/admin') || parsed.pathname.startsWith('/api')) return '/'
+    return parsed.pathname + parsed.search + parsed.hash
+  } catch (_) {
+    return '/'
+  }
+}
+
+function buildGoogleAuthRedirect(requestUrl: string, returnTo: unknown, params: Record<string, string>) {
+  const url = new URL(normalizeStorefrontAuthReturnPath(returnTo), requestUrl)
+  Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, value))
   return url.toString()
+}
+
+function buildGoogleAuthErrorRedirect(requestUrl: string, step = 'google_config_missing', error = 'GOOGLE_AUTH_NOT_CONFIGURED', returnTo: unknown = '/') {
+  return buildGoogleAuthRedirect(requestUrl, returnTo, {
+    login: 'error',
+    step,
+    error
+  })
+}
+
+function buildGoogleAuthSuccessRedirect(requestUrl: string, returnTo: unknown) {
+  return buildGoogleAuthRedirect(requestUrl, returnTo, { login: 'success' })
 }
 
 function isGoogleOAuthClientId(clientId: string) {
@@ -670,17 +693,19 @@ export function registerAuthRoutes(app: Hono<{ Bindings: AppBindings }>, deps: A
   app.get('/api/auth/google', async (c) => {
     await deps.initDB(c.env.DB)
     const { clientId, clientSecret, redirectUri } = await getGoogleOAuthConfig(c)
+    const returnTo = normalizeStorefrontAuthReturnPath(c.req.query('return_to'))
     if (!clientId || !clientSecret) {
       console.error('[auth] google oauth config missing')
-      return c.redirect(buildGoogleAuthErrorRedirect(c.req.url))
+      return c.redirect(buildGoogleAuthErrorRedirect(c.req.url, 'google_config_missing', 'GOOGLE_AUTH_NOT_CONFIGURED', returnTo))
     }
     if (!isGoogleOAuthClientId(clientId)) {
       console.error('[auth] google oauth client id invalid')
-      return c.redirect(buildGoogleAuthErrorRedirect(c.req.url, 'google_client_id_invalid', 'GOOGLE_AUTH_CLIENT_ID_INVALID'))
+      return c.redirect(buildGoogleAuthErrorRedirect(c.req.url, 'google_client_id_invalid', 'GOOGLE_AUTH_CLIENT_ID_INVALID', returnTo))
     }
     const state = generateSecureToken(16)
     const isSecure = c.req.url.startsWith('https://')
     setCookie(c, 'oauth_state', state, { path: '/', maxAge: 300, httpOnly: true, secure: isSecure, sameSite: 'Lax' })
+    setCookie(c, 'oauth_return_to', returnTo, { path: '/', maxAge: 300, httpOnly: true, secure: isSecure, sameSite: 'Lax' })
     const url = 'https://accounts.google.com/o/oauth2/v2/auth?' + new URLSearchParams({
       client_id: clientId,
       redirect_uri: redirectUri,
@@ -695,23 +720,25 @@ export function registerAuthRoutes(app: Hono<{ Bindings: AppBindings }>, deps: A
   app.get('/api/auth/callback', async (c) => {
     const code = c.req.query('code')
     const cookieState = String(getCookie(c, 'oauth_state') || '')
+    const returnTo = getCookie(c, 'oauth_return_to') || '/'
     const queryState = String(c.req.query('state') || '')
     deleteCookie(c, 'oauth_state', { path: '/' })
+    deleteCookie(c, 'oauth_return_to', { path: '/' })
     if (!cookieState || !queryState || !timingSafeStringEqual(cookieState, queryState)) {
-      return c.redirect('/?login=error&step=state_mismatch&error=OAUTH_STATE_MISMATCH')
+      return c.redirect(buildGoogleAuthErrorRedirect(c.req.url, 'state_mismatch', 'OAUTH_STATE_MISMATCH', returnTo))
     }
-    if (!code) return c.redirect('/?login=error&step=google_callback_missing_code&error=AUTH_CALLBACK_FAILED')
+    if (!code) return c.redirect(buildGoogleAuthErrorRedirect(c.req.url, 'google_callback_missing_code', 'AUTH_CALLBACK_FAILED', returnTo))
 
     await deps.initDB(c.env.DB)
     const { clientId, clientSecret, redirectUri } = await getGoogleOAuthConfig(c)
 
     if (!clientId || !clientSecret) {
       console.error('[auth] google oauth config missing')
-      return c.redirect(buildGoogleAuthErrorRedirect(c.req.url))
+      return c.redirect(buildGoogleAuthErrorRedirect(c.req.url, 'google_config_missing', 'GOOGLE_AUTH_NOT_CONFIGURED', returnTo))
     }
     if (!isGoogleOAuthClientId(clientId)) {
       console.error('[auth] google oauth client id invalid')
-      return c.redirect(buildGoogleAuthErrorRedirect(c.req.url, 'google_client_id_invalid', 'GOOGLE_AUTH_CLIENT_ID_INVALID'))
+      return c.redirect(buildGoogleAuthErrorRedirect(c.req.url, 'google_client_id_invalid', 'GOOGLE_AUTH_CLIENT_ID_INVALID', returnTo))
     }
 
     try {
@@ -740,7 +767,7 @@ export function registerAuthRoutes(app: Hono<{ Bindings: AppBindings }>, deps: A
       const googleId = String(userData.id || userData.sub || '').trim()
       if (!googleEmail) {
         console.error('[auth] google profile email missing')
-        return c.redirect('/?login=error&step=profile&error=AUTH_PROVIDER_PROFILE_INVALID')
+        return c.redirect(buildGoogleAuthErrorRedirect(c.req.url, 'profile', 'AUTH_PROVIDER_PROFILE_INVALID', returnTo))
       }
 
       let user = null
@@ -755,18 +782,18 @@ export function registerAuthRoutes(app: Hono<{ Bindings: AppBindings }>, deps: A
         }
       } catch (dbErr: any) {
         console.error('[auth] db sync error', dbErr)
-        return c.redirect('/?login=error&step=db_sync&error=DB_SYNC_FAILED')
+        return c.redirect(buildGoogleAuthErrorRedirect(c.req.url, 'db_sync', 'DB_SYNC_FAILED', returnTo))
       }
 
       if (!user || !user.id) {
-        return c.redirect('/?login=error&step=user_id_missing')
+        return c.redirect(buildGoogleAuthErrorRedirect(c.req.url, 'user_id_missing', 'AUTH_CALLBACK_FAILED', returnTo))
       }
 
       await setUserSessionCookie(c, user.id)
-      return c.redirect('/?login=success')
+      return c.redirect(buildGoogleAuthSuccessRedirect(c.req.url, returnTo))
     } catch (e: any) {
       console.error('[auth] google callback failed', e)
-      return c.redirect('/?login=error&step=exchange&error=AUTH_CALLBACK_FAILED')
+      return c.redirect(buildGoogleAuthErrorRedirect(c.req.url, 'exchange', 'AUTH_CALLBACK_FAILED', returnTo))
     }
   })
 }

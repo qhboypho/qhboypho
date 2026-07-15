@@ -3959,8 +3959,8 @@ body.hottrendnu-page #products .htn-product-card .favorite-toggle-btn {
   width: 2rem !important;
   height: 2rem !important;
   border-radius: 999px !important;
-  background: rgba(255, 255, 255, 0.82) !important;
-  color: #7B6870 !important;
+  background: transparent !important;
+  color: #fff !important;
   box-shadow: none !important;
   opacity: 1 !important;
 }
@@ -3970,22 +3970,23 @@ body.hottrendnu-page #products .htn-product-card .favorite-toggle-btn i {
 }
 
 body.hottrendnu-page #products .htn-product-card .favorite-toggle-btn::before {
-  content: "\\2661" !important;
+  content: "\\2764" !important;
   display: block !important;
-  font-size: 1.7rem !important;
+  font-size: 1.45rem !important;
   line-height: 1 !important;
   font-family: Arial, sans-serif !important;
   font-weight: 400 !important;
   transform: translateY(-1px) !important;
+  filter: drop-shadow(0 2px 5px rgba(15, 23, 42, 0.42));
 }
 
 body.hottrendnu-page #products .htn-product-card .favorite-toggle-btn.active {
-  background: rgba(255, 255, 255, 0.9) !important;
+  background: transparent !important;
   color: var(--htn-rose) !important;
 }
 
 body.hottrendnu-page #products .htn-product-card .favorite-toggle-btn.active::before {
-  content: "\\2665" !important;
+  content: "\\2764" !important;
 }
 
 body.hottrendnu-page #products .htn-color-row {
@@ -4184,7 +4185,7 @@ body.hottrendnu-page #products .htn-buy .htn-buy-cart-icon {
   }
 }
 
-body.hottrendnu-page #flashSaleShopSection > div,
+body.hottrendnu-page #flashSaleShopSection,
 body.hottrendnu-page #trendingProductsSection,
 body.hottrendnu-page #bestsellersSection {
   min-height: 214px !important;
@@ -4194,8 +4195,28 @@ body.hottrendnu-page #bestsellersSection {
   box-shadow: none !important;
 }
 
-body.hottrendnu-page #flashSaleShopSection > div {
+body.hottrendnu-page #flashSaleShopSection {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
   padding: 0.85rem 0.9rem !important;
+}
+
+body.hottrendnu-page #flashSaleShopGrid .htn-deal-card {
+  overflow: visible;
+}
+
+body.hottrendnu-page #flashSaleShopSection .qhher-deal-header,
+body.hottrendnu-page #flashSaleShopSection .flash-sale-shop-track {
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+body.hottrendnu-page #flashSaleShopSection .flash-sale-shop-track {
+  width: 100% !important;
+  max-width: none !important;
+  padding: 0.18rem 0.25rem 0.8rem !important;
 }
 
 body.hottrendnu-page #bestsellersSection {
@@ -5509,7 +5530,7 @@ function hotTrendNuNavbar(): string {
         <span id="cartBadge" class="absolute -right-1 -top-1 hidden h-4 w-4 items-center justify-center rounded-full bg-[#E84D6A] text-[10px] font-bold text-white">0</span>
         <span id="cartBadgeMobile" class="absolute -right-1 -top-1 hidden h-4 w-4 items-center justify-center rounded-full bg-[#E84D6A] text-[10px] font-bold text-white">0</span>
       </button>
-      <button onclick="openTopupModal()" id="walletNavBtn" class="qhher-icon-btn hidden md:inline-flex">
+      <button onclick="openTopupModal()" id="walletNavBtn" class="qhher-icon-btn hidden">
         <i class="fas fa-wallet" aria-hidden="true"></i><span id="walletBalanceNav">0đ</span>
       </button>
       <button onclick="toggleUserMenu()" id="userAvatarBtn" class="qhher-icon-btn">
@@ -5651,25 +5672,23 @@ function hotTrendNuTrendingProducts(): string {
 
 function hotTrendNuFlashSale(): string {
   return `<section id="flashSaleShopSection" class="hottrendnu-section hidden">
-  <div class="overflow-hidden rounded-[1.6rem] p-4 md:p-6">
-    <div class="qhher-deal-header">
-      <div class="flex items-center gap-4">
-        <h2 class="qhher-deal-title"><span class="qhher-section-icon" aria-hidden="true"></span>FLASH SALE</h2>
-        <div class="qhher-deal-timer" aria-label="Đếm ngược flash sale">
-          <span>Kết thúc sau</span>
-          <span class="qhher-timer-digit">02</span>
-          <span>:</span>
-          <span class="qhher-timer-digit">14</span>
-          <span>:</span>
-          <span class="qhher-timer-digit">37</span>
-          <span>:</span>
-          <span class="qhher-timer-digit">58</span>
-        </div>
+  <div class="qhher-deal-header">
+    <div class="flex items-center gap-4">
+      <h2 class="qhher-deal-title"><span class="qhher-section-icon" aria-hidden="true"></span>FLASH SALE</h2>
+      <div class="qhher-deal-timer" aria-label="Đếm ngược flash sale">
+        <span>Kết thúc sau</span>
+        <span class="qhher-timer-digit">02</span>
+        <span>:</span>
+        <span class="qhher-timer-digit">14</span>
+        <span>:</span>
+        <span class="qhher-timer-digit">37</span>
+        <span>:</span>
+        <span class="qhher-timer-digit">58</span>
       </div>
-      <a href="#products" class="qhher-view-all">Xem tất cả -></a>
     </div>
-    <div id="flashSaleShopGrid" class="flash-sale-shop-track flex snap-x overflow-x-auto"></div>
+    <a href="#products" class="qhher-view-all">Xem tất cả -></a>
   </div>
+  <div id="flashSaleShopGrid" class="flash-sale-shop-track flex snap-x overflow-x-auto"></div>
 </section>`
 }
 
@@ -5970,7 +5989,7 @@ ${hotTrendNuStyles()}
 ${hotTrendNuNavbar()}
 ${hotTrendNuHero()}
 ${hotTrendNuCategoryPage()}
-<div id="flashSaleDealsRow" class="hidden max-w-[1280px] mx-auto px-4 my-8">
+<div id="flashSaleDealsRow" class="hidden max-w-[1280px] mx-auto my-8">
   ${hotTrendNuFlashSale()}
 </div>
 <div id="dealsGridRow" class="hottrendnu-deals-row hidden max-w-[1280px] mx-auto px-4 gap-6 my-8">

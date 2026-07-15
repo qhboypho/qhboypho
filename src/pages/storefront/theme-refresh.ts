@@ -1019,38 +1019,51 @@ export function storefrontThemeRefreshStyles(): string {
   }
   .favorite-toggle-btn {
     position: absolute;
-    top: 0.7rem;
-    left: 0.7rem;
+    top: 0.55rem;
+    right: 0.55rem;
+    left: auto;
     z-index: 6;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: auto;
-    height: auto;
+    width: 2rem;
+    height: 2rem;
     padding: 0;
     border: 0 !important;
-    border-radius: 0;
-    background: none !important;
-    color: rgba(148,163,184,0.72);
+    border-radius: 9999px;
+    background: transparent !important;
+    color: #fff;
     backdrop-filter: none;
     box-shadow: none !important;
-    opacity: 0.9;
-    transition: transform 0.16s ease, color 0.16s ease, opacity 0.16s ease;
+    opacity: 1;
+    transition: transform 0.16s ease, color 0.16s ease, background 0.16s ease;
   }
   .favorite-toggle-btn i {
-    font-size: 1.28rem;
+    display: none;
+  }
+  .favorite-toggle-btn::before {
+    content: '❤';
+    display: block;
+    font-family: Arial, sans-serif;
+    font-size: 1.45rem;
+    font-weight: 400;
     line-height: 1;
+    color: currentColor;
+    transform: translateY(-0.01rem);
+    filter: drop-shadow(0 2px 5px rgba(15,23,42,0.42));
   }
   .favorite-toggle-btn:hover {
     transform: scale(1.04);
     opacity: 1;
   }
   .favorite-toggle-btn.active {
-    background: none !important;
+    background: transparent !important;
     color: #ff5ca8 !important;
     border: 0 !important;
     box-shadow: none !important;
-    opacity: 1;
+  }
+  .favorite-toggle-btn.active::before {
+    content: '❤';
   }
   .detail-product-heading-row {
     align-items: center;
@@ -1178,6 +1191,7 @@ export function storefrontThemeRefreshStyles(): string {
   .favorite-toggle-btn--detail {
     position: static !important;
     top: auto !important;
+    right: auto !important;
     left: auto !important;
     flex: 0 0 auto;
     width: 2rem;
@@ -1186,7 +1200,7 @@ export function storefrontThemeRefreshStyles(): string {
     opacity: 0.92;
   }
   .favorite-toggle-btn--detail i {
-    font-size: 1.3rem;
+    display: none;
   }
   .product-featured-badge {
     display: inline-flex;
@@ -1211,9 +1225,57 @@ export function storefrontThemeRefreshStyles(): string {
   .bs-mobile-hot-badge {
     display: none;
   }
-  .bs-card .bs-medal {
+  body:not(.hottrendnu-page) #bestsellersSection .bs-card > .relative {
+    position: relative;
+  }
+  body:not(.hottrendnu-page) #bestsellersSection .bs-card .bs-medal {
+    left: 0.55rem;
+    right: auto;
+    z-index: 7;
+  }
+  body:not(.hottrendnu-page) #bestsellersSection .bs-mobile-hot-badge {
+    position: absolute;
+    top: 3.15rem;
+    right: 0.55rem;
     left: auto;
-    right: 0.75rem;
+    z-index: 6;
+    display: inline-flex;
+    align-items: center;
+    width: max-content;
+    max-width: max-content;
+    min-width: 0;
+    gap: 0.24rem;
+    padding: 0.22rem 0.4rem;
+    border-radius: 999px;
+    background: linear-gradient(135deg, rgba(255,148,61,0.96), rgba(255,92,92,0.94));
+    color: #fff !important;
+    box-shadow: 0 10px 18px rgba(255,120,76,0.28);
+    text-transform: uppercase;
+    line-height: 1;
+    font-size: 0.6875rem;
+    white-space: nowrap;
+  }
+  body:not(.hottrendnu-page) #bestsellersSection .bs-mobile-hot-badge i {
+    color: currentColor;
+    font-size: 0.8em;
+    line-height: 1;
+  }
+  body:not(.hottrendnu-page) #bestsellersSection .bs-mobile-hot-badge span {
+    color: currentColor;
+    font-size: 0.72em;
+    font-weight: 800;
+    line-height: 1;
+    letter-spacing: 0.01em;
+  }
+  body:not(.hottrendnu-page) #bestsellersSection .favorite-toggle-btn--bestseller {
+    top: 0.55rem;
+    right: 0.55rem;
+    left: auto;
+    z-index: 8;
+    width: 2rem;
+    height: 2rem;
+    justify-content: center;
+    padding: 0;
   }
   .favorites-products-grid .product-card {
     display: grid;
@@ -1486,8 +1548,9 @@ export function storefrontThemeRefreshStyles(): string {
   #products .product-card .product-featured-badge,
   #productsModalOverlay .product-card .product-featured-badge,
   #flashSaleShopSection .product-card .product-featured-badge {
-    top: 0.7rem !important;
-    right: 1.7rem !important;
+    top: 3.15rem !important;
+    right: 0.7rem !important;
+    left: auto !important;
     z-index: 5;
     font-size: 0.72rem !important;
     line-height: 1 !important;
@@ -1536,7 +1599,7 @@ export function storefrontThemeRefreshStyles(): string {
   body:not(.hottrendnu-page) #products .product-card .flex.items-center.gap-2.mb-3,
   body:not(.hottrendnu-page) #productsModalOverlay .product-card .flex.items-center.gap-2.mb-3,
   body:not(.hottrendnu-page) #flashSaleShopSection .product-card .flex.items-center.gap-2.mb-3 {
-    margin-bottom: 0.06rem !important;
+    margin-bottom: 0.6rem !important;
   }
   body:not(.hottrendnu-page) #products .product-card .flash-sale-mini-strip,
   body:not(.hottrendnu-page) #productsModalOverlay .product-card .flash-sale-mini-strip,
@@ -1553,7 +1616,7 @@ export function storefrontThemeRefreshStyles(): string {
     margin-bottom: 0.32rem !important;
   }
   body:not(.hottrendnu-page) #bestsellersSection .bs-card-body > .flex.items-center.justify-between {
-    margin-bottom: 0.06rem !important;
+    margin-bottom: 0.6rem !important;
   }
   body:not(.hottrendnu-page) #bestsellersSection .flash-sale-mini-strip {
     margin: 0.06rem 0 0.18rem !important;
@@ -1599,8 +1662,10 @@ export function storefrontThemeRefreshStyles(): string {
       position: absolute;
       display: inline-flex !important;
       align-items: center;
-      top: 0.7rem !important;
-      right: 1.7rem !important;
+      top: 3.15rem !important;
+      right: 0.5rem !important;
+      bottom: auto !important;
+      left: auto !important;
       z-index: 5;
       padding: 0.22rem 0.5rem !important;
       border-radius: 999px !important;
@@ -1608,8 +1673,9 @@ export function storefrontThemeRefreshStyles(): string {
       line-height: 1 !important;
     }
     body:not(.hottrendnu-page) #bestsellersSection .favorite-toggle-btn--bestseller {
-      top: 0.7rem !important;
-      left: 0.7rem !important;
+      top: 0.45rem !important;
+      right: 0.45rem !important;
+      left: auto !important;
     }
   }
   #products .product-card-social-meta,
@@ -2626,17 +2692,18 @@ export function storefrontThemeRefreshStyles(): string {
       white-space: nowrap;
     }
     .favorite-toggle-btn {
-      top: 0.25rem;
-      left: 0.25rem;
-      width: 2.75rem;
-      height: 2.75rem;
+      top: 0.55rem;
+      right: 0.55rem;
+      left: auto;
+      width: 2rem;
+      height: 2rem;
       border-radius: 9999px;
-      background: rgba(255,255,255,0.01) !important;
+      background: transparent !important;
       -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
     }
     .favorite-toggle-btn i {
-      font-size: 1.22rem;
+      display: none;
     }
     .flash-sale-mini-strip {
       gap: 0;
@@ -2703,13 +2770,13 @@ export function storefrontThemeRefreshStyles(): string {
     color: #f8fafc !important;
   }
   body[data-storefront-theme='dark'] .favorite-toggle-btn {
-    background: none !important;
+    background: transparent !important;
     border: 0 !important;
-    color: rgba(226,232,240,0.66) !important;
+    color: #fff !important;
     box-shadow: none !important;
   }
   body[data-storefront-theme='dark'] .favorite-toggle-btn.active {
-    background: none !important;
+    background: transparent !important;
     border: 0 !important;
     color: #ff5ca8 !important;
   }
@@ -3842,7 +3909,6 @@ export function storefrontThemeRefreshStyles(): string {
     #productsModalOverlay .product-card .product-featured-badge,
     #flashSaleShopSection .product-card .badge-sale,
     #flashSaleShopSection .product-card .product-featured-badge {
-      top: 0.5rem !important;
       font-size: 0.6875rem !important;
       padding: 0.22rem 0.4rem !important;
     }
@@ -3853,7 +3919,10 @@ export function storefrontThemeRefreshStyles(): string {
     #products .product-card .product-featured-badge,
     #productsModalOverlay .product-card .product-featured-badge,
     #flashSaleShopSection .product-card .product-featured-badge {
+      top: auto !important;
       right: 0.5rem !important;
+      bottom: 0.5rem !important;
+      left: auto !important;
     }
     #products .product-card-actions,
     #productsModalOverlay .product-card-actions,
@@ -4098,7 +4167,7 @@ export function storefrontThemeRefreshStyles(): string {
     align-items: flex-start !important;
     justify-content: flex-start !important;
     gap: 0.32rem !important;
-    margin-bottom: 0.06rem !important;
+    margin-bottom: 0.6rem !important;
     }
     #bestsellersSection .bs-card-body > .flex.items-center.justify-between > .flex {
       gap: 0.35rem !important;
@@ -4138,15 +4207,22 @@ export function storefrontThemeRefreshStyles(): string {
       line-height: 1;
     }
     #bestsellersSection .bs-medal {
-      display: none !important;
+      left: 0.45rem;
+      right: auto;
+      z-index: 7;
     }
     #bestsellersSection .bs-mobile-hot-badge {
       position: absolute;
-      top: 0.5rem;
-      right: 0.5rem;
+      top: auto !important;
+      right: 0.5rem !important;
+      bottom: 0.5rem;
+      left: auto;
       z-index: 6;
       display: inline-flex;
       align-items: center;
+      width: max-content;
+      max-width: max-content;
+      min-width: 0;
       gap: 0.24rem;
       padding: 0.22rem 0.4rem;
       border-radius: 999px;
@@ -4154,20 +4230,28 @@ export function storefrontThemeRefreshStyles(): string {
       color: #fff !important;
       box-shadow: 0 10px 18px rgba(255,120,76,0.28);
       text-transform: uppercase;
+      font-size: 0.6875rem !important;
+      line-height: 1 !important;
+      white-space: nowrap;
     }
     #bestsellersSection .bs-mobile-hot-badge i {
-      font-size: 0.68rem;
+      font-size: 0.8em;
       line-height: 1;
     }
     #bestsellersSection .bs-mobile-hot-badge span {
-      font-size: 0.58rem;
+      font-size: 0.72em;
       font-weight: 800;
       line-height: 1;
       letter-spacing: 0.01em;
     }
     #bestsellersSection .favorite-toggle-btn--bestseller {
-      top: 0.55rem;
-      left: 0.55rem;
+      top: 0.45rem;
+      right: 0.45rem !important;
+      left: auto !important;
+      width: 2rem;
+      height: 2rem;
+      justify-content: center;
+      padding: 0;
     }
   #bestsellersSection .flash-sale-mini-strip {
     gap: 0;

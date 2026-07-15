@@ -15,6 +15,7 @@ Follow the global workflow in `C:\Users\DinhTungPC\AGENTS.md`.
 
 - Frontend or admin flow changes: run `npm run build` and the narrowest contract or smoke checks for the touched flow.
 - UI changes: use global `browser-use` for browser-based verification whenever the task touches layout, interaction, visual regressions, mobile/PWA behavior, or modal flows. The installed command is `browser-use` and the backing venv is `C:\Users\DinhTungPC\.browser-use`.
+- For every frontend/UI task, open a real browser view and verify the changed desktop/mobile state before reporting completion. Do not ship visual changes by guessing from code only; keep explanations short and focus on the exact requested UI.
 - Backend or shared logic: verify the changed endpoint or path and one adjacent caller path.
 - Before commit, review staged diff. If GitNexus `detect_changes` is unavailable, use `git diff --stat` plus targeted checks.
 

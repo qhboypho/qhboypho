@@ -100,7 +100,7 @@ let activeUserMenuView = ''
 let userOrderHistoryCache = []
 let lastMobileBottomNavScrollY = 0
 let mobileBottomNavHidden = false
-let walletTopupEnabled = true
+let walletTopupEnabled = false
 let storefrontScrollLockY = 0
 let storefrontScrollLockActive = false
 let storefrontScrollLockMode = ''
@@ -2381,8 +2381,9 @@ function getProductPreviewLimit() {
   return cols * PRODUCT_PREVIEW_ROWS
 }
 
-function renderStorefrontProductCard(p) {
+function renderStorefrontProductCard(p, options) {
   if (isHotTrendWomenContext()) return renderHotTrendNuProductCard(p)
+  const opts = options || {}
   const colors = getProductColorOptions(p).map((c) => c.name)
   const priceInfo = getProductDisplayPriceInfo(p)
   const flashMeta = priceInfo.flashMeta
@@ -2412,7 +2413,7 @@ function renderStorefrontProductCard(p) {
         <span class="product-rating-stars-desktop">\${renderProductRatingStars(p)}</span>
       </div>
       \${renderProductCommerceMeta(p, { className: 'product-commerce-meta--card' })}
-      \${p.has_flash_sale ? renderFlashSaleMiniStrip(flashMeta) : ''}
+      \${p.has_flash_sale && !opts.hideFlashSaleMiniStrip ? renderFlashSaleMiniStrip(flashMeta) : ''}
       \${renderProductCardActions(p.id)}
     </div>
   </div>\`
@@ -4150,9 +4151,9 @@ function ensureHeroCarouselRuntimeStyle() {
     #heroBannersWrapper{cursor:default!important}
     #heroBannersCollapsed{position:relative}
     .hero-setting-banner-card{border-radius:1.5rem;overflow:hidden;box-shadow:0 24px 55px rgba(0,0,0,.34);background:rgba(255,255,255,.05)}
-    .hero-3d-carousel{position:relative;width:430px;height:548px;display:flex;align-items:center;justify-content:center;perspective:1100px;overflow:visible;touch-action:pan-y}
-    .hero-carousel-stage{position:relative;width:360px;height:520px;transform-style:preserve-3d}
-    .hero-carousel-card{position:absolute;inset:0;border-radius:24px;overflow:hidden;background:var(--qh-product-card-bg,linear-gradient(145deg,#fff,#f8fafc) padding-box,linear-gradient(135deg,rgba(203,213,225,.95),rgba(236,72,153,.24)) border-box);color:var(--qh-text,#111827);box-shadow:0 28px 70px rgba(0,0,0,.18),0 0 34px var(--qh-glow-blue,rgba(59,130,246,.12)),0 0 36px var(--qh-glow-pink,rgba(236,72,153,.1)),inset 0 0 0 1px rgba(255,255,255,.06),inset 0 1px 0 rgba(255,255,255,.08);border:1px solid transparent;transition:transform .55s cubic-bezier(.2,.8,.2,1),opacity .45s ease;will-change:transform,opacity;pointer-events:none;backface-visibility:hidden;-webkit-font-smoothing:antialiased}
+    .hero-3d-carousel{position:relative;width:430px;height:500px;display:flex;align-items:center;justify-content:center;perspective:1100px;overflow:visible;touch-action:pan-y}
+    .hero-carousel-stage{position:relative;width:360px;height:474px;transform-style:preserve-3d}
+    .hero-carousel-card{position:absolute;top:0;left:0;width:100%;border-radius:24px;overflow:hidden;background:var(--qh-product-card-bg,linear-gradient(145deg,#fff,#f8fafc) padding-box,linear-gradient(135deg,rgba(203,213,225,.95),rgba(236,72,153,.24)) border-box);color:var(--qh-text,#111827);box-shadow:0 28px 70px rgba(0,0,0,.18),0 0 34px var(--qh-glow-blue,rgba(59,130,246,.12)),0 0 36px var(--qh-glow-pink,rgba(236,72,153,.1)),inset 0 0 0 1px rgba(255,255,255,.06),inset 0 1px 0 rgba(255,255,255,.08);border:1px solid transparent;transition:transform .55s cubic-bezier(.2,.8,.2,1),opacity .45s ease;will-change:transform,opacity;pointer-events:none;backface-visibility:hidden;-webkit-font-smoothing:antialiased}
     .hero-carousel-card[data-offset="0"]{transform:translate3d(0,0,0) scale(1);opacity:1;z-index:6;pointer-events:auto}
     .hero-carousel-card[data-offset="-1"]{transform:translate3d(-28%,6px,-48px) scale(.84);opacity:.72;z-index:4}
     .hero-carousel-card[data-offset="1"]{transform:translate3d(28%,6px,-48px) scale(.84);opacity:.72;z-index:4}
@@ -4180,8 +4181,8 @@ function ensureHeroCarouselRuntimeStyle() {
     .hero-carousel-prev{left:0}
     .hero-carousel-next{right:0}
     @media (max-width:768px){
-      .hero-3d-carousel{width:100%;height:348px;overflow:hidden;perspective:820px}
-      .hero-carousel-stage{width:min(52vw,214px);height:326px}
+      .hero-3d-carousel{width:100%;height:314px;overflow:hidden;perspective:820px}
+      .hero-carousel-stage{width:min(52vw,214px);height:292px}
       .hero-carousel-card{border-radius:20px;display:flex;flex-direction:column}
       .hero-carousel-media{height:min(52vw,214px);aspect-ratio:auto;flex:0 0 auto}
       .hero-carousel-card[data-offset="-1"]{transform:translate3d(-42%,8px,-42px) scale(.8);opacity:.66}
@@ -4718,7 +4719,10 @@ function updateUserUI() {
     if (authedNav) authedNav.classList.remove('hidden')
     if (userOrdersBtn) userOrdersBtn.classList.add('hidden')
     if (userFavoritesBtn) userFavoritesBtn.classList.add('hidden')
-    if (userWalletBtn) userWalletBtn.classList.add('hidden')
+    if (userWalletBtn) {
+      userWalletBtn.classList.add('hidden')
+      userWalletBtn.classList.remove('flex')
+    }
   } else if (currentUser) {
     clearAuthFormContent()
     if (currentUser.avatar) {
@@ -4757,9 +4761,13 @@ function updateUserUI() {
     if (userOrdersBtn) userOrdersBtn.classList.remove('hidden')
     if (userFavoritesBtn) userFavoritesBtn.classList.remove('hidden')
     if (walletTopupEnabled) {
-      if (userWalletBtn) userWalletBtn.classList.remove('hidden')
+      if (userWalletBtn) {
+        userWalletBtn.classList.remove('hidden')
+        userWalletBtn.classList.add('flex')
+      }
     } else if (userWalletBtn) {
       userWalletBtn.classList.add('hidden')
+      userWalletBtn.classList.remove('flex')
     }
   } else {
     defaultAvatar.classList.remove('hidden')
@@ -4774,7 +4782,10 @@ function updateUserUI() {
     if (authedNav) authedNav.classList.add('hidden')
     if (userOrdersBtn) userOrdersBtn.classList.add('hidden')
     if (userFavoritesBtn) userFavoritesBtn.classList.add('hidden')
-    if (userWalletBtn) userWalletBtn.classList.add('hidden')
+    if (userWalletBtn) {
+      userWalletBtn.classList.add('hidden')
+      userWalletBtn.classList.remove('flex')
+    }
   }
 }
 
@@ -4800,7 +4811,13 @@ function closeUserMenu() {
 }
 function handleUserMenuOverlayClick(e) { if (e.target.id === 'userMenuOverlay') closeUserMenu() }
 
-function loginWithGoogle() { window.location.href = '/api/auth/google' }
+function getStorefrontAuthReturnPath() {
+  return window.location.pathname + window.location.search + window.location.hash
+}
+
+function loginWithGoogle() {
+  window.location.href = '/api/auth/google?return_to=' + encodeURIComponent(getStorefrontAuthReturnPath())
+}
 
 function getUserDisplayName(user) {
   if (!user) return ''
@@ -5144,7 +5161,7 @@ function showUserFavorites() {
     return
   }
   content.innerHTML = '<h3 class="font-semibold text-gray-800 mb-3"><i class="fas fa-heart text-pink-400 mr-2"></i>Sản phẩm yêu thích</h3>'
-    + '<div class="favorites-products-grid space-y-3">' + products.map((product) => renderStorefrontProductCard(product)).join('') + '</div>'
+    + '<div class="favorites-products-grid space-y-3">' + products.map((product) => renderStorefrontProductCard(product, { hideFlashSaleMiniStrip: true })).join('') + '</div>'
   startFlashSaleCountdownTicker()
 }
 

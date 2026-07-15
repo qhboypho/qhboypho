@@ -56,21 +56,21 @@ export function storefrontNavbarSection(): string {
         <i class="fas fa-shopping-cart text-xl"></i>
         <span id="cartBadge" class="absolute -top-1 -right-1 bg-[#881337] text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center hidden font-bold">0</span>
       </button>
-      <button onclick="openTopupModal()" id="walletNavBtn" class="items-center gap-1.5 bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-xl transition text-xs font-medium">
+      <button onclick="openTopupModal()" id="walletNavBtn" class="hidden items-center gap-1.5 bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 rounded-xl transition text-xs font-medium">
         <i class="fas fa-wallet text-pink-400"></i>
         <span id="walletBalanceNav">0đ</span>
-      </button>
-      <button onclick="toggleUserMenu()" id="userAvatarBtn" class="relative text-white hover:text-pink-400 transition p-1">
-        <div id="userAvatarDefault" class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
-          <i class="fas fa-user text-sm"></i>
-        </div>
-        <img id="userAvatarImg" src="" alt="" class="w-8 h-8 rounded-full object-cover border-2 border-pink-400 hidden">
       </button>
       <a href="/admin" id="adminNavLink" class="text-gray-400 hover:text-white transition p-2 hidden" title="Admin">
         <i class="fas fa-user-shield"></i>
       </a>
       <button type="button" onclick="toggleStorefrontTheme()" id="storefrontThemeToggle" class="theme-toggle-btn relative text-white hover:text-pink-400 transition p-2" aria-label="Chuyển giao diện tối" title="Chuyển sáng/tối">
         <i id="storefrontThemeIcon" class="fas fa-moon text-lg"></i>
+      </button>
+      <button onclick="toggleUserMenu()" id="userAvatarBtn" class="relative text-white hover:text-pink-400 transition p-1">
+        <div id="userAvatarDefault" class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
+          <i class="fas fa-user text-sm"></i>
+        </div>
+        <img id="userAvatarImg" src="" alt="" class="w-8 h-8 rounded-full object-cover border-2 border-pink-400 hidden">
       </button>
     </div>
 
