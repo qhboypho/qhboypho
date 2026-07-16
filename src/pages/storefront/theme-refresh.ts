@@ -1039,18 +1039,15 @@ export function storefrontThemeRefreshStyles(): string {
     transition: transform 0.16s ease, color 0.16s ease, background 0.16s ease;
   }
   .favorite-toggle-btn i {
-    display: none;
-  }
-  .favorite-toggle-btn::before {
-    content: '❤';
     display: block;
-    font-family: Arial, sans-serif;
-    font-size: 1.45rem;
-    font-weight: 400;
+    font-size: 1.38rem;
     line-height: 1;
     color: currentColor;
-    transform: translateY(-0.01rem);
     filter: drop-shadow(0 2px 5px rgba(15,23,42,0.42));
+  }
+  .favorite-toggle-btn::before {
+    content: none;
+    display: none;
   }
   .favorite-toggle-btn:hover {
     transform: scale(1.04);
@@ -1062,8 +1059,8 @@ export function storefrontThemeRefreshStyles(): string {
     border: 0 !important;
     box-shadow: none !important;
   }
-  .favorite-toggle-btn.active::before {
-    content: '❤';
+  .favorite-toggle-btn.active i {
+    color: #ff5ca8 !important;
   }
   .detail-product-heading-row {
     align-items: center;
@@ -2703,7 +2700,11 @@ export function storefrontThemeRefreshStyles(): string {
       touch-action: manipulation;
     }
     .favorite-toggle-btn i {
-      display: none;
+      display: block;
+      font-size: 1.38rem;
+      line-height: 1;
+      color: currentColor;
+      filter: drop-shadow(0 2px 5px rgba(15,23,42,0.42));
     }
     .flash-sale-mini-strip {
       gap: 0;
@@ -2778,6 +2779,25 @@ export function storefrontThemeRefreshStyles(): string {
   body[data-storefront-theme='dark'] .favorite-toggle-btn.active {
     background: transparent !important;
     border: 0 !important;
+    color: #ff5ca8 !important;
+  }
+  body[data-storefront-theme='dark'] .favorite-toggle-btn.active i {
+    color: #ff5ca8 !important;
+  }
+  body:not(.hottrendnu-page) .favorite-toggle-btn:not(.active),
+  body:not(.hottrendnu-page)[data-storefront-theme='dark'] .favorite-toggle-btn:not(.active) {
+    color: #fff !important;
+  }
+  body:not(.hottrendnu-page) .favorite-toggle-btn:not(.active) i,
+  body:not(.hottrendnu-page)[data-storefront-theme='dark'] .favorite-toggle-btn:not(.active) i {
+    color: #fff !important;
+  }
+  body:not(.hottrendnu-page) .favorite-toggle-btn.active,
+  body:not(.hottrendnu-page)[data-storefront-theme='dark'] .favorite-toggle-btn.active {
+    color: #ff5ca8 !important;
+  }
+  body:not(.hottrendnu-page) .favorite-toggle-btn.active i,
+  body:not(.hottrendnu-page)[data-storefront-theme='dark'] .favorite-toggle-btn.active i {
     color: #ff5ca8 !important;
   }
   body[data-storefront-theme='dark'] #favoriteAuthModal .popup-card {

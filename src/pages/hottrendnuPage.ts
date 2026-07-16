@@ -3966,18 +3966,16 @@ body.hottrendnu-page #products .htn-product-card .favorite-toggle-btn {
 }
 
 body.hottrendnu-page #products .htn-product-card .favorite-toggle-btn i {
-  display: none !important;
+  display: block !important;
+  font-size: 1.38rem !important;
+  line-height: 1 !important;
+  color: currentColor !important;
+  filter: drop-shadow(0 2px 5px rgba(15, 23, 42, 0.42));
 }
 
 body.hottrendnu-page #products .htn-product-card .favorite-toggle-btn::before {
-  content: "\\2764" !important;
-  display: block !important;
-  font-size: 1.45rem !important;
-  line-height: 1 !important;
-  font-family: Arial, sans-serif !important;
-  font-weight: 400 !important;
-  transform: translateY(-1px) !important;
-  filter: drop-shadow(0 2px 5px rgba(15, 23, 42, 0.42));
+  content: none !important;
+  display: none !important;
 }
 
 body.hottrendnu-page #products .htn-product-card .favorite-toggle-btn.active {
@@ -3985,8 +3983,18 @@ body.hottrendnu-page #products .htn-product-card .favorite-toggle-btn.active {
   color: var(--htn-rose) !important;
 }
 
+body.hottrendnu-page #products .htn-product-card .favorite-toggle-btn.active i {
+  color: var(--htn-rose) !important;
+}
+
 body.hottrendnu-page #products .htn-product-card .favorite-toggle-btn.active::before {
-  content: "\\2764" !important;
+  content: none !important;
+  display: none !important;
+}
+
+body.hottrendnu-page #products .htn-product-card .favorite-toggle-btn:not(.active),
+body.hottrendnu-page #products .htn-product-card .favorite-toggle-btn:not(.active) i {
+  color: #fff !important;
 }
 
 body.hottrendnu-page #products .htn-color-row {
