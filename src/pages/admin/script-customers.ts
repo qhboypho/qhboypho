@@ -4,6 +4,15 @@ let customersData = []
 let filteredCustomersData = []
 let customersLoadError = ''
 
+function handleCustomerAdminAuthError(e) {
+  if (e && e.response && e.response.status === 401) {
+    showAdminToast('Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại', 'error')
+    setTimeout(() => { window.location.href = '/admin/login' }, 400)
+    return true
+  }
+  return false
+}
+
 function setCustomersLoadingState() {
   const tbody = document.getElementById('customersTableBody')
   const mobileList = document.getElementById('customersMobileList')
@@ -25,6 +34,7 @@ async function loadCustomers() {
     if (!res.data?.success) throw new Error(res.data?.error || 'Không thể tải dữ liệu khách hàng')
     customersData = Array.isArray(res.data?.data) ? res.data.data : []
   } catch (e) {
+    if (handleCustomerAdminAuthError(e)) return
     customersData = []
     customersLoadError = e?.response?.data?.error || e?.message || 'Không thể tải dữ liệu khách hàng'
     showAdminToast(customersLoadError, 'error')
@@ -355,6 +365,7 @@ async function openCustomerOrderHistory(identifier, type, customerName) {
       }).join('')
     }
   } catch (e) {
+    if (handleCustomerAdminAuthError(e)) return
     if (contentEl) contentEl.innerHTML = '<div class="text-center py-8 text-red-400"><i class="fas fa-exclamation-circle text-4xl mb-3"></i><p>Không thể tải lịch sử đơn hàng</p></div>'
     console.error('openCustomerOrderHistory error:', e)
   }
@@ -438,6 +449,7 @@ async function blockCustomer(userId, phone) {
       showAdminToast(res.data?.error || 'Không thể chặn khách hàng', 'error')
     }
   } catch (e) {
+    if (handleCustomerAdminAuthError(e)) return
     showAdminToast(e?.response?.data?.error || 'Lỗi khi chặn khách hàng', 'error')
     console.error('Block customer error:', e)
   }
@@ -465,6 +477,7 @@ async function unblockCustomer(userId, phone) {
       showAdminToast(res.data?.error || 'Không thể bỏ chặn khách hàng', 'error')
     }
   } catch (e) {
+    if (handleCustomerAdminAuthError(e)) return
     showAdminToast(e?.response?.data?.error || 'Lỗi khi bỏ chặn khách hàng', 'error')
     console.error('Unblock customer error:', e)
   }
@@ -499,6 +512,7 @@ async function grantDailyOrderLimitOverride(userId, phone) {
       showAdminToast(res.data?.error || 'Không thể mở limit đặt đơn', 'error')
     }
   } catch (e) {
+    if (handleCustomerAdminAuthError(e)) return
     showAdminToast(e?.response?.data?.error || 'Lỗi khi mở limit đặt đơn', 'error')
     console.error('Grant daily order limit override error:', e)
   }
@@ -545,6 +559,7 @@ async function revokeDailyOrderLimitOverride(userId, phone) {
       showAdminToast(res.data?.error || 'Không thể tắt mở limit đặt đơn', 'error')
     }
   } catch (e) {
+    if (handleCustomerAdminAuthError(e)) return
     showAdminToast(e?.response?.data?.error || 'Lỗi khi tắt mở limit đặt đơn', 'error')
     console.error('Revoke daily order limit override error:', e)
   }
