@@ -2116,8 +2116,8 @@ function getProductSkuBySelection(product, color, size) {
   const exact = rows.find((sku) => normalizeSkuToken(sku.color) === targetColor && normalizeSkuToken(sku.size) === targetSize)
   if (exact) return exact
   if (targetColor) {
-    const colorOnly = rows.find((sku) => normalizeSkuToken(sku.color) === targetColor && !normalizeSkuToken(sku.size))
-    if (colorOnly) return colorOnly
+    const colorMatch = rows.find((sku) => normalizeSkuToken(sku.color) === targetColor)
+    if (colorMatch) return colorMatch
   }
   if (targetSize) {
     const sizeOnly = rows.find((sku) => normalizeSkuToken(sku.size) === targetSize && !normalizeSkuToken(sku.color))
