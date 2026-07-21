@@ -66,6 +66,24 @@ assert.match(
 
 assert.match(
   paymentRoutesSource,
+  /if \(!clientId \|\| !apiKey \|\| !checksumKey\) \{[\s\S]*PAYOS_CONFIG_MISSING[\s\S]*500[\s\S]*\}/,
+  'PayOS config errors should stay PayOS errors unless manual VietQR is explicitly selected'
+)
+
+assert.match(
+  paymentRoutesSource,
+  /PAYOS_CREATE_LINK_FAILED/,
+  'PayOS create-link errors should stay PayOS errors unless manual VietQR is explicitly selected'
+)
+
+assert.doesNotMatch(
+  paymentRoutesSource,
+  /fallbackFrom: 'PAYOS_/,
+  'PayOS should not automatically fall back to manual VietQR while provider is PAYOS'
+)
+
+assert.match(
+  paymentRoutesSource,
   /app\.post\('\/api\/orders\/:id\/payos-link'[\s\S]*bank-transfer-link/,
   'legacy payos-link endpoint should remain as an alias'
 )

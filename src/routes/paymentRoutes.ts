@@ -411,16 +411,7 @@ export function registerPaymentRoutes(app: Hono<{ Bindings: AppBindings }>, deps
 
       const { clientId, apiKey, checksumKey } = await deps.getPayOSConfig(c.env.DB, c.env)
       if (!clientId || !apiKey || !checksumKey) {
-        const manualPayment = deps.buildManualVietQRPaymentData(order, bankTransferConfig.manualVietQR)
-        await c.env.DB.prepare(`
-          UPDATE orders
-          SET payment_provider='MANUAL_VIETQR',
-              payment_link_id=?,
-              payment_checkout_url=NULL,
-              updated_at=CURRENT_TIMESTAMP
-          WHERE id=?
-        `).bind(manualPayment.transferContent || null, id).run()
-        return c.json({ success: true, data: { ...manualPayment, fallbackFrom: 'PAYOS_CONFIG_MISSING' } })
+        return c.json({ success: false, error: 'PAYOS_CONFIG_MISSING' }, 500)
       }
 
       const amount = Math.round(Number(order.total_price || 0))
@@ -455,16 +446,7 @@ export function registerPaymentRoutes(app: Hono<{ Bindings: AppBindings }>, deps
       })
       const payosRes: any = await resp.json().catch(() => ({}))
       if (!resp.ok || String(payosRes.code || '') !== '00' || !payosRes.data) {
-        const manualPayment = deps.buildManualVietQRPaymentData(order, bankTransferConfig.manualVietQR)
-        await c.env.DB.prepare(`
-          UPDATE orders
-          SET payment_provider='MANUAL_VIETQR',
-              payment_link_id=?,
-              payment_checkout_url=NULL,
-              updated_at=CURRENT_TIMESTAMP
-          WHERE id=?
-        `).bind(manualPayment.transferContent || null, id).run()
-        return c.json({ success: true, data: { ...manualPayment, fallbackFrom: 'PAYOS_CREATE_LINK_FAILED' } })
+        return c.json({ success: false, error: 'PAYOS_CREATE_LINK_FAILED', detail: payosRes }, 400)
       }
 
       await c.env.DB.prepare(`
