@@ -387,13 +387,40 @@ function syncPaymentSettingsSwitch(enabled) {
   }
 }
 
+function getBankTransferProviderSettingsPayload() {
+  const provider = String(document.getElementById('bankTransferProviderSelect')?.value || 'PAYOS').toUpperCase() === 'MANUAL_VIETQR' ? 'MANUAL_VIETQR' : 'PAYOS'
+  return {
+    bank_transfer_provider: provider,
+    manual_vietqr_bank_id: String(document.getElementById('manualVietqrBankId')?.value || 'MB').trim(),
+    manual_vietqr_account_no: String(document.getElementById('manualVietqrAccountNo')?.value || '0200100441441').trim(),
+    manual_vietqr_account_name: String(document.getElementById('manualVietqrAccountName')?.value || 'TRAN CONG HANH').trim(),
+    manual_vietqr_template: String(document.getElementById('manualVietqrTemplate')?.value || 'compact2').trim()
+  }
+}
+
+function syncBankTransferProviderSettingsUI(cfg) {
+  const data = cfg || {}
+  const select = document.getElementById('bankTransferProviderSelect')
+  const provider = String(data.bank_transfer_provider || select?.value || 'PAYOS').toUpperCase() === 'MANUAL_VIETQR' ? 'MANUAL_VIETQR' : 'PAYOS'
+  if (select) select.value = provider
+  const panel = document.getElementById('manualVietqrSettingsPanel')
+  if (panel) panel.classList.toggle('opacity-60', provider !== 'MANUAL_VIETQR')
+  if (data.manual_vietqr_bank_id !== undefined) document.getElementById('manualVietqrBankId').value = data.manual_vietqr_bank_id || 'MB'
+  if (data.manual_vietqr_account_no !== undefined) document.getElementById('manualVietqrAccountNo').value = data.manual_vietqr_account_no || '0200100441441'
+  if (data.manual_vietqr_account_name !== undefined) document.getElementById('manualVietqrAccountName').value = data.manual_vietqr_account_name || 'TRAN CONG HANH'
+  if (data.manual_vietqr_template !== undefined) document.getElementById('manualVietqrTemplate').value = data.manual_vietqr_template || 'compact2'
+}
+
 async function loadPaymentSettings() {
   try {
     const res = await axios.get('/api/admin/settings/payment')
-    syncPaymentSettingsSwitch((res.data.data || {}).wallet_topup_enabled !== false)
+    const data = res.data.data || {}
+    syncPaymentSettingsSwitch(data.wallet_topup_enabled !== false)
+    syncBankTransferProviderSettingsUI(data)
   } catch (e) {
     showAdminToast('Lỗi tải cấu hình thanh toán', 'error')
     syncPaymentSettingsSwitch(true)
+    syncBankTransferProviderSettingsUI({})
   }
 }
 
@@ -401,9 +428,13 @@ async function savePaymentSettings() {
   const input = document.getElementById('walletTopupEnabledSwitch')
   const enabled = !!(input && input.checked)
   syncPaymentSettingsSwitch(enabled)
+  const payload = {
+    wallet_topup_enabled: enabled,
+    ...getBankTransferProviderSettingsPayload()
+  }
   try {
-    await axios.put('/api/admin/settings/payment', { wallet_topup_enabled: enabled })
-    showAdminToast(enabled ? 'Đã bật nạp tiền vào ví' : 'Đã tắt nạp tiền vào ví', 'success')
+    await axios.put('/api/admin/settings/payment', payload)
+    showAdminToast('Đã lưu cấu hình thanh toán', 'success')
     await loadPaymentSettings()
   } catch (e) {
     showAdminToast('Lưu cấu hình thanh toán thất bại', 'error')

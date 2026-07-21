@@ -5419,8 +5419,8 @@ async function resumeOrderPayment(orderId, orderCode, paymentMethod) {
     showToast('Đơn này không dùng phương thức chuyển khoản', 'error', 3800)
     return
   }
-  const providerLabel = 'PayOS'
-  const createEndpoint = '/api/orders/' + orderId + '/payos-link'
+  let providerLabel = 'thanh toán'
+  const createEndpoint = '/api/orders/' + orderId + '/bank-transfer-link'
   const syncEndpoint = '/api/orders/' + orderId + '/payos-sync'
   let payTab = window.open('about:blank', '_blank')
   const openCheckoutUrl = function (url) {
@@ -5436,6 +5436,8 @@ async function resumeOrderPayment(orderId, orderCode, paymentMethod) {
   try {
     const paymentRes = await axios.post(createEndpoint, { origin: window.location.origin })
     const paymentData = paymentRes.data?.data || {}
+    const provider = String(paymentData.provider || '').toUpperCase()
+    providerLabel = provider === 'PAYOS' ? 'PayOS' : (provider === 'MANUAL_VIETQR' ? 'VietQR' : 'thanh toán')
     if (paymentData.alreadyPaid) {
       try { if (payTab && !payTab.closed) payTab.close() } catch (_) { }
       await axios.post(syncEndpoint).catch(function () { return null })
@@ -5446,6 +5448,22 @@ async function resumeOrderPayment(orderId, orderCode, paymentMethod) {
     const checkoutUrl = String(paymentData.checkoutUrl || '').trim()
     if (!checkoutUrl) {
       try { if (payTab && !payTab.closed) payTab.close() } catch (_) { }
+      if (provider === 'MANUAL_VIETQR' || paymentData.qrCode || paymentData.transferContent) {
+        openOrderBankTransferModal({
+          orderCode,
+          orderId,
+          amount: paymentData.amount || 0,
+          transferContent: paymentData.transferContent || getOrderTransferContent(orderId || orderCode),
+          paymentLinkId: paymentData.paymentLinkId || '',
+          qrCode: paymentData.qrCode || '',
+          bankId: paymentData.bankId || '',
+          accountNo: paymentData.accountNo || '',
+          accountName: paymentData.accountName || '',
+          template: paymentData.template || ''
+        })
+        showToast('Đã mở QR VietQR để bạn thanh toán tiếp', 'success', 3500)
+        return
+      }
       showToast('Không tạo được link thanh toán ' + providerLabel, 'error', 3500)
       return
     }
@@ -5464,7 +5482,7 @@ async function resumeOrderPayment(orderId, orderCode, paymentMethod) {
       return
     }
     if (errCode === 'PAYOS_CONFIG_MISSING') {
-      showToast('PayOS chưa cấu hình đầy đủ, vui lòng liên hệ shop', 'error', 5500)
+      showToast('Cấu hình thanh toán chưa đầy đủ, vui lòng liên hệ shop', 'error', 5500)
       return
     }
     if (errCode === 'PAYMENT_METHOD_NOT_BANK_TRANSFER') {
@@ -5495,9 +5513,10 @@ const BANK_CONFIG = {
 
 let selectedTopupAmount = 50000
 
-function getVietQRUrl(amount, customInfo = '') {
+function getVietQRUrl(amount, customInfo = '', bankConfig = BANK_CONFIG) {
   const info = customInfo || ('QHVN90' + (currentUser ? currentUser.userId : ''))
-  return 'https://img.vietqr.io/image/' + BANK_CONFIG.bankId + '-' + BANK_CONFIG.accountNo + '-' + BANK_CONFIG.template + '.png?amount=' + amount + '&addInfo=' + encodeURIComponent(info) + '&accountName=' + encodeURIComponent(BANK_CONFIG.accountName)
+  const config = bankConfig || BANK_CONFIG
+  return 'https://img.vietqr.io/image/' + config.bankId + '-' + config.accountNo + '-' + config.template + '.png?amount=' + amount + '&addInfo=' + encodeURIComponent(info) + '&accountName=' + encodeURIComponent(config.accountName)
 }
 
 function getOrderTransferContent(orderCode) {
@@ -5509,7 +5528,13 @@ function openOrderBankTransferModal(info) {
   const orderCode = info?.orderCode || ''
   const amount = Number(info?.amount || 0)
   const transferContent = info?.transferContent || getOrderTransferContent(info?.orderId || orderCode)
-  const qrImage = getVietQRUrl(amount, transferContent)
+  const bankConfig = {
+    bankId: info?.bankId || BANK_CONFIG.bankId,
+    accountNo: info?.accountNo || BANK_CONFIG.accountNo,
+    accountName: info?.accountName || BANK_CONFIG.accountName,
+    template: info?.template || BANK_CONFIG.template
+  }
+  const qrImage = info?.qrCode || getVietQRUrl(amount, transferContent, bankConfig)
   pendingBankTransferOrder = { orderCode, amount, transferContent, paymentLinkId: info?.paymentLinkId || '' }
   document.getElementById('orderBankOrderCode').textContent = orderCode
   const amountDisplay = document.getElementById('orderBankAmountDisplay')
@@ -5523,8 +5548,8 @@ function openOrderBankTransferModal(info) {
       amountDisplay.classList.remove('qhher-order-price')
     }
   }
-  document.getElementById('orderBankAccountNo').textContent = BANK_CONFIG.accountNo
-  document.getElementById('orderBankAccountName').textContent = BANK_CONFIG.accountName
+  document.getElementById('orderBankAccountNo').textContent = bankConfig.accountNo
+  document.getElementById('orderBankAccountName').textContent = bankConfig.accountName
   document.getElementById('orderBankTransferContent').textContent = transferContent
   document.getElementById('orderBankQrImg').src = qrImage
   document.getElementById('orderBankTransferOverlay').classList.remove('hidden')

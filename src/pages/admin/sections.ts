@@ -572,6 +572,44 @@ export function adminPaymentSettingsPage(): string {
             <span class="relative h-8 w-14 rounded-full bg-gray-300 transition peer-checked:bg-gradient-to-r peer-checked:from-blue-500 peer-checked:to-pink-500 after:absolute after:left-1 after:top-1 after:h-6 after:w-6 after:rounded-full after:bg-white after:shadow after:transition peer-checked:after:translate-x-6"></span>
           </label>
         </div>
+        <div class="mt-4 rounded-2xl border border-gray-200 bg-white p-4 md:p-5">
+          <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div class="min-w-0">
+              <h3 class="font-bold text-gray-900">Thanh toán chuyển khoản</h3>
+              <p class="mt-1 text-sm leading-relaxed text-gray-500">PayOS vẫn là mặc định. VietQR thủ công dùng khi muốn fallback không mất phí provider, admin xác nhận đơn bằng đối soát.</p>
+            </div>
+            <label class="block w-full lg:w-64">
+              <span class="block text-sm font-semibold text-gray-700 mb-1.5">Provider</span>
+              <select id="bankTransferProviderSelect" onchange="syncBankTransferProviderSettingsUI()" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
+                <option value="PAYOS">PayOS tự xác minh</option>
+                <option value="MANUAL_VIETQR">VietQR thủ công</option>
+              </select>
+            </label>
+          </div>
+          <div id="manualVietqrSettingsPanel" class="mt-4 grid gap-4 md:grid-cols-2">
+            <label class="block">
+              <span class="block text-sm font-semibold text-gray-700 mb-1.5">Mã ngân hàng</span>
+              <input id="manualVietqrBankId" type="text" placeholder="MB" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
+            </label>
+            <label class="block">
+              <span class="block text-sm font-semibold text-gray-700 mb-1.5">Số tài khoản</span>
+              <input id="manualVietqrAccountNo" type="text" placeholder="0200100441441" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
+            </label>
+            <label class="block">
+              <span class="block text-sm font-semibold text-gray-700 mb-1.5">Tên chủ tài khoản</span>
+              <input id="manualVietqrAccountName" type="text" placeholder="TRAN CONG HANH" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
+            </label>
+            <label class="block">
+              <span class="block text-sm font-semibold text-gray-700 mb-1.5">Template QR</span>
+              <input id="manualVietqrTemplate" type="text" placeholder="compact2" class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400">
+            </label>
+          </div>
+          <div class="mt-4 flex justify-end">
+            <button onclick="savePaymentSettings()" id="saveBankTransferSettingsBtn" class="btn-pink text-white px-5 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2">
+              <i class="fas fa-save"></i>Lưu thanh toán chuyển khoản
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </div>`

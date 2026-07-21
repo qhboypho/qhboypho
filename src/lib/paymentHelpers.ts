@@ -35,6 +35,62 @@ export async function getPayOSConfig(db: D1Database, env: AppBindings) {
   }
 }
 
+export type BankTransferProvider = 'PAYOS' | 'MANUAL_VIETQR'
+
+function normalizeBankTransferProvider(value: any): BankTransferProvider {
+  const provider = String(value || '').trim().toUpperCase()
+  if (provider === 'MANUAL' || provider === 'MANUAL_VIETQR' || provider === 'VIETQR') return 'MANUAL_VIETQR'
+  return 'PAYOS'
+}
+
+export async function getBankTransferProviderConfig(db: D1Database, env: AppBindings) {
+  const config = await getRuntimeConfigValues(db, env, [
+    'BANK_TRANSFER_PROVIDER',
+    'MANUAL_VIETQR_BANK_ID',
+    'MANUAL_VIETQR_ACCOUNT_NO',
+    'MANUAL_VIETQR_ACCOUNT_NAME',
+    'MANUAL_VIETQR_TEMPLATE'
+  ])
+  const provider = normalizeBankTransferProvider(config.BANK_TRANSFER_PROVIDER)
+  return {
+    provider,
+    manualVietQR: {
+      bankId: String(config.MANUAL_VIETQR_BANK_ID || 'MB').trim() || 'MB',
+      accountNo: String(config.MANUAL_VIETQR_ACCOUNT_NO || '0200100441441').trim() || '0200100441441',
+      accountName: String(config.MANUAL_VIETQR_ACCOUNT_NAME || 'TRAN CONG HANH').trim() || 'TRAN CONG HANH',
+      template: String(config.MANUAL_VIETQR_TEMPLATE || 'compact2').trim() || 'compact2'
+    }
+  }
+}
+
+function getManualOrderTransferContent(order: any) {
+  const raw = String(order?.order_code || order?.id || '').replace(/[^a-zA-Z0-9]/g, '')
+  return `DH${raw || Math.max(1, Number(order?.id || 0) || 1)}`.slice(0, 25)
+}
+
+export function buildManualVietQRPaymentData(order: any, config: Awaited<ReturnType<typeof getBankTransferProviderConfig>>['manualVietQR']) {
+  const amount = Math.round(Number(order?.total_price || 0))
+  const transferContent = getManualOrderTransferContent(order)
+  const bankId = String(config?.bankId || 'MB').trim()
+  const accountNo = String(config?.accountNo || '').trim()
+  const accountName = String(config?.accountName || '').trim()
+  const template = String(config?.template || 'compact2').trim()
+  const qrCode = `https://img.vietqr.io/image/${encodeURIComponent(bankId)}-${encodeURIComponent(accountNo)}-${encodeURIComponent(template)}.png?amount=${encodeURIComponent(String(amount))}&addInfo=${encodeURIComponent(transferContent)}&accountName=${encodeURIComponent(accountName)}`
+  return {
+    provider: 'MANUAL_VIETQR',
+    checkoutUrl: '',
+    paymentLinkId: '',
+    qrCode,
+    orderCode: order?.order_code || '',
+    amount,
+    transferContent,
+    bankId,
+    accountNo,
+    accountName,
+    template
+  }
+}
+
 export async function payOSGetPaymentInfo(db: D1Database, env: AppBindings, id: string | number) {
   const { clientId, apiKey } = await getPayOSConfig(db, env)
   if (!clientId || !apiKey || !id) return null
@@ -234,7 +290,11 @@ export async function syncOrderPaymentWithZaloPay(db: D1Database, env: any, orde
 
 export async function syncOrderPayment(db: D1Database, env: any, order: any) {
   const method = String(order?.payment_method || '').toUpperCase()
-  if (method === 'BANK_TRANSFER') return syncOrderPaymentWithPayOS(db, env, order)
+  if (method === 'BANK_TRANSFER') {
+    const { provider } = await getBankTransferProviderConfig(db, env)
+    if (provider === 'MANUAL_VIETQR') return { synced: false, paid: false, provider }
+    return syncOrderPaymentWithPayOS(db, env, order)
+  }
   if (method === 'ZALOPAY') return syncOrderPaymentWithZaloPay(db, env, order)
   const isPaid = String(order?.payment_status || '').toLowerCase() === 'paid'
   return { synced: false, paid: isPaid }

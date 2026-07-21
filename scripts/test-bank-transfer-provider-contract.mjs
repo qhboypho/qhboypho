@@ -5,6 +5,9 @@ const runtimeConfigSource = await readFile(new URL('../src/lib/runtimeConfigHelp
 const appTypesSource = await readFile(new URL('../src/types/app.ts', import.meta.url), 'utf8')
 const paymentHelpersSource = await readFile(new URL('../src/lib/paymentHelpers.ts', import.meta.url), 'utf8')
 const paymentRoutesSource = await readFile(new URL('../src/routes/paymentRoutes.ts', import.meta.url), 'utf8')
+const adminUtilityRoutesSource = await readFile(new URL('../src/routes/adminUtilityRoutes.ts', import.meta.url), 'utf8')
+const adminSettingsScriptSource = await readFile(new URL('../src/pages/admin/script-featured-settings.ts', import.meta.url), 'utf8')
+const adminSectionsSource = await readFile(new URL('../src/pages/admin/sections.ts', import.meta.url), 'utf8')
 const storefrontScriptSource = await readFile(new URL('../src/pages/storefront/script.ts', import.meta.url), 'utf8')
 const detailOrderScriptSource = await readFile(new URL('../src/pages/storefront/script-detail-order.ts', import.meta.url), 'utf8')
 
@@ -83,6 +86,24 @@ assert.match(
   detailOrderScriptSource,
   /paymentData\?\.provider[\s\S]*MANUAL_VIETQR/,
   'detail order flow should understand manual VietQR provider responses'
+)
+
+assert.match(
+  adminUtilityRoutesSource,
+  /bank_transfer_provider[\s\S]*manual_vietqr_bank_id[\s\S]*manual_vietqr_account_no[\s\S]*manual_vietqr_account_name/,
+  'admin payment settings API should persist bank-transfer provider and manual VietQR account settings'
+)
+
+assert.match(
+  adminSectionsSource,
+  /bankTransferProviderSelect[\s\S]*manualVietqrAccountNo[\s\S]*manualVietqrAccountName/,
+  'admin payment settings page should expose provider and manual VietQR inputs'
+)
+
+assert.match(
+  adminSettingsScriptSource,
+  /bank_transfer_provider[\s\S]*manual_vietqr_bank_id[\s\S]*manual_vietqr_account_no[\s\S]*manual_vietqr_account_name/,
+  'admin payment settings script should load and save provider settings'
 )
 
 console.log('bank transfer provider contract passed')

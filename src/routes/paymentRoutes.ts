@@ -13,6 +13,8 @@ type PaymentRouteDeps = {
   getPayOSConfig: (db: D1Database, env: any) => Promise<any>
   getZaloPayConfig: (db: D1Database, env: any) => Promise<any>
   getZaloPayMissingConfigKeys: (config: any) => string[]
+  getBankTransferProviderConfig: (db: D1Database, env: any) => Promise<any>
+  buildManualVietQRPaymentData: (order: any, config: any) => any
   sanitizeAddressEffectiveDate: (value: string) => string
   addressKitCache: { provinces: Map<string, any[]>, communes: Map<string, any[]> }
   ADDRESS_KIT_BASE_URL: string
@@ -332,7 +334,7 @@ export function registerPaymentRoutes(app: Hono<{ Bindings: AppBindings }>, deps
     }
   })
 
-  app.post('/api/orders/:id/payos-link', async (c) => {
+  const createBankTransferLink = async (c: any) => {
     try {
       await deps.initDB(c.env.DB)
       const id = Number(c.req.param('id') || 0)
@@ -353,6 +355,21 @@ export function registerPaymentRoutes(app: Hono<{ Bindings: AppBindings }>, deps
       }
       if (String(order.payment_status || '').toLowerCase() === 'paid') {
         return c.json({ success: true, data: { alreadyPaid: true, orderCode: order.order_code } })
+      }
+
+      const bankTransferConfig = await deps.getBankTransferProviderConfig(c.env.DB, c.env)
+      const activeProvider = String(bankTransferConfig.provider || 'PAYOS').toUpperCase()
+      if (activeProvider === 'MANUAL_VIETQR') {
+        const manualPayment = deps.buildManualVietQRPaymentData(order, bankTransferConfig.manualVietQR)
+        await c.env.DB.prepare(`
+          UPDATE orders
+          SET payment_provider='MANUAL_VIETQR',
+              payment_link_id=?,
+              payment_checkout_url=NULL,
+              updated_at=CURRENT_TIMESTAMP
+          WHERE id=?
+        `).bind(manualPayment.transferContent || null, id).run()
+        return c.json({ success: true, data: manualPayment })
       }
 
       const sync = await deps.syncOrderPaymentWithPayOS(c.env.DB, c.env, order)
@@ -394,7 +411,16 @@ export function registerPaymentRoutes(app: Hono<{ Bindings: AppBindings }>, deps
 
       const { clientId, apiKey, checksumKey } = await deps.getPayOSConfig(c.env.DB, c.env)
       if (!clientId || !apiKey || !checksumKey) {
-        return c.json({ success: false, error: 'PAYOS_CONFIG_MISSING' }, 500)
+        const manualPayment = deps.buildManualVietQRPaymentData(order, bankTransferConfig.manualVietQR)
+        await c.env.DB.prepare(`
+          UPDATE orders
+          SET payment_provider='MANUAL_VIETQR',
+              payment_link_id=?,
+              payment_checkout_url=NULL,
+              updated_at=CURRENT_TIMESTAMP
+          WHERE id=?
+        `).bind(manualPayment.transferContent || null, id).run()
+        return c.json({ success: true, data: { ...manualPayment, fallbackFrom: 'PAYOS_CONFIG_MISSING' } })
       }
 
       const amount = Math.round(Number(order.total_price || 0))
@@ -429,7 +455,16 @@ export function registerPaymentRoutes(app: Hono<{ Bindings: AppBindings }>, deps
       })
       const payosRes: any = await resp.json().catch(() => ({}))
       if (!resp.ok || String(payosRes.code || '') !== '00' || !payosRes.data) {
-        return c.json({ success: false, error: 'PAYOS_CREATE_LINK_FAILED', detail: payosRes }, 400)
+        const manualPayment = deps.buildManualVietQRPaymentData(order, bankTransferConfig.manualVietQR)
+        await c.env.DB.prepare(`
+          UPDATE orders
+          SET payment_provider='MANUAL_VIETQR',
+              payment_link_id=?,
+              payment_checkout_url=NULL,
+              updated_at=CURRENT_TIMESTAMP
+          WHERE id=?
+        `).bind(manualPayment.transferContent || null, id).run()
+        return c.json({ success: true, data: { ...manualPayment, fallbackFrom: 'PAYOS_CREATE_LINK_FAILED' } })
       }
 
       await c.env.DB.prepare(`
@@ -450,6 +485,7 @@ export function registerPaymentRoutes(app: Hono<{ Bindings: AppBindings }>, deps
       return c.json({
         success: true,
         data: {
+          provider: 'PAYOS',
           paymentLinkId: payosRes.data.paymentLinkId,
           checkoutUrl: payosRes.data.checkoutUrl,
           qrCode: payosRes.data.qrCode,
@@ -459,7 +495,10 @@ export function registerPaymentRoutes(app: Hono<{ Bindings: AppBindings }>, deps
     } catch (e: any) {
       return c.json({ success: false, error: e.message }, 500)
     }
-  })
+  }
+
+  app.post('/api/orders/:id/bank-transfer-link', createBankTransferLink)
+  app.post('/api/orders/:id/payos-link', (c) => createBankTransferLink(c)) // Legacy alias for /api/orders/:id/bank-transfer-link
 
   app.post('/api/payments/zalopay/callback', async (c) => {
     try {

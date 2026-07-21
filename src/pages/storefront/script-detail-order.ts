@@ -981,19 +981,20 @@ function closeBlockedCustomerModal() {
 
 async function continueOrderPaymentFlow({ orderCode, orderId, orderTotal, paymentMethod, payTabRef }) {
   if (paymentMethod === 'BANK_TRANSFER') {
-    let payosData = null
+    let paymentData = null
     try {
-      const payos = await axios.post('/api/orders/' + orderId + '/payos-link', { origin: window.location.origin })
-      payosData = payos.data?.data || null
+      const payment = await axios.post('/api/orders/' + orderId + '/bank-transfer-link', { origin: window.location.origin })
+      paymentData = payment.data?.data || null
     } catch (_) {
-      showToast('PayOS tạm lỗi, đang chuyển sang QR dự phòng.', 'error', 4500)
+      showToast('Cổng thanh toán tạm lỗi, đang chuyển sang QR dự phòng.', 'error', 4500)
     }
-    if (payosData?.alreadyPaid) {
+    if (paymentData?.alreadyPaid) {
       onOrderMarkedPaid(orderCode)
       showToast('Đơn ' + orderCode + ' đã được thanh toán trước đó.', 'success', 4500)
       return { handled: true }
     }
-    const checkoutUrl = String(payosData?.checkoutUrl || '').trim()
+    const provider = String(paymentData?.provider || '').toUpperCase()
+    const checkoutUrl = String(paymentData?.checkoutUrl || '').trim()
     if (checkoutUrl) {
       let payTab = payTabRef
       if (payTab) {
@@ -1002,15 +1003,20 @@ async function continueOrderPaymentFlow({ orderCode, orderId, orderTotal, paymen
       if (!payTab) payTab = window.open(checkoutUrl, '_blank')
       if (payTab) {
         startOrderPaymentPolling(orderCode)
-        showToast('Đơn ' + orderCode + ': đã mở tab PayOS, vui lòng hoàn tất thanh toán.', 'success', 5000)
+        showToast('Đơn ' + orderCode + ': đã mở tab thanh toán, vui lòng hoàn tất.', 'success', 5000)
       } else {
         showToast('Trình duyệt đang chặn popup, hiển thị QR dự phòng để bạn thanh toán thủ công.', 'error', 5000)
         openOrderBankTransferModal({
           orderCode,
           orderId,
           amount: orderTotal,
-          transferContent: 'DH' + orderId,
-          paymentLinkId: payosData?.paymentLinkId || ''
+          transferContent: paymentData?.transferContent || 'DH' + orderId,
+          paymentLinkId: paymentData?.paymentLinkId || '',
+          qrCode: paymentData?.qrCode || '',
+          bankId: paymentData?.bankId || '',
+          accountNo: paymentData?.accountNo || '',
+          accountName: paymentData?.accountName || '',
+          template: paymentData?.template || ''
         })
       }
       return { handled: true }
@@ -1021,10 +1027,15 @@ async function continueOrderPaymentFlow({ orderCode, orderId, orderTotal, paymen
       orderCode,
       orderId,
       amount: orderTotal,
-      transferContent: 'DH' + orderId,
-      paymentLinkId: payosData?.paymentLinkId || ''
+      transferContent: paymentData?.transferContent || 'DH' + orderId,
+      paymentLinkId: paymentData?.paymentLinkId || '',
+      qrCode: paymentData?.qrCode || '',
+      bankId: paymentData?.bankId || '',
+      accountNo: paymentData?.accountNo || '',
+      accountName: paymentData?.accountName || '',
+      template: paymentData?.template || ''
     })
-    showToast('Đơn hàng ' + orderCode + ' đã tạo. Vui lòng chuyển khoản để hoàn tất.', 'success', 5000)
+    showToast(provider === 'MANUAL_VIETQR' ? 'Đơn hàng ' + orderCode + ' đã tạo. Vui lòng quét QR/chuyển khoản đúng nội dung.' : 'Đơn hàng ' + orderCode + ' đã tạo. Vui lòng chuyển khoản để hoàn tất.', 'success', 5000)
     return { handled: true }
   }
 

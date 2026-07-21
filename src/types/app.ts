@@ -7,6 +7,11 @@ export type AppBindings = CloudflareBindings & {
   TURNSTILE_SITE_KEY?: string
   TURNSTILE_SECRET_KEY?: string
   CASSO_SECURE_TOKEN?: string
+  BANK_TRANSFER_PROVIDER?: string
+  MANUAL_VIETQR_BANK_ID?: string
+  MANUAL_VIETQR_ACCOUNT_NO?: string
+  MANUAL_VIETQR_ACCOUNT_NAME?: string
+  MANUAL_VIETQR_TEMPLATE?: string
   PAYOS_CLIENT_ID?: string
   PAYOS_API_KEY?: string
   PAYOS_CHECKSUM_KEY?: string

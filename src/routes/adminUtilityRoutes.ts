@@ -71,6 +71,11 @@ type NotificationSettingsInput = {
 
 type PaymentSettingsInput = {
   wallet_topup_enabled?: unknown
+  bank_transfer_provider?: unknown
+  manual_vietqr_bank_id?: unknown
+  manual_vietqr_account_no?: unknown
+  manual_vietqr_account_name?: unknown
+  manual_vietqr_template?: unknown
 }
 
 type TextUiSettingsInput = {
@@ -121,6 +126,11 @@ const SHOP_BACKUP_SETTING_ALLOWLIST = new Set([
   'hottrendnu_notification_display_mode',
   'hottrendnu_static_notification_text',
   'wallet_topup_enabled',
+  'bank_transfer_provider',
+  'manual_vietqr_bank_id',
+  'manual_vietqr_account_no',
+  'manual_vietqr_account_name',
+  'manual_vietqr_template',
   'quick_order_risk_note_text',
   'product_freeship_badge_enabled',
   'hero_badge_text',
@@ -522,6 +532,11 @@ const HOT_TREND_NU_NOTIFICATION_SETTING_KEYS = [
 
 const PAYMENT_SETTING_KEYS = [
   'wallet_topup_enabled',
+  'bank_transfer_provider',
+  'manual_vietqr_bank_id',
+  'manual_vietqr_account_no',
+  'manual_vietqr_account_name',
+  'manual_vietqr_template',
 ] as const
 
 const DEFAULT_MARQUEE_TEXT = 'Mua hàng tại đây không qua sàn thương mại nên giá thành sản phẩm sẽ rẻ hơn rất nhiều và bảo hành hoàn trả trong vòng 7 ngày nếu sản phẩm bị lỗi nên quý khách yên tâm mua sắm nhé.Bảo hành đổi trả nhắn qua trang facebook : QH Boypho. Chúc quý khách có trải nghiệm mua sắm tốt tại QH Boypho'
@@ -644,6 +659,11 @@ async function readPaymentSettings(db: D1Database) {
   }
   return {
     wallet_topup_enabled: String(map.get('wallet_topup_enabled') || '1') !== '0',
+    bank_transfer_provider: String(map.get('bank_transfer_provider') || 'PAYOS').trim().toUpperCase() === 'MANUAL_VIETQR' ? 'MANUAL_VIETQR' : 'PAYOS',
+    manual_vietqr_bank_id: String(map.get('manual_vietqr_bank_id') || 'MB').trim(),
+    manual_vietqr_account_no: String(map.get('manual_vietqr_account_no') || '0200100441441').trim(),
+    manual_vietqr_account_name: String(map.get('manual_vietqr_account_name') || 'TRAN CONG HANH').trim(),
+    manual_vietqr_template: String(map.get('manual_vietqr_template') || 'compact2').trim(),
   }
 }
 
@@ -1033,11 +1053,23 @@ export function registerAdminUtilityRoutes(app: Hono<{ Bindings: AppBindings }>,
       await deps.initDB(c.env.DB)
       const body: PaymentSettingsInput = await c.req.json<PaymentSettingsInput>().catch(() => ({} as PaymentSettingsInput))
       const enabled = body.wallet_topup_enabled === true || body.wallet_topup_enabled === 1 || body.wallet_topup_enabled === '1'
+      const sanitize = (value: unknown, max = 120) => String(value || '').trim().slice(0, max)
+      const bankTransferProvider = String(body.bank_transfer_provider || '').trim().toUpperCase() === 'MANUAL_VIETQR' ? 'MANUAL_VIETQR' : 'PAYOS'
       const payload = {
         wallet_topup_enabled: enabled,
+        bank_transfer_provider: bankTransferProvider,
+        manual_vietqr_bank_id: sanitize(body.manual_vietqr_bank_id || 'MB', 24).toUpperCase() || 'MB',
+        manual_vietqr_account_no: sanitize(body.manual_vietqr_account_no || '0200100441441', 80),
+        manual_vietqr_account_name: sanitize(body.manual_vietqr_account_name || 'TRAN CONG HANH', 120).toUpperCase(),
+        manual_vietqr_template: sanitize(body.manual_vietqr_template || 'compact2', 30) || 'compact2',
       }
       await deps.upsertAppSettings(c.env.DB, [
         { key: 'wallet_topup_enabled', value: enabled ? '1' : '0' },
+        { key: 'bank_transfer_provider', value: payload.bank_transfer_provider },
+        { key: 'manual_vietqr_bank_id', value: payload.manual_vietqr_bank_id },
+        { key: 'manual_vietqr_account_no', value: payload.manual_vietqr_account_no },
+        { key: 'manual_vietqr_account_name', value: payload.manual_vietqr_account_name },
+        { key: 'manual_vietqr_template', value: payload.manual_vietqr_template },
       ])
       return c.json({ success: true, data: payload })
     } catch (e: any) {

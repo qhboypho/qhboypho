@@ -21,7 +21,9 @@ import ghtkTailSvg from '../public/GHTK_id8dR2ZdYY_1.svg?raw'
 import {
   ADDRESS_KIT_BASE_URL,
   addressKitCache,
+  buildManualVietQRPaymentData,
   buildZaloPayAppTransId,
+  getBankTransferProviderConfig,
   getPayOSConfig,
   getZaloPayConfig,
   getZaloPayMissingConfigKeys,
@@ -159,6 +161,8 @@ registerPaymentRoutes(app, {
   getPayOSConfig,
   getZaloPayConfig,
   getZaloPayMissingConfigKeys,
+  getBankTransferProviderConfig,
+  buildManualVietQRPaymentData,
   sanitizeAddressEffectiveDate,
   addressKitCache,
   ADDRESS_KIT_BASE_URL,
