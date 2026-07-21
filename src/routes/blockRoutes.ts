@@ -11,7 +11,10 @@ function isBlockedValue(value: unknown) {
 }
 
 function normalizeBlockPhone(value: unknown) {
-  return String(value || '').trim().replace(/\s+/g, '').replace(/[^\d]/g, '')
+  let phone = String(value || '').trim().replace(/\s+/g, '').replace(/[^\d]/g, '')
+  if (phone.startsWith('0084')) phone = '0' + phone.slice(4)
+  else if (phone.startsWith('84') && phone.length >= 11) phone = '0' + phone.slice(2)
+  return phone
 }
 
 function getBangkokOverrideWindow(now = new Date()) {

@@ -50,7 +50,10 @@ function normalizeCustomerSearch(value) {
 }
 
 function normalizeCustomerPhoneInput(value) {
-  return String(value || '').trim().replace(/\s+/g, '').replace(/[^\d]/g, '')
+  let phone = String(value || '').trim().replace(/\\s+/g, '').replace(/[^\\d]/g, '')
+  if (phone.startsWith('0084')) phone = '0' + phone.slice(4)
+  else if (phone.startsWith('84') && phone.length >= 11) phone = '0' + phone.slice(2)
+  return phone
 }
 
 function filterCustomers() {
@@ -70,7 +73,7 @@ function filterCustomers() {
 
 function customerInitials(customer) {
   const raw = String(customer?.customer_name || customer?.user_name || 'KH').trim()
-  const parts = raw.split(/\s+/).filter(Boolean)
+  const parts = raw.split(/\\s+/).filter(Boolean)
   if (!parts.length) return 'KH'
   return parts.slice(-2).map(part => part.charAt(0).toUpperCase()).join('') || 'KH'
 }
@@ -518,8 +521,9 @@ async function grantDailyOrderLimitOverride(userId, phone) {
   }
 }
 
-async function grantDailyOrderLimitOverrideByPhone() {
-  const input = document.getElementById('dailyLimitOverridePhone')
+async function grantDailyOrderLimitOverrideByPhone(trigger) {
+  const input = trigger?.closest?.('div')?.querySelector?.('#dailyLimitOverridePhone')
+    || document.getElementById('dailyLimitOverridePhone')
   const phone = normalizeCustomerPhoneInput(input?.value)
   if (!phone) {
     showAdminToast('Nhập SĐT khách vãng lai cần mở limit', 'error')

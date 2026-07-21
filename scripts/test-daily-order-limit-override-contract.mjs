@@ -69,14 +69,32 @@ assert.match(
 
 assert.match(
   adminSectionsSource,
-  /dailyLimitOverridePhone[\s\S]*grantDailyOrderLimitOverrideByPhone/,
-  'admin customers page should expose a phone-based override control for guest customers'
+  /dailyLimitOverridePhone[\s\S]*grantDailyOrderLimitOverrideByPhone\(this\)/,
+  'admin customers page should expose a phone-based override control for guest customers and pass the clicked button'
 )
 
 assert.match(
   adminCustomersScriptSource,
-  /grantDailyOrderLimitOverrideByPhone[\s\S]*normalizeCustomerPhoneInput[\s\S]*grantDailyOrderLimitOverride\(null, phone\)/,
+  /grantDailyOrderLimitOverrideByPhone[\s\S]*closest[\s\S]*normalizeCustomerPhoneInput[\s\S]*grantDailyOrderLimitOverride\(null, phone\)/,
   'guest override control should grant an override by normalized phone without requiring a user account'
+)
+
+assert.match(
+  adminCustomersScriptSource,
+  /startsWith\('84'\)[\s\S]*'0' \+ phone\.slice\(2\)/,
+  'admin customers script should normalize Vietnamese +84 phone numbers to the stored 0-prefix format'
+)
+
+assert.match(
+  adminCustomersScriptSource,
+  /replace\(\/\\\\s\+\/g[\s\S]*replace\(\/\[\^\\\\d\]\/g/,
+  'admin customers script should preserve phone-normalization regex escapes inside the generated browser script'
+)
+
+assert.match(
+  blockRoutesSource,
+  /startsWith\('84'\)[\s\S]*'0' \+ phone\.slice\(2\)/,
+  'admin override API should normalize Vietnamese +84 phone numbers before storing overrides'
 )
 
 console.log('daily order limit override contract passed')

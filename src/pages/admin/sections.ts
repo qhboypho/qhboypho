@@ -1245,7 +1245,7 @@ export function adminCustomersPage(): string {
         <div class="flex items-center gap-2 rounded-2xl border border-blue-100 bg-blue-50/70 px-2 py-2">
           <input type="tel" id="dailyLimitOverridePhone" placeholder="SĐT khách vãng lai"
             class="w-44 bg-white border border-blue-100 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400">
-          <button type="button" onclick="grantDailyOrderLimitOverrideByPhone()" class="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-3 py-2 text-sm font-bold text-white hover:bg-blue-700 transition">
+          <button type="button" onclick="grantDailyOrderLimitOverrideByPhone(this)" class="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-3 py-2 text-sm font-bold text-white hover:bg-blue-700 transition">
             <i class="fas fa-unlock-keyhole"></i>
             Mở limit
           </button>
