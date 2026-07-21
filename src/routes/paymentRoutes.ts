@@ -39,6 +39,19 @@ async function isWalletTopupEnabled(db: D1Database): Promise<boolean> {
   return String(row?.value || '1') !== '0'
 }
 
+function normalizePayOSErrorText(input: any) {
+  return JSON.stringify(input || {})
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+}
+
+function isPayOSTransactionLimitError(status: number, body: any) {
+  if (Number(status) === 429) return true
+  const text = normalizePayOSErrorText(body)
+  return /too many request|rate limit|quota|transaction limit|payment request limit|so luong giao dich|gioi han giao dich|vuot gioi han giao dich|het han muc|vuot han muc goi|goi thanh toan/.test(text)
+}
+
 export function registerPaymentRoutes(app: Hono<{ Bindings: AppBindings }>, deps: PaymentRouteDeps) {
   app.post('/api/webhooks/casso', async (c) => {
     try {
@@ -446,6 +459,18 @@ export function registerPaymentRoutes(app: Hono<{ Bindings: AppBindings }>, deps
       })
       const payosRes: any = await resp.json().catch(() => ({}))
       if (!resp.ok || String(payosRes.code || '') !== '00' || !payosRes.data) {
+        if (isPayOSTransactionLimitError(resp.status, payosRes)) {
+          const manualPayment = deps.buildManualVietQRPaymentData(order, bankTransferConfig.manualVietQR)
+          await c.env.DB.prepare(`
+            UPDATE orders
+            SET payment_provider='MANUAL_VIETQR',
+                payment_link_id=?,
+                payment_checkout_url=NULL,
+                updated_at=CURRENT_TIMESTAMP
+            WHERE id=?
+          `).bind(manualPayment.transferContent || null, id).run()
+          return c.json({ success: true, data: { ...manualPayment, fallbackFrom: 'PAYOS_TRANSACTION_LIMIT' } })
+        }
         return c.json({ success: false, error: 'PAYOS_CREATE_LINK_FAILED', detail: payosRes }, 400)
       }
 

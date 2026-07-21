@@ -76,10 +76,22 @@ assert.match(
   'PayOS create-link errors should stay PayOS errors unless manual VietQR is explicitly selected'
 )
 
+assert.match(
+  paymentRoutesSource,
+  /function isPayOSTransactionLimitError/,
+  'payment route should detect PayOS transaction limit separately from ordinary create-link failures'
+)
+
+assert.match(
+  paymentRoutesSource,
+  /isPayOSTransactionLimitError\(resp\.status,\s*payosRes\)[\s\S]*buildManualVietQRPaymentData[\s\S]*PAYOS_TRANSACTION_LIMIT/,
+  'PayOS transaction-limit errors should automatically fall back to manual VietQR'
+)
+
 assert.doesNotMatch(
   paymentRoutesSource,
-  /fallbackFrom: 'PAYOS_/,
-  'PayOS should not automatically fall back to manual VietQR while provider is PAYOS'
+  /fallbackFrom: 'PAYOS_(CONFIG_MISSING|CREATE_LINK_FAILED)'/,
+  'PayOS should only auto-fallback for transaction limits, not config or ordinary create failures'
 )
 
 assert.match(
