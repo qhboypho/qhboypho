@@ -1242,6 +1242,14 @@ export function adminCustomersPage(): string {
       <div class="flex gap-2 flex-wrap items-center">
         <input type="text" id="customersSearch" placeholder="Tìm tên/SĐT/username..." oninput="filterCustomers()" 
           class="border rounded-xl px-4 py-2 text-sm focus:outline-none focus:border-pink-400 w-64">
+        <div class="flex items-center gap-2 rounded-2xl border border-blue-100 bg-blue-50/70 px-2 py-2">
+          <input type="tel" id="dailyLimitOverridePhone" placeholder="SĐT khách vãng lai"
+            class="w-44 bg-white border border-blue-100 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-400">
+          <button type="button" onclick="grantDailyOrderLimitOverrideByPhone()" class="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-3 py-2 text-sm font-bold text-white hover:bg-blue-700 transition">
+            <i class="fas fa-unlock-keyhole"></i>
+            Mở limit
+          </button>
+        </div>
       </div>
       <div class="flex items-center gap-2">
         <span id="customersCount" class="text-sm text-gray-600 font-medium">0 khách hàng</span>

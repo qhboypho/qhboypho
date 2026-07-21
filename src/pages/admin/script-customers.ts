@@ -39,6 +39,10 @@ function normalizeCustomerSearch(value) {
   return String(value || '').toLowerCase().trim()
 }
 
+function normalizeCustomerPhoneInput(value) {
+  return String(value || '').trim().replace(/\s+/g, '').replace(/[^\d]/g, '')
+}
+
 function filterCustomers() {
   const search = normalizeCustomerSearch(document.getElementById('customersSearch')?.value)
   filteredCustomersData = customersData.filter(customer => {
@@ -467,9 +471,15 @@ async function unblockCustomer(userId, phone) {
 }
 
 async function grantDailyOrderLimitOverride(userId, phone) {
+  const normalizedPhone = normalizeCustomerPhoneInput(phone)
+  if (!normalizedPhone) {
+    showAdminToast('Nhập SĐT khách cần mở limit', 'error')
+    return
+  }
+
   const confirmed = await openCustomerActionConfirmModal({
     title: 'Mở limit đặt đơn hôm nay',
-    message: 'Khách hàng này sẽ được đặt thêm đơn trong hôm nay dù đã chạm giới hạn 2 đơn/ngày.',
+    message: 'SĐT ' + normalizedPhone + ' sẽ được đặt thêm đơn trong hôm nay dù đã chạm giới hạn 2 đơn/ngày.',
     confirmLabel: 'Mở limit',
     confirmClass: 'px-4 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition'
   })
@@ -478,7 +488,7 @@ async function grantDailyOrderLimitOverride(userId, phone) {
   try {
     const res = await axios.post('/api/admin/customers/daily-limit-override', {
       user_id: userId,
-      customer_phone: phone,
+      customer_phone: normalizedPhone,
       reason: 'Admin cho phép khách đặt thêm trong ngày'
     })
 
@@ -494,10 +504,29 @@ async function grantDailyOrderLimitOverride(userId, phone) {
   }
 }
 
+async function grantDailyOrderLimitOverrideByPhone() {
+  const input = document.getElementById('dailyLimitOverridePhone')
+  const phone = normalizeCustomerPhoneInput(input?.value)
+  if (!phone) {
+    showAdminToast('Nhập SĐT khách vãng lai cần mở limit', 'error')
+    if (input) input.focus()
+    return
+  }
+
+  await grantDailyOrderLimitOverride(null, phone)
+  if (input) input.value = ''
+}
+
 async function revokeDailyOrderLimitOverride(userId, phone) {
+  const normalizedPhone = normalizeCustomerPhoneInput(phone)
+  if (!normalizedPhone) {
+    showAdminToast('Thiếu SĐT khách cần tắt mở limit', 'error')
+    return
+  }
+
   const confirmed = await openCustomerActionConfirmModal({
     title: 'Tắt mở limit hôm nay',
-    message: 'Khách hàng này sẽ quay lại giới hạn đặt tối đa 2 đơn trong ngày.',
+    message: 'SĐT ' + normalizedPhone + ' sẽ quay lại giới hạn đặt tối đa 2 đơn trong ngày.',
     confirmLabel: 'Tắt',
     confirmClass: 'px-4 py-2.5 rounded-xl bg-slate-700 text-white text-sm font-semibold hover:bg-slate-800 transition'
   })
@@ -506,7 +535,7 @@ async function revokeDailyOrderLimitOverride(userId, phone) {
   try {
     const res = await axios.post('/api/admin/customers/daily-limit-override/revoke', {
       user_id: userId,
-      customer_phone: phone
+      customer_phone: normalizedPhone
     })
 
     if (res.data?.success) {

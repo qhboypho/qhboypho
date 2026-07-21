@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises'
 const orderRoutesSource = await readFile(new URL('../src/routes/orderRoutes.ts', import.meta.url), 'utf8')
 const blockRoutesSource = await readFile(new URL('../src/routes/blockRoutes.ts', import.meta.url), 'utf8')
 const adminCustomersScriptSource = await readFile(new URL('../src/pages/admin/script-customers.ts', import.meta.url), 'utf8')
+const adminSectionsSource = await readFile(new URL('../src/pages/admin/sections.ts', import.meta.url), 'utf8')
 const migrationSource = await readFile(new URL('../migrations/0026_daily_order_limit_overrides.sql', import.meta.url), 'utf8')
 
 assert.match(
@@ -64,6 +65,18 @@ assert.match(
   adminCustomersScriptSource,
   /revokeDailyOrderLimitOverride[\s\S]*\/api\/admin\/customers\/daily-limit-override\/revoke/,
   'admin customers script should call the revoke override API'
+)
+
+assert.match(
+  adminSectionsSource,
+  /dailyLimitOverridePhone[\s\S]*grantDailyOrderLimitOverrideByPhone/,
+  'admin customers page should expose a phone-based override control for guest customers'
+)
+
+assert.match(
+  adminCustomersScriptSource,
+  /grantDailyOrderLimitOverrideByPhone[\s\S]*normalizeCustomerPhoneInput[\s\S]*grantDailyOrderLimitOverride\(null, phone\)/,
+  'guest override control should grant an override by normalized phone without requiring a user account'
 )
 
 console.log('daily order limit override contract passed')
