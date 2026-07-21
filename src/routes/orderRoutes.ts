@@ -168,6 +168,43 @@ function getBangkokDayWindow(now = new Date()) {
   }
 }
 
+function getBangkokDateKey(now = new Date()) {
+  const bangkokOffsetMs = 7 * 60 * 60 * 1000
+  const bangkokNow = new Date(now.getTime() + bangkokOffsetMs)
+  const year = bangkokNow.getUTCFullYear()
+  const month = String(bangkokNow.getUTCMonth() + 1).padStart(2, '0')
+  const day = String(bangkokNow.getUTCDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+async function hasActiveDailyOrderLimitOverride(
+  db: D1Database,
+  input: {
+    phone: string
+  }
+) {
+  const phone = normalizeOrderPhone(input.phone)
+  if (!phone) return false
+
+  try {
+    const row = await db.prepare(`
+      SELECT id
+      FROM daily_order_limit_overrides
+      WHERE override_date = ?
+        AND REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(TRIM(COALESCE(customer_phone, '')), ' ', ''), '-', ''), '.', ''), '(', ''), ')', ''), '+', '') = ?
+        AND datetime(expires_at) > datetime('now')
+        AND is_active = 1
+        AND revoked_at IS NULL
+      LIMIT 1
+    `).bind(getBangkokDateKey(), phone).first<{ id?: number }>()
+
+    return !!row
+  } catch (e: any) {
+    if (String(e?.message || '').includes('no such table: daily_order_limit_overrides')) return false
+    throw e
+  }
+}
+
 async function countOrdersForRiskKey(db: D1Database, whereSql: string, params: any[], startIso: string, endIso: string) {
   const row = await db.prepare(`
     SELECT COUNT(*) AS total
@@ -435,21 +472,26 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
 
       const riskIdentity = await buildOrderRiskIdentity(c, customer_address)
       const deviceHash = normalizedDeviceId ? await sha256Hex(`order-device:${normalizedDeviceId}`) : ''
-      const riskLimit = await enforceDailyOrderRiskLimit(c.env.DB, {
-        userId,
-        phone: normalizedCustomerPhone,
-        ipHash: riskIdentity.ipHash,
-        addressFingerprint: riskIdentity.addressFingerprint,
-        deviceHash
+      const hasDailyOverride = await hasActiveDailyOrderLimitOverride(c.env.DB, {
+        phone: normalizedCustomerPhone
       })
-      if (!riskLimit.allowed) {
-        return c.json({
-          success: false,
-          error: riskLimit.error,
-          reason: riskLimit.reason,
-          matched: riskLimit.matched,
-          limit: riskLimit.limit
-        }, 429)
+      if (!hasDailyOverride) {
+        const riskLimit = await enforceDailyOrderRiskLimit(c.env.DB, {
+          userId,
+          phone: normalizedCustomerPhone,
+          ipHash: riskIdentity.ipHash,
+          addressFingerprint: riskIdentity.addressFingerprint,
+          deviceHash
+        })
+        if (!riskLimit.allowed) {
+          return c.json({
+            success: false,
+            error: riskLimit.error,
+            reason: riskLimit.reason,
+            matched: riskLimit.matched,
+            limit: riskLimit.limit
+          }, 429)
+        }
       }
 
       const product = await c.env.DB.prepare(`SELECT * FROM products WHERE id=? AND is_active=1`).bind(product_id).first() as any

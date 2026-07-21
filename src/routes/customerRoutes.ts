@@ -15,6 +15,15 @@ function normalizeCustomerListThumbnail(value: unknown): string {
   return thumbnail
 }
 
+function getBangkokCustomerDateKey(now = new Date()) {
+  const bangkokOffsetMs = 7 * 60 * 60 * 1000
+  const bangkokNow = new Date(now.getTime() + bangkokOffsetMs)
+  const year = bangkokNow.getUTCFullYear()
+  const month = String(bangkokNow.getUTCMonth() + 1).padStart(2, '0')
+  const day = String(bangkokNow.getUTCDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 export function registerCustomerRoutes(app: Hono<{ Bindings: AppBindings }>, deps: CustomerRouteDeps) {
   // Get all customers (unique by phone or user_id)
   app.get('/api/admin/customers', async (c) => {
@@ -32,6 +41,7 @@ export function registerCustomerRoutes(app: Hono<{ Bindings: AppBindings }>, dep
 
       const isBlockedSelect = hasBlockedColumn ? 'u.is_blocked' : '0 AS is_blocked'
 
+      const todayBangkok = getBangkokCustomerDateKey()
       const query = `
         WITH normalized_orders AS (
           SELECT
@@ -110,6 +120,28 @@ export function registerCustomerRoutes(app: Hono<{ Bindings: AppBindings }>, dep
         ...customer,
         first_product_thumbnail: normalizeCustomerListThumbnail(customer.first_product_thumbnail),
       }))
+
+      if (customers.length) {
+        let activeOverridePhones = new Set<string>()
+        try {
+          const overrideRows = await c.env.DB.prepare(`
+            SELECT customer_phone
+            FROM daily_order_limit_overrides
+            WHERE override_date = ?
+              AND is_active = 1
+              AND revoked_at IS NULL
+              AND datetime(expires_at) > datetime('now')
+          `).bind(todayBangkok).all()
+          activeOverridePhones = new Set((overrideRows.results || []).map((row: any) => String(row.customer_phone || '').trim()))
+        } catch (e: any) {
+          if (!String(e?.message || '').includes('no such table: daily_order_limit_overrides')) throw e
+        }
+
+        customers.forEach((customer: any) => {
+          const normalizedPhone = String(customer.customer_phone || '').trim().replace(/\s+/g, '').replace(/[^\d]/g, '')
+          customer.daily_order_limit_override_active = activeOverridePhones.has(normalizedPhone) ? 1 : 0
+        })
+      }
       
       return c.json({ success: true, data: customers })
     } catch (e: any) {

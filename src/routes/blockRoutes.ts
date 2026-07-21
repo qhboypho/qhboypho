@@ -14,6 +14,19 @@ function normalizeBlockPhone(value: unknown) {
   return String(value || '').trim().replace(/\s+/g, '').replace(/[^\d]/g, '')
 }
 
+function getBangkokOverrideWindow(now = new Date()) {
+  const bangkokOffsetMs = 7 * 60 * 60 * 1000
+  const bangkokNow = new Date(now.getTime() + bangkokOffsetMs)
+  const year = bangkokNow.getUTCFullYear()
+  const month = bangkokNow.getUTCMonth()
+  const day = bangkokNow.getUTCDate()
+  const dayStartUtcMs = Date.UTC(year, month, day, 0, 0, 0) - bangkokOffsetMs
+  return {
+    overrideDate: `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`,
+    expiresAt: new Date(dayStartUtcMs + 24 * 60 * 60 * 1000).toISOString()
+  }
+}
+
 export function registerBlockRoutes(app: Hono<{ Bindings: AppBindings }>, deps: BlockRouteDeps) {
   // Check if customer is blocked (for frontend checkout validation)
   app.get('/api/customers/block-status', async (c) => {
@@ -195,6 +208,79 @@ export function registerBlockRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
       return c.json({ success: true, message: 'Đã bỏ chặn khách hàng' })
     } catch (e: any) {
       console.error('Unblock customer error:', e)
+      return c.json({ success: false, error: e.message }, 500)
+    }
+  })
+
+  // Admin: allow a customer to place more orders today despite the daily risk limit.
+  app.post('/api/admin/customers/daily-limit-override', async (c) => {
+    try {
+      await deps.initDB(c.env.DB)
+
+      const body = await c.req.json()
+      const userId = body.user_id ? Number(body.user_id) : null
+      const phone = body.customer_phone ? normalizeBlockPhone(body.customer_phone) : null
+      const reason = String(body.reason || 'Admin cho phép đặt thêm trong ngày').trim().slice(0, 240)
+
+      if (!phone) {
+        return c.json({ success: false, error: 'customer_phone required' }, 400)
+      }
+
+      const { overrideDate, expiresAt } = getBangkokOverrideWindow()
+
+      await c.env.DB.prepare(`
+        INSERT INTO daily_order_limit_overrides (user_id, customer_phone, override_date, reason, granted_by, expires_at, is_active)
+        VALUES (?, ?, ?, ?, 'admin', ?, 1)
+        ON CONFLICT(customer_phone, override_date) DO UPDATE SET
+          user_id = excluded.user_id,
+          reason = excluded.reason,
+          granted_by = 'admin',
+          granted_at = CURRENT_TIMESTAMP,
+          expires_at = excluded.expires_at,
+          revoked_at = NULL,
+          is_active = 1
+      `).bind(userId, phone, overrideDate, reason, expiresAt).run()
+
+      return c.json({
+        success: true,
+        message: 'Đã mở limit đặt đơn hôm nay cho khách hàng',
+        data: {
+          customer_phone: phone,
+          override_date: overrideDate,
+          expires_at: expiresAt
+        }
+      })
+    } catch (e: any) {
+      console.error('Grant daily order limit override error:', e)
+      return c.json({ success: false, error: e.message }, 500)
+    }
+  })
+
+  // Admin: revoke today's daily order limit override.
+  app.post('/api/admin/customers/daily-limit-override/revoke', async (c) => {
+    try {
+      await deps.initDB(c.env.DB)
+
+      const body = await c.req.json()
+      const phone = body.customer_phone ? normalizeBlockPhone(body.customer_phone) : null
+
+      if (!phone) {
+        return c.json({ success: false, error: 'customer_phone required' }, 400)
+      }
+
+      const { overrideDate } = getBangkokOverrideWindow()
+
+      await c.env.DB.prepare(`
+        UPDATE daily_order_limit_overrides
+        SET is_active = 0,
+            revoked_at = CURRENT_TIMESTAMP
+        WHERE customer_phone = ?
+          AND override_date = ?
+      `).bind(phone, overrideDate).run()
+
+      return c.json({ success: true, message: 'Đã tắt mở limit đặt đơn hôm nay' })
+    } catch (e: any) {
+      console.error('Revoke daily order limit override error:', e)
       return c.json({ success: false, error: e.message }, 500)
     }
   })

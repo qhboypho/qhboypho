@@ -112,6 +112,19 @@ function toggleCustomerBlockFromPayload(payload, action) {
   }
 }
 
+function toggleDailyOrderLimitOverrideFromPayload(payload, action) {
+  try {
+    const data = JSON.parse(decodeURIComponent(String(payload || '')))
+    const userId = data.userId ? Number(data.userId) : null
+    const phone = data.phone ? String(data.phone) : null
+    if (action === 'revoke') revokeDailyOrderLimitOverride(userId, phone)
+    else grantDailyOrderLimitOverride(userId, phone)
+  } catch (e) {
+    showAdminToast('Không xử lý được limit đặt đơn hôm nay', 'error')
+    console.error('toggleDailyOrderLimitOverrideFromPayload error:', e)
+  }
+}
+
 function customerHistoryButton(customer, compact = false) {
   const orderCount = Number(customer?.order_count || 0)
   if (orderCount < 1) return ''
@@ -133,6 +146,18 @@ function customerBlockButton(customer) {
     ? 'inline-flex items-center gap-2 rounded-xl bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition'
     : 'inline-flex items-center gap-2 rounded-xl bg-red-50 px-3 py-2 text-xs font-bold text-red-700 hover:bg-red-100 transition'
   return '<button type="button" data-block-payload="' + payload + '" data-block-action="' + action + '" onclick="toggleCustomerBlockFromPayload(this.dataset.blockPayload, this.dataset.blockAction)" class="' + className + '"><i class="fas ' + icon + '"></i>' + label + '</button>'
+}
+
+function customerDailyLimitOverrideButton(customer) {
+  const hasOverride = Number(customer?.daily_order_limit_override_active || 0) === 1
+  const payload = escapeHtml(encodeCustomerBlockPayload(customer))
+  const action = hasOverride ? 'revoke' : 'grant'
+  const label = hasOverride ? 'Tắt mở limit' : 'Mở limit hôm nay'
+  const icon = hasOverride ? 'fa-lock' : 'fa-unlock-keyhole'
+  const className = hasOverride
+    ? 'inline-flex items-center gap-2 rounded-xl bg-slate-100 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-200 transition'
+    : 'inline-flex items-center gap-2 rounded-xl bg-blue-50 px-3 py-2 text-xs font-bold text-blue-700 hover:bg-blue-100 transition'
+  return '<button type="button" data-daily-limit-payload="' + payload + '" data-daily-limit-action="' + action + '" onclick="toggleDailyOrderLimitOverrideFromPayload(this.dataset.dailyLimitPayload, this.dataset.dailyLimitAction)" class="' + className + '"><i class="fas ' + icon + '"></i>' + label + '</button>'
 }
 
 function customerProductSnippet(customer) {
@@ -191,6 +216,7 @@ function renderCustomersTable() {
       const cancelledCount = Number(customer.cancelled_count || 0)
       const totalSpent = formatCustomerMoney(customer.total_spent || 0)
       const isBlocked = Number(customer.is_blocked || 0) === 1
+      const hasDailyOverride = Number(customer.daily_order_limit_override_active || 0) === 1
 
       return '<tr class="border-b last:border-b-0 hover:bg-pink-50/40 transition">'
         + '<td class="px-4 py-4 align-top">'
@@ -204,6 +230,7 @@ function renderCustomersTable() {
         + (cancelledCount > 0 ? '<span class="rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-600">' + cancelledCount + ' hủy</span>' : '')
         + '<span class="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700">' + totalSpent + '</span>'
         + (isBlocked ? '<span class="rounded-full bg-red-100 px-2 py-0.5 text-xs font-bold text-red-700"><i class="fas fa-ban mr-1"></i>Đã chặn</span>' : '')
+        + (hasDailyOverride ? '<span class="rounded-full bg-blue-50 px-2 py-0.5 text-xs font-bold text-blue-700"><i class="fas fa-unlock-keyhole mr-1"></i>Đang mở limit</span>' : '')
         + '</div>'
         + '</div>'
         + '</div>'
@@ -214,7 +241,10 @@ function renderCustomersTable() {
         + '<div class="space-y-3">' + customerProductSnippet(customer) + customerHistoryButton(customer, false) + '</div>'
         + '</td>'
         + '<td class="px-4 py-4 align-top text-center">'
+        + '<div class="flex flex-col items-center gap-2">'
+        + customerDailyLimitOverrideButton(customer)
         + customerBlockButton(customer)
+        + '</div>'
         + '</td>'
         + '</tr>'
     }).join('')
@@ -230,6 +260,7 @@ function renderCustomersTable() {
       const cancelledCount = Number(customer.cancelled_count || 0)
       const totalSpent = formatCustomerMoney(customer.total_spent || 0)
       const isBlocked = Number(customer.is_blocked || 0) === 1
+      const hasDailyOverride = Number(customer.daily_order_limit_override_active || 0) === 1
 
       return '<article class="customer-mobile-card p-4">'
         + '<div class="flex items-start gap-3">'
@@ -240,6 +271,7 @@ function renderCustomersTable() {
         + '<span class="shrink-0 rounded-full bg-pink-50 px-2 py-1 text-xs font-bold text-pink-700">' + orderCount + ' đơn</span>'
         + '</div>'
         + (isBlocked ? '<div class="mt-2"><span class="inline-block rounded-full bg-red-100 px-2 py-1 text-xs font-bold text-red-700"><i class="fas fa-ban mr-1"></i>Đã chặn</span></div>' : '')
+        + (hasDailyOverride ? '<div class="mt-2"><span class="inline-block rounded-full bg-blue-50 px-2 py-1 text-xs font-bold text-blue-700"><i class="fas fa-unlock-keyhole mr-1"></i>Đang mở limit hôm nay</span></div>' : '')
         + (cancelledCount > 0 ? '<div class="mt-2"><span class="inline-block rounded-full bg-red-50 px-2 py-1 text-xs font-semibold text-red-600">' + cancelledCount + ' đơn hủy</span></div>' : '')
         + '<div class="mt-2 space-y-1 text-sm text-gray-600">'
         + '<p><i class="fas fa-phone mr-2 text-gray-400"></i>' + customerPhone + '</p>'
@@ -248,8 +280,9 @@ function renderCustomersTable() {
         + '<div class="mt-3 rounded-2xl bg-gray-50 p-3">' + customerProductSnippet(customer) + '</div>'
         + '<div class="mt-3 flex items-center justify-between gap-3">'
         + '<span class="text-sm font-extrabold text-gray-900">' + totalSpent + '</span>'
-        + '<div class="flex items-center gap-2">'
+        + '<div class="flex flex-wrap items-center justify-end gap-2">'
         + customerHistoryButton(customer, true)
+        + customerDailyLimitOverrideButton(customer)
         + customerBlockButton(customer)
         + '</div>'
         + '</div>'
@@ -430,6 +463,61 @@ async function unblockCustomer(userId, phone) {
   } catch (e) {
     showAdminToast(e?.response?.data?.error || 'Lỗi khi bỏ chặn khách hàng', 'error')
     console.error('Unblock customer error:', e)
+  }
+}
+
+async function grantDailyOrderLimitOverride(userId, phone) {
+  const confirmed = await openCustomerActionConfirmModal({
+    title: 'Mở limit đặt đơn hôm nay',
+    message: 'Khách hàng này sẽ được đặt thêm đơn trong hôm nay dù đã chạm giới hạn 2 đơn/ngày.',
+    confirmLabel: 'Mở limit',
+    confirmClass: 'px-4 py-2.5 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition'
+  })
+  if (!confirmed) return
+
+  try {
+    const res = await axios.post('/api/admin/customers/daily-limit-override', {
+      user_id: userId,
+      customer_phone: phone,
+      reason: 'Admin cho phép khách đặt thêm trong ngày'
+    })
+
+    if (res.data?.success) {
+      showAdminToast('Đã mở limit đặt đơn hôm nay', 'success')
+      loadCustomers()
+    } else {
+      showAdminToast(res.data?.error || 'Không thể mở limit đặt đơn', 'error')
+    }
+  } catch (e) {
+    showAdminToast(e?.response?.data?.error || 'Lỗi khi mở limit đặt đơn', 'error')
+    console.error('Grant daily order limit override error:', e)
+  }
+}
+
+async function revokeDailyOrderLimitOverride(userId, phone) {
+  const confirmed = await openCustomerActionConfirmModal({
+    title: 'Tắt mở limit hôm nay',
+    message: 'Khách hàng này sẽ quay lại giới hạn đặt tối đa 2 đơn trong ngày.',
+    confirmLabel: 'Tắt',
+    confirmClass: 'px-4 py-2.5 rounded-xl bg-slate-700 text-white text-sm font-semibold hover:bg-slate-800 transition'
+  })
+  if (!confirmed) return
+
+  try {
+    const res = await axios.post('/api/admin/customers/daily-limit-override/revoke', {
+      user_id: userId,
+      customer_phone: phone
+    })
+
+    if (res.data?.success) {
+      showAdminToast('Đã tắt mở limit đặt đơn hôm nay', 'success')
+      loadCustomers()
+    } else {
+      showAdminToast(res.data?.error || 'Không thể tắt mở limit đặt đơn', 'error')
+    }
+  } catch (e) {
+    showAdminToast(e?.response?.data?.error || 'Lỗi khi tắt mở limit đặt đơn', 'error')
+    console.error('Revoke daily order limit override error:', e)
   }
 }
 `
