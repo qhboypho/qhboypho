@@ -57,21 +57,40 @@ export function storefrontLiveChatStyles(): string {
     background: linear-gradient(180deg, #fff, #f8fafc);
   }
   .live-chat-bubble {
+    width: fit-content;
     max-width: 82%;
     border-radius: 1rem;
     padding: 0.65rem 0.8rem;
     font-size: 0.875rem;
     line-height: 1.35;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
   .live-chat-bubble.customer {
     margin-left: auto;
+    margin-right: 0;
     background: #ec4899;
     color: #fff;
   }
   .live-chat-bubble.admin,
   .live-chat-bubble.system {
+    margin-right: auto;
+    margin-left: 0;
     background: #eef2ff;
     color: #1e293b;
+  }
+  #liveChatInput,
+  #liveChatGuestPhone,
+  #liveChatProductSearch {
+    color: #0f172a;
+    background: #fff;
+    caret-color: #ec4899;
+  }
+  #liveChatInput::placeholder,
+  #liveChatGuestPhone::placeholder,
+  #liveChatProductSearch::placeholder {
+    color: #94a3b8;
+    opacity: 1;
   }
   .live-chat-product-card {
     display: flex;

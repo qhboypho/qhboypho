@@ -1351,7 +1351,7 @@ export function adminLiveChatPage(): string {
         </div>
         <div class="p-3 border-t bg-white">
           <div class="flex gap-2">
-            <input id="liveChatAdminInput" type="text" placeholder="Nhập phản hồi..." class="flex-1 border rounded-xl px-3 text-sm focus:outline-none focus:border-pink-400" onkeydown="handleLiveChatAdminInputKey(event)">
+            <input id="liveChatAdminInput" type="text" placeholder="Nhập phản hồi..." class="flex-1 border rounded-xl px-3 text-sm text-gray-900 placeholder-gray-400 bg-white focus:outline-none focus:border-pink-400" onkeydown="handleLiveChatAdminInputKey(event)">
             <button type="button" onclick="sendLiveChatAdminReply()" class="px-4 py-3 rounded-xl bg-gray-900 text-white font-bold text-sm hover:bg-pink-600 transition">
               <i class="fas fa-paper-plane mr-1"></i>Gửi
             </button>
