@@ -21,6 +21,27 @@
       "preview_bucket_name": "qhclothes-product-images-preview"
     }
   ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "LIVE_CHAT_ROOM",
+        "class_name": "LiveChatRoom"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "live_chat_room_v1",
+      "new_sqlite_classes": [
+        "LiveChatRoom"
+      ]
+    }
+  ],
+  "triggers": {
+    "crons": [
+      "17 18 * * *"
+    ]
+  },
   "vars": {
     "PRODUCT_IMAGES_PUBLIC_BASE_URL": ""
   }

@@ -1,0 +1,166 @@
+export function storefrontLiveChatStyles(): string {
+  return `
+  .live-chat-launcher {
+    position: fixed;
+    right: 1rem;
+    bottom: 5.25rem;
+    z-index: 1010;
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #ff4da6, #6d5dfc);
+    color: #fff;
+    box-shadow: 0 18px 34px rgba(124, 58, 237, 0.34);
+    border: 1px solid rgba(255,255,255,0.42);
+  }
+  .live-chat-panel {
+    position: fixed;
+    right: 1rem;
+    bottom: 9.3rem;
+    z-index: 1011;
+    width: min(25rem, calc(100vw - 2rem));
+    max-height: min(42rem, calc(100vh - 8rem));
+    background: #fff;
+    border: 1px solid rgba(226, 232, 240, 0.95);
+    border-radius: 1.25rem;
+    box-shadow: 0 24px 80px rgba(15, 23, 42, 0.24);
+    overflow: hidden;
+  }
+  .live-chat-messages {
+    height: 20rem;
+    max-height: calc(100vh - 22rem);
+    overflow-y: auto;
+    background: linear-gradient(180deg, #fff, #f8fafc);
+  }
+  .live-chat-bubble {
+    max-width: 82%;
+    border-radius: 1rem;
+    padding: 0.65rem 0.8rem;
+    font-size: 0.875rem;
+    line-height: 1.35;
+  }
+  .live-chat-bubble.customer {
+    margin-left: auto;
+    background: #ec4899;
+    color: #fff;
+  }
+  .live-chat-bubble.admin,
+  .live-chat-bubble.system {
+    background: #eef2ff;
+    color: #1e293b;
+  }
+  .live-chat-product-card {
+    display: flex;
+    gap: 0.7rem;
+    align-items: center;
+    border: 1px solid #f9a8d4;
+    background: #fff7fb;
+    border-radius: 0.9rem;
+    padding: 0.65rem;
+  }
+  .live-chat-product-card img {
+    width: 3.25rem;
+    height: 3.25rem;
+    border-radius: 0.7rem;
+    object-fit: cover;
+    background: #f1f5f9;
+    flex: none;
+  }
+  .live-chat-product-picker {
+    position: fixed;
+    inset: 0;
+    z-index: 1012;
+    background: rgba(15, 23, 42, 0.56);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+  .live-chat-product-picker-panel {
+    width: min(42rem, 100%);
+    max-height: min(42rem, calc(100vh - 2rem));
+    overflow: hidden;
+    background: #fff;
+    border-radius: 1.25rem;
+    box-shadow: 0 24px 80px rgba(15, 23, 42, 0.3);
+    display: flex;
+    flex-direction: column;
+  }
+  @media (max-width: 640px) {
+    .live-chat-launcher {
+      right: 0.9rem;
+      bottom: 4.9rem;
+    }
+    .live-chat-panel {
+      right: 0.75rem;
+      bottom: 8.75rem;
+      width: calc(100vw - 1.5rem);
+      max-height: calc(100vh - 9.5rem);
+    }
+    .live-chat-messages {
+      height: 18rem;
+    }
+  }
+`
+}
+
+export function storefrontLiveChatSection(): string {
+  return `
+<button id="liveChatLauncher" type="button" class="live-chat-launcher" onclick="openLiveChat()" aria-label="Chat với shop" title="Chat với shop">
+  <i class="fas fa-comments text-xl"></i>
+</button>
+
+<div id="liveChatPanel" class="live-chat-panel hidden">
+  <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between bg-slate-950 text-white">
+    <div class="flex items-center gap-2 min-w-0">
+      <span class="w-8 h-8 rounded-full bg-pink-500 flex items-center justify-center shrink-0"><i class="fas fa-headset text-sm"></i></span>
+      <div class="min-w-0">
+        <p class="font-bold text-sm leading-tight truncate">Chat với QH Boypho</p>
+        <p id="liveChatStatus" class="text-xs text-slate-300 leading-tight">Sẵn sàng hỗ trợ</p>
+      </div>
+    </div>
+    <button type="button" onclick="closeLiveChat()" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 transition" aria-label="Đóng chat">
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
+  <div id="liveChatPhoneGate" class="p-4 border-b border-slate-100 hidden">
+    <label class="block text-xs font-bold text-slate-500 mb-1">Số điện thoại để shop liên hệ</label>
+    <div class="flex gap-2">
+      <input id="liveChatGuestPhone" type="tel" placeholder="0987 654 321" class="flex-1 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-pink-400">
+      <button type="button" onclick="startLiveChat()" class="px-3 py-2 rounded-xl bg-pink-500 text-white text-sm font-bold">Bắt đầu</button>
+    </div>
+  </div>
+  <div id="liveChatMessages" class="live-chat-messages p-4 space-y-3">
+    <div class="live-chat-bubble admin">Shop đang online, bạn cần hỏi gì cứ nhắn ở đây nhé.</div>
+  </div>
+  <div class="p-3 border-t border-slate-100 bg-white">
+    <div class="flex gap-2">
+      <button type="button" onclick="openLiveChatProductPicker()" class="w-10 h-10 rounded-xl border border-slate-200 text-pink-500 hover:bg-pink-50 transition" title="Gửi sản phẩm" aria-label="Gửi sản phẩm">
+        <i class="fas fa-shirt"></i>
+      </button>
+      <input id="liveChatInput" type="text" placeholder="Nhập tin nhắn..." class="flex-1 border border-slate-200 rounded-xl px-3 text-sm focus:outline-none focus:border-pink-400" onkeydown="handleLiveChatInputKey(event)">
+      <button type="button" onclick="sendLiveChatMessage()" class="w-10 h-10 rounded-xl bg-slate-950 text-white hover:bg-pink-600 transition" aria-label="Gửi">
+        <i class="fas fa-paper-plane"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="liveChatProductPicker" class="live-chat-product-picker hidden">
+  <div class="live-chat-product-picker-panel">
+    <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+      <h3 class="font-bold text-slate-900">Gửi sản phẩm vào chat</h3>
+      <button type="button" onclick="closeLiveChatProductPicker()" class="w-8 h-8 rounded-full bg-slate-100 text-slate-500" aria-label="Đóng"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="p-3 border-b border-slate-100">
+      <input id="liveChatProductSearch" type="text" placeholder="Tìm sản phẩm..." oninput="renderLiveChatProductPicker()" class="w-full border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-pink-400">
+    </div>
+    <div id="liveChatProductPickerList" class="p-3 overflow-y-auto space-y-2"></div>
+  </div>
+</div>
+`
+}

@@ -10,6 +10,7 @@ import {
   adminOrdersPage,
   adminReturnsPage,
   adminCustomersPage,
+  adminLiveChatPage,
   adminReviewsPage,
   adminVouchersPage,
   adminFeaturedPage,
@@ -30,6 +31,7 @@ import { adminFeaturedSettingsScript } from './admin/script-featured-settings'
 import { adminFlashSaleScript } from './admin/script-flashsale'
 import { adminReturnsScript } from './admin/script-returns'
 import { adminCustomersScript } from './admin/script-customers'
+import { adminLiveChatScript } from './admin/script-live-chat'
 
 export function adminHTML(): string {
   return `<!DOCTYPE html>
@@ -74,6 +76,8 @@ ${adminReturnsPage()}
 
 ${adminCustomersPage()}
 
+${adminLiveChatPage()}
+
 ${adminReviewsPage()}
 
 ${adminVouchersPage()}
@@ -109,6 +113,9 @@ ${adminReturnsScript()}
 </script>
 <script>
 ${adminCustomersScript()}
+</script>
+<script>
+${adminLiveChatScript()}
 </script>
 <script>
 ${adminFlashSaleScript()}

@@ -1069,7 +1069,7 @@ function getDashboardStatsParams() {
 function showPage(pageName) {
   pageName = String(pageName || 'dashboard')
   ensureSettingsImagesNavItem()
-  const adminPages = ['dashboard','products','product-types','orders','returns','customers','reviews','backup','vouchers','featured','settings','settings-social','settings-payment','settings-text-ui','settings-images','settings-notifications','settings-warehouse','flashsale']
+  const adminPages = ['dashboard','products','product-types','orders','returns','customers','live-chat','reviews','backup','vouchers','featured','settings','settings-social','settings-payment','settings-text-ui','settings-images','settings-notifications','settings-warehouse','flashsale']
   adminPages.forEach(p => {
     const section = document.getElementById('page-'+p)
     if (section) section.classList.toggle('hidden', p !== pageName)
@@ -1122,7 +1122,7 @@ function showPage(pageName) {
   if (marketingActiveSubPage) {
     document.querySelectorAll('.nav-sub-item[data-sub-page="' + marketingActiveSubPage + '"]').forEach(b => b.classList.add('active'))
   }
-  const titles = {dashboard:'Dashboard', products:'Quản lý Sản phẩm', 'product-types':'Loại sản phẩm', orders:'Quản lý Đơn hàng', returns:'Quản lý hoàn trả', customers:'Quản lý Khách hàng', reviews:'Quản lý Đánh giá', backup:'Dữ liệu', vouchers:'Khuyến mãi', featured:'Sản phẩm Nổi Bật', settings:'Setting', 'settings-social':'Cấu hình MXH', 'settings-payment':'Thanh toán', 'settings-text-ui':'Text UI', 'settings-images':'Cài đặt ảnh', 'settings-notifications':'Cài đặt thông báo', 'settings-warehouse':'Cài đặt kho hàng', flashsale:'Quản lý Flashsale'}
+  const titles = {dashboard:'Dashboard', products:'Quản lý Sản phẩm', 'product-types':'Loại sản phẩm', orders:'Quản lý Đơn hàng', returns:'Quản lý hoàn trả', customers:'Quản lý Khách hàng', 'live-chat':'Live chat', reviews:'Quản lý Đánh giá', backup:'Dữ liệu', vouchers:'Khuyến mãi', featured:'Sản phẩm Nổi Bật', settings:'Setting', 'settings-social':'Cấu hình MXH', 'settings-payment':'Thanh toán', 'settings-text-ui':'Text UI', 'settings-images':'Cài đặt ảnh', 'settings-notifications':'Cài đặt thông báo', 'settings-warehouse':'Cài đặt kho hàng', flashsale:'Quản lý Flashsale'}
   document.body.dataset.adminPage = pageName
   document.getElementById('pageTitle').textContent = titles[pageName] || pageName
 
@@ -1132,6 +1132,7 @@ function showPage(pageName) {
   else if (pageName === 'orders') loadAdminOrders()
   else if (pageName === 'returns') loadReturns()
   else if (pageName === 'customers') loadCustomers()
+  else if (pageName === 'live-chat') loadLiveChatAdminInbox()
   else if (pageName === 'reviews') loadAdminReviews()
   else if (pageName === 'backup') loadAdminBackupPage()
   else if (pageName === 'vouchers') loadVouchers()

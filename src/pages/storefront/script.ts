@@ -280,6 +280,11 @@ let orderAddressEditorSnapshot = null
 let checkoutNoteContext = 'ck'
 let currentUser = null
 let isAdminUser = false
+let liveChatConversationId = ''
+let liveChatCustomerToken = ''
+let liveChatSocket = null
+let liveChatStarted = false
+let liveChatProductContextSent = ''
 let userAuthTurnstileEnabled = false
 let userAuthTurnstileSiteKey = ''
 let userAuthTurnstileToken = ''
@@ -5772,6 +5777,259 @@ function updateQRCode(amount) {
 
 function copyText(text) {
     navigator.clipboard.writeText(text).then(function () { showToast('Đã sao chép: ' + text, 'success') })
+}
+
+function normalizeLiveChatPhone(value) {
+  var phone = String(value || '').trim().replace(/\\s+/g, '').replace(/[^\\d+]/g, '')
+  if (phone.indexOf('+84') === 0) phone = '0' + phone.slice(3)
+  else if (phone.indexOf('0084') === 0) phone = '0' + phone.slice(4)
+  else if (phone.indexOf('84') === 0 && phone.length >= 11) phone = '0' + phone.slice(2)
+  return phone.replace(/[^\\d]/g, '')
+}
+
+function getLiveChatStorageKey(suffix) {
+  var identity = currentUser ? ('user_' + (currentUser.userId || currentUser.id || 'me')) : 'guest'
+  return 'qh_live_chat_' + identity + '_' + suffix
+}
+
+function hydrateLiveChatSession() {
+  if (liveChatConversationId) return
+  try {
+    liveChatConversationId = localStorage.getItem(getLiveChatStorageKey('conversation')) || ''
+    liveChatCustomerToken = localStorage.getItem(getLiveChatStorageKey('token')) || ''
+  } catch(e) {}
+}
+
+function persistLiveChatSession(conversationId, token) {
+  liveChatConversationId = conversationId || liveChatConversationId
+  liveChatCustomerToken = token || liveChatCustomerToken
+  try {
+    if (liveChatConversationId) localStorage.setItem(getLiveChatStorageKey('conversation'), liveChatConversationId)
+    if (liveChatCustomerToken) localStorage.setItem(getLiveChatStorageKey('token'), liveChatCustomerToken)
+  } catch(e) {}
+}
+
+function getLiveChatProductContext() {
+  if (currentProduct && currentProduct.id) return currentProduct
+  try {
+    var productId = new URLSearchParams(window.location.search).get('product')
+    if (productId) {
+      return allProducts.find(function(product) { return String(product.id) === String(productId) }) || { id: Number(productId) }
+    }
+  } catch(e) {}
+  return null
+}
+
+function renderLiveChatMessage(message) {
+  var list = document.getElementById('liveChatMessages')
+  if (!list || !message) return
+  var sender = String(message.sender_type || 'admin')
+  var bubble = document.createElement('div')
+  bubble.className = 'live-chat-bubble ' + (sender === 'customer' ? 'customer' : sender === 'system' ? 'system' : 'admin')
+  if (String(message.message_type || '') === 'product') {
+    var name = escapeHtml(message.product_name || message.body || 'Sản phẩm')
+    var image = escapeHtml(message.product_thumbnail || '')
+    var url = escapeHtml(message.product_url || (message.product_id ? '/?product=' + message.product_id : '#'))
+    bubble.innerHTML = '<div class="live-chat-product-card">'
+      + (image ? '<img src="' + image + '" alt="" onerror="this.style.display=\\'none\\'">' : '<span class="w-12 h-12 rounded-xl bg-pink-100 text-pink-500 flex items-center justify-center"><i class="fas fa-shirt"></i></span>')
+      + '<div class="min-w-0"><p class="text-xs font-bold text-slate-900 truncate">' + name + '</p>'
+      + '<a href="' + url + '" class="text-xs text-pink-600 font-semibold" target="_blank">Xem sản phẩm</a></div>'
+      + '</div>'
+  } else {
+    bubble.textContent = String(message.body || '')
+  }
+  list.appendChild(bubble)
+  list.scrollTop = list.scrollHeight
+}
+
+async function loadLiveChatMessages() {
+  if (!liveChatConversationId) return
+  try {
+    var url = '/api/live-chat/' + encodeURIComponent(liveChatConversationId) + '/messages'
+      + (liveChatCustomerToken ? '?token=' + encodeURIComponent(liveChatCustomerToken) : '')
+    var res = await axios.get(url)
+    var messages = res.data?.data?.messages || []
+    var list = document.getElementById('liveChatMessages')
+    if (list) list.innerHTML = ''
+    messages.forEach(renderLiveChatMessage)
+  } catch(e) {
+    console.error('load live chat messages error', e)
+  }
+}
+
+function connectLiveChatSocket() {
+  if (!liveChatConversationId || liveChatSocket) return
+  try {
+    var proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+    var url = proto + '//' + window.location.host + '/api/live-chat/' + encodeURIComponent(liveChatConversationId) + '/ws'
+      + (liveChatCustomerToken ? '?token=' + encodeURIComponent(liveChatCustomerToken) : '')
+    liveChatSocket = new WebSocket(url)
+    liveChatSocket.onopen = function() {
+      var status = document.getElementById('liveChatStatus')
+      if (status) status.textContent = 'Đang kết nối realtime'
+    }
+    liveChatSocket.onmessage = function(event) {
+      try {
+        var payload = JSON.parse(event.data)
+        if (payload && payload.message) renderLiveChatMessage(payload.message)
+      } catch(e) {}
+    }
+    liveChatSocket.onclose = function() {
+      liveChatSocket = null
+      var status = document.getElementById('liveChatStatus')
+      if (status) status.textContent = 'Sẵn sàng hỗ trợ'
+    }
+  } catch(e) {
+    liveChatSocket = null
+  }
+}
+
+async function startLiveChat(options) {
+  options = options || {}
+  hydrateLiveChatSession()
+  var phoneInput = document.getElementById('liveChatGuestPhone')
+  var guestPhone = normalizeLiveChatPhone(phoneInput ? phoneInput.value : '')
+  // guest phone is required before anonymous customers can chat
+  if (!currentUser && !guestPhone && !liveChatConversationId) {
+    var gate = document.getElementById('liveChatPhoneGate')
+    if (gate) gate.classList.remove('hidden')
+    if (phoneInput) phoneInput.focus()
+    showToast('Nhập SĐT để shop liên hệ lại khi chat nhé', 'warning')
+    return false
+  }
+  var product = options.product || getLiveChatProductContext()
+  try {
+    var res = await axios.post('/api/live-chat/start', {
+      guest_phone: guestPhone,
+      product_id: product && product.id ? product.id : null
+    })
+    var data = res.data?.data || {}
+    persistLiveChatSession(data.conversation_id || '', data.customer_token || '')
+    liveChatStarted = true
+    var gate = document.getElementById('liveChatPhoneGate')
+    if (gate) gate.classList.add('hidden')
+    await loadLiveChatMessages()
+    connectLiveChatSocket()
+    if (product && product.id) liveChatProductContextSent = String(product.id)
+    return true
+  } catch(e) {
+    if (e?.response?.data?.error === 'GUEST_PHONE_REQUIRED') showToast('Nhập SĐT khách vãng lai cần mở chat', 'error')
+    else showToast('Chưa mở được chat, thử lại giúp shop nhé', 'error')
+    return false
+  }
+}
+
+async function sendLiveChatProductContext(product) {
+  product = product || getLiveChatProductContext()
+  if (!product || !product.id) return
+  if (!liveChatStarted) {
+    var ok = await startLiveChat({ product: product })
+    if (!ok) return
+    liveChatProductContextSent = String(product.id)
+    return
+  }
+  if (liveChatProductContextSent === String(product.id)) return
+  try {
+    var res = await axios.post('/api/live-chat/' + encodeURIComponent(liveChatConversationId) + '/messages', {
+      token: liveChatCustomerToken,
+      message_type: 'product',
+      product_id: product.id,
+      body: 'Khách gửi sản phẩm'
+    })
+    renderLiveChatMessage(res.data?.data)
+    liveChatProductContextSent = String(product.id)
+  } catch(e) {
+    showToast('Không gửi được sản phẩm vào chat', 'error')
+  }
+}
+
+async function openLiveChat() {
+  var panel = document.getElementById('liveChatPanel')
+  if (panel) panel.classList.remove('hidden')
+  hydrateLiveChatSession()
+  var gate = document.getElementById('liveChatPhoneGate')
+  if (!currentUser && !liveChatConversationId && gate) gate.classList.remove('hidden')
+  if (liveChatConversationId) {
+    liveChatStarted = true
+    await loadLiveChatMessages()
+    connectLiveChatSocket()
+  }
+  var product = getLiveChatProductContext()
+  if (product && product.id) {
+    await sendLiveChatProductContext(product)
+  }
+}
+
+function closeLiveChat() {
+  var panel = document.getElementById('liveChatPanel')
+  if (panel) panel.classList.add('hidden')
+}
+
+async function sendLiveChatMessage() {
+  var input = document.getElementById('liveChatInput')
+  var body = String(input?.value || '').trim()
+  if (!body) return
+  if (!liveChatConversationId) {
+    var ok = await startLiveChat()
+    if (!ok) return
+  }
+  try {
+    if (input) input.value = ''
+    var res = await axios.post('/api/live-chat/' + encodeURIComponent(liveChatConversationId) + '/messages', {
+      token: liveChatCustomerToken,
+      body: body
+    })
+    renderLiveChatMessage(res.data?.data)
+  } catch(e) {
+    showToast('Chưa gửi được tin nhắn', 'error')
+    if (input) input.value = body
+  }
+}
+
+function handleLiveChatInputKey(event) {
+  if (event.key === 'Enter') {
+    event.preventDefault()
+    sendLiveChatMessage()
+  }
+}
+
+function openLiveChatProductPicker() {
+  var picker = document.getElementById('liveChatProductPicker')
+  if (picker) picker.classList.remove('hidden')
+  renderLiveChatProductPicker()
+}
+
+function closeLiveChatProductPicker() {
+  var picker = document.getElementById('liveChatProductPicker')
+  if (picker) picker.classList.add('hidden')
+}
+
+function renderLiveChatProductPicker() {
+  var list = document.getElementById('liveChatProductPickerList')
+  if (!list) return
+  var search = String(document.getElementById('liveChatProductSearch')?.value || '').toLowerCase().trim()
+  var products = (allProducts || []).filter(function(product) {
+    return !search || String(product.name || '').toLowerCase().indexOf(search) >= 0
+  }).slice(0, 30)
+  if (!products.length) {
+    list.innerHTML = '<div class="py-10 text-center text-slate-400 text-sm">Chưa có sản phẩm phù hợp</div>'
+    return
+  }
+  list.innerHTML = products.map(function(product) {
+    return '<div class="flex items-center gap-3 rounded-xl border border-slate-100 p-2">'
+      + '<img src="' + escapeHtml(product.thumbnail || '') + '" class="w-14 h-14 rounded-xl object-cover bg-slate-100" onerror="this.style.display=\\'none\\'">'
+      + '<div class="min-w-0 flex-1"><p class="text-sm font-bold text-slate-900 truncate">' + escapeHtml(product.name || '') + '</p>'
+      + '<p class="text-xs text-pink-600 font-bold">' + fmt(product.price || 0) + '</p></div>'
+      + '<button type="button" class="px-3 py-2 rounded-xl bg-pink-50 text-pink-600 text-xs font-bold" onclick="sendLiveChatPickedProduct(' + Number(product.id) + ')">Gửi</button>'
+      + '</div>'
+  }).join('')
+}
+
+async function sendLiveChatPickedProduct(productId) {
+  var product = (allProducts || []).find(function(item) { return Number(item.id) === Number(productId) })
+  if (!product) return
+  await sendLiveChatProductContext(product)
+  closeLiveChatProductPicker()
 }
 
 // Event delegation for copy buttons

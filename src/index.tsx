@@ -15,8 +15,10 @@ import { registerAdminPushRoutes } from './routes/adminPushRoutes'
 import { registerFlashSaleRoutes } from './routes/flashSaleRoutes'
 import { registerReviewRoutes } from './routes/reviewRoutes'
 import { registerBlockRoutes } from './routes/blockRoutes'
+import { cleanupExpiredLiveChat, registerLiveChatRoutes } from './routes/liveChatRoutes'
 import { createInitDB } from './lib/db'
 import type { AppBindings } from './types/app'
+export { LiveChatRoom } from './durable/liveChatRoom'
 import ghtkTailSvg from '../public/GHTK_id8dR2ZdYY_1.svg?raw'
 import {
   ADDRESS_KIT_BASE_URL,
@@ -190,7 +192,15 @@ registerBlockRoutes(app, {
   initDB
 })
 
+registerLiveChatRoutes(app, {
+  initDB
+})
 
 registerPageRoutes(app)
 
-export default app
+export default {
+  fetch: (request: Request, env: AppBindings, ctx: ExecutionContext) => app.fetch(request, env, ctx),
+  async scheduled(_controller: ScheduledController, env: AppBindings, ctx: ExecutionContext) {
+    ctx.waitUntil(cleanupExpiredLiveChat(env.DB))
+  },
+}

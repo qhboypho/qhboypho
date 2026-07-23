@@ -13,6 +13,7 @@ import {
   storefrontBodyClose,
 } from './storefront/sections'
 import { storefrontModalsSection } from './storefront/modals'
+import { storefrontLiveChatSection, storefrontLiveChatStyles } from './storefront/live-chat'
 import { storefrontInlineScript } from './storefront/script'
 import { storefrontPurchaseToastScript } from './storefront/script-purchase-toast'
 import autoTypingScript from 'autotyping/dist/AutoTyping.min.js?raw'
@@ -76,6 +77,7 @@ ${storefrontStyles()}
 </style>
 <style>
 ${storefrontThemeRefreshStyles()}
+${storefrontLiveChatStyles()}
 </style>
 </head>
 ${storefrontBodyOpen()}
@@ -95,6 +97,8 @@ ${storefrontFeaturesSection()}
 ${storefrontFooterWithPolicySection()}
 
 <div id="purchaseToastContainer" style="position:fixed;bottom:80px;left:24px;z-index:60;display:flex;flex-direction:column;gap:8px;pointer-events:none;max-width:320px;"></div>
+
+${storefrontLiveChatSection()}
 
 ${storefrontModalsSection(options.textUiSettings)}
 

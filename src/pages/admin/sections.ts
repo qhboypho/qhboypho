@@ -65,6 +65,10 @@ export function adminSidebarSection(): string {
     <button class="nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium" data-page="customers" onclick="showPage('customers')">
       <i class="fas fa-users w-5"></i><span class="sidebar-label">Khách hàng</span>
     </button>
+    <button class="nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium" data-page="live-chat" onclick="showPage('live-chat')">
+      <i class="fas fa-comments w-5"></i><span class="sidebar-label">Live chat</span>
+      <span id="liveChatAdminBadge" class="sidebar-badge ml-auto bg-pink-500 text-white text-xs rounded-full px-2 py-0.5 hidden"></span>
+    </button>
     <button class="nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium" data-page="vouchers" onclick="showPage('vouchers')">
       <i class="fas fa-ticket-alt w-5"></i><span class="sidebar-label">Khuyến mãi</span>
     </button>
@@ -1309,6 +1313,51 @@ export function adminCustomersPage(): string {
       <div class="border-t border-gray-100 bg-white px-6 py-4 flex items-center justify-end gap-3">
         <button type="button" onclick="closeCustomerOrderHistoryModal()" class="px-4 py-2 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition">Đóng</button>
       </div>
+    </div>
+  </div>`
+}
+
+export function adminLiveChatPage(): string {
+  return `<!-- LIVE CHAT PAGE -->
+  <div id="page-live-chat" class="p-3 md:p-6 hidden">
+    <div class="grid grid-cols-1 xl:grid-cols-[22rem_1fr] gap-4 h-[calc(100vh-7rem)] min-h-[36rem]">
+      <section class="bg-white rounded-2xl shadow-sm border overflow-hidden flex flex-col min-h-0">
+        <div class="px-4 py-3 border-b flex items-center justify-between gap-3">
+          <div>
+            <h2 class="font-bold text-gray-900">Hội thoại</h2>
+            <p id="liveChatAdminSummary" class="text-xs text-gray-400">Đang tải...</p>
+          </div>
+          <button type="button" onclick="loadLiveChatAdminInbox()" class="w-9 h-9 rounded-xl bg-pink-50 text-pink-600 hover:bg-pink-100 transition" title="Tải lại" aria-label="Tải lại live chat">
+            <i class="fas fa-rotate"></i>
+          </button>
+        </div>
+        <div id="liveChatConversationList" class="flex-1 overflow-y-auto divide-y divide-gray-100">
+          <div class="p-6 text-center text-gray-400"><i class="fas fa-spinner fa-spin text-2xl mb-2"></i><p>Đang tải live chat...</p></div>
+        </div>
+      </section>
+
+      <section class="bg-white rounded-2xl shadow-sm border overflow-hidden flex flex-col min-h-0">
+        <div class="px-4 py-3 border-b flex items-center justify-between gap-3">
+          <div class="min-w-0">
+            <h2 id="liveChatActiveName" class="font-bold text-gray-900 truncate">Chọn một hội thoại</h2>
+            <p id="liveChatActiveMeta" class="text-xs text-gray-400 truncate">Tin nhắn lưu trong 7 ngày</p>
+          </div>
+          <span id="liveChatSocketStatus" class="text-xs font-semibold rounded-full bg-gray-100 text-gray-500 px-2 py-1">Offline</span>
+        </div>
+        <div id="liveChatAdminMessages" class="flex-1 overflow-y-auto bg-gray-50 p-4 space-y-3">
+          <div class="h-full min-h-[16rem] flex items-center justify-center text-center text-gray-400">
+            <div><i class="fas fa-comments text-3xl mb-3"></i><p>Chọn khách để bắt đầu trả lời</p></div>
+          </div>
+        </div>
+        <div class="p-3 border-t bg-white">
+          <div class="flex gap-2">
+            <input id="liveChatAdminInput" type="text" placeholder="Nhập phản hồi..." class="flex-1 border rounded-xl px-3 text-sm focus:outline-none focus:border-pink-400" onkeydown="handleLiveChatAdminInputKey(event)">
+            <button type="button" onclick="sendLiveChatAdminReply()" class="px-4 py-3 rounded-xl bg-gray-900 text-white font-bold text-sm hover:bg-pink-600 transition">
+              <i class="fas fa-paper-plane mr-1"></i>Gửi
+            </button>
+          </div>
+        </div>
+      </section>
     </div>
   </div>`
 }
