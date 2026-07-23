@@ -6038,6 +6038,64 @@ function closeLiveChatProductPicker() {
   if (picker) picker.classList.add('hidden')
 }
 
+function syncLiveChatLauncherExpansion() {
+  var launcher = document.getElementById('liveChatLauncher')
+  if (!launcher) return
+  var label = launcher.querySelector('.live-chat-launcher-label')
+  var icon = launcher.querySelector('.live-chat-launcher-icon')
+  var viewportWidth = Math.min(window.innerWidth || 0, window.visualViewport?.width || window.innerWidth || 0)
+  var shouldExpand = viewportWidth > 640 && (window.scrollY || document.documentElement.scrollTop || 0) > 260
+  launcher.classList.toggle('is-expanded', shouldExpand)
+  launcher.classList.toggle('is-collapsed', !shouldExpand)
+  if (shouldExpand) {
+    launcher.style.setProperty('width', '10.875rem', 'important')
+    launcher.style.setProperty('min-width', '10.875rem', 'important')
+    launcher.style.setProperty('justify-content', 'flex-start', 'important')
+    launcher.style.setProperty('gap', '0.55rem', 'important')
+    launcher.style.setProperty('padding', '0 1.05rem', 'important')
+    if (label) {
+      label.style.setProperty('max-width', '7.25rem', 'important')
+      label.style.setProperty('opacity', '1', 'important')
+      label.style.setProperty('transform', 'translateX(0)', 'important')
+    }
+    if (icon) {
+      icon.style.setProperty('width', '2rem', 'important')
+      icon.style.setProperty('height', '2rem', 'important')
+      icon.style.setProperty('background', 'rgba(255,255,255,0.18)', 'important')
+    }
+  } else {
+    launcher.style.setProperty('width', '3.5rem', 'important')
+    launcher.style.setProperty('min-width', '0', 'important')
+    launcher.style.setProperty('justify-content', 'center', 'important')
+    launcher.style.setProperty('gap', '0', 'important')
+    launcher.style.setProperty('padding', '0', 'important')
+    if (label) {
+      label.style.setProperty('max-width', '0', 'important')
+      label.style.setProperty('opacity', '0', 'important')
+      label.style.setProperty('transform', 'translateX(0.8rem)', 'important')
+    }
+    if (icon) {
+      icon.style.setProperty('width', 'auto', 'important')
+      icon.style.setProperty('height', 'auto', 'important')
+      icon.style.setProperty('background', 'transparent', 'important')
+    }
+  }
+}
+
+let liveChatLauncherScrollTicking = false
+function onLiveChatLauncherScroll() {
+  if (liveChatLauncherScrollTicking) return
+  liveChatLauncherScrollTicking = true
+  requestAnimationFrame(function() {
+    syncLiveChatLauncherExpansion()
+    liveChatLauncherScrollTicking = false
+  })
+}
+
+window.addEventListener('scroll', onLiveChatLauncherScroll, { passive: true })
+window.addEventListener('resize', syncLiveChatLauncherExpansion)
+syncLiveChatLauncherExpansion()
+
 function renderLiveChatProductPicker() {
   var list = document.getElementById('liveChatProductPickerList')
   if (!list) return

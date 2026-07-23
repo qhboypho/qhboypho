@@ -5,15 +5,15 @@ export function storefrontLiveChatStyles(): string {
     right: 1.5rem;
     bottom: 1.5rem;
     z-index: 1010;
-    width: auto;
-    min-width: 10rem;
+    width: 3.5rem;
+    min-width: 0;
     height: 3.5rem;
     border-radius: 999px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 0.55rem;
-    padding: 0 1.05rem;
+    gap: 0;
+    padding: 0;
     background: linear-gradient(135deg, #ff4da6, #6d5dfc);
     color: #fff;
     box-shadow: 0 18px 34px rgba(124, 58, 237, 0.34);
@@ -21,21 +21,76 @@ export function storefrontLiveChatStyles(): string {
     font-weight: 800;
     letter-spacing: 0;
     white-space: nowrap;
+    overflow: hidden;
+    transform-origin: right center;
+    transition:
+      width 360ms cubic-bezier(0.22, 1, 0.36, 1),
+      min-width 360ms cubic-bezier(0.22, 1, 0.36, 1),
+      padding 360ms cubic-bezier(0.22, 1, 0.36, 1),
+      gap 360ms cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 240ms ease,
+      transform 240ms ease;
+  }
+  .live-chat-launcher.is-expanded {
+    width: 10.875rem;
+    min-width: 10.875rem;
+    justify-content: flex-start;
+    gap: 0.55rem;
+    padding: 0 1.05rem;
+  }
+  .live-chat-launcher.is-collapsed {
+    width: 3.5rem;
+    min-width: 0;
+    justify-content: center;
+    gap: 0;
+    padding: 0;
   }
   .live-chat-launcher-icon {
-    width: 2rem;
-    height: 2rem;
+    width: auto;
+    height: auto;
     border-radius: 999px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: rgba(255,255,255,0.18);
+    background: transparent;
     flex: none;
+    transition:
+      width 300ms ease,
+      height 300ms ease,
+      background 300ms ease;
+  }
+  .live-chat-launcher.is-expanded .live-chat-launcher-icon {
+    width: 2rem;
+    height: 2rem;
+    background: rgba(255,255,255,0.18);
+  }
+  .live-chat-launcher.is-collapsed .live-chat-launcher-icon {
+    width: auto;
+    height: auto;
+    background: transparent;
   }
   .live-chat-launcher-label {
     display: inline;
     font-size: 0.92rem;
     line-height: 1;
+    max-width: 0;
+    opacity: 0;
+    transform: translateX(0.8rem);
+    overflow: hidden;
+    transition:
+      max-width 360ms cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 220ms ease 80ms,
+      transform 360ms cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .live-chat-launcher.is-expanded .live-chat-launcher-label {
+    max-width: 7.25rem;
+    opacity: 1;
+    transform: translateX(0);
+  }
+  .live-chat-launcher.is-collapsed .live-chat-launcher-label {
+    max-width: 0;
+    opacity: 0;
+    transform: translateX(0.8rem);
   }
   .live-chat-panel {
     position: fixed;
@@ -139,7 +194,18 @@ export function storefrontLiveChatStyles(): string {
       padding: 0;
       gap: 0;
     }
+    .live-chat-launcher.is-expanded {
+      width: 3.5rem;
+      min-width: 0;
+      padding: 0;
+      gap: 0;
+    }
     .live-chat-launcher-icon {
+      width: auto;
+      height: auto;
+      background: transparent;
+    }
+    .live-chat-launcher.is-expanded .live-chat-launcher-icon {
       width: auto;
       height: auto;
       background: transparent;
@@ -162,7 +228,7 @@ export function storefrontLiveChatStyles(): string {
 
 export function storefrontLiveChatSection(): string {
   return `
-<button id="liveChatLauncher" type="button" class="live-chat-launcher" onclick="openLiveChat()" aria-label="Chat với shop" title="Chat với shop">
+<button id="liveChatLauncher" type="button" class="live-chat-launcher is-collapsed" onclick="openLiveChat()" aria-label="Chat với shop" title="Chat với shop">
   <span class="live-chat-launcher-icon"><i class="fas fa-comments text-xl"></i></span>
   <span class="live-chat-launcher-label">Chat với shop</span>
 </button>
