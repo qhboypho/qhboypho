@@ -13,20 +13,19 @@ if (!document.getElementById('liveChatAdminBubbleStyle')) {
     .live-chat-admin-bubble::after {
       content: '';
       position: absolute;
-      bottom: 0.15rem;
-      width: 0.7rem;
-      height: 0.7rem;
-      background: inherit;
-      transform: rotate(45deg);
-      z-index: 0;
+      bottom: 0.04rem;
+      width: 0.78rem;
+      height: 0.64rem;
     }
     .live-chat-admin-bubble.is-own::after {
-      right: -0.26rem;
-      border-bottom-right-radius: 0.16rem;
+      right: -0.38rem;
+      background: #111827;
+      clip-path: path('M0 0 C2 4 6 7 12 8 C7 8 3 10 0 10 Z');
     }
     .live-chat-admin-bubble.is-other::after {
-      left: -0.26rem;
-      border-bottom-left-radius: 0.16rem;
+      left: -0.38rem;
+      background: #fff;
+      clip-path: path('M12 0 C10 4 6 7 0 8 C5 8 9 10 12 10 Z');
     }
   \`
   document.head.appendChild(style)
