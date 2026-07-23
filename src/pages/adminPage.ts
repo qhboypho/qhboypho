@@ -31,7 +31,7 @@ import { adminFeaturedSettingsScript } from './admin/script-featured-settings'
 import { adminFlashSaleScript } from './admin/script-flashsale'
 import { adminReturnsScript } from './admin/script-returns'
 import { adminCustomersScript } from './admin/script-customers'
-import { adminLiveChatScript } from './admin/script-live-chat'
+import { adminLiveChatScript } from './admin/script-live-chat.ts'
 
 export function adminHTML(): string {
   return `<!DOCTYPE html>

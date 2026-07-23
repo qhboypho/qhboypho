@@ -6,6 +6,16 @@ type SocketAttachment = {
   connectedAt: number
 }
 
+const DurableObjectBase = ((globalThis as any).DurableObject || class {
+  protected ctx: DurableObjectState
+  protected env: AppBindings
+
+  constructor(ctx: DurableObjectState, env: AppBindings) {
+    this.ctx = ctx
+    this.env = env
+  }
+}) as typeof DurableObject
+
 function safeSend(ws: WebSocket, payload: unknown) {
   try {
     ws.send(JSON.stringify(payload))
@@ -16,13 +26,9 @@ function safeSend(ws: WebSocket, payload: unknown) {
   }
 }
 
-export class LiveChatRoom {
-  private ctx: DurableObjectState
-  private env: AppBindings
-
+export class LiveChatRoom extends DurableObjectBase<AppBindings> {
   constructor(ctx: DurableObjectState, env: AppBindings) {
-    this.ctx = ctx
-    this.env = env
+    super(ctx, env)
   }
 
   async fetch(request: Request): Promise<Response> {
