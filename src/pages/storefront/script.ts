@@ -285,6 +285,8 @@ let liveChatCustomerToken = ''
 let liveChatSocket = null
 let liveChatStarted = false
 let liveChatProductContextSent = ''
+let liveChatPollTimer = null
+let liveChatRenderedMessageIds = new Set()
 let userAuthTurnstileEnabled = false
 let userAuthTurnstileSiteKey = ''
 let userAuthTurnstileToken = ''
@@ -5823,10 +5825,14 @@ function getLiveChatProductContext() {
 function renderLiveChatMessage(message) {
   var list = document.getElementById('liveChatMessages')
   if (!list || !message) return
+  var messageId = String(message.id || '')
+  if (messageId && liveChatRenderedMessageIds.has(messageId)) return
+  if (messageId) liveChatRenderedMessageIds.add(messageId)
   var sender = String(message.sender_type || 'admin')
   var bubble = document.createElement('div')
   bubble.className = 'live-chat-bubble ' + (sender === 'customer' ? 'customer' : sender === 'system' ? 'system' : 'admin')
   if (String(message.message_type || '') === 'product') {
+    if (message.product_id) liveChatProductContextSent = String(message.product_id)
     var name = escapeHtml(message.product_name || message.body || 'Sản phẩm')
     var image = escapeHtml(message.product_thumbnail || '')
     var url = escapeHtml(message.product_url || (message.product_id ? '/?product=' + message.product_id : '#'))
@@ -5851,10 +5857,33 @@ async function loadLiveChatMessages() {
     var messages = res.data?.data?.messages || []
     var list = document.getElementById('liveChatMessages')
     if (list) list.innerHTML = ''
+    liveChatRenderedMessageIds = new Set()
     messages.forEach(renderLiveChatMessage)
   } catch(e) {
     console.error('load live chat messages error', e)
   }
+}
+
+async function pollLiveChatMessages() {
+  if (!liveChatConversationId) return
+  try {
+    var url = '/api/live-chat/' + encodeURIComponent(liveChatConversationId) + '/messages'
+      + (liveChatCustomerToken ? '?token=' + encodeURIComponent(liveChatCustomerToken) : '')
+    var res = await axios.get(url)
+    var messages = res.data?.data?.messages || []
+    messages.forEach(renderLiveChatMessage)
+  } catch(e) {}
+}
+
+function startLiveChatPolling() {
+  if (liveChatPollTimer) return
+  liveChatPollTimer = setInterval(pollLiveChatMessages, 3000)
+}
+
+function stopLiveChatPolling() {
+  if (!liveChatPollTimer) return
+  clearInterval(liveChatPollTimer)
+  liveChatPollTimer = null
 }
 
 function connectLiveChatSocket() {
@@ -5878,9 +5907,11 @@ function connectLiveChatSocket() {
       liveChatSocket = null
       var status = document.getElementById('liveChatStatus')
       if (status) status.textContent = 'Sẵn sàng hỗ trợ'
+      startLiveChatPolling()
     }
   } catch(e) {
     liveChatSocket = null
+    startLiveChatPolling()
   }
 }
 
@@ -5910,6 +5941,7 @@ async function startLiveChat(options) {
     if (gate) gate.classList.add('hidden')
     await loadLiveChatMessages()
     connectLiveChatSocket()
+    startLiveChatPolling()
     if (product && product.id) liveChatProductContextSent = String(product.id)
     return true
   } catch(e) {
@@ -5953,6 +5985,7 @@ async function openLiveChat() {
     liveChatStarted = true
     await loadLiveChatMessages()
     connectLiveChatSocket()
+    startLiveChatPolling()
   }
   var product = getLiveChatProductContext()
   if (product && product.id) {
@@ -5963,6 +5996,7 @@ async function openLiveChat() {
 function closeLiveChat() {
   var panel = document.getElementById('liveChatPanel')
   if (panel) panel.classList.add('hidden')
+  stopLiveChatPolling()
 }
 
 async function sendLiveChatMessage() {

@@ -4,6 +4,8 @@ let liveChatAdminConversations = []
 let liveChatAdminActiveId = ''
 let liveChatAdminSocket = null
 let liveChatAdminLastMessageId = ''
+let liveChatAdminPollTimer = null
+let liveChatAdminRenderedMessageIds = new Set()
 
 function normalizeLiveChatAdminTime(value) {
   if (!value) return ''
@@ -91,6 +93,9 @@ function renderLiveChatAdminInbox() {
 function renderLiveChatAdminMessage(message) {
   const box = document.getElementById('liveChatAdminMessages')
   if (!box || !message) return
+  const messageId = String(message.id || '')
+  if (messageId && liveChatAdminRenderedMessageIds.has(messageId)) return
+  if (messageId) liveChatAdminRenderedMessageIds.add(messageId)
   const sender = String(message.sender_type || 'customer')
   const wrap = document.createElement('div')
   wrap.className = 'flex ' + (sender === 'admin' ? 'justify-end' : 'justify-start')
@@ -107,6 +112,35 @@ function renderLiveChatAdminMessage(message) {
   box.scrollTop = box.scrollHeight
 }
 
+async function pollLiveChatAdminConversation() {
+  if (!liveChatAdminActiveId || document.body.dataset.adminPage !== 'live-chat') return
+  try {
+    const res = await axios.get('/api/admin/live-chat/' + encodeURIComponent(liveChatAdminActiveId) + '/messages')
+    const messages = Array.isArray(res.data?.data?.messages) ? res.data.data.messages : []
+    let hasCustomerMessage = false
+    messages.forEach(function(message) {
+      const id = String(message?.id || '')
+      const isNew = id && !liveChatAdminRenderedMessageIds.has(id)
+      renderLiveChatAdminMessage(message)
+      if (isNew && String(message?.sender_type || '') === 'customer') hasCustomerMessage = true
+      if (id) liveChatAdminLastMessageId = id
+    })
+    if (hasCustomerMessage) playLiveChatSound()
+    loadLiveChatAdminInbox()
+  } catch(e) {}
+}
+
+function startLiveChatAdminPolling() {
+  if (liveChatAdminPollTimer) return
+  liveChatAdminPollTimer = setInterval(pollLiveChatAdminConversation, 3000)
+}
+
+function stopLiveChatAdminPolling() {
+  if (!liveChatAdminPollTimer) return
+  clearInterval(liveChatAdminPollTimer)
+  liveChatAdminPollTimer = null
+}
+
 async function openLiveChatAdminConversation(conversationId) {
   liveChatAdminActiveId = String(conversationId || '')
   renderLiveChatAdminInbox()
@@ -120,9 +154,11 @@ async function openLiveChatAdminConversation(conversationId) {
     document.getElementById('liveChatActiveMeta').textContent = (conversation.guest_phone ? ('SĐT: ' + conversation.guest_phone + ' · ') : '') + 'Lưu 7 ngày'
     const box = document.getElementById('liveChatAdminMessages')
     if (box) box.innerHTML = ''
+    liveChatAdminRenderedMessageIds = new Set()
     messages.forEach(renderLiveChatAdminMessage)
     liveChatAdminLastMessageId = messages.length ? String(messages[messages.length - 1].id || '') : ''
     connectLiveChatAdminSocket()
+    startLiveChatAdminPolling()
     loadLiveChatAdminInbox()
   } catch(e) {
     showAdminToast('Không mở được hội thoại', 'error')
@@ -161,9 +197,11 @@ function connectLiveChatAdminSocket() {
         status.textContent = 'Offline'
         status.className = 'text-xs font-semibold rounded-full bg-gray-100 text-gray-500 px-2 py-1'
       }
+      startLiveChatAdminPolling()
     }
   } catch(e) {
     if (status) status.textContent = 'Offline'
+    startLiveChatAdminPolling()
   }
 }
 
