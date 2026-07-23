@@ -2,24 +2,45 @@ export function storefrontLiveChatStyles(): string {
   return `
   .live-chat-launcher {
     position: fixed;
-    right: 1rem;
-    bottom: 5.25rem;
+    right: 1.5rem;
+    bottom: 1.5rem;
     z-index: 1010;
-    width: 3.5rem;
+    width: auto;
+    min-width: 10rem;
     height: 3.5rem;
     border-radius: 999px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    gap: 0.55rem;
+    padding: 0 1.05rem;
     background: linear-gradient(135deg, #ff4da6, #6d5dfc);
     color: #fff;
     box-shadow: 0 18px 34px rgba(124, 58, 237, 0.34);
     border: 1px solid rgba(255,255,255,0.42);
+    font-weight: 800;
+    letter-spacing: 0;
+    white-space: nowrap;
+  }
+  .live-chat-launcher-icon {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.18);
+    flex: none;
+  }
+  .live-chat-launcher-label {
+    display: inline;
+    font-size: 0.92rem;
+    line-height: 1;
   }
   .live-chat-panel {
     position: fixed;
-    right: 1rem;
-    bottom: 9.3rem;
+    right: 1.5rem;
+    bottom: 6rem;
     z-index: 1011;
     width: min(25rem, calc(100vw - 2rem));
     max-height: min(42rem, calc(100vh - 8rem));
@@ -94,6 +115,18 @@ export function storefrontLiveChatStyles(): string {
     .live-chat-launcher {
       right: 0.9rem;
       bottom: 4.9rem;
+      width: 3.5rem;
+      min-width: 0;
+      padding: 0;
+      gap: 0;
+    }
+    .live-chat-launcher-icon {
+      width: auto;
+      height: auto;
+      background: transparent;
+    }
+    .live-chat-launcher-label {
+      display: none;
     }
     .live-chat-panel {
       right: 0.75rem;
@@ -111,7 +144,8 @@ export function storefrontLiveChatStyles(): string {
 export function storefrontLiveChatSection(): string {
   return `
 <button id="liveChatLauncher" type="button" class="live-chat-launcher" onclick="openLiveChat()" aria-label="Chat với shop" title="Chat với shop">
-  <i class="fas fa-comments text-xl"></i>
+  <span class="live-chat-launcher-icon"><i class="fas fa-comments text-xl"></i></span>
+  <span class="live-chat-launcher-label">Chat với shop</span>
 </button>
 
 <div id="liveChatPanel" class="live-chat-panel hidden">
