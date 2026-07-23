@@ -1,5 +1,37 @@
 export function adminLiveChatScript(): string {
   return `// LIVE CHAT ADMIN
+if (!document.getElementById('liveChatAdminBubbleStyle')) {
+  const style = document.createElement('style')
+  style.id = 'liveChatAdminBubbleStyle'
+  style.textContent = \`
+    .live-chat-admin-bubble {
+      position: relative;
+      width: fit-content;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+    .live-chat-admin-bubble::after {
+      content: '';
+      position: absolute;
+      bottom: 0.15rem;
+      width: 0.7rem;
+      height: 0.7rem;
+      background: inherit;
+      transform: rotate(45deg);
+      z-index: 0;
+    }
+    .live-chat-admin-bubble.is-own::after {
+      right: -0.26rem;
+      border-bottom-right-radius: 0.16rem;
+    }
+    .live-chat-admin-bubble.is-other::after {
+      left: -0.26rem;
+      border-bottom-left-radius: 0.16rem;
+    }
+  \`
+  document.head.appendChild(style)
+}
+
 let liveChatAdminConversations = []
 let liveChatAdminActiveId = ''
 let liveChatAdminSocket = null
@@ -100,7 +132,7 @@ function renderLiveChatAdminMessage(message) {
   const wrap = document.createElement('div')
   wrap.className = 'flex ' + (sender === 'admin' ? 'justify-end' : 'justify-start')
   const bubble = document.createElement('div')
-  bubble.className = 'max-w-[78%] rounded-2xl px-3 py-2 text-sm ' + (sender === 'admin' ? 'bg-gray-900 text-white' : 'bg-white border text-gray-800')
+  bubble.className = 'live-chat-admin-bubble ' + (sender === 'admin' ? 'is-own bg-gray-900 text-white' : 'is-other bg-white border text-gray-800') + ' max-w-[78%] rounded-2xl px-3 py-2 text-sm'
   if (String(message.message_type || '') === 'product') {
     const img = message.product_thumbnail ? '<img src="' + liveChatAdminEscape(message.product_thumbnail) + '" class="w-14 h-14 rounded-xl object-cover bg-gray-100" onerror="this.style.display=\\'none\\'">' : '<span class="w-14 h-14 rounded-xl bg-pink-100 text-pink-500 flex items-center justify-center"><i class="fas fa-shirt"></i></span>'
     bubble.innerHTML = '<div class="flex items-center gap-3">' + img + '<div class="min-w-0"><p class="font-bold truncate">' + liveChatAdminEscape(message.product_name || message.body || 'Sản phẩm') + '</p><a class="' + (sender === 'admin' ? 'text-pink-200' : 'text-pink-600') + ' text-xs font-semibold" href="' + liveChatAdminEscape(message.product_url || '#') + '" target="_blank">Mở sản phẩm</a></div></div>'
