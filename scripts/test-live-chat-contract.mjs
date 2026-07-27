@@ -61,6 +61,10 @@ for (const route of [
 for (const token of ['getUserSessionUserId', 'guest_phone', 'cleanupExpiredLiveChat', 'notifyLiveChatRoom', 'LIVE_CHAT_TTL_DAYS']) {
   assertIncludes(routes, token, 'live chat route logic')
 }
+assertIncludes(routes, 'normalizeMessageBody', 'live chat multiline messages')
+assertMatch(routes, /replace\(\s*\/\\r\\n\?\//, 'live chat multiline messages')
+assertIncludes(routes, 'customer_avatar', 'admin live chat customer avatar')
+assertIncludes(routes, 'LEFT JOIN users', 'admin live chat customer avatar')
 
 const index = read('src/index.tsx')
 assertIncludes(index, "registerLiveChatRoutes", 'app entry')
@@ -91,6 +95,7 @@ const adminLiveChatScript = read('src/pages/admin/script-live-chat.ts')
 for (const token of ['loadLiveChatAdminInbox', 'connectLiveChatAdminSocket', 'playLiveChatSound', 'sendLiveChatAdminReply']) {
   assertIncludes(adminLiveChatScript, token, 'admin live chat script')
 }
+assertIncludes(adminLiveChatScript, 'renderLiveChatCustomerAvatar', 'admin live chat customer avatar')
 
 assertMatch(routes, /DELETE FROM live_chat_messages[\s\S]+expires_at/, 'cleanup query')
 

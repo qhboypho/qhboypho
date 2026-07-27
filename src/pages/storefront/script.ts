@@ -287,6 +287,7 @@ let liveChatStarted = false
 let liveChatProductContextSent = ''
 let liveChatPollTimer = null
 let liveChatRenderedMessageIds = new Set()
+let liveChatProductsLoading = false
 let userAuthTurnstileEnabled = false
 let userAuthTurnstileSiteKey = ''
 let userAuthTurnstileToken = ''
@@ -1754,7 +1755,7 @@ function checkUrlDeepLink() {
     const productId = params.get('product')
     if (productId) {
       if (!document.getElementById('detailOverlay') || document.getElementById('detailOverlay').classList.contains('hidden')) {
-        showDetail(productId)
+        showDetail(productId, { fromUrl: true })
       }
     }
   } catch(e) {}
@@ -4580,7 +4581,7 @@ window.addEventListener('popstate', function (event) {
   const productId = params.get('product')
   if (productId) {
     if (!document.getElementById('detailOverlay') || document.getElementById('detailOverlay').classList.contains('hidden')) {
-      showDetail(productId)
+      showDetail(productId, { fromUrl: true })
     }
   } else {
     const overlay = document.getElementById('detailOverlay')
@@ -5829,9 +5830,10 @@ function renderLiveChatMessage(message) {
   if (messageId && liveChatRenderedMessageIds.has(messageId)) return
   if (messageId) liveChatRenderedMessageIds.add(messageId)
   var sender = String(message.sender_type || 'admin')
+  var type = String(message.message_type || 'text')
   var bubble = document.createElement('div')
-  bubble.className = 'live-chat-bubble ' + (sender === 'customer' ? 'customer' : sender === 'system' ? 'system' : 'admin')
-  if (String(message.message_type || '') === 'product') {
+  bubble.className = 'live-chat-bubble ' + (sender === 'customer' ? 'customer' : sender === 'system' ? 'system' : 'admin') + (type === 'text' ? '' : ' is-media')
+  if (type === 'product') {
     if (message.product_id) liveChatProductContextSent = String(message.product_id)
     var name = escapeHtml(message.product_name || message.body || 'Sản phẩm')
     var image = escapeHtml(message.product_thumbnail || '')
@@ -5978,6 +5980,8 @@ async function sendLiveChatProductContext(product) {
 async function openLiveChat() {
   var panel = document.getElementById('liveChatPanel')
   if (panel) panel.classList.remove('hidden')
+  updateLiveChatSendButtonState()
+  resizeLiveChatTextarea()
   hydrateLiveChatSession()
   var gate = document.getElementById('liveChatPhoneGate')
   if (!currentUser && !liveChatConversationId && gate) gate.classList.remove('hidden')
@@ -6009,6 +6013,8 @@ async function sendLiveChatMessage() {
   }
   try {
     if (input) input.value = ''
+    updateLiveChatSendButtonState()
+    resizeLiveChatTextarea()
     var res = await axios.post('/api/live-chat/' + encodeURIComponent(liveChatConversationId) + '/messages', {
       token: liveChatCustomerToken,
       body: body
@@ -6017,26 +6023,90 @@ async function sendLiveChatMessage() {
   } catch(e) {
     showToast('Chưa gửi được tin nhắn', 'error')
     if (input) input.value = body
+    updateLiveChatSendButtonState()
+    resizeLiveChatTextarea()
   }
 }
 
+function updateLiveChatSendButtonState() {
+  var input = document.getElementById('liveChatInput')
+  var btn = document.getElementById('liveChatSendButton')
+  if (!btn) return
+  var hasText = String(input?.value || '').trim().length > 0
+  btn.classList.toggle('has-text', hasText)
+}
+
+function resizeLiveChatTextarea() {
+  var input = document.getElementById('liveChatInput')
+  if (!input) return
+  input.style.height = 'auto'
+  input.style.height = Math.min(input.scrollHeight, 96) + 'px'
+}
+
+function handleLiveChatTextareaInput() {
+  updateLiveChatSendButtonState()
+  resizeLiveChatTextarea()
+}
+
 function handleLiveChatInputKey(event) {
-  if (event.key === 'Enter') {
+  var isMobile = window.matchMedia && window.matchMedia('(max-width: 640px)').matches
+  if (event.key === 'Enter' && !event.shiftKey && !isMobile) {
     event.preventDefault()
     sendLiveChatMessage()
   }
 }
 
-function openLiveChatProductPicker() {
+function toggleLiveChatProductPicker(event) {
+  if (event && event.stopPropagation) event.stopPropagation()
+  var picker = document.getElementById('liveChatProductPicker')
+  if (!picker) return
+  if (picker.classList.contains('hidden')) openLiveChatProductPicker()
+  else closeLiveChatProductPicker()
+}
+
+async function ensureLiveChatPickerProducts() {
+  if (Array.isArray(allProducts) && allProducts.length) return true
+  if (liveChatProductsLoading) return false
+  liveChatProductsLoading = true
+  var list = document.getElementById('liveChatProductPickerList')
+  if (list) list.innerHTML = '<div class="py-10 text-center text-slate-400 text-sm"><i class="fas fa-spinner fa-spin mr-2"></i>Đang tải sản phẩm...</div>'
+  try {
+    var res = await axios.get('/api/products' + getStorefrontQuerySuffix())
+    allProducts = scopeStorefrontProductsForPage(res.data?.data || [])
+    return true
+  } catch(e) {
+    if (list) list.innerHTML = '<div class="py-10 text-center text-red-400 text-sm">Không tải được sản phẩm</div>'
+    return false
+  } finally {
+    liveChatProductsLoading = false
+  }
+}
+
+async function openLiveChatProductPicker() {
   var picker = document.getElementById('liveChatProductPicker')
   if (picker) picker.classList.remove('hidden')
-  renderLiveChatProductPicker()
+  var ready = await ensureLiveChatPickerProducts()
+  if (ready) renderLiveChatProductPicker()
+  setTimeout(function() {
+    var search = document.getElementById('liveChatProductSearch')
+    if (search) search.focus()
+  }, 0)
 }
 
 function closeLiveChatProductPicker() {
   var picker = document.getElementById('liveChatProductPicker')
   if (picker) picker.classList.add('hidden')
 }
+
+document.addEventListener('click', function(event) {
+  var picker = document.getElementById('liveChatProductPicker')
+  if (!picker || picker.classList.contains('hidden')) return
+  var panel = document.getElementById('liveChatPanel')
+  var button = document.getElementById('liveChatProductButton')
+  if (picker.contains(event.target) || (button && button.contains(event.target))) return
+  if (panel && panel.contains(event.target)) closeLiveChatProductPicker()
+  else closeLiveChatProductPicker()
+})
 
 function syncLiveChatLauncherExpansion() {
   var launcher = document.getElementById('liveChatLauncher')
@@ -6099,6 +6169,13 @@ syncLiveChatLauncherExpansion()
 function renderLiveChatProductPicker() {
   var list = document.getElementById('liveChatProductPickerList')
   if (!list) return
+  if ((!Array.isArray(allProducts) || !allProducts.length) && !liveChatProductsLoading) {
+    list.innerHTML = '<div class="py-10 text-center text-slate-400 text-sm"><i class="fas fa-spinner fa-spin mr-2"></i>Đang tải sản phẩm...</div>'
+    ensureLiveChatPickerProducts().then(function(ready) {
+      if (ready) renderLiveChatProductPicker()
+    })
+    return
+  }
   var search = String(document.getElementById('liveChatProductSearch')?.value || '').toLowerCase().trim()
   var products = (allProducts || []).filter(function(product) {
     return !search || String(product.name || '').toLowerCase().indexOf(search) >= 0
@@ -6108,11 +6185,18 @@ function renderLiveChatProductPicker() {
     return
   }
   list.innerHTML = products.map(function(product) {
-    return '<div class="flex items-center gap-3 rounded-xl border border-slate-100 p-2">'
-      + '<img src="' + escapeHtml(product.thumbnail || '') + '" class="w-14 h-14 rounded-xl object-cover bg-slate-100" onerror="this.style.display=\\'none\\'">'
-      + '<div class="min-w-0 flex-1"><p class="text-sm font-bold text-slate-900 truncate">' + escapeHtml(product.name || '') + '</p>'
-      + '<p class="text-xs text-pink-600 font-bold">' + fmt(product.price || 0) + '</p></div>'
-      + '<button type="button" class="px-3 py-2 rounded-xl bg-pink-50 text-pink-600 text-xs font-bold" onclick="sendLiveChatPickedProduct(' + Number(product.id) + ')">Gửi</button>'
+    var price = Number(product.display_sale_price ?? product.display_price ?? product.price ?? 0)
+    var stock = Number(product.stock || 0)
+    var sold = Number(product.total_sold || 0)
+    var stockText = stock > 0 ? fmtSold(stock) + ' có sẵn' : 'còn hàng'
+    var image = product.thumbnail
+      ? '<img src="' + escapeHtml(product.thumbnail || '') + '" alt="" onerror="this.outerHTML=\\'<span class=&quot;live-chat-picker-fallback flex items-center justify-center text-pink-500&quot;><i class=&quot;fas fa-shirt&quot;></i></span>\\'">'
+      : '<span class="live-chat-picker-fallback flex items-center justify-center text-pink-500"><i class="fas fa-shirt"></i></span>'
+    return '<div class="live-chat-picker-item">'
+      + image
+      + '<div class="min-w-0 flex-1"><p class="live-chat-picker-name">' + escapeHtml(product.name || '') + '</p>'
+      + '<p class="live-chat-picker-meta"><span class="live-chat-picker-price">' + fmtPrice(price) + '</span><span>|</span><span class="truncate">' + escapeHtml(stockText) + '</span><span>|</span><span>' + fmtSold(sold) + ' đã bán</span></p></div>'
+      + '<button type="button" class="live-chat-picker-send" onclick="sendLiveChatPickedProduct(' + Number(product.id) + ')">Gửi</button>'
       + '</div>'
   }).join('')
 }

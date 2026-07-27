@@ -30,6 +30,17 @@ function normalizeText(value: unknown, max = 1200) {
   return String(value || '').replace(/\s+/g, ' ').trim().slice(0, max)
 }
 
+function normalizeMessageBody(value: unknown, max = 1600) {
+  return String(value || '')
+    .replace(/\r\n?/g, '\n')
+    .split('\n')
+    .map((line) => line.replace(/[ \t]+/g, ' ').trim())
+    .join('\n')
+    .replace(/\n{4,}/g, '\n\n\n')
+    .trim()
+    .slice(0, max)
+}
+
 function expiresAtSql(days = LIVE_CHAT_TTL_DAYS) {
   return `datetime('now', '+${days} days')`
 }
@@ -127,7 +138,7 @@ async function insertMessage(db: D1Database, input: {
   product?: ProductContext | null
 }) {
   const id = createChatId('msg')
-  const body = normalizeText(input.body, 1600)
+  const body = normalizeMessageBody(input.body, 1600)
   const product = input.product || null
   await db.prepare(`
     INSERT INTO live_chat_messages (
@@ -307,7 +318,7 @@ export function registerLiveChatRoutes(app: Hono<{ Bindings: AppBindings }>, dep
     const conversation = await getConversationForCustomer(c.env.DB, conversationId, userId, token)
     if (!conversation) return c.json({ success: false, error: 'Unauthorized' }, 401)
     const product = body.message_type === 'product' ? await resolveProductContext(c.env.DB, body.product_id) : null
-    const text = normalizeText(body.body, 1600)
+    const text = normalizeMessageBody(body.body, 1600)
     if (!text && !product) return c.json({ success: false, error: 'MESSAGE_REQUIRED' }, 400)
     const message = await insertMessage(c.env.DB, {
       conversationId,
@@ -336,10 +347,11 @@ export function registerLiveChatRoutes(app: Hono<{ Bindings: AppBindings }>, dep
   app.get('/api/admin/live-chat/conversations', async (c) => {
     await deps.initDB(c.env.DB)
     const rows = await c.env.DB.prepare(`
-      SELECT *
-      FROM live_chat_conversations
-      WHERE status != 'deleted' AND datetime(expires_at) > datetime('now')
-      ORDER BY datetime(updated_at) DESC
+      SELECT lcc.*, COALESCE(u.avatar, '') AS customer_avatar
+      FROM live_chat_conversations lcc
+      LEFT JOIN users u ON u.id = lcc.user_id
+      WHERE lcc.status != 'deleted' AND datetime(lcc.expires_at) > datetime('now')
+      ORDER BY datetime(lcc.updated_at) DESC
       LIMIT 80
     `).all()
     return c.json({ success: true, data: rows.results || [] })
@@ -349,8 +361,10 @@ export function registerLiveChatRoutes(app: Hono<{ Bindings: AppBindings }>, dep
     await deps.initDB(c.env.DB)
     const conversationId = c.req.param('conversationId')
     const conversation = await c.env.DB.prepare(`
-      SELECT * FROM live_chat_conversations
-      WHERE id = ? AND status != 'deleted' AND datetime(expires_at) > datetime('now')
+      SELECT lcc.*, COALESCE(u.avatar, '') AS customer_avatar
+      FROM live_chat_conversations lcc
+      LEFT JOIN users u ON u.id = lcc.user_id
+      WHERE lcc.id = ? AND lcc.status != 'deleted' AND datetime(lcc.expires_at) > datetime('now')
       LIMIT 1
     `).bind(conversationId).first<any>()
     if (!conversation) return c.json({ success: false, error: 'NOT_FOUND' }, 404)
@@ -376,7 +390,7 @@ export function registerLiveChatRoutes(app: Hono<{ Bindings: AppBindings }>, dep
     `).bind(conversationId).first<any>()
     if (!conversation) return c.json({ success: false, error: 'NOT_FOUND' }, 404)
     const adminKey = normalizeAdminUserKey(getCookie(c, 'admin_user_key') || 'admin')
-    const text = normalizeText(body.body, 1600)
+    const text = normalizeMessageBody(body.body, 1600)
     if (!text) return c.json({ success: false, error: 'MESSAGE_REQUIRED' }, 400)
     const message = await insertMessage(c.env.DB, {
       conversationId,

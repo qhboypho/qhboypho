@@ -1338,9 +1338,12 @@ export function adminLiveChatPage(): string {
 
       <section class="bg-white rounded-2xl shadow-sm border overflow-hidden flex flex-col min-h-0">
         <div class="px-4 py-3 border-b flex items-center justify-between gap-3">
-          <div class="min-w-0">
-            <h2 id="liveChatActiveName" class="font-bold text-gray-900 truncate">Chọn một hội thoại</h2>
-            <p id="liveChatActiveMeta" class="text-xs text-gray-400 truncate">Tin nhắn lưu trong 7 ngày</p>
+          <div class="flex items-center gap-3 min-w-0">
+            <span id="liveChatActiveAvatar" class="w-10 h-10 rounded-full bg-gray-900 text-white flex items-center justify-center font-bold shrink-0 overflow-hidden">KH</span>
+            <div class="min-w-0">
+              <h2 id="liveChatActiveName" class="font-bold text-gray-900 truncate">Chọn một hội thoại</h2>
+              <p id="liveChatActiveMeta" class="text-xs text-gray-400 truncate">Tin nhắn lưu trong 7 ngày</p>
+            </div>
           </div>
           <span id="liveChatSocketStatus" class="text-xs font-semibold rounded-full bg-gray-100 text-gray-500 px-2 py-1">Offline</span>
         </div>

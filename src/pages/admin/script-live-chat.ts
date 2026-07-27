@@ -7,6 +7,7 @@ if (!document.getElementById('liveChatAdminBubbleStyle')) {
     .live-chat-admin-bubble {
       position: relative;
       width: fit-content;
+      white-space: pre-wrap;
       overflow-wrap: anywhere;
       word-break: break-word;
     }
@@ -21,6 +22,7 @@ if (!document.getElementById('liveChatAdminBubbleStyle')) {
       right: -0.38rem;
       background: #111827;
       clip-path: path('M0 0 C2 4 6 7 12 8 C7 8 3 10 0 10 Z');
+      transform: rotate(49deg);
     }
     .live-chat-admin-bubble.is-other::after {
       left: -0.38rem;
@@ -51,6 +53,26 @@ function liveChatAdminEscape(value) {
   })
 }
 
+function getLiveChatCustomerName(conversation) {
+  return String(conversation?.customer_name || conversation?.guest_phone || 'Khách hàng')
+}
+
+function renderLiveChatCustomerAvatar(conversation, sizeClass) {
+  const name = getLiveChatCustomerName(conversation)
+  const avatar = String(conversation?.customer_avatar || '').trim()
+  const classes = (sizeClass || 'w-10 h-10') + ' rounded-full bg-gradient-to-br from-pink-500 to-slate-900 text-white flex items-center justify-center font-bold shrink-0 overflow-hidden'
+  if (avatar) {
+    return '<span class="' + classes + '"><img src="' + liveChatAdminEscape(avatar) + '" alt="' + liveChatAdminEscape(name) + '" class="w-full h-full object-cover" onerror="this.parentElement.textContent=\\'' + liveChatAdminEscape(name.slice(0, 1).toUpperCase() || 'K') + '\\'"></span>'
+  }
+  return '<span class="' + classes + '">' + liveChatAdminEscape(name.slice(0, 1).toUpperCase() || 'K') + '</span>'
+}
+
+function updateLiveChatActiveAvatar(conversation) {
+  const avatar = document.getElementById('liveChatActiveAvatar')
+  if (!avatar) return
+  avatar.outerHTML = renderLiveChatCustomerAvatar(conversation || {}, 'w-10 h-10').replace('<span ', '<span id="liveChatActiveAvatar" ')
+}
+
 function playLiveChatSound() {
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)()
@@ -69,10 +91,11 @@ function playLiveChatSound() {
   } catch(e) {}
 }
 
-async function loadLiveChatAdminInbox() {
+async function loadLiveChatAdminInbox(options) {
+  options = options || {}
   const list = document.getElementById('liveChatConversationList')
   const summary = document.getElementById('liveChatAdminSummary')
-  if (list) list.innerHTML = '<div class="p-6 text-center text-gray-400"><i class="fas fa-spinner fa-spin text-2xl mb-2"></i><p>Đang tải live chat...</p></div>'
+  if (list && !options.silent) list.innerHTML = '<div class="p-6 text-center text-gray-400"><i class="fas fa-spinner fa-spin text-2xl mb-2"></i><p>Đang tải live chat...</p></div>'
   try {
     const res = await axios.get('/api/admin/live-chat/conversations')
     if (!res.data?.success) throw new Error(res.data?.error || 'Không tải được live chat')
@@ -112,7 +135,7 @@ function renderLiveChatAdminInbox() {
     const unreadHtml = Number(item.admin_unread_count || 0) > 0 ? '<span class="ml-2 rounded-full bg-pink-500 px-2 py-0.5 text-xs font-bold text-white">' + Number(item.admin_unread_count || 0) + '</span>' : ''
     return '<button type="button" onclick="openLiveChatAdminConversation(\\'' + liveChatAdminEscape(item.id) + '\\')" class="w-full text-left p-4 hover:bg-pink-50 transition ' + (active ? 'bg-pink-50' : 'bg-white') + '">'
       + '<div class="flex items-start gap-3">'
-      + '<span class="w-10 h-10 rounded-full bg-gray-900 text-white flex items-center justify-center font-bold shrink-0">' + liveChatAdminEscape((item.customer_name || 'KH').slice(0, 1).toUpperCase()) + '</span>'
+      + renderLiveChatCustomerAvatar(item, 'w-10 h-10')
       + '<div class="min-w-0 flex-1"><div class="flex items-center gap-1"><p class="font-bold text-sm text-gray-900 truncate">' + liveChatAdminEscape(item.customer_name || item.guest_phone || 'Khách hàng') + '</p>' + unreadHtml + '</div>'
       + '<p class="text-xs text-gray-500 truncate">' + liveChatAdminEscape(item.last_message || 'Chưa có tin nhắn') + '</p>'
       + product
@@ -157,7 +180,7 @@ async function pollLiveChatAdminConversation() {
       if (id) liveChatAdminLastMessageId = id
     })
     if (hasCustomerMessage) playLiveChatSound()
-    loadLiveChatAdminInbox()
+    if (hasCustomerMessage) loadLiveChatAdminInbox({ silent: true })
   } catch(e) {}
 }
 
@@ -181,7 +204,8 @@ async function openLiveChatAdminConversation(conversationId) {
     const data = res.data?.data || {}
     const conversation = data.conversation || {}
     const messages = Array.isArray(data.messages) ? data.messages : []
-    document.getElementById('liveChatActiveName').textContent = conversation.customer_name || conversation.guest_phone || 'Khách hàng'
+    updateLiveChatActiveAvatar(conversation)
+    document.getElementById('liveChatActiveName').textContent = getLiveChatCustomerName(conversation)
     document.getElementById('liveChatActiveMeta').textContent = (conversation.guest_phone ? ('SĐT: ' + conversation.guest_phone + ' · ') : '') + 'Lưu 7 ngày'
     const box = document.getElementById('liveChatAdminMessages')
     if (box) box.innerHTML = ''
@@ -190,7 +214,7 @@ async function openLiveChatAdminConversation(conversationId) {
     liveChatAdminLastMessageId = messages.length ? String(messages[messages.length - 1].id || '') : ''
     connectLiveChatAdminSocket()
     startLiveChatAdminPolling()
-    loadLiveChatAdminInbox()
+    loadLiveChatAdminInbox({ silent: true })
   } catch(e) {
     showAdminToast('Không mở được hội thoại', 'error')
   }
@@ -220,7 +244,7 @@ function connectLiveChatAdminSocket() {
         liveChatAdminLastMessageId = String(message.id || '')
         renderLiveChatAdminMessage(message)
         if (String(message.sender_type || '') === 'customer') playLiveChatSound()
-        loadLiveChatAdminInbox()
+        loadLiveChatAdminInbox({ silent: true })
       } catch(e) {}
     }
     liveChatAdminSocket.onclose = function() {
@@ -246,7 +270,7 @@ async function sendLiveChatAdminReply() {
     const res = await axios.post('/api/admin/live-chat/' + encodeURIComponent(liveChatAdminActiveId) + '/messages', { body })
     renderLiveChatAdminMessage(res.data?.data)
     liveChatAdminLastMessageId = String(res.data?.data?.id || liveChatAdminLastMessageId)
-    loadLiveChatAdminInbox()
+    loadLiveChatAdminInbox({ silent: true })
   } catch(e) {
     showAdminToast('Không gửi được phản hồi', 'error')
     if (input) input.value = body

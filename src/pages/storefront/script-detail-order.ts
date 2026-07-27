@@ -359,7 +359,7 @@ async function showDetail(id, options) {
     trackProductDetailView(p.id || id)
     startFlashSaleCountdownTicker()
     
-    if (!history.state || history.state.modal !== 'product_detail' || history.state.id !== (p.id || id)) {
+    if (!detailOptions.fromUrl && (!history.state || history.state.modal !== 'product_detail' || history.state.id !== (p.id || id))) {
       const newUrl = new URL(window.location.href)
       newUrl.searchParams.set('product', p.id || id)
       history.pushState({ modal: 'product_detail', id: p.id || id, openedFromSite: true }, '', newUrl.toString())
@@ -438,7 +438,7 @@ function closeDetail(skipHistory) {
         history.back()
       } else {
         newUrl.searchParams.delete('product')
-        history.pushState(null, '', newUrl.toString())
+        history.replaceState(null, '', newUrl.toString())
       }
     }
   }
