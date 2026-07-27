@@ -16,6 +16,7 @@ import { registerFlashSaleRoutes } from './routes/flashSaleRoutes'
 import { registerReviewRoutes } from './routes/reviewRoutes'
 import { registerBlockRoutes } from './routes/blockRoutes'
 import { cleanupExpiredLiveChat, registerLiveChatRoutes } from './routes/liveChatRoutes'
+import { registerTelegramProductDraftRoutes } from './routes/telegramProductDraftRoutes'
 import { createInitDB } from './lib/db'
 import type { AppBindings } from './types/app'
 export { LiveChatRoom } from './durable/liveChatRoom'
@@ -193,6 +194,10 @@ registerBlockRoutes(app, {
 })
 
 registerLiveChatRoutes(app, {
+  initDB
+})
+
+registerTelegramProductDraftRoutes(app, {
   initDB
 })
 

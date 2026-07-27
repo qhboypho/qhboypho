@@ -53,4 +53,9 @@ export type AppBindings = CloudflareBindings & {
   WEB_PUSH_VAPID_PUBLIC_KEY?: string
   WEB_PUSH_VAPID_PRIVATE_KEY?: string
   WEB_PUSH_VAPID_SUBJECT?: string
+  TELEGRAM_BOT_TOKEN?: string
+  TELEGRAM_WEBHOOK_SECRET?: string
+  TELEGRAM_ALLOWED_CHAT_IDS?: string
+  GEMINI_API_KEY?: string
+  GEMINI_MODEL?: string
 }
