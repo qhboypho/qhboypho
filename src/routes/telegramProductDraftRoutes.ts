@@ -8,6 +8,8 @@ type TelegramProductDraftDeps = {
 
 type TelegramMessage = {
   chat?: { id?: number | string }
+  message_id?: number
+  media_group_id?: string
   text?: string
   caption?: string
   photo?: Array<{ file_id?: string; width?: number; height?: number; file_size?: number }>
@@ -21,8 +23,10 @@ type TelegramFileDownload = {
 }
 
 const MAX_TELEGRAM_PRODUCT_IMAGE_BYTES = 6 * 1024 * 1024
+const TELEGRAM_ALBUM_SETTLE_MS = 3500
 const DEFAULT_GEMINI_MODEL = 'gemini-2.5-flash'
 const ALLOWED_IMAGE_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
+let telegramDraftTablesReady = false
 
 function cleanText(value: unknown, max = 1200) {
   return String(value || '').replace(/\r\n?/g, '\n').trim().slice(0, max)
@@ -35,8 +39,12 @@ function jsonResponse(body: unknown, status = 200) {
   })
 }
 
+function delay(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
 function getTelegramMessage(update: any): TelegramMessage | null {
-  return update?.message || update?.edited_message || null
+  return update?.message || update?.edited_message || update?.channel_post || null
 }
 
 function getTelegramChatId(message: TelegramMessage | null): string {
@@ -72,6 +80,15 @@ export function normalizeTelegramProductTitle(message: TelegramMessage | null): 
     .map((line) => line.trim())
     .find((line) => line && !line.startsWith('#')) || ''
   return source.slice(0, 160)
+}
+
+export function getTelegramMediaGroupId(message: TelegramMessage | null): string {
+  return String(message?.media_group_id || '').trim()
+}
+
+export function getTelegramMessageSortKey(message: TelegramMessage | null): number {
+  const id = Number(message?.message_id || 0)
+  return Number.isFinite(id) && id > 0 ? id : 0
 }
 
 export function getTelegramImageFileId(message: TelegramMessage | null): string {
@@ -187,12 +204,17 @@ export async function generateGeminiProductDescription(input: {
 export async function createTelegramProductDraft(db: D1Database, input: {
   title: string
   description: string
-  imageUrl: string
+  imageUrl?: string
+  imageUrls?: string[]
   storefrontVisibility?: string[]
 }) {
   const visibility = Array.isArray(input.storefrontVisibility) && input.storefrontVisibility.length
     ? input.storefrontVisibility
     : ['boypho']
+  const imageUrls = (Array.isArray(input.imageUrls) ? input.imageUrls : [input.imageUrl])
+    .map((item) => String(item || '').trim())
+    .filter(Boolean)
+  const thumbnail = imageUrls[0] || ''
   const result = await db.prepare(`
     INSERT INTO products
       (name, description, price, original_price, category, brand, material, thumbnail, images, colors, sizes, stock,
@@ -206,8 +228,8 @@ export async function createTelegramProductDraft(db: D1Database, input: {
     'unisex',
     '',
     '',
-    input.imageUrl,
-    JSON.stringify([input.imageUrl]),
+    thumbnail,
+    JSON.stringify(imageUrls),
     JSON.stringify([]),
     JSON.stringify([]),
     0,
@@ -219,6 +241,105 @@ export async function createTelegramProductDraft(db: D1Database, input: {
     JSON.stringify(visibility)
   ).run()
   return { id: result.meta?.last_row_id || 0 }
+}
+
+async function ensureTelegramProductDraftTables(db: D1Database) {
+  if (telegramDraftTablesReady) return
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS telegram_product_draft_media_groups (
+      media_group_id TEXT PRIMARY KEY,
+      chat_id TEXT NOT NULL,
+      title TEXT DEFAULT '',
+      status TEXT DEFAULT 'pending',
+      product_id INTEGER,
+      error TEXT DEFAULT '',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      processed_at DATETIME
+    )
+  `).run()
+  await db.prepare(`
+    CREATE TABLE IF NOT EXISTS telegram_product_draft_media_items (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      media_group_id TEXT NOT NULL,
+      chat_id TEXT NOT NULL,
+      message_id INTEGER DEFAULT 0,
+      file_id TEXT NOT NULL,
+      caption TEXT DEFAULT '',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(media_group_id, file_id)
+    )
+  `).run()
+  await db.prepare(`
+    CREATE INDEX IF NOT EXISTS idx_telegram_product_draft_groups_status
+      ON telegram_product_draft_media_groups(status, updated_at)
+  `).run()
+  await db.prepare(`
+    CREATE INDEX IF NOT EXISTS idx_telegram_product_draft_items_group_order
+      ON telegram_product_draft_media_items(media_group_id, message_id, id)
+  `).run()
+  telegramDraftTablesReady = true
+}
+
+async function saveTelegramMediaGroupItem(db: D1Database, input: {
+  mediaGroupId: string
+  chatId: string
+  messageId: number
+  fileId: string
+  title: string
+}) {
+  await ensureTelegramProductDraftTables(db)
+  await db.prepare(`
+    INSERT OR IGNORE INTO telegram_product_draft_media_groups (media_group_id, chat_id, title, status)
+    VALUES (?, ?, ?, 'pending')
+  `).bind(input.mediaGroupId, input.chatId, input.title,).run()
+  if (input.title) {
+    await db.prepare(`
+      UPDATE telegram_product_draft_media_groups
+      SET title = CASE WHEN TRIM(COALESCE(title, '')) = '' THEN ? ELSE title END,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE media_group_id = ?
+    `).bind(input.title, input.mediaGroupId).run()
+  }
+  await db.prepare(`
+    INSERT OR IGNORE INTO telegram_product_draft_media_items (media_group_id, chat_id, message_id, file_id, caption)
+    VALUES (?, ?, ?, ?, ?)
+  `).bind(input.mediaGroupId, input.chatId, input.messageId, input.fileId, input.title).run()
+}
+
+async function claimTelegramMediaGroup(db: D1Database, mediaGroupId: string) {
+  await ensureTelegramProductDraftTables(db)
+  const result = await db.prepare(`
+    UPDATE telegram_product_draft_media_groups
+    SET status = 'processing', updated_at = CURRENT_TIMESTAMP
+    WHERE media_group_id = ? AND status = 'pending'
+  `).bind(mediaGroupId).run()
+  return Number(result.meta?.changes || 0) > 0
+}
+
+async function readTelegramMediaGroup(db: D1Database, mediaGroupId: string) {
+  await ensureTelegramProductDraftTables(db)
+  const group = await db.prepare(`
+    SELECT *
+    FROM telegram_product_draft_media_groups
+    WHERE media_group_id = ?
+    LIMIT 1
+  `).bind(mediaGroupId).first<any>()
+  const items = await db.prepare(`
+    SELECT *
+    FROM telegram_product_draft_media_items
+    WHERE media_group_id = ?
+    ORDER BY message_id ASC, id ASC
+  `).bind(mediaGroupId).all()
+  return { group, items: (items.results || []) as any[] }
+}
+
+async function finishTelegramMediaGroup(db: D1Database, mediaGroupId: string, status: 'completed' | 'failed', productId = 0, error = '') {
+  await db.prepare(`
+    UPDATE telegram_product_draft_media_groups
+    SET status = ?, product_id = ?, error = ?, processed_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+    WHERE media_group_id = ?
+  `).bind(status, productId || null, error.slice(0, 500), mediaGroupId).run()
 }
 
 async function downloadTelegramFile(fileId: string, token: string, fetchImpl: typeof fetch = fetch): Promise<TelegramFileDownload> {
@@ -264,6 +385,78 @@ async function sendTelegramMessage(chatId: string, text: string, token: string) 
   }).catch(() => undefined)
 }
 
+async function createDraftFromTelegramFiles(input: {
+  db: D1Database
+  env: AppBindings
+  token: string
+  chatId: string
+  title: string
+  fileIds: string[]
+}) {
+  const downloads: TelegramFileDownload[] = []
+  const imageUrls: string[] = []
+  for (const fileId of input.fileIds) {
+    const image = await downloadTelegramFile(fileId, input.token)
+    downloads.push(image)
+    imageUrls.push(await uploadTelegramProductImage(input.env, image))
+  }
+  const firstImage = downloads[0]
+  if (!firstImage || imageUrls.length === 0) throw new Error('TELEGRAM_IMAGE_REQUIRED')
+  const ai = await generateGeminiProductDescription({ title: input.title, image: firstImage, env: input.env })
+  const draft = await createTelegramProductDraft(input.db, {
+    title: input.title,
+    description: ai.description,
+    imageUrls,
+    storefrontVisibility: ['boypho'],
+  })
+  await sendTelegramMessage(
+    input.chatId,
+    [
+      `Đã tạo draft sản phẩm #${draft.id}`,
+      `Tên: ${input.title}`,
+      `Ảnh: ${imageUrls.length} ảnh${imageUrls.length > 1 ? ' (ảnh đầu làm ảnh chính)' : ''}.`,
+      ai.usedGemini ? 'Mô tả: Gemini đã tự viết.' : `Mô tả: dùng fallback (${ai.error || 'Gemini chưa sẵn sàng'}).`,
+      'Trạng thái: đang ẩn, vào admin bổ sung giá/size/màu rồi bật mắt để public.',
+    ].join('\n'),
+    input.token
+  )
+  return { draft, imageUrls, ai }
+}
+
+async function processTelegramMediaGroupAfterDelay(input: {
+  mediaGroupId: string
+  env: AppBindings
+  token: string
+}) {
+  await delay(TELEGRAM_ALBUM_SETTLE_MS)
+  const claimed = await claimTelegramMediaGroup(input.env.DB, input.mediaGroupId)
+  if (!claimed) return
+  const { group, items } = await readTelegramMediaGroup(input.env.DB, input.mediaGroupId)
+  const chatId = String(group?.chat_id || '')
+  const title = cleanText(group?.title || '', 180)
+  try {
+    const fileIds = items.map((item) => String(item?.file_id || '').trim()).filter(Boolean)
+    if (!chatId || !title || fileIds.length === 0) {
+      await sendTelegramMessage(chatId, 'Album cần có caption là tên sản phẩm ở ảnh đầu tiên nhé. Gửi lại album giúp shop.', input.token)
+      await finishTelegramMediaGroup(input.env.DB, input.mediaGroupId, 'failed', 0, 'ALBUM_TITLE_OR_IMAGE_REQUIRED')
+      return
+    }
+    const result = await createDraftFromTelegramFiles({
+      db: input.env.DB,
+      env: input.env,
+      token: input.token,
+      chatId,
+      title,
+      fileIds,
+    })
+    await finishTelegramMediaGroup(input.env.DB, input.mediaGroupId, 'completed', Number(result.draft.id || 0), '')
+  } catch (error: any) {
+    const msg = String(error?.message || 'TELEGRAM_ALBUM_DRAFT_FAILED')
+    await sendTelegramMessage(chatId, `Không tạo được draft album: ${msg}`, input.token)
+    await finishTelegramMediaGroup(input.env.DB, input.mediaGroupId, 'failed', 0, msg)
+  }
+}
+
 function validateTelegramWebhookRequest(c: any) {
   const secret = String(c.env.TELEGRAM_WEBHOOK_SECRET || '').trim()
   if (!secret) return { ok: false, status: 500, error: 'TELEGRAM_WEBHOOK_SECRET_REQUIRED' }
@@ -289,33 +482,38 @@ export function registerTelegramProductDraftRoutes(app: Hono<{ Bindings: AppBind
 
     const title = normalizeTelegramProductTitle(message)
     const fileId = getTelegramImageFileId(message)
+    const mediaGroupId = getTelegramMediaGroupId(message)
+    if (mediaGroupId && fileId) {
+      await deps.initDB(c.env.DB)
+      await saveTelegramMediaGroupItem(c.env.DB, {
+        mediaGroupId,
+        chatId,
+        messageId: getTelegramMessageSortKey(message),
+        fileId,
+        title,
+      })
+      const task = processTelegramMediaGroupAfterDelay({ mediaGroupId, env: c.env, token })
+      if ((c as any).executionCtx?.waitUntil) (c as any).executionCtx.waitUntil(task)
+      else void task
+      return c.json({ success: true, queued: true, media_group_id: mediaGroupId })
+    }
+
     if (!title || !fileId) {
-      await sendTelegramMessage(chatId, 'Gửi 1 ảnh sản phẩm kèm caption là tên sản phẩm nhé. Bot sẽ tạo draft ẩn trong admin.', token)
+      await sendTelegramMessage(chatId, 'Gửi 1 ảnh hoặc 1 album sản phẩm kèm caption là tên sản phẩm nhé. Bot sẽ tạo draft ẩn trong admin.', token)
       return c.json({ success: true, skipped: true, reason: 'TITLE_OR_IMAGE_REQUIRED' })
     }
 
     try {
       await deps.initDB(c.env.DB)
-      const image = await downloadTelegramFile(fileId, token)
-      const imageUrl = await uploadTelegramProductImage(c.env, image)
-      const ai = await generateGeminiProductDescription({ title, image, env: c.env })
-      const draft = await createTelegramProductDraft(c.env.DB, {
-        title,
-        description: ai.description,
-        imageUrl,
-        storefrontVisibility: ['boypho'],
-      })
-      await sendTelegramMessage(
+      const result = await createDraftFromTelegramFiles({
+        db: c.env.DB,
+        env: c.env,
+        token,
         chatId,
-        [
-          `Đã tạo draft sản phẩm #${draft.id}`,
-          `Tên: ${title}`,
-          ai.usedGemini ? 'Mô tả: Gemini đã tự viết.' : `Mô tả: dùng fallback (${ai.error || 'Gemini chưa sẵn sàng'}).`,
-          'Trạng thái: đang ẩn, vào admin bổ sung giá/size/màu rồi bật mắt để public.',
-        ].join('\n'),
-        token
-      )
-      return c.json({ success: true, data: { product_id: draft.id, title, image_url: imageUrl, used_gemini: ai.usedGemini } })
+        title,
+        fileIds: [fileId],
+      })
+      return c.json({ success: true, data: { product_id: result.draft.id, title, image_url: result.imageUrls[0], image_count: result.imageUrls.length, used_gemini: result.ai.usedGemini } })
     } catch (error: any) {
       const msg = String(error?.message || 'TELEGRAM_PRODUCT_DRAFT_FAILED')
       await sendTelegramMessage(chatId, `Không tạo được draft: ${msg}`, token)

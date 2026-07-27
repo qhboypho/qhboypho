@@ -4,6 +4,8 @@ import {
   arrayBufferToBase64,
   buildGeminiDescriptionPrompt,
   createTelegramProductDraft,
+  getTelegramMediaGroupId,
+  getTelegramMessageSortKey,
   getTelegramImageFileId,
   inferImageMimeType,
   normalizeTelegramProductTitle,
@@ -70,6 +72,12 @@ describe('Telegram product draft contract', () => {
     assert.equal(normalizeTelegramProductTitle({ caption: 'a'.repeat(220) }).length, 160)
   })
 
+  it('reads Telegram album identity and preserves message order for gallery images', () => {
+    assert.equal(getTelegramMediaGroupId({ media_group_id: 'album-123' }), 'album-123')
+    assert.equal(getTelegramMessageSortKey({ message_id: 19 }), 19)
+    assert.equal(getTelegramMessageSortKey({}), 0)
+  })
+
   it('uses Gemini-supported image MIME types and chunk-safe base64 encoding', () => {
     const bytes = new Uint8Array(140_000)
     bytes[0] = 1
@@ -117,5 +125,27 @@ describe('Telegram product draft contract', () => {
     assert.equal(insert.values[14], 0)
     assert.equal(insert.values[15], 0)
     assert.equal(insert.values[17], JSON.stringify(['boypho']))
+  })
+
+  it('creates a product draft with first album image as thumbnail and all album images in gallery', async () => {
+    const db = new MockDb()
+    await createTelegramProductDraft(db, {
+      title: 'Áo sơ mi linen',
+      description: 'Mô tả AI',
+      imageUrls: [
+        '/media/telegram-products/2026-07-27/main.jpg',
+        '/media/telegram-products/2026-07-27/side.jpg',
+        '/media/telegram-products/2026-07-27/detail.jpg',
+      ],
+      storefrontVisibility: ['boypho'],
+    })
+
+    const insert = db.runs[0]
+    assert.equal(insert.values[7], '/media/telegram-products/2026-07-27/main.jpg')
+    assert.equal(insert.values[8], JSON.stringify([
+      '/media/telegram-products/2026-07-27/main.jpg',
+      '/media/telegram-products/2026-07-27/side.jpg',
+      '/media/telegram-products/2026-07-27/detail.jpg',
+    ]))
   })
 })
