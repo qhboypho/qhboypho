@@ -1,5 +1,7 @@
 import {
   DEFAULT_TEXT_UI_SETTINGS,
+  sanitizeStorefrontDarkPalette,
+  sanitizeStorefrontLightPalette,
   type TextUiSettings,
 } from '../../lib/textUiSettings'
 
@@ -17,8 +19,21 @@ function resolveTextUiSettings(textUiSettings?: Partial<TextUiSettings>): TextUi
   const resolved = { ...DEFAULT_TEXT_UI_SETTINGS }
   Object.entries(textUiSettings || {}).forEach(([key, value]) => {
     const normalizedKey = key as keyof TextUiSettings
+    if (!(normalizedKey in resolved)) return
+    if (normalizedKey === 'product_freeship_badge_enabled' || normalizedKey === 'flash_sale_shop_section_enabled') {
+      resolved[normalizedKey] = value !== false
+      return
+    }
+    if (normalizedKey === 'storefront_light_palette') {
+      resolved[normalizedKey] = sanitizeStorefrontLightPalette(value)
+      return
+    }
+    if (normalizedKey === 'storefront_dark_palette') {
+      resolved[normalizedKey] = sanitizeStorefrontDarkPalette(value)
+      return
+    }
     const normalizedValue = String(value || '').trim()
-    if (normalizedValue && normalizedKey in resolved) {
+    if (normalizedValue) {
       resolved[normalizedKey] = normalizedValue
     }
   })
@@ -27,6 +42,10 @@ function resolveTextUiSettings(textUiSettings?: Partial<TextUiSettings>): TextUi
 
 export function storefrontBodyOpen(): string {
   return "<body class=\"bg-gray-50 overflow-x-hidden pb-[70px] md:pb-0\" data-storefront-theme=\"light\">"
+}
+
+export function storefrontBodyOpenWithPalette(lightPalette: string, darkPalette: string): string {
+  return `<body class="bg-gray-50 overflow-x-hidden pb-[70px] md:pb-0" data-storefront-theme="light" data-storefront-light-palette="${escapeStorefrontSectionHtml(lightPalette)}" data-storefront-dark-palette="${escapeStorefrontSectionHtml(darkPalette)}">`
 }
 
 export function storefrontNavbarSection(): string {

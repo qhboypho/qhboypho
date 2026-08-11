@@ -2,6 +2,8 @@ export type TextUiSettings = {
   quick_order_risk_note_text: string
   product_freeship_badge_enabled: boolean
   flash_sale_shop_section_enabled: boolean
+  storefront_light_palette: StorefrontLightPalette
+  storefront_dark_palette: StorefrontDarkPalette
   hero_badge_text: string
   hero_title_text: string
   hero_typed_text: string
@@ -15,6 +17,9 @@ export type TextUiSettings = {
   hero_stat_3_label: string
 }
 
+export type StorefrontLightPalette = 'blue-pop-light' | 'classic-light'
+export type StorefrontDarkPalette = 'neon-cyber' | 'classic-dark'
+
 export const DEFAULT_QUICK_ORDER_RISK_NOTE_TEXT =
   'Vui lòng kiểm tra kỹ thông tin trước khi đặt hàng để shop giao đúng và nhanh nhất. Với các đơn không nhận nhiều lần, hệ thống có thể tạm hạn chế đặt hàng để tránh phát sinh chi phí vận chuyển.'
 
@@ -22,6 +27,8 @@ export const DEFAULT_TEXT_UI_SETTINGS: TextUiSettings = {
   quick_order_risk_note_text: DEFAULT_QUICK_ORDER_RISK_NOTE_TEXT,
   product_freeship_badge_enabled: true,
   flash_sale_shop_section_enabled: true,
+  storefront_light_palette: 'blue-pop-light',
+  storefront_dark_palette: 'neon-cyber',
   hero_badge_text: 'Bộ sưu tập mới 2026',
   hero_title_text: 'Thời Trang Giới Trẻ',
   hero_typed_text: 'Cho Cả Nam Nữ|Phong Cách Boypho',
@@ -39,6 +46,8 @@ export const TEXT_UI_SETTING_KEYS = [
   'quick_order_risk_note_text',
   'product_freeship_badge_enabled',
   'flash_sale_shop_section_enabled',
+  'storefront_light_palette',
+  'storefront_dark_palette',
   'hero_badge_text',
   'hero_title_text',
   'hero_typed_text',
@@ -51,6 +60,14 @@ export const TEXT_UI_SETTING_KEYS = [
   'hero_stat_3_value',
   'hero_stat_3_label',
 ] as const
+
+export function sanitizeStorefrontLightPalette(value: unknown): StorefrontLightPalette {
+  return String(value || '').trim() === 'classic-light' ? 'classic-light' : 'blue-pop-light'
+}
+
+export function sanitizeStorefrontDarkPalette(value: unknown): StorefrontDarkPalette {
+  return String(value || '').trim() === 'classic-dark' ? 'classic-dark' : 'neon-cyber'
+}
 
 export function sanitizeTextUiSetting(value: unknown, maxLength = 800): string {
   return String(value || '')
@@ -77,6 +94,14 @@ export async function readTextUiSettings(db: D1Database): Promise<TextUiSettings
   return TEXT_UI_SETTING_KEYS.reduce((settings, key) => {
     if (key === 'product_freeship_badge_enabled' || key === 'flash_sale_shop_section_enabled') {
       settings[key] = readBooleanSetting(map.get(key), DEFAULT_TEXT_UI_SETTINGS[key])
+      return settings
+    }
+    if (key === 'storefront_light_palette') {
+      settings[key] = sanitizeStorefrontLightPalette(map.get(key))
+      return settings
+    }
+    if (key === 'storefront_dark_palette') {
+      settings[key] = sanitizeStorefrontDarkPalette(map.get(key))
       return settings
     }
     const maxLength = key === 'quick_order_risk_note_text' || key === 'hero_description_text' ? 800 : 220

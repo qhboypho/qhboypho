@@ -707,6 +707,35 @@ export function adminTextUiSettingsPage(): string {
     <section class="mb-5 rounded-3xl border border-gray-200 bg-white p-5 md:p-6 shadow-sm">
       <div class="mb-5 flex flex-col md:flex-row md:items-start md:justify-between gap-3">
         <div>
+          <p class="text-xs font-bold uppercase tracking-[0.18em] text-blue-500">Theme storefront</p>
+          <h3 class="mt-1 text-xl font-extrabold text-gray-900">Tông màu sáng / tối</h3>
+          <p class="mt-1 text-sm text-gray-500">Chọn palette cho từng mode. Classic là tông cũ trước khi đổi Blue Pop Light và Neon Cyber.</p>
+        </div>
+        <span class="hidden sm:inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-blue-500">
+          <i class="fas fa-palette"></i>
+        </span>
+      </div>
+      <div class="grid gap-4 md:grid-cols-2">
+        <label class="block">
+          <span class="block text-sm font-semibold text-gray-700 mb-1.5">Theme cho mode sáng</span>
+          <select id="storefrontLightPalette" data-setting-key="storefront_light_palette" data-default-text="${escapeAdminHtml(defaults.storefront_light_palette)}" onchange="previewTextUiSettings()" class="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-700 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100">
+            <option value="blue-pop-light">Blue Pop Light - hiện tại</option>
+            <option value="classic-light">Classic Pink Light - theme cũ</option>
+          </select>
+        </label>
+        <label class="block">
+          <span class="block text-sm font-semibold text-gray-700 mb-1.5">Theme cho mode tối</span>
+          <select id="storefrontDarkPalette" data-setting-key="storefront_dark_palette" data-default-text="${escapeAdminHtml(defaults.storefront_dark_palette)}" onchange="previewTextUiSettings()" class="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-700 outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100">
+            <option value="neon-cyber">Neon Cyber - hiện tại</option>
+            <option value="classic-dark">Classic Midnight - theme cũ</option>
+          </select>
+        </label>
+      </div>
+    </section>
+
+    <section class="mb-5 rounded-3xl border border-gray-200 bg-white p-5 md:p-6 shadow-sm">
+      <div class="mb-5 flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+        <div>
           <p class="text-xs font-bold uppercase tracking-[0.18em] text-cyan-500">First view storefront</p>
           <h3 class="mt-1 text-xl font-extrabold text-gray-900">Hero đầu trang</h3>
           <p class="mt-1 text-sm text-gray-500">Cấu hình phần chữ đầu tiên khách nhìn thấy trên trang chủ.</p>

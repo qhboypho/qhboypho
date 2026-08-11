@@ -5392,5 +5392,153 @@ export function storefrontThemeRefreshStyles(): string {
     width: 100%;
     margin-top: 0.42rem;
   }
+  html[data-storefront-light-palette='classic-light'] {
+    --qh-bg: #f7f9fc;
+    --qh-bg-soft: #eef4fb;
+    --qh-surface: rgba(255,255,255,0.94);
+    --qh-surface-strong: rgba(255,255,255,0.98);
+    --qh-border: rgba(203,213,225,0.9);
+    --qh-border-pink: rgba(236,72,153,0.22);
+    --qh-text: #111827;
+    --qh-muted: #64748b;
+    --qh-glow-blue: rgba(59,130,246,0.12);
+    --qh-glow-pink: rgba(236,72,153,0.1);
+    --qh-shadow: 0 18px 46px rgba(15,23,42,0.08), inset 0 1px 0 rgba(255,255,255,0.85);
+    --qh-card-bg: linear-gradient(145deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.98) 58%, rgba(252,244,255,0.96) 100%);
+    --qh-product-card-bg: linear-gradient(145deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.98) 58%, rgba(252,244,255,0.96) 100%) padding-box, linear-gradient(135deg, rgba(203,213,225,0.95), rgba(236,72,153,0.24)) border-box;
+    --qh-product-card-bg-hover: linear-gradient(145deg, rgba(255,255,255,1) 0%, rgba(248,250,252,1) 58%, rgba(252,244,255,0.98) 100%) padding-box, linear-gradient(135deg, rgba(59,130,246,0.42), rgba(236,72,153,0.42)) border-box;
+    --qh-chip-bg: rgba(241,245,249,0.92);
+    --qh-chip-border: rgba(203,213,225,0.9);
+    --qh-price-gradient: linear-gradient(135deg, #8e5dff 0%, #c768ff 42%, #ff63d5 100%);
+    --qh-action-gradient: linear-gradient(135deg, #337cff, #8d55ff 45%, #ec4fbe);
+    --qh-action-shadow: 0 10px 22px rgba(59,130,246,0.24), 0 8px 20px rgba(236,63,173,0.18);
+    --qh-card-shadow: 0 12px 34px rgba(15,23,42,0.06), 0 1px 3px rgba(15,23,42,0.02);
+    --qh-card-shadow-hover: 0 20px 40px rgba(15,23,42,0.1), 0 2px 8px rgba(15,23,42,0.04);
+    --qh-img-bg: rgba(241,245,249,0.72);
+    --qh-scrollbar-thumb: #cbd5e1;
+    background:
+      radial-gradient(circle at 12% 8%, rgba(59,130,246,0.1), transparent 28rem),
+      radial-gradient(circle at 88% 10%, rgba(236,72,153,0.1), transparent 30rem),
+      linear-gradient(135deg, #f8fafc 0%, #f1f5f9 52%, #fdf2f8 100%) !important;
+    background-color: #f8fafc !important;
+  }
+  body[data-storefront-theme='light'][data-storefront-light-palette='classic-light'] {
+    background:
+      radial-gradient(circle at 12% 8%, rgba(59,130,246,0.1), transparent 28rem),
+      radial-gradient(circle at 88% 10%, rgba(236,72,153,0.1), transparent 30rem),
+      linear-gradient(135deg, #f8fafc 0%, #f1f5f9 52%, #fdf2f8 100%) !important;
+  }
+  body[data-storefront-theme='light'][data-storefront-light-palette='classic-light']::before {
+    background-image:
+      linear-gradient(rgba(59,130,246,0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(236,72,153,0.03) 1px, transparent 1px);
+  }
+  body[data-storefront-theme='light'][data-storefront-light-palette='classic-light'] .navbar-blur .text-pink-400,
+  body[data-storefront-theme='light'][data-storefront-light-palette='classic-light'] footer .text-pink-400,
+  body[data-storefront-theme='light'][data-storefront-light-palette='classic-light'] .text-pink-400,
+  body[data-storefront-theme='light'][data-storefront-light-palette='classic-light'] .text-pink-500 {
+    color: #ec4899 !important;
+  }
+  body[data-storefront-theme='light'][data-storefront-light-palette='classic-light'] .mobile-bottom-nav-link:hover,
+  body[data-storefront-theme='light'][data-storefront-light-palette='classic-light'] .mobile-bottom-nav-link.is-active {
+    color: #8b5cf6 !important;
+  }
+  html[data-storefront-dark-palette='classic-dark'][data-storefront-theme='dark'] {
+    background:
+      radial-gradient(circle at 12% 8%, rgba(30,144,255,0.28), transparent 30rem),
+      radial-gradient(circle at 88% 10%, rgba(172,70,255,0.28), transparent 34rem),
+      radial-gradient(circle at 52% 48%, rgba(22,87,180,0.18), transparent 38rem),
+      linear-gradient(135deg, #010713 0%, #051126 44%, #130824 100%) !important;
+    background-color: #010713 !important;
+  }
+  body[data-storefront-theme='dark'][data-storefront-dark-palette='classic-dark'] {
+    --qh-bg: #020b1a;
+    --qh-bg-soft: #07172d;
+    --qh-surface: rgba(7,20,45,0.84);
+    --qh-surface-strong: rgba(8,22,48,0.95);
+    --qh-border: rgba(96,191,255,0.46);
+    --qh-border-pink: rgba(236,91,255,0.5);
+    --qh-text: #f7fbff;
+    --qh-muted: #a9b8d3;
+    --qh-glow-blue: rgba(14,165,233,0.34);
+    --qh-glow-pink: rgba(217,70,239,0.3);
+    --qh-shadow: 0 30px 86px rgba(0,0,0,0.5), 0 0 44px rgba(59,130,246,0.14), inset 0 1px 0 rgba(255,255,255,0.08);
+    --qh-card-bg: radial-gradient(circle at 88% 12%, rgba(91,38,150,0.34), transparent 38%), linear-gradient(135deg, rgba(2,13,31,0.99) 0%, rgba(4,15,38,0.98) 58%, rgba(23,15,55,0.96) 100%);
+    --qh-product-card-bg: radial-gradient(circle at 92% 12%, rgba(105,43,170,0.34), transparent 38%) padding-box, linear-gradient(135deg, rgba(2,13,31,0.99) 0%, rgba(4,15,38,0.98) 58%, rgba(23,15,55,0.96) 100%) padding-box, linear-gradient(135deg, rgba(85,222,252,0.95) 0%, rgba(57,149,255,0.55) 28%, rgba(139,85,255,0.42) 58%, rgba(236,91,255,0.96) 100%) border-box;
+    --qh-product-card-bg-hover: radial-gradient(circle at 92% 12%, rgba(119,49,191,0.38), transparent 40%) padding-box, linear-gradient(135deg, rgba(3,17,40,0.99) 0%, rgba(5,17,43,0.99) 58%, rgba(29,17,64,0.97) 100%) padding-box, linear-gradient(135deg, rgba(94,231,255,1) 0%, rgba(52,139,255,0.72) 30%, rgba(139,85,255,0.6) 58%, rgba(255,91,220,1) 100%) border-box;
+    --qh-chip-bg: linear-gradient(180deg, rgba(122,177,246,0.45), rgba(44,86,139,0.55));
+    --qh-chip-border: rgba(159,203,255,0.56);
+    --qh-price-gradient: linear-gradient(135deg, #8e5dff 0%, #c768ff 42%, #ff63d5 100%);
+    --qh-action-gradient: linear-gradient(135deg, #337cff, #8d55ff 45%, #ec4fbe);
+    --qh-action-shadow: 0 10px 22px rgba(59,130,246,0.26), 0 8px 20px rgba(236,63,173,0.2);
+    --qh-card-shadow: 0 18px 48px rgba(0,0,0,0.42), 0 0 30px rgba(57,149,255,0.17), 0 0 32px rgba(236,91,255,0.12), inset 0 0 0 1px rgba(255,255,255,0.06), inset 0 1px 0 rgba(255,255,255,0.08);
+    --qh-card-shadow-hover: 0 24px 64px rgba(0,0,0,0.48), 0 0 40px rgba(77,163,255,0.24), 0 0 38px rgba(236,91,255,0.18), inset 0 0 0 1px rgba(255,255,255,0.08);
+    --qh-img-bg: rgba(255,255,255,0.05);
+    --qh-scrollbar-thumb: rgba(255,255,255,0.22);
+    background:
+      radial-gradient(circle at 12% 8%, rgba(30,144,255,0.28), transparent 30rem),
+      radial-gradient(circle at 88% 10%, rgba(172,70,255,0.28), transparent 34rem),
+      radial-gradient(circle at 52% 48%, rgba(22,87,180,0.18), transparent 38rem),
+      linear-gradient(135deg, #010713 0%, #051126 44%, #130824 100%) !important;
+  }
+  body[data-storefront-theme='dark'][data-storefront-dark-palette='classic-dark']::before {
+    background-image:
+      linear-gradient(rgba(125,211,252,0.075) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(125,211,252,0.075) 1px, transparent 1px);
+  }
+  body[data-storefront-theme='dark'][data-storefront-dark-palette='classic-dark'] .navbar-blur,
+  body[data-storefront-theme='dark'][data-storefront-dark-palette='classic-dark'] .mobile-bottom-nav {
+    background: rgba(2,12,30,0.92) !important;
+    border-color: rgba(80,160,220,0.36) !important;
+  }
+  body[data-storefront-theme='dark'][data-storefront-dark-palette='classic-dark'] .mobile-bottom-nav-link.is-active {
+    color: #f472b6 !important;
+  }
+  body[data-storefront-theme='dark'][data-storefront-dark-palette='classic-dark'] .navbar-blur .text-pink-400,
+  body[data-storefront-theme='dark'][data-storefront-dark-palette='classic-dark'] footer .text-pink-400,
+  body[data-storefront-theme='dark'][data-storefront-dark-palette='classic-dark'] .text-pink-400,
+  body[data-storefront-theme='dark'][data-storefront-dark-palette='classic-dark'] .text-pink-500,
+  body[data-storefront-theme='dark'][data-storefront-dark-palette='classic-dark'] .text-violet-400,
+  body[data-storefront-theme='dark'][data-storefront-dark-palette='classic-dark'] .text-purple-500 {
+    color: #f472b6 !important;
+  }
+  body[data-storefront-theme='dark'][data-storefront-dark-palette='classic-dark'] .product-featured-badge,
+  body[data-storefront-theme='dark'][data-storefront-dark-palette='classic-dark'] .bs-mobile-hot-badge {
+    background: linear-gradient(135deg, #f97316 0%, #fb7185 100%) !important;
+    color: #fff !important;
+    -webkit-text-fill-color: #fff !important;
+    box-shadow: 0 8px 18px rgba(249,115,22,0.25) !important;
+  }
+  body[data-storefront-theme='dark'][data-storefront-dark-palette='classic-dark'] #about {
+    border-color: rgba(80,160,220,0.36) !important;
+    background:
+      radial-gradient(circle at 88% 12%, rgba(91,38,150,0.34), transparent 38%),
+      linear-gradient(135deg, rgba(2,13,31,0.99) 0%, rgba(4,15,38,0.98) 58%, rgba(23,15,55,0.96) 100%) !important;
+    box-shadow:
+      0 30px 86px rgba(0,0,0,0.5),
+      0 0 44px rgba(59,130,246,0.14),
+      inset 0 1px 0 rgba(255,255,255,0.08) !important;
+  }
+  body[data-storefront-theme='dark'][data-storefront-dark-palette='classic-dark'] #about .p-6 {
+    background:
+      radial-gradient(circle at 88% 12%, rgba(91,38,150,0.34), transparent 38%),
+      linear-gradient(135deg, rgba(2,13,31,0.99) 0%, rgba(4,15,38,0.98) 58%, rgba(23,15,55,0.96) 100%) !important;
+    border-color: rgba(236,91,255,0.5) !important;
+    box-shadow:
+      0 18px 48px rgba(0,0,0,0.42),
+      0 0 30px rgba(57,149,255,0.17),
+      0 0 32px rgba(236,91,255,0.12),
+      inset 0 0 0 1px rgba(255,255,255,0.06),
+      inset 0 1px 0 rgba(255,255,255,0.08) !important;
+  }
+  body[data-storefront-theme='dark'][data-storefront-dark-palette='classic-dark'] #about .bg-pink-50 {
+    background: linear-gradient(180deg, rgba(122,177,246,0.45), rgba(44,86,139,0.55)) !important;
+    border: 1px solid rgba(159,203,255,0.56) !important;
+    box-shadow: 0 10px 22px rgba(59,130,246,0.18), inset 0 1px 0 rgba(255,255,255,0.08) !important;
+  }
+  body[data-storefront-theme='dark'][data-storefront-dark-palette='classic-dark'] #about .text-pink-500 {
+    color: #f472b6 !important;
+    filter: drop-shadow(0 0 10px rgba(236,91,255,0.18)) !important;
+  }
 `
 }

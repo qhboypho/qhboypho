@@ -15,6 +15,8 @@ import {
 import {
   DEFAULT_QUICK_ORDER_RISK_NOTE_TEXT,
   readTextUiSettings,
+  sanitizeStorefrontDarkPalette,
+  sanitizeStorefrontLightPalette,
   sanitizeTextUiSetting
 } from '../lib/textUiSettings'
 
@@ -89,6 +91,8 @@ type TextUiSettingsInput = {
   quick_order_risk_note_text?: unknown
   product_freeship_badge_enabled?: unknown
   flash_sale_shop_section_enabled?: unknown
+  storefront_light_palette?: unknown
+  storefront_dark_palette?: unknown
   hero_badge_text?: unknown
   hero_title_text?: unknown
   hero_typed_text?: unknown
@@ -146,6 +150,8 @@ const SHOP_BACKUP_SETTING_ALLOWLIST = new Set([
   'manual_vietqr_template',
   'quick_order_risk_note_text',
   'product_freeship_badge_enabled',
+  'storefront_light_palette',
+  'storefront_dark_palette',
   'hero_badge_text',
   'hero_title_text',
   'hero_typed_text',
@@ -1187,6 +1193,8 @@ export function registerAdminUtilityRoutes(app: Hono<{ Bindings: AppBindings }>,
         quick_order_risk_note_text: sanitizeTextUiSetting(body.quick_order_risk_note_text) || DEFAULT_QUICK_ORDER_RISK_NOTE_TEXT,
         product_freeship_badge_enabled: freeshipBadgeEnabled ? '1' : '0',
         flash_sale_shop_section_enabled: flashSaleShopSectionEnabled ? '1' : '0',
+        storefront_light_palette: sanitizeStorefrontLightPalette(body.storefront_light_palette),
+        storefront_dark_palette: sanitizeStorefrontDarkPalette(body.storefront_dark_palette),
         hero_badge_text: sanitizeTextUiSetting(body.hero_badge_text, 220),
         hero_title_text: sanitizeTextUiSetting(body.hero_title_text, 220),
         hero_typed_text: sanitizeTextUiSetting(body.hero_typed_text, 220),

@@ -1,7 +1,6 @@
 import { storefrontStyles } from './storefront/styles'
 import { storefrontThemeRefreshStyles } from './storefront/theme-refresh'
 import {
-  storefrontBodyOpen,
   storefrontNavbarSection,
   storefrontHeroSection,
   storefrontBestsellersSection,
@@ -11,13 +10,18 @@ import {
   storefrontFooterWithPolicySection,
   storefrontMobileBottomNavSection,
   storefrontBodyClose,
+  storefrontBodyOpenWithPalette,
 } from './storefront/sections'
 import { storefrontModalsSection } from './storefront/modals'
 import { storefrontLiveChatSection, storefrontLiveChatStyles } from './storefront/live-chat'
 import { storefrontInlineScript } from './storefront/script'
 import { storefrontPurchaseToastScript } from './storefront/script-purchase-toast'
 import autoTypingScript from 'autotyping/dist/AutoTyping.min.js?raw'
-import type { TextUiSettings } from '../lib/textUiSettings'
+import {
+  sanitizeStorefrontDarkPalette,
+  sanitizeStorefrontLightPalette,
+  type TextUiSettings
+} from '../lib/textUiSettings'
 
 type StorefrontPageOptions = {
   textUiSettings?: Partial<TextUiSettings>
@@ -35,11 +39,13 @@ function serializeStorefrontRuntimeConfig(options: StorefrontPageOptions): strin
 export function storefrontHTML(options: StorefrontPageOptions = {}): string {
   const canonicalUrl = String(options.canonicalUrl || 'https://qhclothes.pages.dev/').trim()
   const ogImageUrl = String(options.ogImageUrl || 'https://qhclothes.pages.dev/og/qh-clothes-share-16x9.png').trim()
+  const lightPalette = sanitizeStorefrontLightPalette(options.textUiSettings?.storefront_light_palette)
+  const darkPalette = sanitizeStorefrontDarkPalette(options.textUiSettings?.storefront_dark_palette)
   const seoTitle = 'QH Boypho - Thời trang nam nữ hot trend'
   const seoDescription = 'QH Boypho cung cấp thời trang nam nữ hot trend, mua trực tiếp giá tốt hơn, không qua sàn, cập nhật mẫu mới mỗi ngày cho giới trẻ yêu phong cách.'
   const seoKeywords = 'QH Boypho, thời trang nam nữ, local brand, áo thun unisex, quần áo hot trend, mua trực tiếp giá tốt hơn, thời trang giới trẻ, shop quần áo online'
   return `<!DOCTYPE html>
-<html lang="vi">
+<html lang="vi" data-storefront-light-palette="${lightPalette}" data-storefront-dark-palette="${darkPalette}">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -81,7 +87,7 @@ ${storefrontThemeRefreshStyles()}
 ${storefrontLiveChatStyles()}
 </style>
 </head>
-${storefrontBodyOpen()}
+${storefrontBodyOpenWithPalette(lightPalette, darkPalette)}
 
 ${storefrontNavbarSection()}
 
