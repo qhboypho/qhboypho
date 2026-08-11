@@ -17,5 +17,6 @@ export type AdminProfile = {
   avatar: string
   balance: number
   is_admin: 1
+  isSuperAdmin?: boolean
+  permissions?: Record<string, { visible: boolean, view: boolean, edit: boolean }>
 }
-

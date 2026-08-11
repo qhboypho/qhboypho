@@ -340,6 +340,79 @@ export function adminModalsSection(): string {
   </div>
 </div>
 
+<!-- ADMIN MEMBER ACCOUNT MODAL -->
+<div id="adminMemberAccountModal" onclick="if(event.target===this) closeAdminMemberAccountModal()" style="display:none" class="fixed inset-0 modal-overlay z-[88] hidden items-start justify-center p-4 overflow-y-auto">
+  <div class="modal-card my-8 w-full max-w-lg rounded-3xl bg-white shadow-2xl">
+    <div class="sticky top-0 flex items-center justify-between rounded-t-3xl border-b bg-white px-6 py-4">
+      <div>
+        <h2 id="adminMemberAccountModalTitle" class="text-lg font-extrabold text-gray-900">Thêm thành viên</h2>
+        <p class="mt-0.5 text-xs text-gray-500">ID dùng để đăng nhập dashboard.</p>
+      </div>
+      <button type="button" onclick="closeAdminMemberAccountModal()" class="flex h-9 w-9 items-center justify-center rounded-full bg-gray-100 transition hover:bg-gray-200">
+        <i class="fas fa-times text-gray-600"></i>
+      </button>
+    </div>
+    <form onsubmit="submitAdminMemberAccount(event)" class="space-y-4 px-6 py-5">
+      <input type="hidden" id="adminMemberEditId">
+      <div>
+        <label class="mb-1.5 block text-sm font-bold text-gray-700">Tên hiển thị</label>
+        <input id="adminMemberNameInput" type="text" maxlength="80" placeholder="VD: Nhân viên chốt đơn" class="w-full rounded-xl border px-4 py-2.5 text-sm outline-none focus:border-pink-400">
+      </div>
+      <div>
+        <label class="mb-1.5 block text-sm font-bold text-gray-700">ID đăng nhập</label>
+        <input id="adminMemberIdInput" type="text" maxlength="32" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="vd: sale01" class="w-full rounded-xl border px-4 py-2.5 text-sm outline-none focus:border-pink-400">
+        <p class="mt-1 text-xs text-gray-500">Chỉ dùng chữ thường, số, dấu chấm, gạch dưới hoặc gạch ngang. Không sửa ID sau khi tạo.</p>
+      </div>
+      <div id="adminMemberPasswordBlock">
+        <label class="mb-1.5 block text-sm font-bold text-gray-700">Mật khẩu</label>
+        <input id="adminMemberPasswordInput" type="password" minlength="6" maxlength="64" autocomplete="new-password" placeholder="Tối thiểu 6 ký tự" class="w-full rounded-xl border px-4 py-2.5 text-sm outline-none focus:border-pink-400">
+      </div>
+      <label class="flex items-center justify-between gap-3 rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
+        <span>
+          <span class="block text-sm font-bold text-gray-800">Cho phép đăng nhập</span>
+          <span class="block text-xs text-gray-500">Tắt trạng thái này để khóa member ngay lập tức.</span>
+        </span>
+        <input id="adminMemberActiveInput" type="checkbox" checked class="h-5 w-5 accent-pink-500">
+      </label>
+      <div class="flex justify-end gap-3 pt-1">
+        <button type="button" onclick="closeAdminMemberAccountModal()" class="rounded-xl border px-4 py-2.5 text-sm font-semibold text-gray-600 transition hover:bg-gray-50">Hủy</button>
+        <button id="adminMemberAccountSubmitBtn" type="submit" class="btn-pink rounded-xl px-5 py-2.5 text-sm font-bold text-white">Tạo và phân quyền</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ADMIN MEMBER PERMISSIONS MODAL -->
+<div id="adminMemberPermissionsModal" onclick="if(event.target===this) closeAdminMemberPermissionsModal()" style="display:none" class="fixed inset-0 modal-overlay z-[89] hidden items-start justify-center p-3 md:p-4 overflow-y-auto">
+  <div class="modal-card my-4 flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-3xl bg-white shadow-2xl md:my-8">
+    <div class="flex items-center justify-between gap-4 border-b bg-white px-5 py-4 md:px-6">
+      <div class="min-w-0">
+        <h2 class="text-lg font-extrabold text-gray-900">Phân quyền thành viên</h2>
+        <p id="adminMemberPermissionsSubtitle" class="mt-0.5 truncate text-xs text-gray-500"></p>
+      </div>
+      <button type="button" onclick="closeAdminMemberPermissionsModal()" class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gray-100 transition hover:bg-gray-200">
+        <i class="fas fa-times text-gray-600"></i>
+      </button>
+    </div>
+    <div class="min-h-0 flex-1 overflow-y-auto bg-gray-50 p-4 md:p-6">
+      <div class="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+        <p class="font-bold"><i class="fas fa-shield-halved mr-1"></i>Lưu ý bảo mật</p>
+        <p class="mt-1">Quyền Sửa chỉ có hiệu lực khi có quyền Xem. Các API backend cũng bị chặn theo quyền này.</p>
+      </div>
+      <div id="adminMemberPermissionsGrid" class="grid gap-3"></div>
+    </div>
+    <div class="flex flex-col gap-3 border-t bg-white px-5 py-4 md:flex-row md:items-center md:justify-between md:px-6">
+      <button type="button" onclick="grantSafeOrderStaffPreset()" class="inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2.5 text-sm font-bold text-emerald-700 transition hover:bg-emerald-100">
+        <i class="fas fa-wand-magic-sparkles"></i>Preset nhân viên chốt đơn
+      </button>
+      <div class="flex justify-end gap-3">
+        <button type="button" onclick="closeAdminMemberPermissionsModal()" class="rounded-xl border px-4 py-2.5 text-sm font-semibold text-gray-600 transition hover:bg-gray-50">Đóng</button>
+        <button id="adminMemberPermissionsSaveBtn" type="button" onclick="saveAdminMemberPermissions()" class="btn-pink rounded-xl px-5 py-2.5 text-sm font-bold text-white">Lưu phân quyền</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- REVIEW ADMIN MODAL -->
 <div id="reviewAdminModal" class="fixed inset-0 modal-overlay z-[85] hidden items-center justify-center p-4" onclick="if(event.target === this) closeAdminReviewModal()">
   <div class="modal-card bg-white rounded-3xl shadow-2xl w-full max-w-2xl" onclick="event.stopPropagation()">

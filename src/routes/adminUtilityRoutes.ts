@@ -55,10 +55,17 @@ type SocialSettingsInput = {
   threads_handle?: unknown
 }
 
+type AdminUiSettingsInput = {
+  admin_brand_name?: unknown
+  admin_panel_label?: unknown
+}
+
 type ImageSettingsInput = {
   home_trending_banner_image?: unknown
   home_trending_banner_subtitle?: unknown
   home_trending_banner_title?: unknown
+  boypho_store_logo_image?: unknown
+  hottrendnu_store_logo_image?: unknown
 }
 
 type NotificationSettingsInput = {
@@ -81,6 +88,7 @@ type PaymentSettingsInput = {
 type TextUiSettingsInput = {
   quick_order_risk_note_text?: unknown
   product_freeship_badge_enabled?: unknown
+  flash_sale_shop_section_enabled?: unknown
   hero_badge_text?: unknown
   hero_title_text?: unknown
   hero_typed_text?: unknown
@@ -113,10 +121,15 @@ const SHOP_BACKUP_SETTING_ALLOWLIST = new Set([
   'home_trending_banner_image',
   'home_trending_banner_subtitle',
   'home_trending_banner_title',
+  'boypho_store_logo_image',
+  'hottrendnu_store_logo_image',
   'social_tiktok_handle',
   'social_shopee_handle',
   'social_facebook_handle',
   'social_threads_handle',
+  'admin_brand_name',
+  'admin_panel_label',
+  'flash_sale_shop_section_enabled',
   'marquee_text',
   'marquee_speed_seconds',
   'notification_display_mode',
@@ -514,6 +527,8 @@ const IMAGE_SETTING_KEYS = [
   'home_trending_banner_image',
   'home_trending_banner_subtitle',
   'home_trending_banner_title',
+  'boypho_store_logo_image',
+  'hottrendnu_store_logo_image',
 ] as const
 
 const NOTIFICATION_SETTING_KEYS = [
@@ -539,6 +554,13 @@ const PAYMENT_SETTING_KEYS = [
   'manual_vietqr_template',
 ] as const
 
+const ADMIN_UI_SETTING_KEYS = [
+  'admin_brand_name',
+  'admin_panel_label',
+] as const
+
+const DEFAULT_ADMIN_BRAND_NAME = 'Boypho'
+const DEFAULT_ADMIN_PANEL_LABEL = 'Admin Panel'
 const DEFAULT_MARQUEE_TEXT = 'Mua hàng tại đây không qua sàn thương mại nên giá thành sản phẩm sẽ rẻ hơn rất nhiều và bảo hành hoàn trả trong vòng 7 ngày nếu sản phẩm bị lỗi nên quý khách yên tâm mua sắm nhé.Bảo hành đổi trả nhắn qua trang facebook : QH Boypho. Chúc quý khách có trải nghiệm mua sắm tốt tại QH Boypho'
 const DEFAULT_HOT_TREND_NU_MARQUEE_TEXT = 'Mua trực tiếp giá tốt hơn | Không qua sàn | Đổi trả 7 ngày'
 const DEFAULT_MARQUEE_SPEED_SECONDS = 48
@@ -628,7 +650,39 @@ async function readImageSettings(db: D1Database) {
     home_trending_banner_image: String(map.get('home_trending_banner_image') || '').trim(),
     home_trending_banner_subtitle: String(map.get('home_trending_banner_subtitle') || '').trim(),
     home_trending_banner_title: String(map.get('home_trending_banner_title') || '').trim(),
+    boypho_store_logo_image: String(map.get('boypho_store_logo_image') || '').trim(),
+    hottrendnu_store_logo_image: String(map.get('hottrendnu_store_logo_image') || '').trim(),
   }
+}
+
+function sanitizeAdminUiText(value: unknown, fallback: string, max = 80): string {
+  const text = String(value || '')
+    .replace(/[<>]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, max)
+  return text || fallback
+}
+
+function buildAdminUiSettingsPayload(map: Map<string, string>) {
+  const adminBrandName = sanitizeAdminUiText(map.get('admin_brand_name'), DEFAULT_ADMIN_BRAND_NAME, 40)
+  const adminPanelLabel = sanitizeAdminUiText(map.get('admin_panel_label'), DEFAULT_ADMIN_PANEL_LABEL, 80)
+  const adminFullBrandName = /^qh\s+/i.test(adminBrandName) ? adminBrandName : `QH ${adminBrandName}`
+  return {
+    admin_brand_name: adminBrandName,
+    admin_full_brand_name: adminFullBrandName,
+    admin_panel_label: adminPanelLabel,
+  }
+}
+
+async function readAdminUiSettings(db: D1Database) {
+  const query = `SELECT key, value FROM app_settings WHERE key IN (${ADMIN_UI_SETTING_KEYS.map(() => '?').join(',')})`
+  const result = await db.prepare(query).bind(...ADMIN_UI_SETTING_KEYS).all()
+  const map = new Map<string, string>()
+  for (const row of (result.results || []) as any[]) {
+    map.set(String(row.key || ''), String(row.value || '').trim())
+  }
+  return buildAdminUiSettingsPayload(map)
 }
 
 async function readNotificationSettings(db: D1Database, segment: NotificationSegment = 'index') {
@@ -970,6 +1024,34 @@ export function registerAdminUtilityRoutes(app: Hono<{ Bindings: AppBindings }>,
     }
   })
 
+  app.get('/api/admin/settings/admin-ui', async (c) => {
+    try {
+      await deps.initDB(c.env.DB)
+      const settings = await readAdminUiSettings(c.env.DB)
+      return c.json({ success: true, data: settings })
+    } catch (e: any) {
+      return c.json({ success: false, error: e.message }, 500)
+    }
+  })
+
+  app.put('/api/admin/settings/admin-ui', async (c) => {
+    try {
+      await deps.initDB(c.env.DB)
+      const body: AdminUiSettingsInput = await c.req.json<AdminUiSettingsInput>().catch(() => ({} as AdminUiSettingsInput))
+      const payload = buildAdminUiSettingsPayload(new Map([
+        ['admin_brand_name', sanitizeAdminUiText(body.admin_brand_name, DEFAULT_ADMIN_BRAND_NAME, 40)],
+        ['admin_panel_label', sanitizeAdminUiText(body.admin_panel_label, DEFAULT_ADMIN_PANEL_LABEL, 80)],
+      ]))
+      await deps.upsertAppSettings(c.env.DB, [
+        { key: 'admin_brand_name', value: payload.admin_brand_name },
+        { key: 'admin_panel_label', value: payload.admin_panel_label },
+      ])
+      return c.json({ success: true, data: payload })
+    } catch (e: any) {
+      return c.json({ success: false, error: e.message }, 500)
+    }
+  })
+
   app.get('/api/admin/settings/images', async (c) => {
     try {
       await deps.initDB(c.env.DB)
@@ -989,11 +1071,15 @@ export function registerAdminUtilityRoutes(app: Hono<{ Bindings: AppBindings }>,
         home_trending_banner_image: sanitizeUrl(body.home_trending_banner_image),
         home_trending_banner_subtitle: sanitizeUrl(body.home_trending_banner_subtitle, 120),
         home_trending_banner_title: sanitizeUrl(body.home_trending_banner_title, 160),
+        boypho_store_logo_image: sanitizeUrl(body.boypho_store_logo_image),
+        hottrendnu_store_logo_image: sanitizeUrl(body.hottrendnu_store_logo_image),
       }
       await deps.upsertAppSettings(c.env.DB, [
         { key: 'home_trending_banner_image', value: payload.home_trending_banner_image },
         { key: 'home_trending_banner_subtitle', value: payload.home_trending_banner_subtitle },
         { key: 'home_trending_banner_title', value: payload.home_trending_banner_title },
+        { key: 'boypho_store_logo_image', value: payload.boypho_store_logo_image },
+        { key: 'hottrendnu_store_logo_image', value: payload.hottrendnu_store_logo_image },
       ])
       return c.json({ success: true, data: payload })
     } catch (e: any) {
@@ -1094,9 +1180,13 @@ export function registerAdminUtilityRoutes(app: Hono<{ Bindings: AppBindings }>,
       const freeshipBadgeEnabled = body.product_freeship_badge_enabled === undefined
         ? true
         : body.product_freeship_badge_enabled === true || body.product_freeship_badge_enabled === 1 || body.product_freeship_badge_enabled === '1'
+      const flashSaleShopSectionEnabled = body.flash_sale_shop_section_enabled === undefined
+        ? true
+        : body.flash_sale_shop_section_enabled === true || body.flash_sale_shop_section_enabled === 1 || body.flash_sale_shop_section_enabled === '1'
       const payload = {
         quick_order_risk_note_text: sanitizeTextUiSetting(body.quick_order_risk_note_text) || DEFAULT_QUICK_ORDER_RISK_NOTE_TEXT,
         product_freeship_badge_enabled: freeshipBadgeEnabled ? '1' : '0',
+        flash_sale_shop_section_enabled: flashSaleShopSectionEnabled ? '1' : '0',
         hero_badge_text: sanitizeTextUiSetting(body.hero_badge_text, 220),
         hero_title_text: sanitizeTextUiSetting(body.hero_title_text, 220),
         hero_typed_text: sanitizeTextUiSetting(body.hero_typed_text, 220),
@@ -1121,6 +1211,16 @@ export function registerAdminUtilityRoutes(app: Hono<{ Bindings: AppBindings }>,
       await deps.initDB(c.env.DB)
       const handles = await readSocialHandles(c.env.DB)
       return c.json({ success: true, data: buildSocialLinks(handles) })
+    } catch (e: any) {
+      return c.json({ success: false, error: e.message }, 500)
+    }
+  })
+
+  app.get('/api/public/admin-ui-settings', async (c) => {
+    try {
+      await deps.initDB(c.env.DB)
+      const settings = await readAdminUiSettings(c.env.DB)
+      return c.json({ success: true, data: settings })
     } catch (e: any) {
       return c.json({ success: false, error: e.message }, 500)
     }

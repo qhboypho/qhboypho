@@ -25,6 +25,141 @@ export function adminMobilePwaStyles(): string {
   .admin-secret-action-btn:active {
     transform: translateY(0);
   }
+  .dashboard-date-value-shell {
+    position: relative;
+  }
+  #dashboardDateFilter {
+    position: relative;
+  }
+  .dashboard-date-mode-select {
+    appearance: auto;
+    -webkit-appearance: menulist;
+  }
+  .dashboard-date-mode-select::-ms-expand {
+    display: block;
+  }
+  .dashboard-date-mode-shell {
+    position: relative;
+  }
+  .dashboard-date-mode-chevron {
+    display: none;
+  }
+  .dashboard-date-trigger {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    width: 8.5rem;
+    height: 2.25rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 999px;
+    background: #fff;
+    padding: 0 2rem 0 0.85rem;
+    color: #334155;
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-align: left;
+    outline: none;
+  }
+  .dashboard-date-display {
+    display: block;
+    max-width: calc(100% - 0.25rem);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  .dashboard-date-calendar-icon {
+    position: absolute;
+    right: 0.72rem;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+  }
+  .dashboard-date-picker {
+    position: absolute;
+    top: calc(100% + 0.45rem);
+    right: 0;
+    z-index: 1300;
+    width: 18rem;
+    border-radius: 1.15rem;
+    border: 1px solid rgba(226, 232, 240, 0.95);
+    background: rgba(255, 255, 255, 0.98);
+    box-shadow: 0 22px 50px rgba(15, 23, 42, 0.16);
+    padding: 0.75rem;
+  }
+  .dashboard-date-picker-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.7rem;
+    color: #0f172a;
+  }
+  .dashboard-date-picker-header strong {
+    font-size: 0.9rem;
+    font-weight: 900;
+  }
+  .dashboard-date-picker-year-button {
+    min-width: 5.25rem;
+    height: 2rem;
+    border: 0;
+    border-radius: 999px;
+    background: #f8fafc;
+    color: #0f172a;
+    font-size: 0.9rem;
+    font-weight: 900;
+  }
+  .dashboard-date-picker-nav {
+    width: 2rem;
+    height: 2rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 0.75rem;
+    background: #f8fafc;
+    color: #475569;
+  }
+  .dashboard-date-picker-month-grid,
+  .dashboard-date-picker-year-grid,
+  .dashboard-date-picker-day-grid,
+  .dashboard-date-picker-weekdays {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.4rem;
+  }
+  .dashboard-date-picker-year-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .dashboard-date-picker-day-grid,
+  .dashboard-date-picker-weekdays {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+  }
+  .dashboard-date-picker-weekdays {
+    margin-bottom: 0.35rem;
+    color: #94a3b8;
+    font-size: 0.66rem;
+    font-weight: 900;
+    text-align: center;
+  }
+  .dashboard-date-picker-cell,
+  .dashboard-date-picker-empty {
+    min-height: 2.05rem;
+    border-radius: 0.75rem;
+  }
+  .dashboard-date-picker-cell {
+    border: 1px solid rgba(226, 232, 240, 0.95);
+    background: #fff;
+    color: #334155;
+    font-size: 0.78rem;
+    font-weight: 850;
+  }
+  .dashboard-date-picker-cell.is-active {
+    border-color: transparent;
+    background: linear-gradient(135deg, #4f7cff, #e84393);
+    color: #fff;
+    box-shadow: 0 10px 24px rgba(232, 67, 147, 0.22);
+  }
 
   @media (display-mode: standalone) {
     body { background: #f8fafc; }
@@ -111,6 +246,191 @@ export function adminMobilePwaStyles(): string {
       max-height: calc(100dvh - max(5.5rem, env(safe-area-inset-top) + 4.5rem));
       overflow-y: auto;
       border-radius: 1.25rem !important;
+    }
+    #dashboardDateFilter.dashboard-date-filter-mobile {
+      position: relative;
+      width: fit-content !important;
+      max-width: calc(100vw - 1.75rem) !important;
+      margin: 0.05rem auto 0.7rem !important;
+      padding: 0.25rem !important;
+      align-self: center !important;
+      justify-content: center !important;
+      gap: 0.25rem !important;
+      flex-wrap: nowrap !important;
+      border-radius: 999px !important;
+      border: 1px solid rgba(226, 232, 240, 0.92) !important;
+      background: rgba(255, 255, 255, 0.9) !important;
+      box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08) !important;
+      overflow: visible;
+    }
+    .dashboard-date-mode-shell,
+    .dashboard-date-value-shell {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      min-width: 0;
+      flex: 0 0 auto;
+    }
+    .dashboard-date-mode-select,
+    .dashboard-date-trigger {
+      height: 2.05rem !important;
+      border-radius: 999px !important;
+      font-size: 0.78rem !important;
+      line-height: 1 !important;
+      font-weight: 800 !important;
+      color: #334155 !important;
+      outline: none !important;
+      box-shadow: none !important;
+    }
+    .dashboard-date-mode-select {
+      width: 7.7rem;
+      appearance: none;
+      -webkit-appearance: none;
+      border: 0 !important;
+      background: linear-gradient(180deg, #f8fafc, #eef2ff) !important;
+      padding: 0 1.75rem 0 0.82rem !important;
+    }
+    .dashboard-date-mode-chevron {
+      display: block;
+      position: absolute;
+      right: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 0.66rem;
+      color: #475569;
+      pointer-events: none;
+    }
+    .dashboard-date-trigger {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      width: 7.2rem;
+      border: 0 !important;
+      background: #fff !important;
+      padding: 0 2rem 0 0.85rem !important;
+      box-shadow: inset 0 0 0 1px rgba(203, 213, 225, 0.9) !important;
+      text-align: left;
+      cursor: pointer;
+    }
+    .dashboard-date-display {
+      display: block !important;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 0.78rem;
+      line-height: 1;
+      font-weight: 800;
+      color: #334155;
+      pointer-events: none;
+    }
+    .dashboard-date-calendar-icon {
+      position: absolute;
+      right: 0.72rem;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 0.82rem;
+      color: #0f172a;
+      pointer-events: none;
+    }
+    .dashboard-date-picker {
+      position: absolute;
+      top: calc(100% + 0.45rem);
+      right: 0.25rem;
+      z-index: 1300;
+      width: min(18rem, calc(100vw - 1.5rem));
+      border-radius: 1.15rem;
+      border: 1px solid rgba(226, 232, 240, 0.95);
+      background: rgba(255, 255, 255, 0.98);
+      box-shadow: 0 22px 50px rgba(15, 23, 42, 0.16);
+      padding: 0.75rem;
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+    }
+    .dashboard-date-picker::before {
+      content: "";
+      position: absolute;
+      top: -0.38rem;
+      right: 2.15rem;
+      width: 0.75rem;
+      height: 0.75rem;
+      transform: rotate(45deg);
+      border-left: 1px solid rgba(226, 232, 240, 0.95);
+      border-top: 1px solid rgba(226, 232, 240, 0.95);
+      background: rgba(255, 255, 255, 0.98);
+    }
+    .dashboard-date-picker-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-bottom: 0.7rem;
+      color: #0f172a;
+    }
+    .dashboard-date-picker-header strong {
+      font-size: 0.9rem;
+      font-weight: 900;
+    }
+    .dashboard-date-picker-year-button {
+      min-width: 5.25rem;
+      height: 2rem;
+      border: 0;
+      border-radius: 999px;
+      background: #f8fafc;
+      color: #0f172a;
+      font-size: 0.9rem;
+      font-weight: 900;
+    }
+    .dashboard-date-picker-nav {
+      width: 2rem;
+      height: 2rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 0;
+      border-radius: 0.75rem;
+      background: #f8fafc;
+      color: #475569;
+    }
+    .dashboard-date-picker-month-grid,
+    .dashboard-date-picker-year-grid,
+    .dashboard-date-picker-day-grid,
+    .dashboard-date-picker-weekdays {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0.4rem;
+    }
+    .dashboard-date-picker-year-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .dashboard-date-picker-day-grid,
+    .dashboard-date-picker-weekdays {
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+    }
+    .dashboard-date-picker-weekdays {
+      margin-bottom: 0.35rem;
+      color: #94a3b8;
+      font-size: 0.66rem;
+      font-weight: 900;
+      text-align: center;
+    }
+    .dashboard-date-picker-cell,
+    .dashboard-date-picker-empty {
+      min-height: 2.05rem;
+      border-radius: 0.75rem;
+    }
+    .dashboard-date-picker-cell {
+      border: 1px solid rgba(226, 232, 240, 0.95);
+      background: #fff;
+      color: #334155;
+      font-size: 0.78rem;
+      font-weight: 850;
+    }
+    .dashboard-date-picker-cell.is-active {
+      border-color: transparent;
+      background: linear-gradient(135deg, #4f7cff, #e84393);
+      color: #fff;
+      box-shadow: 0 10px 24px rgba(232, 67, 147, 0.22);
     }
     .admin-install-app-btn {
       min-width: 44px;
@@ -233,6 +553,43 @@ export function adminMobilePwaStyles(): string {
       padding-left: 0.5rem !important;
       padding-right: 0.5rem !important;
       overscroll-behavior: contain;
+    }
+    .dashboard-tax-formula-grid {
+      gap: 0.45rem !important;
+    }
+    .dashboard-tax-formula-card {
+      min-height: 4.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.72rem;
+      padding: 0.7rem 0.85rem !important;
+      border-radius: 1.05rem !important;
+    }
+    .dashboard-tax-formula-icon {
+      width: 2.35rem !important;
+      height: 2.35rem !important;
+      margin-bottom: 0 !important;
+      border-radius: 0.85rem !important;
+      font-size: 0.82rem !important;
+    }
+    .dashboard-tax-formula-copy {
+      min-width: 0;
+      flex: 1;
+    }
+    .dashboard-tax-formula-label {
+      min-height: 0 !important;
+      font-size: 0.78rem !important;
+      line-height: 1.15 !important;
+    }
+    .dashboard-tax-formula-value {
+      margin-top: 0.35rem !important;
+      font-size: 1.28rem !important;
+      line-height: 1 !important;
+    }
+    .dashboard-tax-formula-operator {
+      height: 1rem;
+      font-size: 1.25rem !important;
+      line-height: 1;
     }
   }
 

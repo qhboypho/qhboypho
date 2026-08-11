@@ -14,9 +14,9 @@ export function storefrontLiveChatStyles(): string {
     justify-content: center;
     gap: 0;
     padding: 0;
-    background: linear-gradient(135deg, #ff4da6, #6d5dfc);
+    background: var(--qh-action-gradient, linear-gradient(135deg, #12b5f5 0%, #2f6df6 52%, #5b4bef 100%));
     color: #fff;
-    box-shadow: 0 18px 34px rgba(124, 58, 237, 0.34);
+    box-shadow: var(--qh-action-shadow, 0 18px 34px rgba(37, 99, 235, 0.3));
     border: 1px solid rgba(255,255,255,0.42);
     font-weight: 800;
     letter-spacing: 0;
@@ -30,6 +30,41 @@ export function storefrontLiveChatStyles(): string {
       gap 360ms cubic-bezier(0.22, 1, 0.36, 1),
       box-shadow 240ms ease,
       transform 240ms ease;
+  }
+  body[data-storefront-theme='light'] .live-chat-launcher {
+    background: linear-gradient(135deg, #12b5f5 0%, #2f6df6 52%, #5b4bef 100%);
+    box-shadow: 0 10px 22px rgba(37,99,235,0.24), 0 8px 20px rgba(34,211,238,0.18);
+  }
+  body[data-storefront-theme='dark'] .live-chat-launcher {
+    background: var(--qh-action-gradient, linear-gradient(135deg, #00e5ff 0%, #2f6bff 48%, #ff1493 100%));
+    box-shadow: var(--qh-action-shadow, 0 0 18px rgba(0,229,255,0.28), 0 0 26px rgba(255,20,147,0.18));
+  }
+  .live-chat-unread-badge {
+    position: absolute;
+    top: 0.18rem;
+    right: 0.18rem;
+    min-width: 1.12rem;
+    height: 1.12rem;
+    padding: 0 0.28rem;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #ef4444;
+    color: #fff;
+    border: 2px solid #fff;
+    font-size: 0.62rem;
+    line-height: 1;
+    font-weight: 900;
+    box-shadow: 0 8px 18px rgba(239, 68, 68, 0.32);
+    pointer-events: none;
+  }
+  .live-chat-unread-badge.hidden {
+    display: none;
+  }
+  .mobile-bottom-nav-link .live-chat-unread-badge {
+    top: 0.35rem;
+    right: 0.75rem;
   }
   .live-chat-launcher.is-expanded {
     width: 10.875rem;
@@ -58,6 +93,11 @@ export function storefrontLiveChatStyles(): string {
       width 300ms ease,
       height 300ms ease,
       background 300ms ease;
+  }
+  .live-chat-launcher-icon i {
+    color: #fff !important;
+    -webkit-text-fill-color: #fff !important;
+    filter: drop-shadow(0 2px 6px rgba(15,23,42,0.18));
   }
   .live-chat-launcher.is-expanded .live-chat-launcher-icon {
     width: 2rem;
@@ -99,27 +139,59 @@ export function storefrontLiveChatStyles(): string {
     z-index: 1011;
     width: min(25rem, calc(100vw - 2rem));
     max-height: min(42rem, calc(100vh - 8rem));
+    display: flex;
+    flex-direction: column;
     background: #fff;
     border: 1px solid rgba(226, 232, 240, 0.95);
     border-radius: 1.25rem;
     box-shadow: 0 24px 80px rgba(15, 23, 42, 0.24);
     overflow: hidden;
   }
+  .live-chat-panel.hidden {
+    display: none;
+  }
   .live-chat-composer {
     position: relative;
   }
   .live-chat-send-btn {
-    background: #0f172a;
-    color: #fff;
+    background: rgba(37, 99, 235, 0.1);
+    color: #2563eb;
+    border: 1px solid rgba(37, 99, 235, 0.16);
     box-shadow: none;
     transform: translateY(0);
-    transition: background 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+    transition: background 180ms ease, border-color 180ms ease, color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
   }
+  .live-chat-start-btn,
   .live-chat-send-btn.has-text {
-    background: linear-gradient(135deg, #8b5cf6, #ec4899);
-    box-shadow: 0 10px 24px rgba(236, 72, 153, 0.28);
+    background: var(--qh-action-gradient, linear-gradient(135deg, #12b5f5 0%, #2f6df6 52%, #5b4bef 100%)) !important;
+    color: #fff !important;
+    border-color: transparent !important;
+    box-shadow: var(--qh-action-shadow, 0 10px 22px rgba(37,99,235,0.24));
   }
   .live-chat-send-btn:active {
+    transform: translateY(1px) scale(0.98);
+  }
+  .live-chat-start-btn {
+    transition: transform 150ms ease, box-shadow 150ms ease, filter 150ms ease;
+  }
+  .live-chat-start-btn:hover {
+    filter: brightness(1.03);
+  }
+  .live-chat-start-btn:active {
+    transform: translateY(1px) scale(0.98);
+  }
+  .live-chat-product-trigger {
+    color: #2563eb !important;
+    background: rgba(234, 242, 255, 0.92) !important;
+    border-color: rgba(37, 99, 235, 0.18) !important;
+    box-shadow: 0 8px 18px rgba(37, 99, 235, 0.08);
+    transition: background 180ms ease, border-color 180ms ease, color 180ms ease, box-shadow 180ms ease, transform 150ms ease;
+  }
+  .live-chat-product-trigger:hover {
+    background: rgba(37, 99, 235, 0.11) !important;
+    border-color: rgba(37, 99, 235, 0.3) !important;
+  }
+  .live-chat-product-trigger:active {
     transform: translateY(1px) scale(0.98);
   }
   .live-chat-messages {
@@ -187,7 +259,13 @@ export function storefrontLiveChatStyles(): string {
   #liveChatProductSearch {
     color: #0f172a;
     background: #fff;
-    caret-color: #ec4899;
+    caret-color: #2563eb;
+  }
+  #liveChatInput:focus,
+  #liveChatGuestPhone:focus,
+  #liveChatProductSearch:focus {
+    border-color: #2f6df6 !important;
+    box-shadow: 0 0 0 3px rgba(47, 109, 246, 0.1);
   }
   #liveChatInput::placeholder,
   #liveChatGuestPhone::placeholder,
@@ -199,10 +277,17 @@ export function storefrontLiveChatStyles(): string {
     min-height: 2.5rem;
     max-height: 6rem;
     resize: none;
-    overflow-y: auto;
+    overflow-y: hidden;
     line-height: 1.35;
     padding-top: 0.62rem;
     padding-bottom: 0.62rem;
+  }
+  #liveChatInput.is-scrollable {
+    overflow-y: auto;
+  }
+  #liveChatInput::-webkit-scrollbar {
+    width: 0;
+    height: 0;
   }
   .live-chat-product-card {
     display: flex;
@@ -315,7 +400,7 @@ export function storefrontLiveChatStyles(): string {
   }
   .live-chat-picker-price {
     font-weight: 800;
-    background: linear-gradient(135deg, #a78bfa, #f472b6);
+    background: var(--qh-price-gradient, linear-gradient(135deg, #2563eb 0%, #2f6df6 46%, #22d3ee 100%));
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -324,34 +409,52 @@ export function storefrontLiveChatStyles(): string {
     flex: none;
     padding: 0.48rem 0.78rem;
     border-radius: 0.5rem;
-    background: linear-gradient(135deg, #8b5cf6, #ec4899);
+    background: var(--qh-action-gradient, linear-gradient(135deg, #12b5f5 0%, #2f6df6 52%, #5b4bef 100%));
     color: #fff;
     font-size: 0.78rem;
     font-weight: 800;
-    box-shadow: 0 8px 18px rgba(236, 72, 153, 0.22);
+    box-shadow: var(--qh-action-shadow, 0 10px 22px rgba(37,99,235,0.24));
     transition: transform 150ms ease, box-shadow 150ms ease, filter 150ms ease;
   }
   .live-chat-picker-send:hover {
     filter: brightness(1.03);
-    box-shadow: 0 10px 22px rgba(236, 72, 153, 0.3);
+    box-shadow: var(--qh-action-shadow, 0 10px 22px rgba(37,99,235,0.24));
   }
   .live-chat-picker-send:active {
     transform: scale(0.97);
   }
+  body[data-storefront-theme='dark'] .live-chat-send-btn {
+    background: rgba(0, 229, 255, 0.1);
+    color: #00e5ff;
+    border-color: rgba(0, 229, 255, 0.18);
+  }
+  body[data-storefront-theme='dark'] .live-chat-product-trigger {
+    color: #00e5ff !important;
+    background: rgba(5, 7, 13, 0.68) !important;
+    border-color: rgba(0, 229, 255, 0.24) !important;
+    box-shadow: 0 10px 22px rgba(0, 229, 255, 0.08);
+  }
+  body[data-storefront-theme='dark'] .live-chat-product-trigger:hover {
+    background: rgba(0, 229, 255, 0.1) !important;
+    border-color: rgba(0, 229, 255, 0.3) !important;
+  }
+  body[data-storefront-theme='dark'] #liveChatInput,
+  body[data-storefront-theme='dark'] #liveChatGuestPhone,
+  body[data-storefront-theme='dark'] #liveChatProductSearch {
+    caret-color: #00e5ff;
+  }
+  body[data-storefront-theme='dark'] #liveChatInput:focus,
+  body[data-storefront-theme='dark'] #liveChatGuestPhone:focus,
+  body[data-storefront-theme='dark'] #liveChatProductSearch:focus {
+    border-color: #00e5ff !important;
+    box-shadow: 0 0 0 3px rgba(0, 229, 255, 0.12);
+  }
   @media (max-width: 640px) {
     .live-chat-launcher {
-      right: 0.9rem;
-      bottom: 4.9rem;
-      width: 3.5rem;
-      min-width: 0;
-      padding: 0;
-      gap: 0;
+      display: none;
     }
     .live-chat-launcher.is-expanded {
-      width: 3.5rem;
-      min-width: 0;
-      padding: 0;
-      gap: 0;
+      display: none;
     }
     .live-chat-launcher-icon {
       width: auto;
@@ -367,33 +470,53 @@ export function storefrontLiveChatStyles(): string {
       display: none;
     }
     .live-chat-panel {
-      right: 0.75rem;
-      bottom: 8.75rem;
-      width: calc(100vw - 1.5rem);
-      max-height: calc(100vh - 9.5rem);
+      inset: 0;
+      width: 100vw;
+      height: 100dvh;
+      max-height: none;
+      border: 0;
+      border-radius: 0;
     }
     .live-chat-messages {
-      height: 18rem;
+      flex: 1;
+      height: auto;
+      max-height: none;
+    }
+    .live-chat-composer {
+      padding-bottom: calc(0.75rem + env(safe-area-inset-bottom)) !important;
+    }
+    #liveChatInput,
+    #liveChatGuestPhone,
+    #liveChatProductSearch {
+      font-size: 16px;
     }
   }
 `
 }
 
-export function storefrontLiveChatSection(): string {
+type StorefrontLiveChatSectionOptions = {
+  brandName?: string
+  logoAlt?: string
+}
+
+export function storefrontLiveChatSection(options: StorefrontLiveChatSectionOptions = {}): string {
+  const brandName = options.brandName || 'QH Boypho'
+  const logoAlt = options.logoAlt || brandName
   return `
 <button id="liveChatLauncher" type="button" class="live-chat-launcher is-collapsed" onclick="openLiveChat()" aria-label="Chat với shop" title="Chat với shop">
   <span class="live-chat-launcher-icon"><i class="fas fa-comments text-xl"></i></span>
   <span class="live-chat-launcher-label">Chat với shop</span>
+  <span class="live-chat-unread-badge hidden" aria-label="Tin nhắn chưa đọc">0</span>
 </button>
 
 <div id="liveChatPanel" class="live-chat-panel hidden">
   <div class="px-4 py-3 border-b border-slate-100 flex items-center justify-between bg-slate-950 text-white">
     <div class="flex items-center gap-2 min-w-0">
       <span class="w-8 h-8 rounded-full bg-white flex items-center justify-center shrink-0 overflow-hidden border border-white/20">
-        <img src="/qh-logo.png" alt="QH Boypho" class="w-full h-full object-cover">
+        <img src="/qh-logo.png" alt="${logoAlt}" class="w-full h-full object-cover">
       </span>
       <div class="min-w-0">
-        <p class="font-bold text-sm leading-tight truncate">Chat với QH Boypho</p>
+        <p class="font-bold text-sm leading-tight truncate">Chat với ${brandName}</p>
         <p id="liveChatStatus" class="text-xs text-slate-300 leading-tight">Sẵn sàng hỗ trợ</p>
       </div>
     </div>
@@ -405,7 +528,7 @@ export function storefrontLiveChatSection(): string {
     <label class="block text-xs font-bold text-slate-500 mb-1">Số điện thoại để shop liên hệ</label>
     <div class="flex gap-2">
       <input id="liveChatGuestPhone" type="tel" placeholder="0987 654 321" class="flex-1 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-pink-400">
-      <button type="button" onclick="startLiveChat()" class="px-3 py-2 rounded-xl bg-pink-500 text-white text-sm font-bold">Bắt đầu</button>
+      <button type="button" onclick="startLiveChat()" class="live-chat-start-btn px-3 py-2 rounded-xl text-white text-sm font-bold">Bắt đầu</button>
     </div>
   </div>
   <div id="liveChatMessages" class="live-chat-messages p-4 space-y-3">
@@ -424,7 +547,7 @@ export function storefrontLiveChatSection(): string {
       </div>
     </div>
     <div class="flex gap-2">
-      <button id="liveChatProductButton" type="button" onclick="toggleLiveChatProductPicker(event)" class="w-10 h-10 rounded-xl border border-slate-200 text-pink-500 hover:bg-pink-50 transition" title="Gửi sản phẩm" aria-label="Gửi sản phẩm">
+      <button id="liveChatProductButton" type="button" onclick="toggleLiveChatProductPicker(event)" class="live-chat-product-trigger w-10 h-10 rounded-xl border transition" title="Gửi sản phẩm" aria-label="Gửi sản phẩm">
         <i class="fas fa-shirt"></i>
       </button>
       <textarea id="liveChatInput" rows="1" placeholder="Nhập tin nhắn..." class="flex-1 border border-slate-200 rounded-xl px-3 text-sm focus:outline-none focus:border-pink-400" oninput="handleLiveChatTextareaInput()" onkeydown="handleLiveChatInputKey(event)"></textarea>

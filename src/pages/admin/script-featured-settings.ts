@@ -169,6 +169,86 @@ async function saveFeaturedOrder() {
 }
 
 // ── BANNERS ──────────────────────────────────────
+function normalizeAdminUiSettingText(value, fallback, max) {
+  const text = String(value || '')
+    .replace(/[<>]/g, '')
+    .replace(/\\s+/g, ' ')
+    .trim()
+    .slice(0, max || 80)
+  return text || fallback
+}
+
+function getAdminUiSettingsFormPayload() {
+  const brandInput = document.getElementById('adminUiBrandName')
+  const panelInput = document.getElementById('adminUiPanelLabel')
+  const brandName = normalizeAdminUiSettingText(brandInput?.value, 'Boypho', 40)
+  const panelLabel = normalizeAdminUiSettingText(panelInput?.value, 'Admin Panel', 80)
+  return {
+    admin_brand_name: brandName,
+    admin_full_brand_name: /^qh\\s+/i.test(brandName) ? brandName : 'QH ' + brandName,
+    admin_panel_label: panelLabel,
+  }
+}
+
+function fillAdminUiSettingsForm(settings) {
+  const payload = {
+    admin_brand_name: normalizeAdminUiSettingText(settings?.admin_brand_name, 'Boypho', 40),
+    admin_full_brand_name: normalizeAdminUiSettingText(settings?.admin_full_brand_name, 'QH Boypho', 60),
+    admin_panel_label: normalizeAdminUiSettingText(settings?.admin_panel_label, 'Admin Panel', 80),
+  }
+  const brandInput = document.getElementById('adminUiBrandName')
+  const panelInput = document.getElementById('adminUiPanelLabel')
+  if (brandInput) brandInput.value = payload.admin_brand_name
+  if (panelInput) panelInput.value = payload.admin_panel_label
+  previewAdminUiSettings(payload)
+}
+
+function previewAdminUiSettings(settings = null) {
+  const payload = settings || getAdminUiSettingsFormPayload()
+  const brandPreview = document.getElementById('adminUiPreviewBrandName')
+  const fullNamePreview = document.getElementById('adminUiPreviewFullName')
+  const panelPreview = document.getElementById('adminUiPreviewPanelLabel')
+  if (brandPreview) brandPreview.textContent = payload.admin_brand_name
+  if (fullNamePreview) fullNamePreview.textContent = payload.admin_full_brand_name
+  if (panelPreview) panelPreview.textContent = payload.admin_panel_label
+}
+
+async function loadAdminUiSettingsPage() {
+  try {
+    const res = await axios.get('/api/admin/settings/admin-ui')
+    const settings = res.data?.data || {}
+    fillAdminUiSettingsForm(settings)
+    if (typeof applyAdminUiSettings === 'function') applyAdminUiSettings(settings)
+  } catch (e) {
+    fillAdminUiSettingsForm({ admin_brand_name: 'Boypho', admin_panel_label: 'Admin Panel' })
+    showAdminToast('Lỗi tải cấu hình Trang quản trị', 'error')
+  }
+}
+
+async function saveAdminUiSettings() {
+  const btn = document.getElementById('saveAdminUiSettingsBtn')
+  const original = btn ? btn.innerHTML : ''
+  if (btn) {
+    btn.disabled = true
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>Đang lưu...'
+  }
+  try {
+    const payload = getAdminUiSettingsFormPayload()
+    const res = await axios.put('/api/admin/settings/admin-ui', payload)
+    const settings = res.data?.data || payload
+    fillAdminUiSettingsForm(settings)
+    if (typeof applyAdminUiSettings === 'function') applyAdminUiSettings(settings)
+    showAdminToast('Đã lưu tên Trang quản trị', 'success')
+  } catch (e) {
+    showAdminToast('Lỗi lưu Trang quản trị: ' + (e.response?.data?.error || e.message), 'error')
+  } finally {
+    if (btn) {
+      btn.disabled = false
+      btn.innerHTML = original || '<i class="fas fa-save"></i>Lưu Trang quản trị'
+    }
+  }
+}
+
 async function loadSettingsAdmin(options = {}) {
   try {
     const pickupRes = await axios.get('/api/admin/ghtk/pickup-config')
@@ -946,7 +1026,8 @@ function fillTextUiSettings(cfg) {
     const key = input.dataset.settingKey
     if (!key) return
     if (input.type === 'checkbox') {
-      input.checked = cfg?.[key] === true || cfg?.[key] === 1 || cfg?.[key] === '1'
+      const raw = cfg?.[key]
+      input.checked = raw === undefined ? input.defaultChecked : (raw === true || raw === 1 || raw === '1')
       return
     }
     input.value = String(cfg?.[key] || getTextUiInputDefault(input)).slice(0, Number(input.maxLength) > 0 ? Number(input.maxLength) : 800)
@@ -1016,11 +1097,17 @@ function previewImageSetting(idBase) {
 function fillImageSettings(cfg) {
   const input = document.getElementById('homeTrendingBannerImageUrl')
   if (input) input.value = cfg.home_trending_banner_image || ''
+  const boyphoLogo = document.getElementById('boyphoStoreLogoImageUrl')
+  const hottrendnuLogo = document.getElementById('hottrendnuStoreLogoImageUrl')
+  if (boyphoLogo) boyphoLogo.value = cfg.boypho_store_logo_image || ''
+  if (hottrendnuLogo) hottrendnuLogo.value = cfg.hottrendnu_store_logo_image || ''
   const subtitle = document.getElementById('homeTrendingBannerSubtitle')
   const title = document.getElementById('homeTrendingBannerTitle')
   if (subtitle) subtitle.value = cfg.home_trending_banner_subtitle || ''
   if (title) title.value = cfg.home_trending_banner_title || ''
   previewImageSetting('homeTrendingBannerImage')
+  previewImageSetting('boyphoStoreLogoImage')
+  previewImageSetting('hottrendnuStoreLogoImage')
 }
 
 async function loadImageSettings() {
@@ -1054,12 +1141,36 @@ function clearHomeTrendingBannerImage() {
   previewImageSetting('homeTrendingBannerImage')
 }
 
+async function uploadStoreLogoImage(input, idBase) {
+  const file = Array.from(input.files || []).find(f => f.type && f.type.startsWith('image/'))
+  if (!file) return
+  const urlInput = document.getElementById(idBase + 'Url')
+  try {
+    const url = await uploadProductImageFile(file, 512, 0.88, 'settings')
+    if (urlInput) urlInput.value = url
+    previewImageSetting(idBase)
+    showAdminToast('Đã upload logo', 'success')
+  } catch (e) {
+    showAdminToast('Upload logo thất bại', 'error')
+  } finally {
+    input.value = ''
+  }
+}
+
+function clearImageSetting(idBase) {
+  const input = document.getElementById(idBase + 'Url')
+  if (input) input.value = ''
+  previewImageSetting(idBase)
+}
+
 async function saveImageSettings() {
   const btn = document.getElementById('saveImageSettingsBtn')
   const payload = {
     home_trending_banner_image: getImageSettingUrl('homeTrendingBannerImage'),
     home_trending_banner_subtitle: String(document.getElementById('homeTrendingBannerSubtitle')?.value || '').trim(),
-    home_trending_banner_title: String(document.getElementById('homeTrendingBannerTitle')?.value || '').trim()
+    home_trending_banner_title: String(document.getElementById('homeTrendingBannerTitle')?.value || '').trim(),
+    boypho_store_logo_image: getImageSettingUrl('boyphoStoreLogoImage'),
+    hottrendnu_store_logo_image: getImageSettingUrl('hottrendnuStoreLogoImage')
   }
   if (btn) {
     btn.disabled = true

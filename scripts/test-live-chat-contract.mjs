@@ -78,10 +78,28 @@ const storefrontPage = read('src/pages/storefrontPage.ts')
 assertIncludes(storefrontPage, 'storefrontLiveChatSection', 'storefront page')
 assertIncludes(storefrontPage, 'storefrontLiveChatStyles', 'storefront page')
 
+const storefrontSections = read('src/pages/storefront/sections.ts')
+assertIncludes(storefrontSections, 'id="cartNavBtnMobile"', 'mobile storefront top cart')
+assertIncludes(storefrontSections, 'id="cartBadgeMobile"', 'mobile storefront top cart badge')
+assertIncludes(storefrontSections, 'onclick="openLiveChat()" id="liveChatBottomNavBtn"', 'mobile bottom chat nav')
+assertIncludes(storefrontSections, 'Chat', 'mobile bottom chat label')
+if (/id="cartBottomNavBtn"/.test(storefrontSections)) {
+  throw new Error('mobile bottom nav should use chat in the old cart slot, not cartBottomNavBtn')
+}
+
+const storefrontLiveChat = read('src/pages/storefront/live-chat.ts')
+assertMatch(storefrontLiveChat, /@media \(max-width: 640px\)[\s\S]+\.live-chat-launcher[\s\S]+display:\s*none/, 'mobile chat launcher hidden')
+assertMatch(storefrontLiveChat, /@media \(max-width: 640px\)[\s\S]+\.live-chat-panel[\s\S]+inset:\s*0/, 'mobile chat panel full screen')
+assertMatch(storefrontLiveChat, /@media \(max-width: 640px\)[\s\S]+\.live-chat-panel[\s\S]+height:\s*100dvh/, 'mobile chat panel full height')
+assertMatch(storefrontLiveChat, /@media \(max-width: 640px\)[\s\S]+#liveChatInput[\s\S]+font-size:\s*16px/, 'mobile chat input prevents Safari zoom')
+
 const storefrontScript = read('src/pages/storefront/script.ts')
 for (const token of ['openLiveChat', 'sendLiveChatProductContext', 'openLiveChatProductPicker', 'guest phone', 'liveChatSocket']) {
   assertIncludes(storefrontScript, token, 'storefront live chat script')
 }
+assertIncludes(storefrontScript, "lockStorefrontPageScroll('live-chat')", 'mobile live chat modal scroll lock')
+assertIncludes(storefrontScript, "unlockStorefrontPageScroll('live-chat')", 'mobile live chat modal scroll lock')
+assertIncludes(storefrontScript, 'focusLiveChatMobileInput', 'mobile live chat auto focus')
 
 const adminSections = read('src/pages/admin/sections.ts')
 assertIncludes(adminSections, 'page-live-chat', 'admin live chat page')

@@ -1,6 +1,7 @@
 import { getCookie } from 'hono/cookie'
 import type { AdminProfile, AppContext, AppSettingEntry } from '../types/admin'
 import { getUserSessionUserId } from './userSessionHelpers'
+import { isSuperAdminKey, readAdminPermissionMap } from './adminPermissions'
 
 type AppSettingRow = {
   value?: string | null
@@ -37,6 +38,8 @@ export function normalizeAdminUserKey(raw: unknown) {
 
 export async function resolveAdminProfile(db: D1Database, c: AppContext): Promise<AdminProfile> {
   const adminUserKey = normalizeAdminUserKey(getCookie(c, 'admin_user_key') || 'admin')
+  const isSuperAdmin = isSuperAdminKey(adminUserKey)
+  const permissions = await readAdminPermissionMap(db, adminUserKey)
   const userToken = await getUserSessionUserId(c)
   if (userToken) {
     const uid = Number.parseInt(userToken, 10)
@@ -51,7 +54,9 @@ export async function resolveAdminProfile(db: D1Database, c: AppContext): Promis
           name: String(user.name || 'Admin'),
           avatar: String(user.avatar || ''),
           balance: Number(user.balance || 0),
-          is_admin: 1
+          is_admin: 1,
+          isSuperAdmin,
+          permissions
         }
       }
     }
@@ -68,7 +73,9 @@ export async function resolveAdminProfile(db: D1Database, c: AppContext): Promis
     name: fallbackName || 'Admin',
     avatar,
     balance: 0,
-    is_admin: 1
+    is_admin: 1,
+    isSuperAdmin,
+    permissions
   }
 }
 

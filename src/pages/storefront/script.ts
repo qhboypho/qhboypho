@@ -288,6 +288,7 @@ let liveChatProductContextSent = ''
 let liveChatPollTimer = null
 let liveChatRenderedMessageIds = new Set()
 let liveChatProductsLoading = false
+let liveChatUnreadCount = 0
 let userAuthTurnstileEnabled = false
 let userAuthTurnstileSiteKey = ''
 let userAuthTurnstileToken = ''
@@ -1780,10 +1781,10 @@ function renderDetailReviewsContent(productId) {
   const stars = (n) => '★'.repeat(Math.round(n)) + '☆'.repeat(5 - Math.round(n))
   const renderReviewCard = (r) => {
     const avatarHtml = r.user_avatar
-      ? \`<img src="\${escapeHtml(r.user_avatar)}" class="review-avatar" onerror="this.src=''">\`
+      ? \`<img src="\${escapeHtml(r.user_avatar)}" alt="Ảnh đại diện khách hàng" class="review-avatar" onerror="this.src=''">\`
       : \`<div class="review-avatar bg-violet-100 flex items-center justify-center text-violet-500 text-xs font-bold">\${escapeHtml((r.user_name || '?')[0].toUpperCase())}</div>\`
     const imgHtml = Array.isArray(r.images) && r.images.length
-      ? \`<div class="flex gap-1.5 mt-2 flex-wrap">\${r.images.map(img => \`<img src="\${escapeHtml(img)}" class="review-img-thumb" onclick="window.open('\${escapeHtml(img)}','_blank')">\`).join('')}</div>\`
+      ? \`<div class="flex gap-1.5 mt-2 flex-wrap">\${r.images.map((img, idx) => \`<img src="\${escapeHtml(img)}" alt="Ảnh đánh giá sản phẩm \${idx + 1}" class="review-img-thumb" onclick="window.open('\${escapeHtml(img)}','_blank')">\`).join('')}</div>\`
       : ''
     return \`<div class="review-card">
       <div class="flex items-center gap-2 mb-1.5">
@@ -1865,7 +1866,7 @@ async function openReviewModal(orderId, productId) {
     const p = res.data?.data
     if (p) {
       document.getElementById('reviewProductInfo').innerHTML =
-        \`<img src="\${escapeHtml(p.thumbnail||'')}" class="w-12 h-12 rounded-lg object-cover bg-gray-100" onerror="this.style.display='none'">
+        \`<img src="\${escapeHtml(p.thumbnail||'')}" alt="\${escapeHtml(p.name || 'Sản phẩm đã mua')}" class="w-12 h-12 rounded-lg object-cover bg-gray-100" onerror="this.style.display='none'">
         <div><p class="text-sm font-semibold text-gray-800">\${escapeHtml(p.name||'')}</p><p class="text-xs text-gray-400">Đơn hàng #\${orderId}</p></div>\`
     }
   } catch { document.getElementById('reviewProductInfo').innerHTML = '<p class="text-sm text-gray-500">Đơn hàng #' + orderId + '</p>' }
@@ -1907,7 +1908,7 @@ function onReviewImgSelected(input) {
       _reviewState.images.push(dataUrl)
       const wrapper = document.createElement('div')
       wrapper.className = 'relative'
-      wrapper.innerHTML = \`<img src="\${dataUrl}" class="review-img-preview">
+      wrapper.innerHTML = \`<img src="\${dataUrl}" alt="Ảnh đánh giá vừa tải lên" class="review-img-preview">
         <button onclick="removeReviewImg(\${_reviewState.images.length - 1}, this.parentNode)"
           class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full text-xs font-bold flex items-center justify-center">×</button>\`
       previews.appendChild(wrapper)
@@ -2225,6 +2226,12 @@ async function loadFlashSaleShop() {
   const section = document.getElementById('flashSaleShopSection')
   const grid = document.getElementById('flashSaleShopGrid')
   if (!section || !grid) return
+  if (!isFlashSaleShopSectionEnabled()) {
+    grid.innerHTML = ''
+    section.classList.add('hidden')
+    syncHotTrendNuFlashSaleRowState()
+    return
+  }
   try {
     const res = await axios.get('/api/flash-sales/active-products' + getStorefrontQuerySuffix())
     const products = scopeStorefrontProductsForPage(Array.isArray(res.data?.data) ? res.data.data : [])
@@ -2472,6 +2479,11 @@ function renderProductsModal() {
   if (meta) meta.textContent = 'Đang hiển thị ' + visible.length + ' / ' + filteredProducts.length + ' mặt hàng'
   if (loadMoreBtn) loadMoreBtn.classList.toggle('hidden', visible.length >= filteredProducts.length)
   startFlashSaleCountdownTicker()
+}
+
+function isFlashSaleShopSectionEnabled() {
+  const config = typeof window !== 'undefined' ? (window.STOREFRONT_RUNTIME_CONFIG || {}) : {}
+  return config.flash_sale_shop_section_enabled !== false
 }
 
 function renderProductPerkBadges(product) {
@@ -3973,12 +3985,39 @@ async function loadFooterSocialLinks() {
   }
 }
 
+function applyStorefrontLogoSettings(imageSettings) {
+  const settings = imageSettings || {}
+  const logoConfigs = {
+    boypho: {
+      src: String(settings.boypho_store_logo_image || '').trim() || '/qh-logo.png',
+      text: 'Boypho',
+      alt: 'QH Boypho',
+    },
+    hottrendnu: {
+      src: String(settings.hottrendnu_store_logo_image || '').trim() || '/qh-logo.png',
+      text: 'Clothes',
+      alt: 'QH Clothes',
+    },
+  }
+  Object.keys(logoConfigs).forEach((scope) => {
+    const cfg = logoConfigs[scope]
+    document.querySelectorAll('[data-store-logo-img="' + scope + '"]').forEach((img) => {
+      img.src = cfg.src
+      img.alt = cfg.alt
+    })
+    document.querySelectorAll('[data-store-logo-text="' + scope + '"]').forEach((el) => {
+      el.textContent = cfg.text
+    })
+  })
+}
+
 async function loadSettings() {
   try {
     prepareHeroBannerShell()
     loadPublicPaymentSettings().catch(() => { })
     const imageSettingsRes = await axios.get('/api/public/image-settings').catch(() => ({ data: { data: {} } }))
     const imageSettings = (imageSettingsRes.data && imageSettingsRes.data.data) ? imageSettingsRes.data.data : {}
+    applyStorefrontLogoSettings(imageSettings)
     const configuredTrendingImage = String(imageSettings.home_trending_banner_image || '').trim()
     const settingBannerCards = configuredTrendingImage ? [{
         image_url: configuredTrendingImage,
@@ -5728,7 +5767,7 @@ function showWalletInMenu() {
     html += '<div class="flex items-center gap-2 mb-4"><input id="customTopupAmt" type="number" placeholder="Số tiền khác..." class="flex-1 border-2 border-gray-200 rounded-xl px-3 py-2 text-sm focus:border-pink-400 outline-none" oninput="onCustomAmountInput(this.value)"><span class="text-gray-400 text-sm font-semibold">đ</span></div>'
     html += '<div class="bg-white border-2 border-gray-100 rounded-2xl p-4 text-center">'
     html += '<p class="text-sm font-semibold text-gray-700 mb-3"><i class="fas fa-qrcode text-pink-400 mr-1"></i>Quét mã QR để thanh toán</p>'
-    html += '<div class="flex justify-center mb-3"><img id="vietqrImg" src="' + getVietQRUrl(selectedTopupAmount) + '" class="w-48 h-48 object-contain rounded-xl border"></div>'
+    html += '<div class="flex justify-center mb-3"><img id="vietqrImg" src="' + getVietQRUrl(selectedTopupAmount) + '" alt="Mã QR nạp tiền VietQR" class="w-48 h-48 object-contain rounded-xl border"></div>'
     html += '<div class="text-left space-y-2 text-xs">'
     html += '<div class="flex justify-between items-center bg-gray-50 rounded-lg px-3 py-2"><span class="text-gray-500">Ngân hàng</span><span class="font-bold text-gray-800">MB Bank</span></div>'
     html += '<div class="flex justify-between items-center bg-gray-50 rounded-lg px-3 py-2"><span class="text-gray-500">Số TK</span><span class="font-bold text-gray-800">' + BANK_CONFIG.accountNo + ' <i class="fas fa-copy text-gray-400 cursor-pointer ml-1 copy-btn" data-copy="' + BANK_CONFIG.accountNo + '"></i></span></div>'
@@ -5823,11 +5862,54 @@ function getLiveChatProductContext() {
   return null
 }
 
+function isLiveChatPanelOpen() {
+  var panel = document.getElementById('liveChatPanel')
+  return !!panel && !panel.classList.contains('hidden')
+}
+
+function syncLiveChatUnreadBadges() {
+  var count = Number(liveChatUnreadCount || 0)
+  document.querySelectorAll('.live-chat-unread-badge').forEach(function(badge) {
+    if (count > 0) {
+      badge.textContent = count > 99 ? '99+' : String(count)
+      badge.classList.remove('hidden')
+    } else {
+      badge.textContent = '0'
+      badge.classList.add('hidden')
+    }
+  })
+}
+
+function resetLiveChatUnreadCount() {
+  liveChatUnreadCount = 0
+  syncLiveChatUnreadBadges()
+}
+
+function playLiveChatNotificationSound() {
+  if (document.hidden) return
+  try {
+    playTingSound()
+  } catch(e) {}
+}
+
+function notifyLiveChatIncomingMessage(message) {
+  if (!message) return
+  var sender = String(message.sender_type || '')
+  if (sender === 'customer') return
+  if (isLiveChatPanelOpen()) {
+    resetLiveChatUnreadCount()
+    return
+  }
+  liveChatUnreadCount += 1
+  syncLiveChatUnreadBadges()
+  playLiveChatNotificationSound()
+}
+
 function renderLiveChatMessage(message) {
   var list = document.getElementById('liveChatMessages')
-  if (!list || !message) return
+  if (!list || !message) return false
   var messageId = String(message.id || '')
-  if (messageId && liveChatRenderedMessageIds.has(messageId)) return
+  if (messageId && liveChatRenderedMessageIds.has(messageId)) return false
   if (messageId) liveChatRenderedMessageIds.add(messageId)
   var sender = String(message.sender_type || 'admin')
   var type = String(message.message_type || 'text')
@@ -5848,6 +5930,7 @@ function renderLiveChatMessage(message) {
   }
   list.appendChild(bubble)
   list.scrollTop = list.scrollHeight
+  return true
 }
 
 async function loadLiveChatMessages() {
@@ -5873,7 +5956,9 @@ async function pollLiveChatMessages() {
       + (liveChatCustomerToken ? '?token=' + encodeURIComponent(liveChatCustomerToken) : '')
     var res = await axios.get(url)
     var messages = res.data?.data?.messages || []
-    messages.forEach(renderLiveChatMessage)
+    messages.forEach(function(message) {
+      if (renderLiveChatMessage(message)) notifyLiveChatIncomingMessage(message)
+    })
   } catch(e) {}
 }
 
@@ -5902,7 +5987,9 @@ function connectLiveChatSocket() {
     liveChatSocket.onmessage = function(event) {
       try {
         var payload = JSON.parse(event.data)
-        if (payload && payload.message) renderLiveChatMessage(payload.message)
+        if (payload && payload.message && renderLiveChatMessage(payload.message)) {
+          notifyLiveChatIncomingMessage(payload.message)
+        }
       } catch(e) {}
     }
     liveChatSocket.onclose = function() {
@@ -5980,11 +6067,14 @@ async function sendLiveChatProductContext(product) {
 async function openLiveChat() {
   var panel = document.getElementById('liveChatPanel')
   if (panel) panel.classList.remove('hidden')
+  resetLiveChatUnreadCount()
+  if (isStorefrontMobileViewport()) lockStorefrontPageScroll('live-chat')
   updateLiveChatSendButtonState()
   resizeLiveChatTextarea()
   hydrateLiveChatSession()
   var gate = document.getElementById('liveChatPhoneGate')
   if (!currentUser && !liveChatConversationId && gate) gate.classList.remove('hidden')
+  focusLiveChatMobileInput()
   if (liveChatConversationId) {
     liveChatStarted = true
     await loadLiveChatMessages()
@@ -6000,7 +6090,22 @@ async function openLiveChat() {
 function closeLiveChat() {
   var panel = document.getElementById('liveChatPanel')
   if (panel) panel.classList.add('hidden')
+  unlockStorefrontPageScroll('live-chat')
   stopLiveChatPolling()
+}
+
+function focusLiveChatMobileInput() {
+  if (!isStorefrontMobileViewport()) return
+  var gate = document.getElementById('liveChatPhoneGate')
+  var phoneInput = document.getElementById('liveChatGuestPhone')
+  var messageInput = document.getElementById('liveChatInput')
+  var target = gate && !gate.classList.contains('hidden') && phoneInput ? phoneInput : messageInput
+  if (!target || typeof target.focus !== 'function') return
+  try {
+    target.focus({ preventScroll: true })
+  } catch {
+    target.focus()
+  }
 }
 
 async function sendLiveChatMessage() {
@@ -6040,7 +6145,9 @@ function resizeLiveChatTextarea() {
   var input = document.getElementById('liveChatInput')
   if (!input) return
   input.style.height = 'auto'
-  input.style.height = Math.min(input.scrollHeight, 96) + 'px'
+  var nextHeight = Math.min(input.scrollHeight, 96)
+  input.style.height = nextHeight + 'px'
+  input.classList.toggle('is-scrollable', input.scrollHeight > 96)
 }
 
 function handleLiveChatTextareaInput() {
@@ -6165,6 +6272,7 @@ function onLiveChatLauncherScroll() {
 window.addEventListener('scroll', onLiveChatLauncherScroll, { passive: true })
 window.addEventListener('resize', syncLiveChatLauncherExpansion)
 syncLiveChatLauncherExpansion()
+syncLiveChatUnreadBadges()
 
 function renderLiveChatProductPicker() {
   var list = document.getElementById('liveChatProductPickerList')
@@ -6190,7 +6298,7 @@ function renderLiveChatProductPicker() {
     var sold = Number(product.total_sold || 0)
     var stockText = stock > 0 ? fmtSold(stock) + ' có sẵn' : 'còn hàng'
     var image = product.thumbnail
-      ? '<img src="' + escapeHtml(product.thumbnail || '') + '" alt="" onerror="this.outerHTML=\\'<span class=&quot;live-chat-picker-fallback flex items-center justify-center text-pink-500&quot;><i class=&quot;fas fa-shirt&quot;></i></span>\\'">'
+      ? '<img src="' + escapeHtml(product.thumbnail || '') + '" alt="' + escapeHtml(product.name || 'Sản phẩm QH Boypho') + '" onerror="this.outerHTML=\\'<span class=&quot;live-chat-picker-fallback flex items-center justify-center text-pink-500&quot;><i class=&quot;fas fa-shirt&quot;></i></span>\\'">'
       : '<span class="live-chat-picker-fallback flex items-center justify-center text-pink-500"><i class="fas fa-shirt"></i></span>'
     return '<div class="live-chat-picker-item">'
       + image

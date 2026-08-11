@@ -41,7 +41,11 @@ const RUNTIME_CONFIG_KEYS = {
   GHN_DEFAULT_WEIGHT_GRAM: 'ghn_default_weight_gram',
   GHN_DEFAULT_LENGTH_CM: 'ghn_default_length_cm',
   GHN_DEFAULT_WIDTH_CM: 'ghn_default_width_cm',
-  GHN_DEFAULT_HEIGHT_CM: 'ghn_default_height_cm'
+  GHN_DEFAULT_HEIGHT_CM: 'ghn_default_height_cm',
+  NHANH_APP_ID: 'nhanh_app_id',
+  NHANH_SECRET_KEY: 'nhanh_secret_key',
+  NHANH_BUSINESS_ID: 'nhanh_business_id',
+  NHANH_ACCESS_TOKEN: 'nhanh_access_token'
 } as const
 
 type RuntimeConfigKey = keyof typeof RUNTIME_CONFIG_KEYS

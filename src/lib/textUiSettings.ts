@@ -1,6 +1,7 @@
 export type TextUiSettings = {
   quick_order_risk_note_text: string
   product_freeship_badge_enabled: boolean
+  flash_sale_shop_section_enabled: boolean
   hero_badge_text: string
   hero_title_text: string
   hero_typed_text: string
@@ -20,6 +21,7 @@ export const DEFAULT_QUICK_ORDER_RISK_NOTE_TEXT =
 export const DEFAULT_TEXT_UI_SETTINGS: TextUiSettings = {
   quick_order_risk_note_text: DEFAULT_QUICK_ORDER_RISK_NOTE_TEXT,
   product_freeship_badge_enabled: true,
+  flash_sale_shop_section_enabled: true,
   hero_badge_text: 'Bộ sưu tập mới 2026',
   hero_title_text: 'Thời Trang Giới Trẻ',
   hero_typed_text: 'Cho Cả Nam Nữ|Phong Cách Boypho',
@@ -36,6 +38,7 @@ export const DEFAULT_TEXT_UI_SETTINGS: TextUiSettings = {
 export const TEXT_UI_SETTING_KEYS = [
   'quick_order_risk_note_text',
   'product_freeship_badge_enabled',
+  'flash_sale_shop_section_enabled',
   'hero_badge_text',
   'hero_title_text',
   'hero_typed_text',
@@ -72,7 +75,7 @@ export async function readTextUiSettings(db: D1Database): Promise<TextUiSettings
     map.set(String(row.key || ''), String(row.value || '').trim())
   }
   return TEXT_UI_SETTING_KEYS.reduce((settings, key) => {
-    if (key === 'product_freeship_badge_enabled') {
+    if (key === 'product_freeship_badge_enabled' || key === 'flash_sale_shop_section_enabled') {
       settings[key] = readBooleanSetting(map.get(key), DEFAULT_TEXT_UI_SETTINGS[key])
       return settings
     }

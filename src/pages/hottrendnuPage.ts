@@ -2,6 +2,7 @@ import { storefrontStyles } from './storefront/styles'
 import { storefrontThemeRefreshStyles } from './storefront/theme-refresh'
 import { storefrontMobileBottomNavSection, storefrontBodyClose } from './storefront/sections'
 import { storefrontModalsSection } from './storefront/modals'
+import { storefrontLiveChatSection, storefrontLiveChatStyles } from './storefront/live-chat'
 import { storefrontInlineScript } from './storefront/script'
 import { storefrontPurchaseToastScript } from './storefront/script-purchase-toast'
 import autoTypingScript from 'autotyping/dist/AutoTyping.min.js?raw'
@@ -1304,6 +1305,21 @@ body.hottrendnu-page .qhher-promo-sale {
   white-space: nowrap;
 }
 
+.qhher-logo-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.qhher-logo-mark img {
+  width: 2.35rem;
+  height: 2.35rem;
+  border-radius: 999px;
+  object-fit: cover;
+  background: #fff;
+  border: 1px solid var(--htn-border);
+}
+
 .qhher-nav-link {
   color: var(--htn-ink) !important;
   font-size: 14px !important;
@@ -2467,6 +2483,11 @@ body.hottrendnu-page #filterBar.hottrendnu-products-panel {
 .qhher-footer-brand .qhher-logo {
   font-size: 2rem !important;
   line-height: 1 !important;
+}
+
+.qhher-footer-brand .qhher-logo img {
+  width: 2.2rem;
+  height: 2.2rem;
 }
 
 .qhher-footer-brand > p:not(.qhher-logo) {
@@ -5283,8 +5304,7 @@ body.hottrendnu-page #detailActionBarContainer .add-to-cart-btn {
   }
 
   body.hottrendnu-page #detailOverlay #detailGalleryThumbs,
-  body.hottrendnu-page #detailOverlay .favorite-toggle-btn--detail,
-  body.hottrendnu-page #detailOverlay .product-commerce-meta--detail {
+  body.hottrendnu-page #detailOverlay .favorite-toggle-btn--detail {
     display: none;
   }
 
@@ -5492,6 +5512,116 @@ body.hottrendnu-page .qhher-hero-main .qhher-hero-title,
 body.hottrendnu-page[data-storefront-theme='dark'] .qhher-hero-main .qhher-hero-title {
   color: var(--htn-rose) !important;
 }
+
+body.hottrendnu-page .live-chat-launcher {
+  background: linear-gradient(135deg, var(--htn-rose), var(--htn-sale));
+  box-shadow: 0 18px 34px rgba(201, 79, 124, 0.28);
+  border-color: rgba(255, 255, 255, 0.58);
+}
+
+body.hottrendnu-page .live-chat-launcher.is-expanded .live-chat-launcher-icon {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+body.hottrendnu-page .live-chat-panel {
+  border-color: var(--htn-border);
+  background: var(--htn-card);
+  box-shadow: 0 24px 80px rgba(201, 79, 124, 0.2);
+}
+
+body.hottrendnu-page .live-chat-panel > .border-b:first-child {
+  background: linear-gradient(135deg, #3a2b31, var(--htn-rose));
+  border-color: rgba(255, 255, 255, 0.16);
+}
+
+body.hottrendnu-page #liveChatStatus {
+  color: rgba(255, 255, 255, 0.76);
+}
+
+body.hottrendnu-page .live-chat-messages {
+  background: linear-gradient(180deg, #fffafa, var(--htn-surface));
+}
+
+body.hottrendnu-page .live-chat-bubble.customer {
+  background: var(--htn-rose);
+}
+
+body.hottrendnu-page .live-chat-bubble.customer::after {
+  background: var(--htn-rose);
+}
+
+body.hottrendnu-page .live-chat-bubble.admin,
+body.hottrendnu-page .live-chat-bubble.system {
+  background: #f5e8ec;
+  color: var(--htn-text-primary);
+}
+
+body.hottrendnu-page .live-chat-bubble.admin::after,
+body.hottrendnu-page .live-chat-bubble.system::after {
+  background: #f5e8ec;
+}
+
+body.hottrendnu-page #liveChatInput,
+body.hottrendnu-page #liveChatGuestPhone,
+body.hottrendnu-page #liveChatProductSearch {
+  color: var(--htn-text-primary);
+  background: #fff;
+  caret-color: var(--htn-rose);
+}
+
+body.hottrendnu-page #liveChatInput:focus,
+body.hottrendnu-page #liveChatGuestPhone:focus,
+body.hottrendnu-page #liveChatProductSearch:focus {
+  border-color: var(--htn-rose);
+}
+
+body.hottrendnu-page .live-chat-send-btn {
+  background: #3a2b31;
+}
+
+body.hottrendnu-page .live-chat-send-btn.has-text,
+body.hottrendnu-page .live-chat-picker-send {
+  background: linear-gradient(135deg, var(--htn-rose), var(--htn-sale));
+  box-shadow: 0 10px 24px rgba(201, 79, 124, 0.24);
+}
+
+body.hottrendnu-page #liveChatProductButton {
+  color: var(--htn-rose);
+  border-color: var(--htn-border);
+  background: #fff7f8;
+}
+
+body.hottrendnu-page #liveChatProductButton:hover {
+  background: var(--htn-chip);
+}
+
+body.hottrendnu-page .live-chat-product-picker-panel,
+body.hottrendnu-page .live-chat-product-card {
+  border-color: var(--htn-border);
+  background: #fff;
+}
+
+body.hottrendnu-page .live-chat-product-picker::after {
+  border-top-color: #fff;
+}
+
+body.hottrendnu-page .live-chat-picker-price {
+  background: linear-gradient(135deg, var(--htn-rose), var(--htn-sale));
+  -webkit-background-clip: text;
+  background-clip: text;
+}
+
+body.hottrendnu-page .live-chat-picker-item:hover {
+  background: #fff7f8;
+}
+
+body.hottrendnu-page #liveChatPhoneGate button {
+  background: var(--htn-rose);
+}
+
+body.hottrendnu-page #liveChatPhoneGate button:hover {
+  background: var(--htn-rose-hover);
+}
 `
 }
 
@@ -5514,7 +5644,7 @@ function hotTrendNuNavbar(): string {
   <div class="qhher-header-main mx-auto flex max-w-[1280px] items-center justify-between gap-4 px-4">
     <button type="button" onclick="openHotTrendNuCategoryPage(event)" class="qhher-icon-btn md:hidden" aria-label="Mở danh mục"><i class="fas fa-bars" aria-hidden="true"></i></button>
     <a href="/hottrendnu" class="flex items-center gap-3">
-      <span class="qhher-logo">QH Clothes</span>
+      <span class="qhher-logo qhher-logo-mark"><img data-store-logo-img="hottrendnu" src="/qh-logo.png" alt="QH Clothes"><span data-store-logo-text="hottrendnu">Clothes</span></span>
     </a>
     <div class="hidden items-center gap-7 md:flex">
       <a class="qhher-nav-link" href="#bestsellersSection">Hàng mới</a>
@@ -5866,7 +5996,7 @@ function hotTrendNuFooter(): string {
   return `<footer class="qhher-footer" id="contact">
   <div class="qhher-footer-grid">
     <div class="qhher-footer-brand">
-      <p class="qhher-logo">QH Clothes</p>
+      <p class="qhher-logo qhher-logo-mark"><img data-store-logo-img="hottrendnu" src="/qh-logo.png" alt="QH Clothes"><span data-store-logo-text="hottrendnu">Clothes</span></p>
       <p>Thời trang nữ trẻ trung, hiện đại<br>Xinh mỗi ngày - Giá tốt khi mua trực tiếp.</p>
       <div class="qhher-footer-socials">
         <a href="#" aria-label="Facebook"><i class="fab fa-facebook-f"></i></a>
@@ -5937,6 +6067,11 @@ function hotTrendNuMobileBottomNavSection(): string {
       <i class="far fa-heart text-xl"></i>
       <span class="text-[10px] font-medium" style="font-family: 'Be Vietnam Pro', sans-serif;">Yêu thích</span>
     </button>
+    <button onclick="openLiveChat()" id="liveChatBottomNavBtn" class="mobile-bottom-nav-link relative flex flex-col items-center justify-center gap-1 w-16 transition" aria-label="Chat với shop">
+      <i class="fas fa-comments text-xl"></i>
+      <span class="text-[10px] font-medium" style="font-family: 'Be Vietnam Pro', sans-serif;">Chat</span>
+      <span class="live-chat-unread-badge hidden" aria-label="Tin nhắn chưa đọc">0</span>
+    </button>
     <button onclick="openCart()" id="cartBottomNavBtn" class="mobile-bottom-nav-link relative flex flex-col items-center justify-center gap-1 w-16 transition">
       <div class="relative">
         <i class="fas fa-shopping-bag text-xl"></i>
@@ -5988,6 +6123,7 @@ ${storefrontStyles()}
 </style>
 <style>
 ${storefrontThemeRefreshStyles()}
+${storefrontLiveChatStyles()}
 </style>
 <style>
 ${hotTrendNuStyles()}
@@ -6008,6 +6144,7 @@ ${hotTrendNuProducts()}
 ${hotTrendNuFeatures()}
 ${hotTrendNuFooter()}
 <div id="purchaseToastContainer" style="position:fixed;bottom:80px;left:24px;z-index:60;display:flex;flex-direction:column;gap:8px;pointer-events:none;max-width:320px;"></div>
+${storefrontLiveChatSection({ brandName: 'QH Clothes', logoAlt: 'QH Clothes' })}
 ${storefrontModalsSection(options.textUiSettings)}
 ${hotTrendNuMobileBottomNavSection()}
 <script>

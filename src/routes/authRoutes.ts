@@ -2,6 +2,7 @@ import { deleteCookie, getCookie, setCookie } from 'hono/cookie'
 import type { Hono } from 'hono'
 import type { AppBindings } from '../types/app'
 import { generateSecureToken, storeAdminSessionToken, hashPassword, verifyPassword, timingSafeStringEqual } from '../lib/adminHelpers'
+import { ADMIN_PERMISSION_ITEMS, isSuperAdminKey, normalizeAdminPermissionMap, serializeAdminPermissionMap } from '../lib/adminPermissions'
 import { clearUserSessionCookie, getUserSessionUserId, setUserSessionCookie } from '../lib/userSessionHelpers'
 import { getRuntimeConfigValues } from '../lib/runtimeConfigHelpers'
 
@@ -77,6 +78,61 @@ function getGoogleRedirectUri(requestUrl: string, configuredRedirectUri: string)
 
 function normalizeStorefrontUsername(raw: unknown) {
   return String(raw || '').trim().toLowerCase()
+}
+
+type AdminMemberRecord = {
+  id: string
+  name: string
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+function sanitizeAdminMemberName(raw: unknown, fallback: string) {
+  const text = String(raw || '').replace(/[<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, 80)
+  return text || fallback
+}
+
+async function readAdminMembers(db: D1Database, getValue: AuthRouteDeps['getAppSettingValue']): Promise<AdminMemberRecord[]> {
+  const raw = await getValue(db, 'admin_members')
+  try {
+    const parsed = JSON.parse(raw || '[]')
+    if (!Array.isArray(parsed)) return []
+    return parsed.map((item) => {
+      const id = normalizeStorefrontUsername(item?.id).replace(/[^a-z0-9._-]+/g, '')
+      if (!id || id === 'admin') return null
+      const now = new Date().toISOString()
+      return {
+        id,
+        name: sanitizeAdminMemberName(item?.name, id),
+        is_active: item?.is_active !== false,
+        created_at: String(item?.created_at || now),
+        updated_at: String(item?.updated_at || now),
+      }
+    }).filter(Boolean) as AdminMemberRecord[]
+  } catch {
+    return []
+  }
+}
+
+async function writeAdminMembers(db: D1Database, deps: AuthRouteDeps, members: AdminMemberRecord[]) {
+  await deps.upsertAppSettings(db, [{ key: 'admin_members', value: JSON.stringify(members) }])
+}
+
+function isValidAdminMemberId(id: string) {
+  return /^[a-z0-9][a-z0-9._-]{2,31}$/.test(id) && id !== 'admin'
+}
+
+function sanitizeAdminPassword(raw: unknown) {
+  return String(raw || '')
+}
+
+async function requireSuperAdmin(c: any, deps: AuthRouteDeps) {
+  const adminUserKey = deps.normalizeAdminUserKey(getCookie(c, 'admin_user_key') || 'admin')
+  if (!isSuperAdminKey(adminUserKey)) {
+    return { ok: false, response: c.json({ success: false, error: 'FORBIDDEN_SUPER_ADMIN_ONLY' }, 403) }
+  }
+  return { ok: true, adminUserKey }
 }
 
 function isValidStorefrontUsername(username: string) {
@@ -448,6 +504,137 @@ export function registerAuthRoutes(app: Hono<{ Bindings: AppBindings }>, deps: A
     })
   })
 
+  app.get('/api/admin/members/permission-items', async (c) => {
+    const guard = await requireSuperAdmin(c, deps)
+    if (!guard.ok) return guard.response
+    return c.json({ success: true, data: ADMIN_PERMISSION_ITEMS })
+  })
+
+  app.get('/api/admin/members', async (c) => {
+    try {
+      await deps.initDB(c.env.DB)
+      const guard = await requireSuperAdmin(c, deps)
+      if (!guard.ok) return guard.response
+      const members = await readAdminMembers(c.env.DB, deps.getAppSettingValue)
+      const data = await Promise.all(members.map(async (member) => ({
+        ...member,
+        permissions: normalizeAdminPermissionMap(await deps.getAppSettingValue(c.env.DB, `admin_permissions_${member.id}`), false),
+      })))
+      return c.json({ success: true, data })
+    } catch (e: any) {
+      return c.json({ success: false, error: e.message }, 500)
+    }
+  })
+
+  app.post('/api/admin/members', async (c) => {
+    try {
+      await deps.initDB(c.env.DB)
+      const guard = await requireSuperAdmin(c, deps)
+      if (!guard.ok) return guard.response
+      const body: any = await c.req.json().catch(() => ({}))
+      const id = deps.normalizeAdminUserKey(body.id)
+      const password = sanitizeAdminPassword(body.password)
+      if (!isValidAdminMemberId(id)) return c.json({ success: false, error: 'INVALID_MEMBER_ID' }, 400)
+      if (password.length < 6 || password.length > 64) return c.json({ success: false, error: 'PASSWORD_LENGTH_INVALID' }, 400)
+      const members = await readAdminMembers(c.env.DB, deps.getAppSettingValue)
+      if (members.some((member) => member.id === id)) return c.json({ success: false, error: 'MEMBER_EXISTS' }, 409)
+      const existingPassword = await deps.getAppSettingValue(c.env.DB, `admin_password_${id}`)
+      if (existingPassword) return c.json({ success: false, error: 'MEMBER_EXISTS' }, 409)
+      const now = new Date().toISOString()
+      const member: AdminMemberRecord = {
+        id,
+        name: sanitizeAdminMemberName(body.name, id),
+        is_active: true,
+        created_at: now,
+        updated_at: now,
+      }
+      const hashedPassword = await hashPassword(password)
+      await deps.upsertAppSettings(c.env.DB, [
+        { key: `admin_password_${id}`, value: hashedPassword },
+        { key: `admin_permissions_${id}`, value: serializeAdminPermissionMap(body.permissions || {}) },
+      ])
+      await writeAdminMembers(c.env.DB, deps, [...members, member])
+      return c.json({ success: true, data: { ...member, permissions: normalizeAdminPermissionMap(body.permissions || {}, false) } })
+    } catch (e: any) {
+      return c.json({ success: false, error: e.message }, 500)
+    }
+  })
+
+  app.put('/api/admin/members/:id', async (c) => {
+    try {
+      await deps.initDB(c.env.DB)
+      const guard = await requireSuperAdmin(c, deps)
+      if (!guard.ok) return guard.response
+      const id = deps.normalizeAdminUserKey(c.req.param('id'))
+      const body: any = await c.req.json().catch(() => ({}))
+      const members = await readAdminMembers(c.env.DB, deps.getAppSettingValue)
+      const idx = members.findIndex((member) => member.id === id)
+      if (idx < 0) return c.json({ success: false, error: 'MEMBER_NOT_FOUND' }, 404)
+      members[idx] = {
+        ...members[idx],
+        name: sanitizeAdminMemberName(body.name, members[idx].name || id),
+        is_active: body.is_active !== false,
+        updated_at: new Date().toISOString(),
+      }
+      await writeAdminMembers(c.env.DB, deps, members)
+      return c.json({ success: true, data: members[idx] })
+    } catch (e: any) {
+      return c.json({ success: false, error: e.message }, 500)
+    }
+  })
+
+  app.put('/api/admin/members/:id/password', async (c) => {
+    try {
+      await deps.initDB(c.env.DB)
+      const guard = await requireSuperAdmin(c, deps)
+      if (!guard.ok) return guard.response
+      const id = deps.normalizeAdminUserKey(c.req.param('id'))
+      const body: any = await c.req.json().catch(() => ({}))
+      const password = sanitizeAdminPassword(body.password)
+      if (!isValidAdminMemberId(id)) return c.json({ success: false, error: 'INVALID_MEMBER_ID' }, 400)
+      if (password.length < 6 || password.length > 64) return c.json({ success: false, error: 'PASSWORD_LENGTH_INVALID' }, 400)
+      const members = await readAdminMembers(c.env.DB, deps.getAppSettingValue)
+      if (!members.some((member) => member.id === id)) return c.json({ success: false, error: 'MEMBER_NOT_FOUND' }, 404)
+      const hashedPassword = await hashPassword(password)
+      await deps.upsertAppSettings(c.env.DB, [{ key: `admin_password_${id}`, value: hashedPassword }])
+      return c.json({ success: true })
+    } catch (e: any) {
+      return c.json({ success: false, error: e.message }, 500)
+    }
+  })
+
+  app.get('/api/admin/members/:id/permissions', async (c) => {
+    try {
+      await deps.initDB(c.env.DB)
+      const guard = await requireSuperAdmin(c, deps)
+      if (!guard.ok) return guard.response
+      const id = deps.normalizeAdminUserKey(c.req.param('id'))
+      const members = await readAdminMembers(c.env.DB, deps.getAppSettingValue)
+      if (!members.some((member) => member.id === id)) return c.json({ success: false, error: 'MEMBER_NOT_FOUND' }, 404)
+      const permissions = normalizeAdminPermissionMap(await deps.getAppSettingValue(c.env.DB, `admin_permissions_${id}`), false)
+      return c.json({ success: true, data: permissions })
+    } catch (e: any) {
+      return c.json({ success: false, error: e.message }, 500)
+    }
+  })
+
+  app.put('/api/admin/members/:id/permissions', async (c) => {
+    try {
+      await deps.initDB(c.env.DB)
+      const guard = await requireSuperAdmin(c, deps)
+      if (!guard.ok) return guard.response
+      const id = deps.normalizeAdminUserKey(c.req.param('id'))
+      const body: any = await c.req.json().catch(() => ({}))
+      const members = await readAdminMembers(c.env.DB, deps.getAppSettingValue)
+      if (!members.some((member) => member.id === id)) return c.json({ success: false, error: 'MEMBER_NOT_FOUND' }, 404)
+      const value = serializeAdminPermissionMap(body.permissions || body)
+      await deps.upsertAppSettings(c.env.DB, [{ key: `admin_permissions_${id}`, value }])
+      return c.json({ success: true, data: normalizeAdminPermissionMap(value, false) })
+    } catch (e: any) {
+      return c.json({ success: false, error: e.message }, 500)
+    }
+  })
+
   app.get('/api/admin/profile', async (c) => {
     try {
       await deps.initDB(c.env.DB)
@@ -536,6 +723,14 @@ export function registerAuthRoutes(app: Hono<{ Bindings: AppBindings }>, deps: A
       if (expectedPassword) console.error('[auth] legacy plaintext admin password rejected during login')
       await recordAdminLoginFailure(c.env.DB, attemptKey, now)
       return c.json({ success: false, error: 'Invalid credentials' }, 401)
+    }
+    if (!isSuperAdminKey(adminKey)) {
+      const members = await readAdminMembers(c.env.DB, deps.getAppSettingValue)
+      const member = members.find((item) => item.id === adminKey)
+      if (!member || member.is_active === false) {
+        await recordAdminLoginFailure(c.env.DB, attemptKey, now)
+        return c.json({ success: false, error: 'Invalid credentials' }, 401)
+      }
     }
     const isMatch = await verifyPassword(password, expectedPassword)
     if (!isMatch) {

@@ -14,7 +14,7 @@ function escapeAdminHtml(value: unknown): string {
 }
 
 export function adminBodyOpen(): string {
-  return "<body class=\"bg-gray-50 flex\">"
+  return "<body class=\"bg-gray-50 flex\" data-admin-permission-ready=\"0\">"
 }
 
 export function adminMobileMenuToggle(): string {
@@ -28,13 +28,16 @@ export function adminSidebarOverlay(): string {
 export function adminSidebarSection(): string {
   return `<!-- SIDEBAR -->
 <aside id="sidebar" data-sidebar-state="expanded" class="sidebar w-64 min-h-screen fixed left-0 top-0 z-40 transform -translate-x-full md:translate-x-0 transition-transform duration-300 flex flex-col">
-  <div class="p-6 border-b border-white/10">
+  <div class="p-6 border-b border-white/10 sidebar-brand-area">
     <div class="flex items-center gap-3 sidebar-brand-shell">
-      <span class="inline-flex items-center justify-center sidebar-brand-logo"><img src="/qh-logo.png" alt="QH Boypho" class="rounded-full w-9 h-9 object-cover bg-white"></span>
+      <span class="inline-flex items-center justify-center sidebar-brand-logo"><img id="adminSidebarLogoImg" src="/qh-logo.png" alt="QH Boypho" class="rounded-full w-9 h-9 object-cover bg-white"></span>
       <div class="sidebar-brand-copy">
-        <p class="text-white font-bold text-lg leading-tight"><span class="text-pink-400">Boypho</span></p>
-        <p class="text-gray-400 text-xs">Admin Panel</p>
+        <p class="text-white font-bold text-lg leading-tight"><span id="adminSidebarBrandName" class="text-pink-400">Boypho</span></p>
+        <p id="adminSidebarPanelLabel" class="text-gray-400 text-xs">Admin Panel</p>
       </div>
+      <button type="button" id="sidebarDesktopToggle" onclick="toggleDesktopSidebar()" class="sidebar-toggle-desktop hidden md:inline-flex items-center justify-center" title="Thu gọn sidebar" aria-label="Thu gọn sidebar" aria-expanded="true">
+        <span class="admin-sidebar-panel-icon" aria-hidden="true"></span>
+      </button>
     </div>
   </div>
   
@@ -59,15 +62,14 @@ export function adminSidebarSection(): string {
       <i class="fas fa-clipboard-list w-5"></i><span class="sidebar-label">Đơn hàng</span>
       <span id="pendingBadge" class="sidebar-badge ml-auto bg-pink-500 text-white text-xs rounded-full px-2 py-0.5 hidden"></span>
     </button>
+    <button class="nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium" data-page="marketplaces" onclick="showPage('marketplaces')">
+      <i class="fas fa-store w-5"></i><span class="sidebar-label">Sàn TMĐT</span>
+    </button>
     <button class="nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium" data-page="returns" onclick="showPage('returns')">
       <i class="fas fa-undo w-5"></i><span class="sidebar-label">Quản lý hoàn trả</span>
     </button>
     <button class="nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium" data-page="customers" onclick="showPage('customers')">
       <i class="fas fa-users w-5"></i><span class="sidebar-label">Khách hàng</span>
-    </button>
-    <button class="nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium" data-page="live-chat" onclick="showPage('live-chat')">
-      <i class="fas fa-comments w-5"></i><span class="sidebar-label">Live chat</span>
-      <span id="liveChatAdminBadge" class="sidebar-badge ml-auto bg-pink-500 text-white text-xs rounded-full px-2 py-0.5 hidden"></span>
     </button>
     <button class="nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium" data-page="vouchers" onclick="showPage('vouchers')">
       <i class="fas fa-ticket-alt w-5"></i><span class="sidebar-label">Khuyến mãi</span>
@@ -90,6 +92,9 @@ export function adminSidebarSection(): string {
     </button>
     <button class="nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium" data-page="backup" onclick="showPage('backup')">
       <i class="fas fa-database w-5"></i><span class="sidebar-label">Dữ liệu</span>
+    </button>
+    <button class="nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium" data-page="members" onclick="showPage('members')">
+      <i class="fas fa-user-gear w-5"></i><span class="sidebar-label">Thành viên</span>
     </button>
     <button id="settingsMenuBtn" class="nav-item w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-gray-300 text-sm font-medium" onclick="toggleSettingsMenu()">
       <i class="fas fa-gear w-5"></i>
@@ -121,7 +126,7 @@ export function adminMainContentStart(): string {
   <header class="bg-white border-b px-6 py-4 flex items-center justify-between sticky top-0 z-[45] shadow-sm">
     <div class="flex items-center gap-3 min-w-0 flex-1">
       <button id="menuToggle" type="button" onclick="toggleSidebar()" aria-label="Mở menu quản trị" aria-expanded="false" class="sidebar-mobile-toggle z-[70] md:hidden text-gray-700">
-        <i id="menuToggleIcon" class="fas fa-bars text-gray-700"></i>
+        <span id="menuToggleIcon" class="admin-sidebar-panel-icon" aria-hidden="true"></span>
       </button>
       <h1 id="pageTitle" class="text-lg font-bold text-gray-800 shrink-0">Dashboard</h1>
       <div id="ordersHeaderSearch" class="orders-header-search hidden">
@@ -137,12 +142,10 @@ export function adminMainContentStart(): string {
       <button type="button" id="adminInstallAppButton" onclick="installAdminPwa()" class="hidden admin-install-app-btn items-center justify-center gap-2 rounded-xl border border-pink-100 bg-pink-50 px-3 py-2 text-xs font-bold text-pink-600 shadow-sm hover:bg-pink-100 transition" title="Cài dashboard như app">
         <i class="fas fa-mobile-screen-button"></i><span class="hidden sm:inline">Cài app</span>
       </button>
-      <button type="button" id="adminOrderNotifyButton" onclick="enableAdminOrderNotifications()" class="inline-flex items-center justify-center gap-2 w-10 h-10 lg:w-auto lg:px-3 rounded-xl border border-gray-200 bg-white text-gray-500 shadow-sm hover:text-pink-600 hover:border-pink-200 hover:bg-pink-50 transition" title="Bật thông báo đơn mới" aria-label="Bật thông báo đơn mới">
-        <i id="adminOrderNotifyIcon" class="fas fa-bell text-sm"></i>
-        <span id="adminOrderNotifyLabel" class="hidden lg:inline text-xs font-bold whitespace-nowrap leading-none">Thông báo</span>
-      </button>
-      <button type="button" id="sidebarDesktopToggle" onclick="toggleDesktopSidebar()" class="sidebar-toggle-desktop hidden md:inline-flex items-center justify-center w-10 h-10 rounded-xl border border-gray-200 text-gray-600 hover:text-pink-600 hover:border-pink-200 transition" title="Thu gọn sidebar">
-        <i class="fas fa-bars-staggered"></i>
+      <button type="button" id="adminLiveChatTopButton" onclick="showPage('live-chat')" class="relative inline-flex items-center justify-center gap-2 w-10 h-10 lg:w-auto lg:px-3 rounded-xl border border-pink-100 bg-pink-50 text-pink-600 shadow-sm hover:bg-pink-100 transition" title="Live chat" aria-label="Mở live chat">
+        <i class="fas fa-comments text-sm"></i>
+        <span class="hidden lg:inline text-xs font-bold whitespace-nowrap leading-none">Live chat</span>
+        <span id="liveChatAdminTopBadge" class="absolute -top-1 -right-1 bg-pink-500 text-white text-[10px] rounded-full min-w-4 h-4 px-1 hidden items-center justify-center font-bold"></span>
       </button>
       <div id="adminAvatarMenuRoot" class="relative z-[49]">
         <button id="adminAvatarMenuTrigger" type="button" onclick="toggleAdminAvatarMenu(event)" title="Tài khoản quản trị" class="w-auto max-w-[260px] rounded-full bg-gray-900 text-white pl-1.5 pr-3 py-1.5 flex items-center gap-2 shadow-sm hover:bg-gray-800 transition">
@@ -770,6 +773,22 @@ export function adminTextUiSettingsPage(): string {
       </div>
     </section>
 
+    <section class="mb-5 rounded-3xl border border-gray-200 bg-white p-5 md:p-6 shadow-sm">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div class="min-w-0">
+          <p class="text-xs font-bold uppercase tracking-[0.18em] text-rose-500">Flash Sale</p>
+          <h3 class="mt-1 text-xl font-extrabold text-gray-900">Block Flash Sale của shop</h3>
+          <p class="mt-1 text-sm text-gray-500">Bật/tắt block “Săn deal chớp nhoáng” ngoài storefront khi có sản phẩm flash sale.</p>
+        </div>
+        <label class="inline-flex w-full items-center justify-between gap-4 rounded-2xl border border-rose-100 bg-rose-50 px-4 py-3 md:w-auto">
+          <span class="inline-flex items-center gap-2 text-sm font-bold text-rose-700">
+            <i class="fas fa-bolt"></i>Hiện block
+          </span>
+          <input id="flashSaleShopSectionEnabled" data-setting-key="flash_sale_shop_section_enabled" type="checkbox" checked class="h-5 w-5 rounded border-rose-200 text-pink-500 focus:ring-pink-300">
+        </label>
+      </div>
+    </section>
+
     <div class="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
       <section class="rounded-3xl border border-gray-200 bg-white p-5 md:p-6 shadow-sm">
         <div class="flex items-start justify-between gap-3 mb-5">
@@ -893,6 +912,55 @@ export function adminImageSettingsPage(): string {
         </div>
       </section>
 
+      <section class="rounded-3xl border border-gray-200 bg-white p-5 md:p-6 shadow-sm">
+        <div class="flex items-start justify-between gap-3 mb-5">
+          <div>
+            <p class="text-xs font-bold uppercase tracking-[0.18em] text-pink-500">Logo cửa hàng</p>
+            <h3 class="mt-1 text-xl font-extrabold text-gray-900">Nav và footer</h3>
+            <p class="mt-1 text-sm text-gray-500">Thay logo một lần, frontend sẽ áp dụng cho cả thanh nav và footer.</p>
+          </div>
+          <span class="hidden sm:inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-pink-50 text-pink-500">
+            <i class="fas fa-store"></i>
+          </span>
+        </div>
+        <div class="grid gap-4">
+          <div class="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+            <div class="flex items-start gap-4">
+              <label for="boyphoStoreLogoImageFile" class="group relative flex h-20 w-20 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-gray-200 bg-white transition hover:border-pink-300 hover:bg-pink-50/40">
+                <img id="boyphoStoreLogoImagePreview" src="" alt="" class="hidden h-full w-full object-cover">
+                <span id="boyphoStoreLogoImagePlaceholder" class="flex h-full w-full items-center justify-center text-pink-500"><i class="fas fa-cloud-arrow-up"></i></span>
+                <input id="boyphoStoreLogoImageFile" type="file" accept="image/*" class="hidden" onchange="uploadStoreLogoImage(this, 'boyphoStoreLogoImage')">
+              </label>
+              <div class="min-w-0 flex-1">
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">Logo QH Boypho</label>
+                <input id="boyphoStoreLogoImageUrl" type="text" placeholder="/media/settings/..." oninput="previewImageSetting('boyphoStoreLogoImage')" class="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm outline-none focus:border-pink-400 focus:ring-4 focus:ring-pink-100">
+                <div class="mt-2 flex flex-wrap gap-2">
+                  <button type="button" onclick="document.getElementById('boyphoStoreLogoImageFile').click()" class="inline-flex items-center gap-2 rounded-xl bg-pink-600 px-3 py-2 text-xs font-bold text-white hover:bg-pink-700 transition"><i class="fas fa-upload"></i>Upload</button>
+                  <button type="button" onclick="clearImageSetting('boyphoStoreLogoImage')" class="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3 py-2 text-xs font-bold text-gray-600 hover:bg-gray-50 transition"><i class="fas fa-trash"></i>Xóa</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="rounded-2xl border border-gray-100 bg-[#FFF7F8] p-4">
+            <div class="flex items-start gap-4">
+              <label for="hottrendnuStoreLogoImageFile" class="group relative flex h-20 w-20 shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 border-dashed border-[#F3DDE4] bg-white transition hover:border-[#C94F7C] hover:bg-[#FFF7F8]">
+                <img id="hottrendnuStoreLogoImagePreview" src="" alt="" class="hidden h-full w-full object-cover">
+                <span id="hottrendnuStoreLogoImagePlaceholder" class="flex h-full w-full items-center justify-center text-[#C94F7C]"><i class="fas fa-cloud-arrow-up"></i></span>
+                <input id="hottrendnuStoreLogoImageFile" type="file" accept="image/*" class="hidden" onchange="uploadStoreLogoImage(this, 'hottrendnuStoreLogoImage')">
+              </label>
+              <div class="min-w-0 flex-1">
+                <label class="block text-sm font-semibold text-gray-700 mb-1.5">Logo Clothes</label>
+                <input id="hottrendnuStoreLogoImageUrl" type="text" placeholder="/media/settings/..." oninput="previewImageSetting('hottrendnuStoreLogoImage')" class="w-full rounded-2xl border border-[#F3DDE4] bg-white px-4 py-3 text-sm outline-none focus:border-[#C94F7C] focus:ring-4 focus:ring-[#FDE5EC]">
+                <div class="mt-2 flex flex-wrap gap-2">
+                  <button type="button" onclick="document.getElementById('hottrendnuStoreLogoImageFile').click()" class="inline-flex items-center gap-2 rounded-xl bg-[#C94F7C] px-3 py-2 text-xs font-bold text-white hover:bg-[#B83F6D] transition"><i class="fas fa-upload"></i>Upload</button>
+                  <button type="button" onclick="clearImageSetting('hottrendnuStoreLogoImage')" class="inline-flex items-center gap-2 rounded-xl border border-[#F3DDE4] bg-white px-3 py-2 text-xs font-bold text-gray-600 hover:bg-white transition"><i class="fas fa-trash"></i>Xóa</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section class="rounded-3xl border border-dashed border-gray-200 bg-white p-5 md:p-6 shadow-sm">
         <div class="flex items-center gap-3 mb-4">
           <span class="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-100 text-slate-600"><i class="fas fa-plus"></i></span>
@@ -916,6 +984,44 @@ export function adminImageSettingsPage(): string {
           </div>
         </div>
       </section>
+    </div>
+  </div>`
+}
+
+export function adminMembersPage(): string {
+  return `<!-- MEMBERS PAGE -->
+  <div id="page-members" class="p-3 md:p-6 hidden">
+    <div class="mb-5 flex flex-col gap-3 rounded-3xl border border-gray-200 bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between md:p-5">
+      <div>
+        <p class="text-xs font-bold uppercase tracking-[0.18em] text-pink-500">Bảo mật quản trị</p>
+        <h2 class="mt-1 text-xl font-extrabold text-gray-900">Thành viên ban quản trị</h2>
+        <p class="mt-1 text-sm text-gray-500">Tạo tài khoản riêng và phân quyền theo từng mục sidebar.</p>
+      </div>
+      <button type="button" onclick="openAdminMemberAccountModal()" class="btn-pink inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-extrabold text-white shadow-sm">
+        <i class="fas fa-user-plus"></i>Thêm thành viên
+      </button>
+    </div>
+    <div class="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
+      <div class="hidden overflow-x-auto md:block">
+        <table class="w-full min-w-[760px] text-sm">
+          <thead>
+            <tr class="border-b bg-gray-50 text-gray-600">
+              <th class="px-5 py-3 text-left font-bold">Thành viên</th>
+              <th class="px-5 py-3 text-left font-bold">ID đăng nhập</th>
+              <th class="px-5 py-3 text-left font-bold">Quyền</th>
+              <th class="px-5 py-3 text-center font-bold">Trạng thái</th>
+              <th class="px-5 py-3 text-right font-bold">Hành động</th>
+            </tr>
+          </thead>
+          <tbody id="adminMembersTable"></tbody>
+        </table>
+      </div>
+      <div id="adminMembersMobileList" class="divide-y divide-gray-100 md:hidden"></div>
+      <div id="adminMembersEmpty" class="hidden py-14 text-center text-gray-400">
+        <i class="fas fa-user-shield mb-3 text-4xl"></i>
+        <p class="font-semibold text-gray-600">Chưa có thành viên nào</p>
+        <p class="mt-1 text-sm">Bấm Thêm thành viên để tạo tài khoản quản trị phụ.</p>
+      </div>
     </div>
   </div>`
 }
@@ -953,9 +1059,15 @@ export function adminNotificationSettingsPage(): string {
           <h2 class="mt-4 text-2xl md:text-3xl font-extrabold tracking-tight">Quản lý thông báo chạy trên storefront</h2>
           <p class="mt-2 max-w-4xl text-sm leading-relaxed text-slate-200">Tuỳ chỉnh thông báo đầu trang, chọn chạy marquee hoặc hiển thị tĩnh và xem preview trực tiếp trước khi lưu.</p>
         </div>
-        <button id="saveNotificationSettingsBtn" onclick="saveNotificationSettings()" class="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-bold text-rose-700 shadow-lg shadow-black/20 hover:bg-pink-50 transition">
-          <i class="fas fa-save text-pink-500"></i>Lưu thông báo
-        </button>
+        <div class="flex flex-col sm:flex-row gap-2">
+          <button type="button" id="adminOrderNotifySettingsButton" onclick="enableAdminOrderNotifications()" class="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/20 bg-white/10 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-black/10 hover:bg-white/15 transition" title="Bật thông báo đơn mới" aria-label="Bật thông báo đơn mới">
+            <i id="adminOrderNotifyIcon" class="fas fa-bell text-sm"></i>
+            <span id="adminOrderNotifyLabel">Thông báo đơn</span>
+          </button>
+          <button id="saveNotificationSettingsBtn" onclick="saveNotificationSettings()" class="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-bold text-rose-700 shadow-lg shadow-black/20 hover:bg-pink-50 transition">
+            <i class="fas fa-save text-pink-500"></i>Lưu thông báo
+          </button>
+        </div>
       </div>
     </div>
 
@@ -1098,6 +1210,64 @@ export function adminNotificationSettingsPage(): string {
       <div class="min-w-0 rounded-3xl border border-gray-200 bg-white p-4 shadow-sm">
         <span class="inline-flex rounded-full bg-orange-50 px-3 py-1.5 text-xs font-bold text-orange-700">Có fallback an toàn</span>
         <p class="mt-3 text-sm font-medium leading-relaxed text-slate-600">Nếu nội dung trống, hệ thống dùng thông báo mặc định để tránh thanh trống.</p>
+      </div>
+    </div>
+  </div>`
+}
+
+export function adminAdminUiSettingsPage(): string {
+  return `<!-- ADMIN UI SETTINGS PAGE -->
+  <div id="page-settings-admin-ui" class="p-3 md:p-6 hidden">
+    <div class="overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-sm">
+      <div class="border-b border-gray-100 bg-gradient-to-r from-slate-950 via-slate-900 to-pink-950 px-5 py-5 text-white md:px-6">
+        <div class="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p class="text-xs font-bold uppercase tracking-[0.2em] text-pink-200">Trang quản trị</p>
+            <h2 class="mt-1 text-xl font-extrabold tracking-tight md:text-2xl">Tên hiển thị dashboard</h2>
+            <p class="mt-1 text-sm text-slate-300">Đổi tên xuất hiện ở màn đăng nhập, sidebar và title quản trị.</p>
+          </div>
+          <span class="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 text-pink-200 ring-1 ring-white/10">
+            <i class="fas fa-id-card-clip text-lg"></i>
+          </span>
+        </div>
+      </div>
+      <div class="grid gap-5 p-4 md:grid-cols-[1fr_0.8fr] md:p-6">
+        <section class="rounded-2xl border border-gray-200 bg-gray-50 p-4">
+          <div class="grid gap-4">
+            <div>
+              <label class="mb-1.5 block text-sm font-bold text-gray-800">Tên trang</label>
+              <input id="adminUiBrandName" type="text" maxlength="40" placeholder="Boypho" oninput="previewAdminUiSettings()" class="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-900 outline-none transition focus:border-pink-400 focus:ring-4 focus:ring-pink-100">
+              <p class="mt-1.5 text-xs text-gray-500">Ví dụ: Boypho. Hệ thống sẽ tự hiển thị dạng đầy đủ là QH Boypho nếu cần.</p>
+            </div>
+            <div>
+              <label class="mb-1.5 block text-sm font-bold text-gray-800">Dòng phụ</label>
+              <input id="adminUiPanelLabel" type="text" maxlength="80" placeholder="Admin Panel" oninput="previewAdminUiSettings()" class="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-gray-900 outline-none transition focus:border-pink-400 focus:ring-4 focus:ring-pink-100">
+            </div>
+          </div>
+          <div class="mt-5 flex justify-end">
+            <button id="saveAdminUiSettingsBtn" type="button" onclick="saveAdminUiSettings()" class="btn-pink inline-flex items-center gap-2 rounded-2xl px-5 py-3 text-sm font-extrabold text-white shadow-lg shadow-pink-500/20">
+              <i class="fas fa-save"></i>Lưu Trang quản trị
+            </button>
+          </div>
+        </section>
+        <section class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+          <p class="mb-3 text-sm font-extrabold text-gray-900">Preview</p>
+          <div class="rounded-3xl bg-slate-950 p-5 text-white">
+            <div class="flex items-center gap-3">
+              <span class="inline-flex h-12 w-12 items-center justify-center rounded-full bg-white p-1 shadow-lg shadow-pink-500/20">
+                <img src="/qh-logo.png" alt="QH Boypho" class="h-full w-full rounded-full object-cover">
+              </span>
+              <div class="min-w-0">
+                <p id="adminUiPreviewFullName" class="truncate text-lg font-extrabold">QH Boypho</p>
+                <p id="adminUiPreviewPanelLabel" class="truncate text-xs font-semibold text-slate-400">Admin Panel</p>
+              </div>
+            </div>
+            <div class="mt-5 rounded-2xl border border-white/10 bg-white/5 p-4">
+              <p class="text-xs font-bold uppercase tracking-[0.18em] text-pink-200">Login</p>
+              <p id="adminUiPreviewBrandName" class="mt-2 text-3xl font-extrabold text-pink-400">Boypho</p>
+            </div>
+          </div>
+        </section>
       </div>
     </div>
   </div>`
@@ -1317,11 +1487,179 @@ export function adminCustomersPage(): string {
   </div>`
 }
 
+export function adminMarketplacesPage(): string {
+  return `<!-- MARKETPLACES PAGE -->
+  <div id="page-marketplaces" class="p-3 md:p-6 hidden">
+    <style>
+      #page-marketplaces .marketplace-tab { display:inline-flex; align-items:center; justify-content:center; border-radius:999px; border:1px solid #e5e7eb; background:#fff; color:#475569; font-size:13px; font-weight:800; padding:.55rem .9rem; white-space:nowrap; transition:all .2s ease; }
+      #page-marketplaces .marketplace-tab:hover { border-color:#f9a8d4; color:#e84393; background:#fdf2f8; }
+      #page-marketplaces .marketplace-tab.is-active { border-color:transparent; background:linear-gradient(135deg,#e84393,#c0392b); color:#fff; box-shadow:0 14px 28px rgba(232,67,147,.16); }
+      #page-marketplaces .marketplace-select,
+      #page-marketplaces .marketplace-date { border-radius:999px; border:1px solid #e5e7eb; background:#fff; color:#374151; font-size:13px; font-weight:800; padding:.55rem .9rem; outline:none; transition:all .2s ease; min-height:2.5rem; }
+      #page-marketplaces .marketplace-select { padding-right:2rem; min-width:14rem; }
+      #page-marketplaces .marketplace-date { min-width:10.5rem; }
+      #page-marketplaces .marketplace-date-nav { width:2.5rem; height:2.5rem; display:inline-flex; align-items:center; justify-content:center; border-radius:999px; border:1px solid #e5e7eb; background:#fff; color:#64748b; transition:all .2s ease; }
+      #page-marketplaces .marketplace-date-nav.marketplace-date-today { width:auto; padding-inline:.85rem; }
+      #page-marketplaces .marketplace-date-nav:hover { border-color:#f9a8d4; color:#e84393; background:#fdf2f8; }
+      #page-marketplaces .marketplace-select:focus { border-color:#f9a8d4; box-shadow:0 0 0 4px rgba(232,67,147,.1); }
+      #page-marketplaces .marketplace-date:focus { border-color:#f9a8d4; box-shadow:0 0 0 4px rgba(232,67,147,.1); }
+      #page-marketplaces .marketplace-platform-badge { display:inline-flex; align-items:center; border-radius:999px; padding:.25rem .55rem; font-size:11px; font-weight:900; }
+      #page-marketplaces .marketplace-platform-badge.tiktok { background:#111827; color:#fff; }
+      #page-marketplaces .marketplace-platform-badge.shopee { background:#fff1f2; color:#f97316; }
+      #page-marketplaces .marketplace-platform-badge.other { background:#f1f5f9; color:#475569; }
+    </style>
+    <div class="grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
+      <section class="space-y-4 min-w-0">
+        <div class="rounded-2xl border border-pink-100 bg-white p-4 shadow-sm">
+          <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div class="min-w-0">
+              <p class="text-xs font-extrabold uppercase tracking-[0.18em] text-pink-500">Nhanh.vn API</p>
+              <h2 class="mt-1 text-xl font-extrabold text-gray-900">Đơn từ sàn TMĐT</h2>
+              <p id="marketplaceConfigStatus" class="mt-1 text-sm text-gray-500">Đang kiểm tra cấu hình...</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <button type="button" onclick="loadMarketplaceOrders()" class="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-bold text-gray-700 hover:bg-gray-50">
+                <i class="fas fa-rotate"></i>Tải lại
+              </button>
+              <a id="marketplaceOauthLink" href="#" target="_blank" class="inline-flex items-center gap-2 rounded-xl bg-gray-900 px-4 py-2 text-sm font-bold text-white hover:bg-pink-600">
+                <i class="fas fa-plug"></i>Cấp quyền
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+          <div class="rounded-2xl border bg-white p-4 shadow-sm"><p class="text-xs font-bold text-gray-400">Tổng fetch</p><p id="marketplaceStatTotal" class="mt-1 text-2xl font-extrabold text-gray-900">0</p></div>
+          <div class="rounded-2xl border bg-white p-4 shadow-sm"><p class="text-xs font-bold text-gray-400">TikTok</p><p id="marketplaceStatTiktok" class="mt-1 text-2xl font-extrabold text-gray-900">0</p></div>
+          <div class="rounded-2xl border bg-white p-4 shadow-sm"><p class="text-xs font-bold text-gray-400">Shopee</p><p id="marketplaceStatShopee" class="mt-1 text-2xl font-extrabold text-gray-900">0</p></div>
+          <div class="rounded-2xl border bg-white p-4 shadow-sm"><p class="text-xs font-bold text-gray-400">Hoàn trả</p><p id="marketplaceStatReturns" class="mt-1 text-2xl font-extrabold text-amber-600">0</p></div>
+          <div class="rounded-2xl border bg-white p-4 shadow-sm"><p class="text-xs font-bold text-gray-400">Đã huỷ</p><p id="marketplaceStatCancelled" class="mt-1 text-2xl font-extrabold text-red-500">0</p></div>
+        </div>
+
+        <div class="rounded-2xl border bg-white p-3 shadow-sm">
+          <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <div id="marketplaceChannelTabs" class="flex gap-2 overflow-x-auto pb-1">
+              <button type="button" onclick="setMarketplaceChannel('all')" data-marketplace-channel="all" class="marketplace-tab is-active">Tất cả</button>
+              <button type="button" onclick="setMarketplaceChannel('tiktok')" data-marketplace-channel="tiktok" class="marketplace-tab">TikTok</button>
+              <button type="button" onclick="setMarketplaceChannel('shopee')" data-marketplace-channel="shopee" class="marketplace-tab">Shopee</button>
+              <button type="button" onclick="setMarketplaceChannel('other')" data-marketplace-channel="other" class="marketplace-tab">Khác</button>
+            </div>
+            <div class="flex flex-wrap items-center gap-2">
+              <button type="button" onclick="shiftMarketplaceDate(-1)" class="marketplace-date-nav" aria-label="Ngày trước"><i class="fas fa-chevron-left"></i></button>
+              <label class="flex shrink-0 items-center gap-2 text-xs font-bold text-gray-500">
+                Ngày
+                <input id="marketplaceDateFilter" type="date" onchange="setMarketplaceDate(this.value)" class="marketplace-date">
+              </label>
+              <button type="button" onclick="setMarketplaceDate('')" class="marketplace-date-nav marketplace-date-today text-xs font-extrabold" aria-label="Hôm nay">Hôm nay</button>
+              <button type="button" onclick="shiftMarketplaceDate(1)" class="marketplace-date-nav" aria-label="Ngày sau"><i class="fas fa-chevron-right"></i></button>
+            </div>
+          </div>
+          <div class="mt-3 grid gap-2 md:grid-cols-[minmax(0,18rem)_1fr] md:items-center">
+            <label class="flex items-center gap-2 text-xs font-bold text-gray-500">
+              Trạng thái
+              <select id="marketplaceStatusFilter" onchange="setMarketplaceStatus(this.value)" class="marketplace-select w-full">
+                <option value="all">Tất cả trạng thái</option>
+                <option value="processing">Cần xử lý / xác nhận</option>
+                <option value="arranging_shipping">Sắp xếp vận chuyển / đóng gói</option>
+                <option value="awaiting_pickup">Đang chờ vận chuyển / chờ thu gom</option>
+                <option value="shipping">Đang giao</option>
+                <option value="completed">Thành công</option>
+                <option value="returns">Đơn hoàn</option>
+                <option value="failed">Giao thất bại</option>
+                <option value="cancelled">Đơn huỷ / hết hàng</option>
+                <option value="54">Đơn mới</option>
+                <option value="55">Đang xác nhận</option>
+                <option value="56">Đã xác nhận</option>
+                <option value="57">Chờ khách xác nhận</option>
+                <option value="42">Đang đóng gói</option>
+                <option value="40">Đã đóng gói</option>
+                <option value="43">Chờ thu gom</option>
+                <option value="59">Đang chuyển</option>
+                <option value="60">Thành công</option>
+                <option value="61">Thất bại</option>
+                <option value="63">Khách hủy</option>
+                <option value="64">Hệ thống hủy</option>
+                <option value="68">Hết hàng</option>
+                <option value="71">Đang chuyển hoàn</option>
+                <option value="72">Đã chuyển hoàn</option>
+                <option value="74">Xác nhận hoàn</option>
+              </select>
+            </label>
+            <p class="text-xs text-gray-400">Dữ liệu lọc theo ngày tạo đơn trên Nhanh, bảng vẫn hiển thị trạng thái gốc của từng đơn.</p>
+          </div>
+        </div>
+
+        <div class="rounded-2xl border bg-white shadow-sm overflow-hidden">
+          <div class="hidden lg:block overflow-x-auto scrollbar-thin">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="border-b bg-gray-50">
+                  <th class="px-4 py-3 text-left font-bold text-gray-600">Sàn</th>
+                  <th class="px-4 py-3 text-left font-bold text-gray-600">Mã đơn</th>
+                  <th class="px-4 py-3 text-left font-bold text-gray-600">Khách hàng</th>
+                  <th class="px-4 py-3 text-left font-bold text-gray-600">Sản phẩm</th>
+                  <th class="px-4 py-3 text-right font-bold text-gray-600">Giá trị</th>
+                  <th class="px-4 py-3 text-center font-bold text-gray-600">Trạng thái</th>
+                  <th class="px-4 py-3 text-center font-bold text-gray-600">Ngày tạo</th>
+                </tr>
+              </thead>
+              <tbody id="marketplaceOrdersTableBody">
+                <tr><td colspan="7" class="px-4 py-16 text-center text-gray-400"><i class="fas fa-spinner fa-spin text-2xl mb-2"></i><p>Đang tải dữ liệu sàn...</p></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div id="marketplaceOrdersMobileList" class="lg:hidden divide-y divide-gray-100"></div>
+          <div id="marketplaceOrdersEmpty" class="hidden px-4 py-16 text-center text-gray-400">
+            <i class="fas fa-store-slash text-4xl mb-3"></i>
+            <p>Chưa có đơn phù hợp bộ lọc</p>
+          </div>
+        </div>
+      </section>
+
+      <aside class="space-y-4">
+        <div class="rounded-2xl border bg-white p-4 shadow-sm">
+          <h3 class="text-base font-extrabold text-gray-900">Cấu hình Nhanh</h3>
+          <div class="mt-4 space-y-3">
+            <label class="block">
+              <span class="text-xs font-bold text-gray-500">App ID</span>
+              <input id="marketplaceNhanhAppId" type="text" inputmode="numeric" placeholder="78050" class="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-pink-400">
+            </label>
+            <label class="block">
+              <span class="text-xs font-bold text-gray-500">Secret key</span>
+              <input id="marketplaceNhanhSecretKey" type="password" placeholder="Dán secret nếu cần đổi" class="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-pink-400">
+            </label>
+            <label class="block">
+              <span class="text-xs font-bold text-gray-500">Business ID</span>
+              <input id="marketplaceNhanhBusinessId" type="text" inputmode="numeric" placeholder="Tự fill sau cấp quyền" class="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-pink-400">
+            </label>
+            <label class="block">
+              <span class="text-xs font-bold text-gray-500">Access token</span>
+              <input id="marketplaceNhanhAccessToken" type="password" placeholder="Tự fill sau cấp quyền" class="mt-1 w-full rounded-xl border border-gray-200 px-3 py-2.5 text-sm outline-none focus:border-pink-400">
+            </label>
+            <button type="button" onclick="saveMarketplaceConfig()" id="marketplaceConfigSaveBtn" class="btn-pink inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold text-white">
+              <i class="fas fa-save"></i>Lưu cấu hình
+            </button>
+          </div>
+        </div>
+
+        <div class="rounded-2xl border border-blue-100 bg-blue-50/60 p-4 shadow-sm">
+          <h3 class="text-base font-extrabold text-gray-900">Đổi accessCode</h3>
+          <p class="mt-1 text-xs leading-relaxed text-gray-500">Nếu Nhanh redirect về callback mà chưa lưu tự động, dán mã accessCode ở URL vào đây.</p>
+          <textarea id="marketplaceNhanhAccessCode" rows="3" placeholder="accessCode..." class="mt-3 w-full resize-none rounded-xl border border-blue-100 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-400"></textarea>
+          <button type="button" onclick="exchangeMarketplaceAccessCode()" id="marketplaceExchangeBtn" class="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-blue-700">
+            <i class="fas fa-key"></i>Lấy token
+          </button>
+        </div>
+      </aside>
+    </div>
+  </div>`
+}
+
 export function adminLiveChatPage(): string {
   return `<!-- LIVE CHAT PAGE -->
   <div id="page-live-chat" class="p-3 md:p-6 hidden">
-    <div class="grid grid-cols-1 xl:grid-cols-[22rem_1fr] gap-4 h-[calc(100vh-7rem)] min-h-[36rem]">
-      <section class="bg-white rounded-2xl shadow-sm border overflow-hidden flex flex-col min-h-0">
+    <div id="liveChatAdminLayout" class="admin-live-chat-layout grid grid-cols-1 xl:grid-cols-[22rem_1fr] gap-4 h-[calc(100vh-7rem)] min-h-[36rem]">
+      <section id="liveChatConversationPanel" class="admin-live-chat-list bg-white rounded-2xl shadow-sm border overflow-hidden flex flex-col min-h-0">
         <div class="px-4 py-3 border-b flex items-center justify-between gap-3">
           <div>
             <h2 class="font-bold text-gray-900">Hội thoại</h2>
@@ -1336,9 +1674,12 @@ export function adminLiveChatPage(): string {
         </div>
       </section>
 
-      <section class="bg-white rounded-2xl shadow-sm border overflow-hidden flex flex-col min-h-0">
+      <section id="liveChatConversationDetail" class="admin-live-chat-detail bg-white rounded-2xl shadow-sm border overflow-hidden flex flex-col min-h-0">
         <div class="px-4 py-3 border-b flex items-center justify-between gap-3">
           <div class="flex items-center gap-3 min-w-0">
+            <button id="liveChatAdminBackButton" type="button" onclick="closeLiveChatAdminMobileDetail()" class="hidden w-9 h-9 rounded-xl bg-gray-100 text-gray-600 hover:bg-pink-50 hover:text-pink-600 transition" aria-label="Quay lại danh sách chat">
+              <i class="fas fa-chevron-left"></i>
+            </button>
             <span id="liveChatActiveAvatar" class="w-10 h-10 rounded-full bg-gray-900 text-white flex items-center justify-center font-bold shrink-0 overflow-hidden">KH</span>
             <div class="min-w-0">
               <h2 id="liveChatActiveName" class="font-bold text-gray-900 truncate">Chọn một hội thoại</h2>

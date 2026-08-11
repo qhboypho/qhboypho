@@ -117,7 +117,248 @@ self.addEventListener('notificationclick', (event) => {
 `
 }
 
+function notFoundHTML(): string {
+  return `<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="robots" content="noindex,follow" />
+    <title>Không tìm thấy trang - QH Boypho</title>
+    <link rel="icon" href="/qh-logo.png" />
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #050816;
+        --panel: rgba(10, 18, 34, 0.88);
+        --line: rgba(148, 163, 184, 0.22);
+        --text: #f8fafc;
+        --muted: #94a3b8;
+        --pink: #e84393;
+        --blue: #4776ff;
+        --purple: #b64ee5;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(circle at 20% 18%, rgba(232, 67, 147, 0.22), transparent 28rem),
+          radial-gradient(circle at 82% 72%, rgba(71, 118, 255, 0.24), transparent 30rem),
+          linear-gradient(135deg, #030712 0%, #07111f 52%, #111827 100%);
+      }
+
+      main {
+        display: grid;
+        min-height: 100vh;
+        place-items: center;
+        padding: clamp(1.25rem, 4vw, 3rem);
+      }
+
+      .not-found-shell {
+        width: min(100%, 72rem);
+      }
+
+      .not-found-card {
+        overflow: hidden;
+        border: 1px solid rgba(232, 67, 147, 0.28);
+        border-radius: 1.5rem;
+        background: var(--panel);
+        box-shadow: 0 1.5rem 5rem rgba(0, 0, 0, 0.42);
+        backdrop-filter: blur(18px);
+      }
+
+      .not-found-card.primary-panel {
+        display: flex;
+        min-height: 27rem;
+        flex-direction: column;
+      }
+
+      .not-found-top {
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+        border-bottom: 1px solid var(--line);
+        padding: 1.1rem 1.2rem;
+        background: rgba(3, 7, 18, 0.62);
+      }
+
+      .not-found-logo {
+        width: 2.65rem;
+        height: 2.65rem;
+        border-radius: 999px;
+        background: #fff;
+        box-shadow: 0 0 0 0.22rem rgba(255, 255, 255, 0.12);
+      }
+
+      .not-found-brand {
+        margin: 0;
+        font-size: 1.02rem;
+        font-weight: 800;
+      }
+
+      .not-found-subtitle {
+        margin: 0.12rem 0 0;
+        color: var(--muted);
+        font-size: 0.86rem;
+        font-weight: 600;
+      }
+
+      .not-found-body {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        justify-content: center;
+        padding: clamp(1.6rem, 5vw, 3.4rem);
+      }
+
+      .not-found-code {
+        width: max-content;
+        border-radius: 1.2rem;
+        padding: 0.28rem 0.8rem;
+        color: rgba(255, 255, 255, 0.86);
+        background: rgba(255, 255, 255, 0.08);
+        font-size: clamp(4.8rem, 13vw, 8rem);
+        font-weight: 900;
+        line-height: 0.9;
+        letter-spacing: 0;
+      }
+
+      h1 {
+        margin: 1.15rem 0 0;
+        max-width: none;
+        font-size: clamp(1.05rem, 2.5vw, 1.55rem);
+        line-height: 1.25;
+        font-weight: 850;
+        letter-spacing: 0;
+      }
+
+      .not-found-copy {
+        margin: 1rem 0 0;
+        max-width: 38rem;
+        color: #cbd5e1;
+        font-size: 1rem;
+        line-height: 1.7;
+      }
+
+      .not-found-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-top: 1.45rem;
+      }
+
+      .not-found-button {
+        display: inline-flex;
+        min-height: 2.85rem;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid transparent;
+        border-radius: 999px;
+        padding: 0 1.1rem;
+        color: #fff;
+        font-size: 0.94rem;
+        font-weight: 850;
+        text-decoration: none;
+        transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+      }
+
+      .not-found-button:hover {
+        transform: translateY(-1px);
+      }
+
+      .not-found-button.primary {
+        background: linear-gradient(135deg, var(--blue), var(--purple), var(--pink));
+        box-shadow: 0 0.8rem 1.8rem rgba(232, 67, 147, 0.24);
+      }
+
+      .not-found-button.secondary {
+        border-color: rgba(148, 163, 184, 0.28);
+        background: rgba(15, 23, 42, 0.72);
+      }
+
+      @media (max-width: 820px) {
+        .not-found-card.primary-panel {
+          min-height: 0;
+        }
+      }
+
+      @media (max-width: 420px) {
+        .not-found-card {
+          border-radius: 1.1rem;
+        }
+
+        .not-found-button {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="not-found-shell">
+        <section class="not-found-card primary-panel" aria-labelledby="not-found-title">
+          <div class="not-found-top">
+            <img class="not-found-logo" src="/qh-logo.png" alt="QH Boypho" />
+            <div>
+              <p class="not-found-brand">QH Boypho</p>
+              <p class="not-found-subtitle">Shop thời trang nam nữ</p>
+            </div>
+          </div>
+          <div class="not-found-body">
+            <div class="not-found-code">404</div>
+            <h1 id="not-found-title">Trang này không tồn tại</h1>
+            <p class="not-found-copy">Link bạn vừa mở chưa có nội dung hoặc sản phẩm đã được đổi đường dẫn. Quay lại trang chủ để xem các mẫu đang bán nhé.</p>
+            <div class="not-found-actions">
+              <a class="not-found-button primary" href="/">Về trang chủ</a>
+              <a class="not-found-button secondary" href="/hottrendnu">Xem Hot Trend Nữ</a>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </body>
+</html>`
+}
+
+async function redirectToCanonicalHost(c: any, next: () => Promise<void>) {
+  const url = new URL(c.req.url)
+  if (url.hostname.startsWith('www.')) {
+    url.hostname = url.hostname.slice(4)
+    return c.redirect(url.toString(), 301)
+  }
+  await next()
+}
+
+function hasOnlyKnownStorefrontQueryParams(url: URL): boolean {
+  const knownKeys = new Set([
+    'product',
+    'ref',
+    'aff',
+    'affiliate',
+    'fbclid',
+    'gclid',
+  ])
+  const knownPrefixes = ['utm_']
+  for (const rawKey of url.searchParams.keys()) {
+    const key = rawKey.trim().toLowerCase()
+    if (!key) return false
+    if (knownKeys.has(key)) continue
+    if (knownPrefixes.some((prefix) => key.startsWith(prefix))) continue
+    return false
+  }
+  return true
+}
+
 export function registerPageRoutes(app: Hono<{ Bindings: AppBindings }>) {
+  app.use('*', redirectToCanonicalHost)
+
   app.get('/admin-manifest.webmanifest', (c) => c.body(adminManifestJson(), 200, {
     'content-type': 'application/manifest+json; charset=UTF-8',
     'cache-control': 'public, max-age=300',
@@ -150,7 +391,13 @@ export function registerPageRoutes(app: Hono<{ Bindings: AppBindings }>) {
     return c.html(storefrontHTML({ textUiSettings, canonicalUrl, ogImageUrl }))
   }
 
-  app.get('/', renderStorefront)
+  app.get('/', async (c) => {
+    const requestUrl = new URL(c.req.url)
+    if (!hasOnlyKnownStorefrontQueryParams(requestUrl)) {
+      return c.html(notFoundHTML(), 404)
+    }
+    return renderStorefront(c)
+  })
 
   app.get('/hottrendnu', async (c) => {
     const textUiSettings = await readTextUiSettings(c.env.DB).catch(() => undefined)
@@ -174,5 +421,5 @@ export function registerPageRoutes(app: Hono<{ Bindings: AppBindings }>) {
   app.get('/chinh-sach-bao-mat', (c) => c.html(privacyPolicyHTML()))
   app.get('/privacy-policy', (c) => c.redirect('/chinh-sach-bao-mat'))
 
-  app.get('*', renderStorefront)
+  app.get('*', (c) => c.html(notFoundHTML(), 404))
 }

@@ -49,10 +49,10 @@ export function adminLoginHTML(): string {
     <div class="text-center mb-8">
       <div class="flex flex-col items-center gap-3">
         <span class="logo-spinner">
-          <img src="/qh-logo.png" alt="QH Boypho" class="rounded-full object-cover bg-white">
+          <img id="adminLoginLogo" src="/qh-logo.png" alt="QH Boypho" class="rounded-full object-cover bg-white">
         </span>
-        <h1 class="font-display text-3xl font-bold text-white"><span class="text-pink-400">Boypho</span></h1>
-        <p class="text-gray-400 text-sm">Admin Panel</p>
+        <h1 class="font-display text-3xl font-bold text-white"><span id="adminLoginBrandName" class="text-pink-400">Boypho</span></h1>
+        <p id="adminLoginPanelLabel" class="text-gray-400 text-sm">Admin Panel</p>
       </div>
     </div>
     <!-- Login Card -->
@@ -85,7 +85,7 @@ export function adminLoginHTML(): string {
         </button>
       </div>
     </div>
-    <p class="text-center text-gray-500 text-xs mt-6">&copy; 2026 QH Boypho. All rights reserved.</p>
+    <p id="adminLoginCopyright" class="text-center text-gray-500 text-xs mt-6">&copy; 2026 QH Boypho. All rights reserved.</p>
   </div>
 <script>
   let adminTurnstileEnabled = false
@@ -95,6 +95,47 @@ export function adminLoginHTML(): string {
   let adminTurnstileConfigPromise = null
   let adminTurnstileScriptPromise = null
   const ADMIN_TURNSTILE_LOCAL_TEST_SITE_KEY = '1x00000000000000000000AA'
+  const DEFAULT_ADMIN_LOGIN_UI = {
+    admin_brand_name: 'Boypho',
+    admin_full_brand_name: 'QH Boypho',
+    admin_panel_label: 'Admin Panel'
+  }
+
+  function normalizeAdminLoginText(value, fallback, max) {
+    const text = String(value || '')
+      .replace(/[<>]/g, '')
+      .replace(/\\s+/g, ' ')
+      .trim()
+      .slice(0, max || 80)
+    return text || fallback
+  }
+
+  function applyAdminLoginUiSettings(settings) {
+    const cfg = settings || DEFAULT_ADMIN_LOGIN_UI
+    const brandName = normalizeAdminLoginText(cfg.admin_brand_name, DEFAULT_ADMIN_LOGIN_UI.admin_brand_name, 40)
+    const fullBrandName = normalizeAdminLoginText(cfg.admin_full_brand_name, /^qh\\s+/i.test(brandName) ? brandName : 'QH ' + brandName, 60)
+    const panelLabel = normalizeAdminLoginText(cfg.admin_panel_label, DEFAULT_ADMIN_LOGIN_UI.admin_panel_label, 80)
+    const brandEl = document.getElementById('adminLoginBrandName')
+    const panelEl = document.getElementById('adminLoginPanelLabel')
+    const logoEl = document.getElementById('adminLoginLogo')
+    const copyrightEl = document.getElementById('adminLoginCopyright')
+    const appleTitleEl = document.querySelector('meta[name="apple-mobile-web-app-title"]')
+    if (brandEl) brandEl.textContent = brandName
+    if (panelEl) panelEl.textContent = panelLabel
+    if (logoEl) logoEl.alt = fullBrandName
+    if (copyrightEl) copyrightEl.textContent = '© 2026 ' + fullBrandName + '. All rights reserved.'
+    if (appleTitleEl) appleTitleEl.setAttribute('content', brandName + ' Admin')
+    document.title = 'Đăng nhập Admin – ' + fullBrandName
+  }
+
+  async function loadAdminLoginUiSettings() {
+    try {
+      const res = await axios.get('/api/public/admin-ui-settings')
+      applyAdminLoginUiSettings(res.data?.data || DEFAULT_ADMIN_LOGIN_UI)
+    } catch (_) {
+      applyAdminLoginUiSettings(DEFAULT_ADMIN_LOGIN_UI)
+    }
+  }
 
   function isAdminTurnstileLocalDev() {
     return adminTurnstileSiteKey === ADMIN_TURNSTILE_LOCAL_TEST_SITE_KEY
@@ -210,6 +251,7 @@ export function adminLoginHTML(): string {
   }
 
   sanitizeLoginSurface()
+  loadAdminLoginUiSettings()
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('/admin-sw.js', { scope: '/' }).catch(() => {})

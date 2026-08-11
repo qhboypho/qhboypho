@@ -28,13 +28,14 @@ type StorefrontPageOptions = {
 function serializeStorefrontRuntimeConfig(options: StorefrontPageOptions): string {
   return JSON.stringify({
     product_freeship_badge_enabled: options.textUiSettings?.product_freeship_badge_enabled !== false,
+    flash_sale_shop_section_enabled: options.textUiSettings?.flash_sale_shop_section_enabled !== false,
   }).replace(/</g, '\\u003c')
 }
 
 export function storefrontHTML(options: StorefrontPageOptions = {}): string {
   const canonicalUrl = String(options.canonicalUrl || 'https://qhclothes.pages.dev/').trim()
   const ogImageUrl = String(options.ogImageUrl || 'https://qhclothes.pages.dev/og/qh-clothes-share-16x9.png').trim()
-  const seoTitle = 'QH Boypho - Mua trực tiếp giá tốt hơn | Thời trang nam nữ hot trend'
+  const seoTitle = 'QH Boypho - Thời trang nam nữ hot trend'
   const seoDescription = 'QH Boypho cung cấp thời trang nam nữ hot trend, mua trực tiếp giá tốt hơn, không qua sàn, cập nhật mẫu mới mỗi ngày cho giới trẻ yêu phong cách.'
   const seoKeywords = 'QH Boypho, thời trang nam nữ, local brand, áo thun unisex, quần áo hot trend, mua trực tiếp giá tốt hơn, thời trang giới trẻ, shop quần áo online'
   return `<!DOCTYPE html>

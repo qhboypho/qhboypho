@@ -17,6 +17,7 @@ import { registerReviewRoutes } from './routes/reviewRoutes'
 import { registerBlockRoutes } from './routes/blockRoutes'
 import { cleanupExpiredLiveChat, registerLiveChatRoutes } from './routes/liveChatRoutes'
 import { registerTelegramProductDraftRoutes } from './routes/telegramProductDraftRoutes'
+import { registerMarketplaceRoutes } from './routes/marketplaceRoutes'
 import { createInitDB } from './lib/db'
 import type { AppBindings } from './types/app'
 export { LiveChatRoom } from './durable/liveChatRoom'
@@ -64,6 +65,7 @@ import {
   upsertAppSettings,
   validateAdminSessionToken
 } from './lib/adminHelpers'
+import { canAccessAdminRequest } from './lib/adminPermissions'
 import { resolveSelectedColorImage } from './lib/orderColorHelpers'
 
 const app = new Hono<{ Bindings: AppBindings }>()
@@ -101,6 +103,10 @@ app.use('/api/admin/*', async (c, next) => {
   const isValid = await validateAdminSessionToken(c.env.DB, adminUserKey, adminToken || '')
   if (!isValid) {
     return c.json({ success: false, error: 'Unauthorized' }, 401)
+  }
+  const isAllowed = await canAccessAdminRequest(c.env.DB, adminUserKey, c.req.path, c.req.method)
+  if (!isAllowed) {
+    return c.json({ success: false, error: 'Forbidden', code: 'ADMIN_PERMISSION_DENIED' }, 403)
   }
   return next()
 })
@@ -194,6 +200,10 @@ registerBlockRoutes(app, {
 })
 
 registerLiveChatRoutes(app, {
+  initDB
+})
+
+registerMarketplaceRoutes(app, {
   initDB
 })
 

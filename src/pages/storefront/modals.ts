@@ -227,7 +227,7 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
               <span class="order-risk-note-icon" aria-hidden="true">
                 <i class="fas fa-triangle-exclamation"></i>
               </span>
-              <strong>Lưu ý:</strong>
+              <span>Lưu ý đặt hàng:</span>
             </div>
             <div class="order-risk-note-text">
               ${quickOrderRiskNoteText}
@@ -568,10 +568,10 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
                 <span class="order-risk-note-icon" aria-hidden="true">
                   <i class="fas fa-triangle-exclamation"></i>
                 </span>
-                <strong>Lưu ý:</strong>
+                <span>Nhắc nhanh:</span>
               </div>
               <div class="order-risk-note-text">
-                ${quickOrderRiskNoteText}
+                Kiểm tra địa chỉ, số điện thoại và sản phẩm trong giỏ trước khi xác nhận để shop giao đúng đơn.
               </div>
             </div>
           </div>
@@ -854,7 +854,7 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
     <div class="flex-1 overflow-y-auto px-5 py-4 space-y-5 md:px-7 md:py-6 md:space-y-6">
       <!-- Product Info -->
       <div class="flex items-center gap-4 md:gap-5">
-        <img id="variantModalProductImg" src="" class="h-20 w-20 rounded-xl border object-cover md:h-24 md:w-24 md:rounded-2xl">
+        <img id="variantModalProductImg" src="" alt="Ảnh sản phẩm đang chọn" class="h-20 w-20 rounded-xl border object-cover md:h-24 md:w-24 md:rounded-2xl">
         <div class="min-w-0 flex-1">
           <p class="text-xl font-bold text-pink-500 md:text-2xl" id="variantModalProductPrice"></p>
           <p class="mt-1 text-sm text-gray-500">Kho: <span id="variantModalStock">Còn hàng</span></p>

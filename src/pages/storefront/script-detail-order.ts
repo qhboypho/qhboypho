@@ -238,11 +238,11 @@ async function showDetail(id, options) {
             <button id="detailGalleryNextBtn" type="button" onclick="stepDetailGallery(1, event)" class="detail-gallery-arrow detail-gallery-arrow--next hidden md:flex\${detailGalleryImageList.length <= 1 ? ' md:hidden' : ''}" aria-label="Ảnh sau">
               <i class="fas fa-chevron-right"></i>
             </button>
+            <span id="detailGalleryCounter" class="detail-gallery-counter">\${defaultGalleryIndex + 1}/\${Math.max(1, detailGalleryImageList.length)}</span>
           </div>
           \${isQhHerDetail && detailBadge ? \`<span class="qhher-detail-title-badge">\${escapeHtml(detailBadge)}</span>\` : ''}
         </div>
         <div class="qhher-detail-slider-meta md:hidden">
-          <span id="detailGalleryCounter" class="detail-gallery-counter">\${defaultGalleryIndex + 1}/\${Math.max(1, detailGalleryImageList.length)}</span>
           <div id="detailGalleryDots" class="qhher-detail-dots" aria-label="Chọn ảnh sản phẩm">
             \${detailGalleryImageList.map((img, idx) => \`<button type="button" class="qhher-detail-dot\${idx === defaultGalleryIndex ? ' is-active' : ''}" data-detail-dot-index="\${idx}" onclick="jumpToDetailGalleryIndex(\${idx}, event)" aria-label="Ảnh \${idx + 1}" aria-pressed="\${idx === defaultGalleryIndex ? 'true' : 'false'}"></button>\`).join('')}
           </div>
@@ -273,7 +273,7 @@ async function showDetail(id, options) {
           <span id="detailDiscountBadge" class="\${detailDisplayOriginalPrice > detailDisplayPrice ? 'badge-sale text-white text-xs px-2 py-1 rounded-full' : 'hidden'}">\${detailDisplayOriginalPrice > detailDisplayPrice ? '-' + discount + '%' : ''}</span>
         </div>
         \${renderProductCommerceMeta(p, { className: 'product-commerce-meta--detail' })}
-        \${p.has_flash_sale ? \`<div class="flex flex-wrap items-center gap-2 mb-3"><span class="flash-sale-badge"><i class="fas fa-bolt"></i> Flash Sale</span><span class="flash-sale-countdown" data-flash-sale-ends-at="\${escapeHtml(flashMeta?.endsAt || '')}">\${formatFlashSaleCountdown(flashMeta?.endsAt || '')}</span></div>\` : ''}
+        \${p.has_flash_sale ? \`<div class="detail-flash-sale-row">\${renderFlashSaleMiniStrip(flashMeta)}</div>\` : ''}
         \${detailColorOptions.length ? \`
         <div class="detail-option-section detail-color-section mb-4 hidden md:block">
           <p class="text-sm font-semibold mb-2">Màu sắc: <span class="text-pink-500" id="detailColorLabel"></span></p>
@@ -300,14 +300,6 @@ async function showDetail(id, options) {
             \${sizes.map(s => \`<button type="button" class="size-btn w-12 h-10 border rounded-lg text-sm font-medium hover:border-pink-400 transition" onclick="selectDetailSize('\${escapeJsString(s)}',this)">\${escapeHtml(s)}</button>\`).join('')}
           </div>
         </div>\` : ''}
-        <div class="qhher-detail-qty-row md:hidden">
-          <span>Số lượng</span>
-          <div class="qhher-detail-qty-control">
-            <button type="button" onclick="changeDetailQty(-1)" aria-label="Giảm số lượng">−</button>
-            <strong id="detailQtyDisplay">1</strong>
-            <button type="button" onclick="changeDetailQty(1)" aria-label="Tăng số lượng">+</button>
-          </div>
-        </div>
         <div class="qhher-detail-description">
           <h3>Mô tả sản phẩm</h3>
           \${p.description ? \`<p>\${escapeHtml(p.description)}</p>\` : '<p>Sản phẩm được chọn lọc cho phong cách trẻ trung, dễ phối đồ hằng ngày.</p>'}
@@ -738,20 +730,17 @@ function getCartFlyTarget() {
   const isMobile = window.innerWidth <= 768
   const candidates = isMobile
     ? [
-        document.getElementById('cartBottomNavBtn'),
         document.getElementById('cartNavBtnMobile'),
-        document.getElementById('cartBadgeBottom')?.parentElement,
         document.getElementById('cartBadgeMobile')?.parentElement,
         document.getElementById('cartNavBtn')
       ]
     : [
         document.getElementById('cartNavBtn'),
         document.getElementById('cartNavBtnMobile'),
-        document.getElementById('cartBottomNavBtn'),
         document.getElementById('cartBadgeMobile')?.parentElement,
         document.getElementById('cartBadgeBottom')?.parentElement
       ]
-  return candidates.find((el) => isVisibleFlyTarget(el)) || document.getElementById(isMobile ? 'cartBottomNavBtn' : 'cartNavBtn') || document.getElementById('cartNavBtnMobile')
+  return candidates.find((el) => isVisibleFlyTarget(el)) || document.getElementById(isMobile ? 'cartNavBtnMobile' : 'cartNavBtn') || document.getElementById('cartNavBtnMobile')
 }
 
 function animateFlyToCart(imgUrl, sourceEl) {

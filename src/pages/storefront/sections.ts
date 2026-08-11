@@ -36,13 +36,13 @@ export function storefrontNavbarSection(): string {
     <div class="storefront-marquee-track">
       <div class="storefront-marquee-group">
         <i class="fas fa-bullhorn storefront-marquee-icon" aria-hidden="true"></i>
-        <span class="storefront-marquee-text">Mua hàng tại đây không qua sàn thương mại nên giá thành sản phẩm sẽ rẻ hơn rất nhiều và bảo hành hoàn trả trong vòng 7 ngày nếu sản phẩm bị lỗi nên quý khách yên tâm mua sắm nhé.Bảo hành đổi trả nhắn qua trang facebook : <a class="storefront-marquee-link" href="http://m.me/qhboypho" target="_blank" rel="noreferrer noopener">QH Boypho</a>. Chúc quý khách có trải nghiệm mua sắm tốt tại QH Boypho</span>
+        <span class="storefront-marquee-text">Mua trực tiếp tại QH Boypho để có giá tốt hơn khi không qua sàn thương mại. Shop hỗ trợ đổi trả trong 7 ngày nếu sản phẩm bị lỗi. Cần bảo hành hoặc tư vấn, nhắn Facebook: <a class="storefront-marquee-link" href="http://m.me/qhboypho" target="_blank" rel="noreferrer noopener">QH Boypho</a>.</span>
       </div>
     </div>
   </div>
   <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
     <a href="/" class="flex items-center gap-1.5 md:gap-1">
-      <span class="inline-flex items-center justify-center"><img src="/qh-logo.png" alt="QH" class="rounded-full w-9 h-9 object-cover bg-white"></span><span class="hidden md:inline text-xl font-display text-white font-bold tracking-normal md:ml-0.5"><span class="text-pink-400">Boypho</span></span>
+      <span class="inline-flex items-center justify-center"><img data-store-logo-img="boypho" src="/qh-logo.png" alt="QH Boypho" class="rounded-full w-9 h-9 object-cover bg-white"></span><span class="hidden md:inline text-xl font-display text-white font-bold tracking-normal md:ml-0.5"><span data-store-logo-text="boypho" class="text-pink-400">Boypho</span></span>
     </a>
     <div class="hidden md:flex items-center gap-6 text-sm text-gray-300">
       <a href="#products" class="hover:text-pink-400 transition">Sản phẩm</a>
@@ -82,6 +82,10 @@ export function storefrontNavbarSection(): string {
       <button type="button" onclick="toggleStorefrontTheme()" id="storefrontThemeToggleMobile" class="theme-toggle-btn relative text-white hover:text-pink-400 transition p-2 border border-white/20 rounded-full w-9 h-9 flex items-center justify-center">
         <i id="storefrontThemeIconMobile" class="fas fa-moon text-[16px]"></i>
       </button>
+      <button onclick="openCart()" id="cartNavBtnMobile" class="relative text-white hover:text-pink-400 transition p-2 border border-white/20 rounded-full w-9 h-9 flex items-center justify-center" aria-label="Giỏ hàng">
+        <i class="fas fa-shopping-cart text-[16px]"></i>
+        <span id="cartBadgeMobile" class="absolute -top-1 -right-1 bg-[#881337] text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center hidden font-bold">0</span>
+      </button>
     </div>
   </div>
 </nav>`
@@ -101,7 +105,48 @@ export function storefrontHeroSection(textUiSettings?: Partial<TextUiSettings>):
   const stat2Label = escapeStorefrontSectionHtml(settings.hero_stat_2_label)
   const stat3Value = escapeStorefrontSectionHtml(settings.hero_stat_3_value)
   const stat3Label = escapeStorefrontSectionHtml(settings.hero_stat_3_label)
-  return "<!-- HERO -->\n<section class=\"gradient-hero flex items-center\" id=\"hero\">\n  <div class=\"max-w-7xl mx-auto px-4 py-10 grid md:grid-cols-2 gap-12 items-center hero-layout\">\n    <div class=\"hero-copy-block\">\n      <p class=\"hero-badge text-pink-400 font-medium tracking-widest uppercase text-sm mb-4\">" + badge + "</p>\n      <h1 class=\"hero-title font-display text-5xl md:text-6xl text-white font-bold leading-snug md:leading-tight mb-6\">\n        " + title + "<br><span class=\"hero-title-gradient hero-typed-line\"><span id=\"heroTypedText\" class=\"hero-typed-text\" data-typed-text=\"" + typedText + "\" aria-label=\"" + typedAria + "\"></span><span class=\"hero-typed-cursor\" aria-hidden=\"true\"></span></span>\n      </h1>\n      <p class=\"hero-mobile-sub hidden text-gray-300 text-sm leading-relaxed mb-5\">" + mobileSubtitle + "</p>\n      <p class=\"hero-desktop-desc text-gray-300 text-lg mb-8 leading-loose\">" + description + "</p>\n      <div class=\"hero-desktop-actions flex gap-4 flex-wrap\">\n        <a href=\"#products\" class=\"btn-primary text-white px-8 py-3 rounded-full font-semibold\">\n          <i class=\"fas fa-shopping-bag mr-2\"></i>Mua sắm ngay\n        </a>\n        <a href=\"#about\" class=\"border border-white/30 text-white px-8 py-3 rounded-full font-semibold hover:bg-white/10 transition\">\n          Khám phá thêm\n        </a>\n      </div>\n      <div class=\"hero-desktop-stats mt-8 grid grid-cols-3 gap-6\">\n        <div class=\"text-center\"><p class=\"text-3xl font-bold text-white\">" + stat1Value + "</p><p class=\"text-gray-400 text-sm\">" + stat1Label + "</p></div>\n        <div class=\"text-center\"><p class=\"text-3xl font-bold text-white\">" + stat2Value + "</p><p class=\"text-gray-400 text-sm\">" + stat2Label + "</p></div>\n        <div class=\"text-center\"><p class=\"text-3xl font-bold text-white\">" + stat3Value + "</p><p class=\"text-gray-400 text-sm\">" + stat3Label + "</p></div>\n      </div>\n    </div>\n    <div class=\"flex justify-end\" id=\"heroBannersWrapper\">\n      <!-- Collapsed / stacked state -->\n      <div id=\"heroBannersCollapsed\" title=\"Click để xem thêm\">\n        <!-- will be rendered by JS -->\n        <div class=\"relative rounded-3xl overflow-hidden bg-white/[0.03]\" style=\"width:360px;height:360px\"></div>\n      </div>\n    </div>\n\n    <!-- Expanded fullscreen overlay -->\n    <div id=\"heroBannersExpanded\" onclick=\"handleBannerOverlayClick(event)\">\n      <p id=\"heroBannersExpandedTitle\">Đang thịnh hành</p>\n      <p id=\"heroBannersExpandedSubtitle\" class=\"text-white/70 text-xs md:text-sm text-center mb-4\">" + mobileSubtitle + "</p>\n      <div id=\"heroBannersExpandedInner\">\n        <!-- filled by JS -->\n      </div>\n    </div>\n  </div>\n</section>"
+  return `<!-- HERO -->
+<section class="gradient-hero flex items-center" id="hero">
+  <div class="max-w-7xl mx-auto px-4 py-10 grid md:grid-cols-2 gap-12 items-center hero-layout">
+    <div class="hero-copy-block">
+      <p class="hero-badge text-pink-400 font-medium tracking-widest uppercase text-sm mb-4">${badge}</p>
+      <h1 class="hero-title font-display text-5xl md:text-6xl text-white font-bold leading-snug md:leading-tight mb-6">
+        ${title}<br><span class="hero-title-gradient hero-typed-line"><span id="heroTypedText" class="hero-typed-text" data-typed-text="${typedText}" aria-label="${typedAria}"></span><span class="hero-typed-cursor" aria-hidden="true"></span></span>
+      </h1>
+      <p class="hero-mobile-sub hidden text-gray-300 text-sm leading-relaxed mb-5">${mobileSubtitle}</p>
+      <p class="hero-desktop-desc text-gray-300 text-lg mb-8 leading-loose">${description}</p>
+      <div class="hero-desktop-actions flex gap-4 flex-wrap">
+        <a href="#products" class="btn-primary text-white px-8 py-3 rounded-full font-semibold">
+          <i class="fas fa-shopping-bag mr-2"></i>Mua sắm ngay
+        </a>
+        <a href="#about" class="border border-white/30 text-white px-8 py-3 rounded-full font-semibold hover:bg-white/10 transition">
+          Khám phá thêm
+        </a>
+      </div>
+      <div class="hero-desktop-stats mt-8 grid grid-cols-3 gap-6">
+        <div class="text-center"><p class="text-3xl font-bold text-white">${stat1Value}</p><p class="text-gray-400 text-sm">${stat1Label}</p></div>
+        <div class="text-center"><p class="text-3xl font-bold text-white">${stat2Value}</p><p class="text-gray-400 text-sm">${stat2Label}</p></div>
+        <div class="text-center"><p class="text-3xl font-bold text-white">${stat3Value}</p><p class="text-gray-400 text-sm">${stat3Label}</p></div>
+      </div>
+    </div>
+    <div class="flex justify-end" id="heroBannersWrapper">
+      <!-- Collapsed / stacked state -->
+      <div id="heroBannersCollapsed" title="Click để xem thêm">
+        <!-- will be rendered by JS -->
+        <div class="relative rounded-3xl overflow-hidden bg-white/[0.03]" style="width:360px;height:360px"></div>
+      </div>
+    </div>
+
+    <!-- Expanded fullscreen overlay -->
+    <div id="heroBannersExpanded" onclick="handleBannerOverlayClick(event)">
+      <p id="heroBannersExpandedTitle">Đang thịnh hành</p>
+      <p id="heroBannersExpandedSubtitle" class="text-white/70 text-xs md:text-sm text-center mb-4">${mobileSubtitle}</p>
+      <div id="heroBannersExpandedInner">
+        <!-- filled by JS -->
+      </div>
+    </div>
+  </div>
+</section>`
 }
 
 
@@ -111,7 +156,7 @@ export function storefrontBestsellersSection(): string {
   <div class="max-w-7xl mx-auto px-4 mb-5 flex items-end justify-between">
     <div>
       <p class="text-violet-400 font-semibold tracking-widest uppercase text-xs mb-1.5">🏆 TOP RANKING</p>
-      <h2 class="font-display text-3xl md:text-4xl font-bold text-white leading-tight">Mẫu Bán Chạy Nhất</h2>
+      <h2 class="bestsellers-section-title font-display font-bold text-white leading-tight">Mẫu Bán Chạy Nhất</h2>
     </div>
     <a href="#products" class="text-sm text-violet-400 hover:text-pink-400 font-semibold transition whitespace-nowrap">Xem tất cả →</a>
   </div>
@@ -131,28 +176,18 @@ export function storefrontFilterBarSection(): string {
   return `<!-- FILTER BAR -->
 <section class="sticky top-20 z-40" id="filterBar">
   <div class="filter-shell">
-    <div class="filter-search-row flex flex-col gap-2 md:flex-row">
-      <div class="flex gap-2">
-        <div class="filter-search-wrap flex-1">
-          <i class="fas fa-search filter-search-icon" aria-hidden="true"></i>
-          <input type="text" id="searchInput" placeholder="Tìm sản phẩm..." class="filter-search-input w-full" oninput="searchProducts(this.value)">
-        </div>
-        <button type="button" class="filter-modal-trigger w-[2.8rem] h-[2.8rem] md:h-[2.4rem] md:w-[2.4rem] flex-shrink-0 flex items-center justify-center rounded-xl border border-gray-200 bg-white/80 text-gray-600 hover:bg-gray-100 hover:text-[#881337] transition shadow-sm" onclick="openFilterModal()" aria-label="Bộ lọc nâng cao" title="Bộ lọc nâng cao">
-          <i class="fas fa-sliders-h"></i>
-        </button>
+    <div class="filter-search-row filter-toolbar">
+      <h2 class="filter-section-title font-display">Danh Sách Sản Phẩm</h2>
+      <div class="filter-search-wrap">
+        <i class="fas fa-search filter-search-icon" aria-hidden="true"></i>
+        <input type="text" id="searchInput" placeholder="Tìm sản phẩm..." class="filter-search-input w-full" oninput="searchProducts(this.value)">
       </div>
-
       <div class="filter-chip-row flex overflow-x-auto no-scrollbar gap-2 md:flex-1" id="filterChipRow">
         <button class="filter-btn active whitespace-nowrap" data-cat="all" onclick="filterProducts('all',this)">Tất cả</button>
         <button class="filter-btn whitespace-nowrap" data-cat="unisex" onclick="filterProducts('unisex',this)">Unisex</button>
         <button class="filter-btn whitespace-nowrap" data-cat="male" onclick="filterProducts('male',this)">Nam</button>
         <button class="filter-btn whitespace-nowrap" data-cat="female" onclick="filterProducts('female',this)">Nữ</button>
       </div>
-    </div>
-  </div>
-  <div class="filter-meta-row">
-    <div class="filter-product-count"><i class="fas fa-shirt" aria-hidden="true"></i><span id="productsCountLabel">0 mặt hàng</span></div>
-    <div class="filter-meta-actions">
       <label class="filter-sort-wrap" for="productsSortSelect">
         <i class="fas fa-arrow-up-wide-short" aria-hidden="true"></i>
         <select id="productsSortSelect" class="filter-sort-select" onchange="sortProductsByTime(this.value)">
@@ -160,7 +195,12 @@ export function storefrontFilterBarSection(): string {
           <option value="oldest">Cũ nhất</option>
         </select>
       </label>
+      <button type="button" class="filter-modal-trigger" onclick="openFilterModal()" aria-label="Bộ lọc nâng cao" title="Bộ lọc nâng cao">
+        <i class="fas fa-sliders-h" aria-hidden="true"></i>
+        <span>Bộ lọc</span>
+      </button>
       <button type="button" id="productsLayoutToggle" class="filter-view-toggle" aria-label="Chuyển sang dạng lưới 2 cột" title="Chuyển sang dạng lưới 2 cột" onclick="toggleProductsMobileLayout()"><i class="fas fa-table-cells-large" aria-hidden="true"></i></button>
+      <span id="productsCountLabel" class="filter-product-count sr-only">0 mặt hàng</span>
     </div>
   </div>
 </section>`
@@ -171,7 +211,7 @@ export function storefrontFlashSaleShopSection(): string {
 }
 
 export function storefrontProductsSection(): string {
-  return "<!-- PRODUCTS -->\n<section class=\"max-w-7xl mx-auto px-4 py-16\" id=\"products\">\n  <div class=\"text-center mb-12\">\n    <p class=\"text-pink-500 font-medium tracking-widest uppercase text-sm\">Khám phá ngay</p>\n    <h2 class=\"font-display text-4xl font-bold text-gray-900 mt-2\">Danh Sách Sản Phẩm</h2>\n    <p class=\"text-gray-500 mt-3\">Toàn bộ thiết kế đang có tại QH Boypho</p>\n  </div>\n  " + storefrontFilterBarSection() + "\n  <div id=\"productsGrid\" class=\"grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-6\">\n    <div class=\"product-card bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100\" aria-hidden=\"true\">\n      <div class=\"relative overflow-hidden bg-gray-100\"><div class=\"skeleton product-img-main\"></div></div>\n      <div class=\"p-3 md:p-4 space-y-1.5\">\n        <div class=\"skeleton h-3 w-10 rounded-full\"></div>\n        <div class=\"skeleton h-3 w-full rounded-full\"></div>\n        <div class=\"skeleton h-3 w-4/5 rounded-full\"></div>\n        <div class=\"flex items-center gap-1.5\"><div class=\"skeleton h-4 w-16 rounded-full\"></div><div class=\"skeleton h-3 w-9 rounded-full\"></div></div>\n        <div class=\"skeleton h-4 w-24 rounded-md\"></div>\n        <div class=\"skeleton h-8 w-full rounded-xl\"></div>\n      </div>\n    </div>\n    <div class=\"product-card bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100\" aria-hidden=\"true\">\n      <div class=\"relative overflow-hidden bg-gray-100\"><div class=\"skeleton product-img-main\"></div></div>\n      <div class=\"p-3 md:p-4 space-y-1.5\">\n        <div class=\"skeleton h-3 w-11 rounded-full\"></div>\n        <div class=\"skeleton h-3 w-full rounded-full\"></div>\n        <div class=\"skeleton h-3 w-3/4 rounded-full\"></div>\n        <div class=\"flex items-center gap-1.5\"><div class=\"skeleton h-4 w-16 rounded-full\"></div><div class=\"skeleton h-3 w-10 rounded-full\"></div></div>\n        <div class=\"skeleton h-4 w-24 rounded-md\"></div>\n        <div class=\"skeleton h-8 w-full rounded-xl\"></div>\n      </div>\n    </div>\n    <div class=\"product-card bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100\" aria-hidden=\"true\">\n      <div class=\"relative overflow-hidden bg-gray-100\"><div class=\"skeleton product-img-main\"></div></div>\n      <div class=\"p-3 md:p-4 space-y-1.5\">\n        <div class=\"skeleton h-3 w-10 rounded-full\"></div>\n        <div class=\"skeleton h-3 w-full rounded-full\"></div>\n        <div class=\"skeleton h-3 w-4/5 rounded-full\"></div>\n        <div class=\"flex items-center gap-1.5\"><div class=\"skeleton h-4 w-16 rounded-full\"></div><div class=\"skeleton h-3 w-9 rounded-full\"></div></div>\n        <div class=\"skeleton h-4 w-24 rounded-md\"></div>\n        <div class=\"skeleton h-8 w-full rounded-xl\"></div>\n      </div>\n    </div>\n    <div class=\"product-card bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100\" aria-hidden=\"true\">\n      <div class=\"relative overflow-hidden bg-gray-100\"><div class=\"skeleton product-img-main\"></div></div>\n      <div class=\"p-3 md:p-4 space-y-1.5\">\n        <div class=\"skeleton h-3 w-9 rounded-full\"></div>\n        <div class=\"skeleton h-3 w-full rounded-full\"></div>\n        <div class=\"skeleton h-3 w-3/4 rounded-full\"></div>\n        <div class=\"flex items-center gap-1.5\"><div class=\"skeleton h-4 w-16 rounded-full\"></div><div class=\"skeleton h-3 w-10 rounded-full\"></div></div>\n        <div class=\"skeleton h-4 w-24 rounded-md\"></div>\n        <div class=\"skeleton h-8 w-full rounded-xl\"></div>\n      </div>\n    </div>\n  </div>\n  <div id=\"productsMoreWrap\" class=\"hidden text-center mt-8\">\n    <button type=\"button\" onclick=\"openProductsModal()\" class=\"btn-primary text-white px-7 py-3 rounded-full font-semibold shadow-lg\"><i class=\"fas fa-layer-group mr-2\"></i>Xem thêm <span id=\"productsMoreCount\"></span></button>\n  </div>\n  <div id=\"emptyState\" class=\"hidden text-center py-20\">\n    <i class=\"fas fa-box-open text-6xl text-gray-300 mb-4\"></i>\n    <p class=\"text-gray-400 text-lg\">Không tìm thấy sản phẩm nào</p>\n  </div>\n</section>\n<div id=\"productsModalOverlay\" class=\"hidden fixed inset-0 z-[10020] bg-black/60 backdrop-blur-sm p-3 md:p-6\">\n  <div class=\"bg-white w-full max-w-7xl mx-auto h-full rounded-3xl shadow-2xl overflow-hidden flex flex-col\">\n    <div class=\"flex items-center justify-between gap-4 px-4 md:px-6 py-4 border-b border-gray-100\">\n      <div>\n        <p class=\"text-pink-500 font-medium tracking-widest uppercase text-xs\">Danh sách đầy đủ</p>\n        <h3 class=\"font-display text-xl md:text-2xl font-bold text-gray-900\">Tất cả sản phẩm</h3>\n        <p id=\"productsModalMeta\" class=\"text-sm text-gray-500 mt-1\"></p>\n      </div>\n      <button type=\"button\" onclick=\"closeProductsModal()\" class=\"w-10 h-10 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition\"><i class=\"fas fa-times\"></i></button>\n    </div>\n    <div class=\"flex-1 overflow-y-auto p-4 md:p-6\">\n      <div id=\"productsModalGrid\" class=\"grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6\"></div>\n      <div class=\"text-center pt-6\">\n        <button type=\"button\" id=\"productsModalLoadMore\" onclick=\"loadMoreProductsModal()\" class=\"hidden border border-pink-200 text-pink-600 hover:bg-pink-50 px-6 py-3 rounded-full font-semibold transition\"><i class=\"fas fa-plus mr-2\"></i>Tải thêm sản phẩm</button>\n      </div>\n    </div>\n  </div>\n</div>"
+  return "<!-- PRODUCTS -->\n<section class=\"max-w-7xl mx-auto px-4 py-8 md:py-10\" id=\"products\">\n  " + storefrontFilterBarSection() + "\n  <div id=\"productsGrid\" class=\"grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 md:gap-6\">\n    <div class=\"product-card bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100\" aria-hidden=\"true\">\n      <div class=\"relative overflow-hidden bg-gray-100\"><div class=\"skeleton product-img-main\"></div></div>\n      <div class=\"p-3 md:p-4 space-y-1.5\">\n        <div class=\"skeleton h-3 w-10 rounded-full\"></div>\n        <div class=\"skeleton h-3 w-full rounded-full\"></div>\n        <div class=\"skeleton h-3 w-4/5 rounded-full\"></div>\n        <div class=\"flex items-center gap-1.5\"><div class=\"skeleton h-4 w-16 rounded-full\"></div><div class=\"skeleton h-3 w-9 rounded-full\"></div></div>\n        <div class=\"skeleton h-4 w-24 rounded-md\"></div>\n        <div class=\"skeleton h-8 w-full rounded-xl\"></div>\n      </div>\n    </div>\n    <div class=\"product-card bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100\" aria-hidden=\"true\">\n      <div class=\"relative overflow-hidden bg-gray-100\"><div class=\"skeleton product-img-main\"></div></div>\n      <div class=\"p-3 md:p-4 space-y-1.5\">\n        <div class=\"skeleton h-3 w-11 rounded-full\"></div>\n        <div class=\"skeleton h-3 w-full rounded-full\"></div>\n        <div class=\"skeleton h-3 w-3/4 rounded-full\"></div>\n        <div class=\"flex items-center gap-1.5\"><div class=\"skeleton h-4 w-16 rounded-full\"></div><div class=\"skeleton h-3 w-10 rounded-full\"></div></div>\n        <div class=\"skeleton h-4 w-24 rounded-md\"></div>\n        <div class=\"skeleton h-8 w-full rounded-xl\"></div>\n      </div>\n    </div>\n    <div class=\"product-card bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100\" aria-hidden=\"true\">\n      <div class=\"relative overflow-hidden bg-gray-100\"><div class=\"skeleton product-img-main\"></div></div>\n      <div class=\"p-3 md:p-4 space-y-1.5\">\n        <div class=\"skeleton h-3 w-10 rounded-full\"></div>\n        <div class=\"skeleton h-3 w-full rounded-full\"></div>\n        <div class=\"skeleton h-3 w-4/5 rounded-full\"></div>\n        <div class=\"flex items-center gap-1.5\"><div class=\"skeleton h-4 w-16 rounded-full\"></div><div class=\"skeleton h-3 w-9 rounded-full\"></div></div>\n        <div class=\"skeleton h-4 w-24 rounded-md\"></div>\n        <div class=\"skeleton h-8 w-full rounded-xl\"></div>\n      </div>\n    </div>\n    <div class=\"product-card bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100\" aria-hidden=\"true\">\n      <div class=\"relative overflow-hidden bg-gray-100\"><div class=\"skeleton product-img-main\"></div></div>\n      <div class=\"p-3 md:p-4 space-y-1.5\">\n        <div class=\"skeleton h-3 w-9 rounded-full\"></div>\n        <div class=\"skeleton h-3 w-full rounded-full\"></div>\n        <div class=\"skeleton h-3 w-3/4 rounded-full\"></div>\n        <div class=\"flex items-center gap-1.5\"><div class=\"skeleton h-4 w-16 rounded-full\"></div><div class=\"skeleton h-3 w-10 rounded-full\"></div></div>\n        <div class=\"skeleton h-4 w-24 rounded-md\"></div>\n        <div class=\"skeleton h-8 w-full rounded-xl\"></div>\n      </div>\n    </div>\n  </div>\n  <div id=\"productsMoreWrap\" class=\"hidden text-center mt-8\">\n    <button type=\"button\" onclick=\"openProductsModal()\" class=\"btn-primary text-white px-7 py-3 rounded-full font-semibold shadow-lg\"><i class=\"fas fa-layer-group mr-2\"></i>Xem thêm <span id=\"productsMoreCount\"></span></button>\n  </div>\n  <div id=\"emptyState\" class=\"hidden text-center py-20\">\n    <i class=\"fas fa-box-open text-6xl text-gray-300 mb-4\"></i>\n    <p class=\"text-gray-400 text-lg\">Không tìm thấy sản phẩm nào</p>\n  </div>\n</section>\n<div id=\"productsModalOverlay\" class=\"hidden fixed inset-0 z-[10020] bg-black/60 backdrop-blur-sm p-3 md:p-6\">\n  <div class=\"bg-white w-full max-w-7xl mx-auto h-full rounded-3xl shadow-2xl overflow-hidden flex flex-col\">\n    <div class=\"flex items-center justify-between gap-4 px-4 md:px-6 py-4 border-b border-gray-100\">\n      <div>\n        <p class=\"text-pink-500 font-medium tracking-widest uppercase text-xs\">Danh sách đầy đủ</p>\n        <h3 class=\"font-display text-xl md:text-2xl font-bold text-gray-900\">Tất cả sản phẩm</h3>\n        <p id=\"productsModalMeta\" class=\"text-sm text-gray-500 mt-1\"></p>\n      </div>\n      <button type=\"button\" onclick=\"closeProductsModal()\" class=\"w-10 h-10 rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition\"><i class=\"fas fa-times\"></i></button>\n    </div>\n    <div class=\"flex-1 overflow-y-auto p-4 md:p-6\">\n      <div id=\"productsModalGrid\" class=\"grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6\"></div>\n      <div class=\"text-center pt-6\">\n        <button type=\"button\" id=\"productsModalLoadMore\" onclick=\"loadMoreProductsModal()\" class=\"hidden border border-pink-200 text-pink-600 hover:bg-pink-50 px-6 py-3 rounded-full font-semibold transition\"><i class=\"fas fa-plus mr-2\"></i>Tải thêm sản phẩm</button>\n      </div>\n    </div>\n  </div>\n</div>"
 }
 
 export function storefrontFeaturesSection(): string {
@@ -179,7 +219,7 @@ export function storefrontFeaturesSection(): string {
 }
 
 export function storefrontFooterSection(): string {
-  return "<!-- FOOTER -->\n<footer class=\"gradient-hero text-white py-12\" id=\"contact\">\n  <div class=\"max-w-7xl mx-auto px-4 grid md:grid-cols-4 gap-8\">\n    <div>\n      <h3 class=\"font-display text-2xl font-bold mb-4 flex items-center gap-2\">\n        <span class=\"logo-spinner\"><img src=\"/qh-logo.png\" alt=\"QH Boypho\" class=\"rounded-full w-9 h-9 object-cover bg-white\"></span>\n        <span><span class=\"text-pink-400\">Boypho</span></span>\n      </h3>\n      <p class=\"text-gray-400 text-sm leading-relaxed\">Quần áo nam nữ giá tốt chất lượng cho giới trẻ đa dạng mẫu mã và thịnh hành nhất.</p>\n    </div>\n    <div id=\"footerSocialSection\" class=\"hidden\">\n      <h4 class=\"font-semibold mb-4\">Sàn TMĐT</h4>\n      <div id=\"footerSocialLinks\" class=\"flex flex-wrap gap-2 text-sm\"></div>\n    </div>\n    <div>\n      <h4 class=\"font-semibold mb-4\">Chính sách</h4>\n      <div class=\"flex flex-col gap-2 text-gray-400 text-sm\">\n        <a href=\"#\" class=\"hover:text-pink-400 transition\">Chính sách đổi trả</a>\n        <a href=\"#\" class=\"hover:text-pink-400 transition\">Chính sách bảo mật</a>\n      </div>\n    </div>\n    <div>\n      <h4 class=\"font-semibold mb-4\">Liên hệ</h4>\n      <div class=\"flex flex-col gap-2 text-gray-400 text-sm\">\n        <p><i class=\"fab fa-facebook-messenger mr-2 text-pink-400\"></i><a href=\"https://m.me/qhboypho\" target=\"_blank\" rel=\"noreferrer noopener\" class=\"hover:text-pink-400 transition\">QH Boypho</a></p>\n        <p><i class=\"fas fa-envelope mr-2 text-pink-400\"></i>qhboypho@gmail.com</p>\n        <p><i class=\"fas fa-map-marker-alt mr-2 text-pink-400\"></i>Ninh Bình, Việt Nam</p>\n      </div>\n    </div>\n  </div>\n  <div class=\"max-w-7xl mx-auto px-4 mt-8 pt-8 border-t border-white/10 text-center text-gray-500 text-sm\">\n    © 2026 QH Boypho. All rights reserved.\n  </div>\n</footer>"
+  return "<!-- FOOTER -->\n<footer class=\"gradient-hero text-white py-12\" id=\"contact\">\n  <div class=\"max-w-7xl mx-auto px-4 grid md:grid-cols-4 gap-8\">\n    <div>\n      <h3 class=\"font-display text-2xl font-bold mb-4 flex items-center gap-2\">\n        <span class=\"logo-spinner\"><img data-store-logo-img=\"boypho\" src=\"/qh-logo.png\" alt=\"QH Boypho\" class=\"rounded-full w-9 h-9 object-cover bg-white\"></span>\n        <span><span data-store-logo-text=\"boypho\" class=\"text-pink-400\">Boypho</span></span>\n      </h3>\n      <p class=\"text-gray-400 text-sm leading-relaxed\">Quần áo nam nữ giá tốt chất lượng cho giới trẻ đa dạng mẫu mã và thịnh hành nhất.</p>\n    </div>\n    <div id=\"footerSocialSection\" class=\"hidden\">\n      <h4 class=\"font-semibold mb-4\">Sàn TMĐT</h4>\n      <div id=\"footerSocialLinks\" class=\"flex flex-wrap gap-2 text-sm\"></div>\n    </div>\n    <div>\n      <h4 class=\"font-semibold mb-4\">Chính sách</h4>\n      <div class=\"flex flex-col gap-2 text-gray-400 text-sm\">\n        <a href=\"#\" class=\"hover:text-pink-400 transition\">Chính sách đổi trả</a>\n        <a href=\"#\" class=\"hover:text-pink-400 transition\">Chính sách bảo mật</a>\n      </div>\n    </div>\n    <div>\n      <h4 class=\"font-semibold mb-4\">Liên hệ</h4>\n      <div class=\"flex flex-col gap-2 text-gray-400 text-sm\">\n        <p><i class=\"fab fa-facebook-messenger mr-2 text-pink-400\"></i><a href=\"https://m.me/qhboypho\" target=\"_blank\" rel=\"noreferrer noopener\" class=\"hover:text-pink-400 transition\">QH Boypho</a></p>\n        <p><i class=\"fas fa-envelope mr-2 text-pink-400\"></i>qhboypho@gmail.com</p>\n        <p><i class=\"fas fa-map-marker-alt mr-2 text-pink-400\"></i>Ninh Bình, Việt Nam</p>\n      </div>\n    </div>\n  </div>\n  <div class=\"max-w-7xl mx-auto px-4 mt-8 pt-8 border-t border-white/10 text-center text-gray-500 text-sm\">\n    © 2026 QH Boypho. All rights reserved.\n  </div>\n</footer>"
 }
 
 export function storefrontFooterWithPolicySection(): string {
@@ -206,12 +246,10 @@ export function storefrontMobileBottomNavSection(): string {
       <i class="fas fa-table-cells-large text-xl"></i>
       <span class="text-[10px] font-medium">Sản Phẩm</span>
     </a>
-    <button onclick="openCart()" id="cartBottomNavBtn" class="mobile-bottom-nav-link relative flex flex-col items-center justify-center gap-1 w-16 transition">
-      <div class="relative">
-        <i class="fas fa-shopping-cart text-xl"></i>
-        <span id="cartBadgeBottom" class="absolute -top-1.5 -right-2 bg-[#881337] text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center hidden font-bold">0</span>
-      </div>
-      <span class="text-[10px] font-medium">Giỏ hàng</span>
+    <button onclick="openLiveChat()" id="liveChatBottomNavBtn" class="mobile-bottom-nav-link relative flex flex-col items-center justify-center gap-1 w-16 transition" aria-label="Chat với shop">
+      <i class="fas fa-comments text-xl"></i>
+      <span class="text-[10px] font-medium">Chat</span>
+      <span class="live-chat-unread-badge hidden" aria-label="Tin nhắn chưa đọc">0</span>
     </button>
     <button onclick="toggleUserMenu()" class="mobile-bottom-nav-link flex flex-col items-center justify-center gap-1 w-16 transition">
       <i class="fas fa-user text-xl"></i>

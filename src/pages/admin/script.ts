@@ -26,6 +26,9 @@ let adminProfile = null
 let adminAvatarMenuOpen = false
 let dashboardFilterMode = 'month'
 let dashboardFilterInitialized = false
+let dashboardDatePickerOpen = ''
+let dashboardDatePickerView = null
+let dashboardDatePickerYearListOpen = false
 let settingsSubmenuOpen = false
 let settingsActiveSubPage = ''
 let productSubmenuOpen = false
@@ -47,6 +50,18 @@ let adminOrderNotifyLastSeenId = 0
 let adminOrderNotifyEnabled = false
 let adminOrderSoundEnabled = false
 let adminOrderPushEnabled = false
+let adminUiSettings = {
+  admin_brand_name: 'Boypho',
+  admin_full_brand_name: 'QH Boypho',
+  admin_panel_label: 'Admin Panel'
+}
+let adminMembers = []
+let adminPermissionItems = []
+let editingAdminMemberId = ''
+let adminMemberPermissionsTargetId = ''
+let marketplaceOrders = []
+let marketplaceFilters = { channel: 'all', status: 'all', date: '' }
+let marketplaceConfigLoaded = false
 const ADMIN_ORDER_NOTIFY_ENABLED_KEY = 'boypho_admin_order_notifications_enabled'
 const ADMIN_ORDER_SOUND_ENABLED_KEY = 'boypho_admin_order_sound_enabled'
 const ADMIN_ORDER_LAST_SEEN_KEY = 'boypho_admin_order_last_seen_id'
@@ -61,7 +76,29 @@ const adminScrollLockStyles = {
   htmlOverscrollBehavior: '',
 }
 const MAX_PRODUCT_PAYLOAD_SIZE = 1200000
-const ADMIN_OVERLAY_IDS = ['productModal', 'orderDetailModal', 'arrangeSuccessModal', 'createFlashSaleModal', 'flashSaleProductPickerModal', 'adminChangePasswordModal', 'reviewAdminModal', 'dashboardCustomerModal', 'customerOrderHistoryModal', 'customerActionConfirmModal']
+const ADMIN_OVERLAY_IDS = ['productModal', 'orderDetailModal', 'arrangeSuccessModal', 'createFlashSaleModal', 'flashSaleProductPickerModal', 'adminChangePasswordModal', 'adminMemberAccountModal', 'adminMemberPermissionsModal', 'reviewAdminModal', 'dashboardCustomerModal', 'customerOrderHistoryModal', 'customerActionConfirmModal']
+const ADMIN_PERMISSION_LABELS = {
+  dashboard: 'Dashboard',
+  products: 'Sản phẩm',
+  'product-types': 'Loại sản phẩm',
+  orders: 'Đơn hàng',
+  returns: 'Hoàn trả',
+  customers: 'Khách hàng',
+  marketplaces: 'Sàn TMĐT',
+  'live-chat': 'Live chat',
+  reviews: 'Đánh giá',
+  backup: 'Dữ liệu',
+  vouchers: 'Khuyến mãi',
+  featured: 'Sản phẩm nổi bật',
+  flashsale: 'Flashsale',
+  'settings-social': 'MXH',
+  'settings-payment': 'Thanh toán',
+  'settings-text-ui': 'Text UI',
+  'settings-images': 'Hình ảnh',
+  'settings-notifications': 'Thông báo',
+  'settings-admin-ui': 'Trang quản trị',
+  'settings-warehouse': 'Kho hàng'
+}
 
 function lockAdminPageScroll() {
   if (adminScrollLockActive) return
@@ -164,11 +201,126 @@ function getInitialFromName(name) {
   return text.charAt(0).toUpperCase()
 }
 
+function normalizeAdminUiText(value, fallback, max) {
+  const text = String(value || '')
+    .replace(/[<>]/g, '')
+    .replace(/\\s+/g, ' ')
+    .trim()
+    .slice(0, max || 80)
+  return text || fallback
+}
+
+function getAdminUiBrandName() {
+  return normalizeAdminUiText(adminUiSettings?.admin_brand_name, 'Boypho', 40)
+}
+
+function getAdminUiFullBrandName() {
+  const brandName = getAdminUiBrandName()
+  return normalizeAdminUiText(adminUiSettings?.admin_full_brand_name, /^qh\\s+/i.test(brandName) ? brandName : 'QH ' + brandName, 60)
+}
+
+function getAdminUiPanelLabel() {
+  return normalizeAdminUiText(adminUiSettings?.admin_panel_label, 'Admin Panel', 80)
+}
+
+function applyAdminUiSettings(settings) {
+  if (settings) adminUiSettings = { ...adminUiSettings, ...settings }
+  const brandName = getAdminUiBrandName()
+  const fullBrandName = getAdminUiFullBrandName()
+  const panelLabel = getAdminUiPanelLabel()
+  const sidebarBrand = document.getElementById('adminSidebarBrandName')
+  const sidebarPanel = document.getElementById('adminSidebarPanelLabel')
+  const sidebarLogo = document.getElementById('adminSidebarLogoImg')
+  const appleTitleEl = document.querySelector('meta[name="apple-mobile-web-app-title"]')
+  if (sidebarBrand) sidebarBrand.textContent = brandName
+  if (sidebarPanel) sidebarPanel.textContent = panelLabel
+  if (sidebarLogo) sidebarLogo.alt = fullBrandName
+  if (appleTitleEl) appleTitleEl.setAttribute('content', brandName + ' Admin')
+  document.title = fullBrandName + ' Admin'
+  applyAdminAvatarUI()
+}
+
+async function loadAdminUiSettings(options = {}) {
+  try {
+    const res = await axios.get('/api/public/admin-ui-settings')
+    applyAdminUiSettings(res.data?.data || null)
+    return adminUiSettings
+  } catch (_) {
+    if (!options.silent) applyAdminUiSettings(adminUiSettings)
+    return adminUiSettings
+  }
+}
+
+function isSuperAdminProfile() {
+  return adminProfile?.isSuperAdmin === true || String(adminProfile?.adminUserKey || '').toLowerCase() === 'admin'
+}
+
+function getAdminPermissions() {
+  return adminProfile?.permissions || {}
+}
+
+function canAdminViewPage(pageName) {
+  if (pageName === 'members') return isSuperAdminProfile()
+  if (isSuperAdminProfile()) return true
+  const key = normalizeAdminPermissionPageKey(pageName)
+  if (!key) return true
+  const entry = getAdminPermissions()[key]
+  return !!(entry?.view || entry?.edit)
+}
+
+function canAdminEditPage(pageName) {
+  if (pageName === 'members') return isSuperAdminProfile()
+  if (isSuperAdminProfile()) return true
+  const key = normalizeAdminPermissionPageKey(pageName)
+  if (!key) return true
+  return getAdminPermissions()[key]?.edit === true
+}
+
+function normalizeAdminPermissionPageKey(pageName) {
+  if (pageName === 'settings') return 'settings-warehouse'
+  if (pageName === 'members') return null
+  return pageName
+}
+
+function getFirstAllowedAdminPage() {
+  const pages = ['dashboard','orders','marketplaces','products','customers','live-chat','returns','reviews','vouchers','featured','flashsale','backup','settings-social','settings-payment','settings-text-ui','settings-images','settings-notifications','settings-admin-ui','settings-warehouse']
+  return pages.find((page) => canAdminViewPage(page)) || 'dashboard'
+}
+
+function syncAdminPermissionUI() {
+  const superAdmin = isSuperAdminProfile()
+  document.body.dataset.adminSuper = superAdmin ? '1' : '0'
+  document.querySelectorAll('.nav-item[data-page]').forEach((btn) => {
+    const page = btn.dataset.page
+    const visible = page === 'members' ? superAdmin : canAdminViewPage(page)
+    btn.classList.toggle('hidden', !visible)
+  })
+  document.querySelectorAll('.nav-sub-item[data-sub-page]').forEach((btn) => {
+    const page = btn.dataset.subPage
+    const visible = canAdminViewPage(page)
+    btn.classList.toggle('hidden', !visible)
+  })
+  const productMenu = document.getElementById('productMenuBtn')
+  const productSubmenu = document.getElementById('productSubmenu')
+  const hasProductChild = !!productSubmenu?.querySelector('.nav-sub-item:not(.hidden)')
+  if (productMenu) productMenu.classList.toggle('hidden', !hasProductChild && !canAdminViewPage('products'))
+  const marketingMenu = document.getElementById('marketingMenuBtn')
+  const marketingSubmenu = document.getElementById('marketingSubmenu')
+  const hasMarketingChild = !!marketingSubmenu?.querySelector('.nav-sub-item:not(.hidden)')
+  if (marketingMenu) marketingMenu.classList.toggle('hidden', !hasMarketingChild)
+  const settingsMenu = document.getElementById('settingsMenuBtn')
+  const settingsSubmenu = document.getElementById('settingsSubmenu')
+  const hasSettingsChild = !!settingsSubmenu?.querySelector('.nav-sub-item:not(.hidden)')
+  if (settingsMenu) settingsMenu.classList.toggle('hidden', !hasSettingsChild)
+  document.body.dataset.adminPermissionReady = '1'
+}
+
 function applyAdminAvatarUI() {
   const rawAvatar = String(adminProfile?.avatar || '').trim()
   const lowerAvatar = rawAvatar.toLowerCase()
   const avatar = ['null', 'undefined', 'none'].includes(lowerAvatar) ? '' : rawAvatar
-  const name = String(adminProfile?.name || 'QH Boypho').trim() || 'QH Boypho'
+  const fallbackName = getAdminUiFullBrandName()
+  const name = String(adminProfile?.name || fallbackName).trim() || fallbackName
   const adminKey = String(adminProfile?.adminUserKey || 'admin').trim().toUpperCase()
 
   const bindAvatarImg = (img, fallback) => {
@@ -365,7 +517,7 @@ function writeAdminOrderLastSeenId(id) {
 }
 
 function syncAdminOrderNotifyButton() {
-  const btn = document.getElementById('adminOrderNotifyButton')
+  const btn = document.getElementById('adminOrderNotifySettingsButton')
   const icon = document.getElementById('adminOrderNotifyIcon')
   const label = document.getElementById('adminOrderNotifyLabel')
   if (!btn || !icon) return
@@ -566,7 +718,10 @@ async function loadAdminProfile() {
   try {
     const res = await axios.get('/api/admin/profile')
     adminProfile = res.data?.data || null
+    await loadAdminUiSettings({ silent: true })
     applyAdminAvatarUI()
+    ensureSettingsImagesNavItem()
+    syncAdminPermissionUI()
   } catch (_) {
     // keep default avatar fallback
   }
@@ -972,16 +1127,194 @@ function ensureDashboardDateFilter() {
 
   const filter = document.createElement('div')
   filter.id = 'dashboardDateFilter'
-  filter.className = 'hidden items-center gap-2 rounded-full border border-gray-200 bg-white px-2 py-1 shadow-sm'
+  filter.className = 'dashboard-date-filter hidden items-center gap-2 rounded-full border border-gray-200 bg-white px-2 py-1 shadow-sm'
   filter.innerHTML =
-    '<select id="dashboardFilterMode" onchange="onDashboardFilterModeChange()" class="h-9 rounded-full border-0 bg-gray-50 px-3 text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-pink-100">' +
-      '<option value="month">Theo tháng</option>' +
-      '<option value="day">Theo ngày</option>' +
-      '<option value="all">Tất cả</option>' +
-    '</select>' +
-    '<input type="month" id="dashboardMonthInput" onchange="onDashboardFilterValueChange()" class="h-9 rounded-full border border-gray-200 px-3 text-xs font-semibold text-gray-700 focus:outline-none focus:border-pink-300">' +
-    '<input type="date" id="dashboardDateInput" onchange="onDashboardFilterValueChange()" class="hidden h-9 rounded-full border border-gray-200 px-3 text-xs font-semibold text-gray-700 focus:outline-none focus:border-pink-300">'
+    '<div class="dashboard-date-mode-shell">' +
+      '<select id="dashboardFilterMode" onchange="onDashboardFilterModeChange()" class="dashboard-date-mode-select h-9 rounded-full border-0 bg-gray-50 px-3 text-xs font-semibold text-gray-700 focus:outline-none focus:ring-2 focus:ring-pink-100">' +
+        '<option value="month">Theo tháng</option>' +
+        '<option value="day">Theo ngày</option>' +
+        '<option value="all">Tất cả</option>' +
+      '</select>' +
+      '<i class="fas fa-chevron-down dashboard-date-mode-chevron"></i>' +
+    '</div>' +
+    '<div id="dashboardMonthShell" class="dashboard-date-value-shell">' +
+      '<input type="hidden" id="dashboardMonthInput">' +
+      '<button type="button" id="dashboardMonthTrigger" onclick="toggleDashboardDatePicker(\\'month\\')" class="dashboard-date-trigger">' +
+        '<span id="dashboardMonthDisplay" class="dashboard-date-display"></span>' +
+        '<i class="far fa-calendar dashboard-date-calendar-icon"></i>' +
+      '</button>' +
+    '</div>' +
+    '<div id="dashboardDateShell" class="dashboard-date-value-shell hidden">' +
+      '<input type="hidden" id="dashboardDateInput">' +
+      '<button type="button" id="dashboardDateTrigger" onclick="toggleDashboardDatePicker(\\'day\\')" class="dashboard-date-trigger">' +
+        '<span id="dashboardDateDisplay" class="dashboard-date-display"></span>' +
+        '<i class="far fa-calendar dashboard-date-calendar-icon"></i>' +
+      '</button>' +
+    '</div>' +
+    '<div id="dashboardDatePicker" class="dashboard-date-picker hidden"></div>'
   avatarRoot.parentElement.insertBefore(filter, avatarRoot)
+}
+
+function formatDashboardDateFilterDisplay(value, mode) {
+  const parts = String(value || '').split('-')
+  if (mode === 'month' && parts.length >= 2) return parts[1] + '/' + parts[0]
+  if (mode === 'day' && parts.length >= 3) return parts[2] + '/' + parts[1] + '/' + parts[0]
+  return String(value || '')
+}
+
+function parseDashboardMonthValue(value) {
+  const match = String(value || '').match(/^(\\d{4})-(\\d{2})$/)
+  const now = new Date()
+  if (!match) return { year: now.getFullYear(), month: now.getMonth() + 1 }
+  return { year: Number(match[1]), month: Number(match[2]) }
+}
+
+function parseDashboardDateValue(value) {
+  const match = String(value || '').match(/^(\\d{4})-(\\d{2})-(\\d{2})$/)
+  const now = new Date()
+  if (!match) return { year: now.getFullYear(), month: now.getMonth() + 1, day: now.getDate() }
+  return { year: Number(match[1]), month: Number(match[2]), day: Number(match[3]) }
+}
+
+function getDashboardDatePicker() {
+  return document.getElementById('dashboardDatePicker')
+}
+
+function closeDashboardDatePicker() {
+  const picker = getDashboardDatePicker()
+  if (picker) {
+    picker.classList.add('hidden')
+    picker.innerHTML = ''
+  }
+  dashboardDatePickerOpen = ''
+  dashboardDatePickerView = null
+  dashboardDatePickerYearListOpen = false
+}
+
+function toggleDashboardDatePicker(kind) {
+  if (dashboardDatePickerOpen === kind) {
+    closeDashboardDatePicker()
+    return
+  }
+  openDashboardDatePicker(kind)
+}
+
+function openDashboardDatePicker(kind) {
+  const picker = getDashboardDatePicker()
+  if (!picker) return
+  dashboardDatePickerOpen = kind
+  dashboardDatePickerYearListOpen = false
+  if (kind === 'day') {
+    const selected = parseDashboardDateValue(document.getElementById('dashboardDateInput')?.value || getLocalDateInputValue())
+    dashboardDatePickerView = { year: selected.year, month: selected.month }
+    renderDashboardDayPicker()
+  } else {
+    const selected = parseDashboardMonthValue(document.getElementById('dashboardMonthInput')?.value || getLocalMonthInputValue())
+    dashboardDatePickerView = { year: selected.year, month: selected.month }
+    renderDashboardMonthPicker()
+  }
+  picker.classList.remove('hidden')
+}
+
+function shiftDashboardMonthPickerYear(delta) {
+  const base = dashboardDatePickerView || parseDashboardMonthValue(document.getElementById('dashboardMonthInput')?.value || getLocalMonthInputValue())
+  dashboardDatePickerView = { year: base.year + delta, month: base.month }
+  dashboardDatePickerYearListOpen = false
+  renderDashboardMonthPicker()
+}
+
+function shiftDashboardDayPickerMonth(delta) {
+  const base = dashboardDatePickerView || parseDashboardDateValue(document.getElementById('dashboardDateInput')?.value || getLocalDateInputValue())
+  const date = new Date(base.year, base.month - 1 + delta, 1)
+  dashboardDatePickerView = { year: date.getFullYear(), month: date.getMonth() + 1 }
+  renderDashboardDayPicker()
+}
+
+function toggleDashboardMonthYearList() {
+  dashboardDatePickerYearListOpen = !dashboardDatePickerYearListOpen
+  renderDashboardMonthPicker()
+}
+
+function selectDashboardMonthPickerYear(year) {
+  const base = dashboardDatePickerView || parseDashboardMonthValue(document.getElementById('dashboardMonthInput')?.value || getLocalMonthInputValue())
+  dashboardDatePickerView = { year: Number(year), month: base.month }
+  dashboardDatePickerYearListOpen = false
+  renderDashboardMonthPicker()
+}
+
+function renderDashboardMonthPicker() {
+  const picker = getDashboardDatePicker()
+  if (!picker) return
+  const selected = parseDashboardMonthValue(document.getElementById('dashboardMonthInput')?.value || getLocalMonthInputValue())
+  const view = dashboardDatePickerView || selected
+  if (dashboardDatePickerYearListOpen) {
+    const startYear = view.year - 5
+    const yearButtons = Array.from({ length: 12 }, (_, index) => {
+      const year = startYear + index
+      const active = year === view.year
+      return '<button type="button" onclick="selectDashboardMonthPickerYear(' + year + ')" class="dashboard-date-picker-cell dashboard-date-picker-year-cell' + (active ? ' is-active' : '') + '">' + year + '</button>'
+    }).join('')
+    picker.innerHTML =
+      '<div class="dashboard-date-picker-header">' +
+        '<button type="button" onclick="shiftDashboardMonthPickerYear(-12)" class="dashboard-date-picker-nav" aria-label="12 năm trước"><i class="fas fa-chevron-left"></i></button>' +
+        '<strong>Chọn năm</strong>' +
+        '<button type="button" onclick="shiftDashboardMonthPickerYear(12)" class="dashboard-date-picker-nav" aria-label="12 năm sau"><i class="fas fa-chevron-right"></i></button>' +
+      '</div>' +
+      '<div class="dashboard-date-picker-year-grid">' + yearButtons + '</div>'
+    return
+  }
+  const monthButtons = Array.from({ length: 12 }, (_, index) => {
+    const month = index + 1
+    const value = view.year + '-' + String(month).padStart(2, '0')
+    const active = selected.year === view.year && selected.month === month
+    return '<button type="button" onclick="selectDashboardMonth(\\'' + value + '\\')" class="dashboard-date-picker-cell' + (active ? ' is-active' : '') + '">T' + month + '</button>'
+  }).join('')
+  picker.innerHTML =
+    '<div class="dashboard-date-picker-header">' +
+      '<button type="button" onclick="shiftDashboardMonthPickerYear(-1)" class="dashboard-date-picker-nav" aria-label="Năm trước"><i class="fas fa-chevron-left"></i></button>' +
+      '<button type="button" onclick="toggleDashboardMonthYearList()" class="dashboard-date-picker-year-button">' + escapeDashboardHtml(view.year) + '</button>' +
+      '<button type="button" onclick="shiftDashboardMonthPickerYear(1)" class="dashboard-date-picker-nav" aria-label="Năm sau"><i class="fas fa-chevron-right"></i></button>' +
+    '</div>' +
+    '<div class="dashboard-date-picker-month-grid">' + monthButtons + '</div>'
+}
+
+function renderDashboardDayPicker() {
+  const picker = getDashboardDatePicker()
+  if (!picker) return
+  const selected = parseDashboardDateValue(document.getElementById('dashboardDateInput')?.value || getLocalDateInputValue())
+  const view = dashboardDatePickerView || selected
+  const first = new Date(view.year, view.month - 1, 1)
+  const daysInMonth = new Date(view.year, view.month, 0).getDate()
+  const leading = (first.getDay() + 6) % 7
+  const cells = []
+  for (let i = 0; i < leading; i += 1) cells.push('<span class="dashboard-date-picker-empty"></span>')
+  for (let day = 1; day <= daysInMonth; day += 1) {
+    const value = view.year + '-' + String(view.month).padStart(2, '0') + '-' + String(day).padStart(2, '0')
+    const active = selected.year === view.year && selected.month === view.month && selected.day === day
+    cells.push('<button type="button" onclick="selectDashboardDate(\\'' + value + '\\')" class="dashboard-date-picker-cell' + (active ? ' is-active' : '') + '">' + day + '</button>')
+  }
+  picker.innerHTML =
+    '<div class="dashboard-date-picker-header">' +
+      '<button type="button" onclick="shiftDashboardDayPickerMonth(-1)" class="dashboard-date-picker-nav" aria-label="Tháng trước"><i class="fas fa-chevron-left"></i></button>' +
+      '<strong>Tháng ' + String(view.month).padStart(2, '0') + '/' + escapeDashboardHtml(view.year) + '</strong>' +
+      '<button type="button" onclick="shiftDashboardDayPickerMonth(1)" class="dashboard-date-picker-nav" aria-label="Tháng sau"><i class="fas fa-chevron-right"></i></button>' +
+    '</div>' +
+    '<div class="dashboard-date-picker-weekdays"><span>T2</span><span>T3</span><span>T4</span><span>T5</span><span>T6</span><span>T7</span><span>CN</span></div>' +
+    '<div class="dashboard-date-picker-day-grid">' + cells.join('') + '</div>'
+}
+
+function selectDashboardMonth(value) {
+  const input = document.getElementById('dashboardMonthInput')
+  if (input) input.value = value
+  closeDashboardDatePicker()
+  onDashboardFilterValueChange()
+}
+
+function selectDashboardDate(value) {
+  const input = document.getElementById('dashboardDateInput')
+  if (input) input.value = value
+  closeDashboardDatePicker()
+  onDashboardFilterValueChange()
 }
 
 function initDashboardDateFilterDefaults() {
@@ -1002,6 +1335,10 @@ function syncDashboardDateFilterUI() {
   const mode = document.getElementById('dashboardFilterMode')
   const dateInput = document.getElementById('dashboardDateInput')
   const monthInput = document.getElementById('dashboardMonthInput')
+  const dateShell = document.getElementById('dashboardDateShell')
+  const monthShell = document.getElementById('dashboardMonthShell')
+  const dateDisplay = document.getElementById('dashboardDateDisplay')
+  const monthDisplay = document.getElementById('dashboardMonthDisplay')
   const avatarRoot = document.getElementById('adminAvatarMenuRoot')
   const header = document.querySelector('#adminMainContent > header')
   const headerActions = header?.lastElementChild instanceof HTMLElement ? header.lastElementChild : null
@@ -1017,6 +1354,11 @@ function syncDashboardDateFilterUI() {
   dashboardFilterMode = String(mode.value || 'month')
   dateInput.classList.toggle('hidden', dashboardFilterMode !== 'day')
   monthInput.classList.toggle('hidden', dashboardFilterMode !== 'month')
+  dateShell?.classList.toggle('hidden', dashboardFilterMode !== 'day')
+  monthShell?.classList.toggle('hidden', dashboardFilterMode !== 'month')
+  if (dateDisplay) dateDisplay.textContent = formatDashboardDateFilterDisplay(dateInput.value || getLocalDateInputValue(), 'day')
+  if (monthDisplay) monthDisplay.textContent = formatDashboardDateFilterDisplay(monthInput.value || getLocalMonthInputValue(), 'month')
+  filter.classList.toggle('dashboard-date-filter-mobile', isMobileDashboard)
 
   if (isDashboard && isMobileDashboard) {
     if (dashboardRoot && statGrid && filter.parentElement !== dashboardRoot) {
@@ -1024,14 +1366,6 @@ function syncDashboardDateFilterUI() {
     } else if (dashboardRoot && !statGrid && filter.parentElement !== dashboardRoot) {
       dashboardRoot.appendChild(filter)
     }
-    filter.style.width = '100%'
-    filter.style.maxWidth = '100%'
-    filter.style.margin = '0.25rem 0 1rem'
-    filter.style.padding = '0.25rem'
-    filter.style.justifyContent = 'center'
-    filter.style.alignSelf = 'stretch'
-    filter.style.flexWrap = 'wrap'
-    filter.style.gap = '0.375rem'
   } else if (isDashboard) {
     if (headerActions && avatarRoot instanceof HTMLElement && filter.parentElement !== headerActions) {
       headerActions.insertBefore(filter, avatarRoot)
@@ -1049,6 +1383,7 @@ function syncDashboardDateFilterUI() {
 
 function onDashboardFilterModeChange() {
   syncDashboardDateFilterUI()
+  closeDashboardDatePicker()
   if (document.body.dataset.adminPage === 'dashboard') loadDashboard()
 }
 
@@ -1069,7 +1404,11 @@ function getDashboardStatsParams() {
 function showPage(pageName) {
   pageName = String(pageName || 'dashboard')
   ensureSettingsImagesNavItem()
-  const adminPages = ['dashboard','products','product-types','orders','returns','customers','live-chat','reviews','backup','vouchers','featured','settings','settings-social','settings-payment','settings-text-ui','settings-images','settings-notifications','settings-warehouse','flashsale']
+  syncAdminPermissionUI()
+  if (!canAdminViewPage(pageName)) {
+    pageName = getFirstAllowedAdminPage()
+  }
+  const adminPages = ['dashboard','products','product-types','orders','returns','customers','marketplaces','live-chat','reviews','backup','members','vouchers','featured','settings','settings-social','settings-payment','settings-text-ui','settings-images','settings-notifications','settings-admin-ui','settings-warehouse','flashsale']
   adminPages.forEach(p => {
     const section = document.getElementById('page-'+p)
     if (section) section.classList.toggle('hidden', p !== pageName)
@@ -1080,7 +1419,7 @@ function showPage(pageName) {
   document.querySelectorAll('.nav-sub-item').forEach(b => {
     b.classList.toggle('active', b.dataset.subPage === settingsActiveSubPage || b.dataset.subPage === marketingActiveSubPage)
   })
-  if (pageName === 'settings' || pageName === 'settings-social' || pageName === 'settings-payment' || pageName === 'settings-text-ui' || pageName === 'settings-images' || pageName === 'settings-notifications' || pageName === 'settings-warehouse') {
+  if (pageName === 'settings' || pageName === 'settings-social' || pageName === 'settings-payment' || pageName === 'settings-text-ui' || pageName === 'settings-images' || pageName === 'settings-notifications' || pageName === 'settings-admin-ui' || pageName === 'settings-warehouse') {
     const settingsBtn = document.getElementById('settingsMenuBtn')
     if (settingsBtn) settingsBtn.classList.add('active')
     setSettingsSubmenuOpen(true)
@@ -1089,10 +1428,11 @@ function showPage(pageName) {
     if (pageName === 'settings-text-ui') settingsActiveSubPage = 'settings-text-ui'
     if (pageName === 'settings-images') settingsActiveSubPage = 'settings-images'
     if (pageName === 'settings-notifications') settingsActiveSubPage = 'settings-notifications'
+    if (pageName === 'settings-admin-ui') settingsActiveSubPage = 'settings-admin-ui'
     if (pageName === 'settings-warehouse') settingsActiveSubPage = 'settings-warehouse'
   } else {
     setSettingsSubmenuOpen(false)
-    if (pageName !== 'settings-social' && pageName !== 'settings-payment' && pageName !== 'settings-text-ui' && pageName !== 'settings-images' && pageName !== 'settings-notifications' && pageName !== 'settings-warehouse') settingsActiveSubPage = ''
+    if (pageName !== 'settings-social' && pageName !== 'settings-payment' && pageName !== 'settings-text-ui' && pageName !== 'settings-images' && pageName !== 'settings-notifications' && pageName !== 'settings-admin-ui' && pageName !== 'settings-warehouse') settingsActiveSubPage = ''
   }
   if (pageName === 'products' || pageName === 'product-types') {
     const productBtn = document.getElementById('productMenuBtn')
@@ -1122,7 +1462,7 @@ function showPage(pageName) {
   if (marketingActiveSubPage) {
     document.querySelectorAll('.nav-sub-item[data-sub-page="' + marketingActiveSubPage + '"]').forEach(b => b.classList.add('active'))
   }
-  const titles = {dashboard:'Dashboard', products:'Quản lý Sản phẩm', 'product-types':'Loại sản phẩm', orders:'Quản lý Đơn hàng', returns:'Quản lý hoàn trả', customers:'Quản lý Khách hàng', 'live-chat':'Live chat', reviews:'Quản lý Đánh giá', backup:'Dữ liệu', vouchers:'Khuyến mãi', featured:'Sản phẩm Nổi Bật', settings:'Setting', 'settings-social':'Cấu hình MXH', 'settings-payment':'Thanh toán', 'settings-text-ui':'Text UI', 'settings-images':'Cài đặt ảnh', 'settings-notifications':'Cài đặt thông báo', 'settings-warehouse':'Cài đặt kho hàng', flashsale:'Quản lý Flashsale'}
+  const titles = {dashboard:'Dashboard', products:'Quản lý Sản phẩm', 'product-types':'Loại sản phẩm', orders:'Quản lý Đơn hàng', returns:'Quản lý hoàn trả', customers:'Quản lý Khách hàng', marketplaces:'Sàn TMĐT', 'live-chat':'Live chat', reviews:'Quản lý Đánh giá', backup:'Dữ liệu', members:'Thành viên', vouchers:'Khuyến mãi', featured:'Sản phẩm Nổi Bật', settings:'Setting', 'settings-social':'Cấu hình MXH', 'settings-payment':'Thanh toán', 'settings-text-ui':'Text UI', 'settings-images':'Cài đặt ảnh', 'settings-notifications':'Cài đặt thông báo', 'settings-admin-ui':'Trang quản trị', 'settings-warehouse':'Cài đặt kho hàng', flashsale:'Quản lý Flashsale'}
   document.body.dataset.adminPage = pageName
   document.getElementById('pageTitle').textContent = titles[pageName] || pageName
 
@@ -1132,9 +1472,11 @@ function showPage(pageName) {
   else if (pageName === 'orders') loadAdminOrders()
   else if (pageName === 'returns') loadReturns()
   else if (pageName === 'customers') loadCustomers()
+  else if (pageName === 'marketplaces') loadMarketplaceOrders()
   else if (pageName === 'live-chat') loadLiveChatAdminInbox()
   else if (pageName === 'reviews') loadAdminReviews()
   else if (pageName === 'backup') loadAdminBackupPage()
+  else if (pageName === 'members') loadAdminMembers()
   else if (pageName === 'vouchers') loadVouchers()
   else if (pageName === 'featured') loadFeaturedAdmin()
   else if (pageName === 'settings') loadSettingsAdmin()
@@ -1143,6 +1485,7 @@ function showPage(pageName) {
   else if (pageName === 'settings-text-ui') loadTextUiSettings()
   else if (pageName === 'settings-images') loadImageSettings()
   else if (pageName === 'settings-notifications') loadNotificationSettings()
+  else if (pageName === 'settings-admin-ui') loadAdminUiSettingsPage()
   else if (pageName === 'settings-warehouse') loadSettingsWarehousePage()
   else if (pageName === 'flashsale') loadFlashSaleAdmin()
 
@@ -1170,7 +1513,7 @@ function syncMobileSidebarToggle(open) {
     toggle.title = open ? 'Đóng menu' : 'Mở menu'
   }
   if (icon) {
-    icon.className = open ? 'fas fa-xmark text-gray-700' : 'fas fa-bars text-gray-700'
+    icon.className = open ? 'fas fa-xmark text-gray-700' : 'admin-sidebar-panel-icon'
   }
 }
 
@@ -1334,15 +1677,100 @@ function handleAdminPageShow(event) {
 
 function setDesktopSidebarCollapsed(collapsed) {
   desktopSidebarCollapsed = !!collapsed
+  if (!desktopSidebarCollapsed) hideCollapsedSidebarTooltip()
+  const motion = desktopSidebarCollapsed ? 'collapsing' : 'expanding'
+  document.body.dataset.sidebarToggleMotion = motion
+  window.clearTimeout(window.__adminSidebarToggleMotionTimer)
+  window.__adminSidebarToggleMotionTimer = window.setTimeout(() => {
+    if (document.body.dataset.sidebarToggleMotion === motion) delete document.body.dataset.sidebarToggleMotion
+  }, 360)
   document.body.dataset.sidebarState = desktopSidebarCollapsed ? 'collapsed' : 'expanded'
   const sidebar = document.getElementById('sidebar')
   if (sidebar) sidebar.dataset.sidebarState = document.body.dataset.sidebarState
+  const toggle = document.getElementById('sidebarDesktopToggle')
+  if (toggle) {
+    toggle.setAttribute('aria-expanded', desktopSidebarCollapsed ? 'false' : 'true')
+    toggle.setAttribute('aria-label', desktopSidebarCollapsed ? 'Mở rộng sidebar' : 'Thu gọn sidebar')
+    toggle.title = desktopSidebarCollapsed ? 'Mở rộng sidebar' : 'Thu gọn sidebar'
+  }
 }
 
 function toggleDesktopSidebar() {
   const isDesktop = window.matchMedia && window.matchMedia('(min-width: 768px)').matches
   if (!isDesktop) return
+  hideCollapsedSidebarTooltip()
   setDesktopSidebarCollapsed(!desktopSidebarCollapsed)
+  if (desktopSidebarCollapsed) document.getElementById('sidebarDesktopToggle')?.blur()
+}
+
+function getCollapsedSidebarTooltip() {
+  let tooltip = document.getElementById('collapsedSidebarTooltip')
+  if (tooltip) return tooltip
+  tooltip = document.createElement('div')
+  tooltip.id = 'collapsedSidebarTooltip'
+  tooltip.className = 'collapsed-sidebar-tooltip'
+  tooltip.setAttribute('role', 'tooltip')
+  document.body.appendChild(tooltip)
+  return tooltip
+}
+
+function getCollapsedSidebarTooltipLabel(target) {
+  if (!target) return ''
+  if (target.id === 'sidebarDesktopToggle') return 'Mở rộng sidebar'
+  const label = target.querySelector('.sidebar-label, .sidebar-sub-label')
+  return String(label?.textContent || target.getAttribute('aria-label') || target.title || '').trim()
+}
+
+function hideCollapsedSidebarTooltip() {
+  const tooltip = document.getElementById('collapsedSidebarTooltip')
+  if (!tooltip) return
+  tooltip.classList.remove('is-visible')
+  tooltip.textContent = ''
+}
+
+function showCollapsedSidebarTooltip(target) {
+  const isDesktop = window.matchMedia && window.matchMedia('(min-width: 768px)').matches
+  if (!isDesktop || document.body.dataset.sidebarState !== 'collapsed') {
+    hideCollapsedSidebarTooltip()
+    return
+  }
+  const label = getCollapsedSidebarTooltipLabel(target)
+  if (!label) {
+    hideCollapsedSidebarTooltip()
+    return
+  }
+  const tooltip = getCollapsedSidebarTooltip()
+  const rect = target.getBoundingClientRect()
+  tooltip.textContent = label
+  tooltip.style.left = Math.round(rect.right + 12) + 'px'
+  tooltip.style.top = Math.round(rect.top + rect.height / 2) + 'px'
+  tooltip.classList.add('is-visible')
+}
+
+function bindCollapsedSidebarTooltips() {
+  if (window.__adminCollapsedSidebarTooltipsBound) return
+  window.__adminCollapsedSidebarTooltipsBound = true
+  const getTarget = (node) => node?.closest?.('#sidebar .nav-item, #sidebar > .border-t a, #sidebar .sidebar-toggle-desktop')
+  document.addEventListener('mouseover', function(event) {
+    const target = getTarget(event.target)
+    if (!target) return
+    showCollapsedSidebarTooltip(target)
+  })
+  document.addEventListener('mouseout', function(event) {
+    const target = getTarget(event.target)
+    if (!target) return
+    if (target.contains(event.relatedTarget)) return
+    hideCollapsedSidebarTooltip()
+  })
+  document.addEventListener('focusin', function(event) {
+    const target = getTarget(event.target)
+    if (target) showCollapsedSidebarTooltip(target)
+  })
+  document.addEventListener('focusout', function(event) {
+    const target = getTarget(event.target)
+    if (target) hideCollapsedSidebarTooltip()
+  })
+  document.addEventListener('scroll', hideCollapsedSidebarTooltip, true)
 }
 
 function setProductSubmenuOpen(open) {
@@ -1423,6 +1851,16 @@ function ensureSettingsImagesNavItem() {
     const warehouseBtn = submenu.querySelector('[data-sub-page="settings-warehouse"]')
     submenu.insertBefore(btn, warehouseBtn || null)
   }
+  if (!submenu.querySelector('[data-sub-page="settings-admin-ui"]')) {
+    const btn = document.createElement('button')
+    btn.type = 'button'
+    btn.className = 'nav-sub-item w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg text-gray-400 text-sm font-medium'
+    btn.dataset.subPage = 'settings-admin-ui'
+    btn.onclick = openSettingsAdminUi
+    btn.innerHTML = '<i class="fas fa-id-card-clip w-4"></i><span class="sidebar-sub-label">Trang quản trị</span>'
+    const warehouseBtn = submenu.querySelector('[data-sub-page="settings-warehouse"]')
+    submenu.insertBefore(btn, warehouseBtn || null)
+  }
   if (submenu.querySelector('[data-sub-page="settings-notifications"]')) return
   const btn = document.createElement('button')
   btn.type = 'button'
@@ -1458,6 +1896,14 @@ function openSettingsNotifications() {
   showPage('settings-notifications')
 }
 
+function openSettingsAdminUi() {
+  settingsActiveSubPage = 'settings-admin-ui'
+  marketingActiveSubPage = ''
+  setSettingsSubmenuOpen(true)
+  setMarketingSubmenuOpen(false)
+  showPage('settings-admin-ui')
+}
+
 function openSettingsImages() {
   settingsActiveSubPage = 'settings-images'
   marketingActiveSubPage = ''
@@ -1480,6 +1926,525 @@ function openSettingsSocial() {
   setSettingsSubmenuOpen(true)
   setMarketingSubmenuOpen(false)
   showPage('settings-social')
+}
+
+function escapeAdminText(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (ch) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch] || ch))
+}
+
+function setMarketplaceButtonLoading(btn, loading, text) {
+  if (!btn) return
+  if (loading) {
+    btn.dataset.originalHtml = btn.innerHTML
+    btn.disabled = true
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>' + escapeAdminText(text || 'Đang xử lý...')
+    return
+  }
+  btn.disabled = false
+  if (btn.dataset.originalHtml) btn.innerHTML = btn.dataset.originalHtml
+}
+
+function getMarketplaceStatusMeta(bucket, statusText) {
+  if (bucket === 'cancelled') return { label: statusText || 'Đã huỷ', cls: 'bg-red-50 text-red-600 border-red-100' }
+  if (bucket === 'returns') return { label: statusText || 'Hoàn trả', cls: 'bg-amber-50 text-amber-700 border-amber-100' }
+  return { label: statusText || 'Đang xử lý', cls: 'bg-emerald-50 text-emerald-700 border-emerald-100' }
+}
+
+function formatMarketplaceDate(value) {
+  const text = String(value || '').trim()
+  if (!text) return '--'
+  if (/^[0-9]{10,13}$/.test(text)) {
+    const numeric = Number(text)
+    const dateFromNumber = new Date(numeric < 1000000000000 ? numeric * 1000 : numeric)
+    if (!Number.isNaN(dateFromNumber.getTime())) {
+      return dateFromNumber.toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+    }
+  }
+  const normalized = text.includes('T') ? text : text.replace(' ', 'T')
+  const date = new Date(normalized)
+  if (!Number.isNaN(date.getTime())) {
+    return date.toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+  }
+  return text
+}
+
+function applyMarketplaceConfig(config) {
+  const appIdInput = document.getElementById('marketplaceNhanhAppId')
+  const businessInput = document.getElementById('marketplaceNhanhBusinessId')
+  const secretInput = document.getElementById('marketplaceNhanhSecretKey')
+  const tokenInput = document.getElementById('marketplaceNhanhAccessToken')
+  const status = document.getElementById('marketplaceConfigStatus')
+  const oauthLink = document.getElementById('marketplaceOauthLink')
+  if (appIdInput && config?.appId) appIdInput.value = config.appId
+  if (businessInput && config?.businessId) businessInput.value = config.businessId
+  if (secretInput) secretInput.placeholder = config?.hasSecretKey ? 'Đã lưu: ' + (config.secretKeyMasked || '********') : 'Dán secret nếu cần đổi'
+  if (tokenInput) tokenInput.placeholder = config?.hasAccessToken ? 'Đã lưu: ' + (config.accessTokenMasked || '********') : 'Tự fill sau cấp quyền'
+  const ready = !!(config?.appId && config?.businessId && config?.hasAccessToken)
+  if (status) {
+    status.textContent = ready
+      ? 'Đã có App ID, Business ID và token. Có thể tải đơn từ Nhanh.'
+      : 'Chưa đủ cấu hình Nhanh. Lưu App ID/Secret rồi bấm Cấp quyền để lấy token.'
+    status.className = 'mt-1 text-sm ' + (ready ? 'text-emerald-600' : 'text-amber-600')
+  }
+  if (oauthLink) {
+    oauthLink.href = config?.oauthUrl || '#'
+    oauthLink.classList.toggle('pointer-events-none', !config?.oauthUrl)
+    oauthLink.classList.toggle('opacity-50', !config?.oauthUrl)
+  }
+}
+
+async function loadMarketplaceConfig(force = false) {
+  if (marketplaceConfigLoaded && !force) return
+  try {
+    const res = await axios.get('/api/admin/marketplaces/config')
+    marketplaceConfigLoaded = true
+    applyMarketplaceConfig(res.data?.data || {})
+  } catch (e) {
+    const status = document.getElementById('marketplaceConfigStatus')
+    if (status) {
+      status.textContent = 'Không tải được cấu hình Nhanh'
+      status.className = 'mt-1 text-sm text-red-500'
+    }
+  }
+}
+
+async function saveMarketplaceConfig() {
+  const btn = document.getElementById('marketplaceConfigSaveBtn')
+  setMarketplaceButtonLoading(btn, true, 'Đang lưu...')
+  try {
+    const payload = {
+      appId: document.getElementById('marketplaceNhanhAppId')?.value || '',
+      businessId: document.getElementById('marketplaceNhanhBusinessId')?.value || '',
+      secretKey: document.getElementById('marketplaceNhanhSecretKey')?.value || undefined,
+      accessToken: document.getElementById('marketplaceNhanhAccessToken')?.value || undefined,
+    }
+    const res = await axios.put('/api/admin/marketplaces/config', payload)
+    document.getElementById('marketplaceNhanhSecretKey').value = ''
+    document.getElementById('marketplaceNhanhAccessToken').value = ''
+    applyMarketplaceConfig(res.data?.data || {})
+    marketplaceConfigLoaded = true
+    showAdminToast('Đã lưu cấu hình Nhanh')
+  } catch (e) {
+    showAdminToast(e?.response?.data?.error || 'Lỗi lưu cấu hình Nhanh', 'error')
+  } finally {
+    setMarketplaceButtonLoading(btn, false)
+  }
+}
+
+async function exchangeMarketplaceAccessCode() {
+  const btn = document.getElementById('marketplaceExchangeBtn')
+  const input = document.getElementById('marketplaceNhanhAccessCode')
+  const accessCode = String(input?.value || '').trim()
+  if (!accessCode) {
+    showAdminToast('Dán accessCode từ Nhanh trước nhé', 'warning')
+    return
+  }
+  setMarketplaceButtonLoading(btn, true, 'Đang lấy token...')
+  try {
+    const res = await axios.post('/api/admin/marketplaces/nhanh/exchange-token', { accessCode })
+    if (input) input.value = ''
+    applyMarketplaceConfig(res.data?.data || {})
+    marketplaceConfigLoaded = true
+    showAdminToast('Đã kết nối token Nhanh')
+    await loadMarketplaceOrders()
+  } catch (e) {
+    showAdminToast(e?.response?.data?.error || 'Lỗi đổi token Nhanh', 'error')
+  } finally {
+    setMarketplaceButtonLoading(btn, false)
+  }
+}
+
+function setMarketplaceChannel(channel) {
+  marketplaceFilters.channel = channel || 'all'
+  document.querySelectorAll('[data-marketplace-channel]').forEach((btn) => btn.classList.toggle('is-active', btn.dataset.marketplaceChannel === marketplaceFilters.channel))
+  loadMarketplaceOrders()
+}
+
+function setMarketplaceStatus(status) {
+  marketplaceFilters.status = status || 'all'
+  document.querySelectorAll('[data-marketplace-status]').forEach((btn) => btn.classList.toggle('is-active', btn.dataset.marketplaceStatus === marketplaceFilters.status))
+  const select = document.getElementById('marketplaceStatusFilter')
+  if (select && select.value !== marketplaceFilters.status) select.value = marketplaceFilters.status
+  loadMarketplaceOrders()
+}
+
+function ensureMarketplaceDateFilter() {
+  if (!marketplaceFilters.date) marketplaceFilters.date = getLocalDateInputValue()
+  const input = document.getElementById('marketplaceDateFilter')
+  if (input && input.value !== marketplaceFilters.date) input.value = marketplaceFilters.date
+}
+
+function setMarketplaceDate(date) {
+  marketplaceFilters.date = String(date || '').trim() || getLocalDateInputValue()
+  ensureMarketplaceDateFilter()
+  loadMarketplaceOrders()
+}
+
+function shiftMarketplaceDate(days) {
+  ensureMarketplaceDateFilter()
+  const base = new Date((marketplaceFilters.date || getLocalDateInputValue()) + 'T00:00:00')
+  if (Number.isNaN(base.getTime())) return setMarketplaceDate(getLocalDateInputValue())
+  base.setDate(base.getDate() + Number(days || 0))
+  setMarketplaceDate(getLocalDateInputValue(base))
+}
+
+function updateMarketplaceStats(stats = {}) {
+  const setText = (id, value) => {
+    const el = document.getElementById(id)
+    if (el) el.textContent = Number(value || 0).toLocaleString('vi-VN')
+  }
+  setText('marketplaceStatTotal', stats.total)
+  setText('marketplaceStatTiktok', stats.tiktok)
+  setText('marketplaceStatShopee', stats.shopee)
+  setText('marketplaceStatReturns', stats.returns)
+  setText('marketplaceStatCancelled', stats.cancelled)
+}
+
+function setMarketplaceLoadingState(message) {
+  const table = document.getElementById('marketplaceOrdersTableBody')
+  const mobile = document.getElementById('marketplaceOrdersMobileList')
+  const empty = document.getElementById('marketplaceOrdersEmpty')
+  if (empty) empty.classList.add('hidden')
+  if (table) table.innerHTML = '<tr><td colspan="7" class="px-4 py-16 text-center text-gray-400"><i class="fas fa-spinner fa-spin text-2xl mb-2"></i><p>' + escapeAdminText(message || 'Đang tải dữ liệu sàn...') + '</p></td></tr>'
+  if (mobile) mobile.innerHTML = '<div class="p-6 text-center text-gray-400"><i class="fas fa-spinner fa-spin text-2xl mb-2"></i><p>' + escapeAdminText(message || 'Đang tải...') + '</p></div>'
+}
+
+function renderMarketplaceOrders() {
+  const table = document.getElementById('marketplaceOrdersTableBody')
+  const mobile = document.getElementById('marketplaceOrdersMobileList')
+  const empty = document.getElementById('marketplaceOrdersEmpty')
+  if (empty) empty.classList.toggle('hidden', marketplaceOrders.length > 0)
+  if (!marketplaceOrders.length) {
+    if (table) table.innerHTML = ''
+    if (mobile) mobile.innerHTML = ''
+    return
+  }
+  if (table) {
+    table.innerHTML = marketplaceOrders.map((order) => {
+      const status = getMarketplaceStatusMeta(order.bucket, order.statusText)
+      return '<tr class="border-b last:border-0 hover:bg-pink-50/40">' +
+        '<td class="px-4 py-3"><span class="marketplace-platform-badge ' + escapeAdminText(order.platform) + '">' + escapeAdminText(order.platformLabel) + '</span></td>' +
+        '<td class="px-4 py-3"><p class="font-mono font-bold text-gray-900">' + escapeAdminText(order.code || order.id || '--') + '</p></td>' +
+        '<td class="px-4 py-3"><p class="font-bold text-gray-900">' + escapeAdminText(order.customerName || 'Khách sàn') + '</p><p class="text-xs text-gray-400">' + escapeAdminText(order.customerMobile || '') + '</p></td>' +
+        '<td class="px-4 py-3 max-w-[24rem]"><p class="truncate font-semibold text-gray-700">' + escapeAdminText(order.productsText || '--') + '</p></td>' +
+        '<td class="px-4 py-3 text-right font-extrabold text-gray-900">' + escapeAdminText(formatAdminVnd(order.money || order.codMoney)) + '</td>' +
+        '<td class="px-4 py-3 text-center"><span class="inline-flex rounded-full border px-2.5 py-1 text-xs font-bold ' + status.cls + '">' + escapeAdminText(status.label) + '</span></td>' +
+        '<td class="px-4 py-3 text-center text-xs text-gray-500">' + escapeAdminText(formatMarketplaceDate(order.createdAt)) + '</td>' +
+      '</tr>'
+    }).join('')
+  }
+  if (mobile) {
+    mobile.innerHTML = marketplaceOrders.map((order) => {
+      const status = getMarketplaceStatusMeta(order.bucket, order.statusText)
+      return '<article class="p-4">' +
+        '<div class="flex items-start justify-between gap-3">' +
+          '<div class="min-w-0"><p class="font-mono text-sm font-extrabold text-gray-900">' + escapeAdminText(order.code || order.id || '--') + '</p><p class="mt-1 text-xs text-gray-400">' + escapeAdminText(formatMarketplaceDate(order.createdAt)) + '</p></div>' +
+          '<span class="marketplace-platform-badge ' + escapeAdminText(order.platform) + '">' + escapeAdminText(order.platformLabel) + '</span>' +
+        '</div>' +
+        '<p class="mt-3 font-bold text-gray-900">' + escapeAdminText(order.customerName || 'Khách sàn') + '</p>' +
+        '<p class="text-xs text-gray-400">' + escapeAdminText(order.customerMobile || '') + '</p>' +
+        '<p class="mt-3 text-sm font-semibold text-gray-700">' + escapeAdminText(order.productsText || '--') + '</p>' +
+        '<div class="mt-3 flex items-center justify-between gap-3"><span class="font-extrabold text-pink-600">' + escapeAdminText(formatAdminVnd(order.money || order.codMoney)) + '</span><span class="inline-flex rounded-full border px-2.5 py-1 text-xs font-bold ' + status.cls + '">' + escapeAdminText(status.label) + '</span></div>' +
+      '</article>'
+    }).join('')
+  }
+}
+
+async function loadMarketplaceOrders() {
+  await loadMarketplaceConfig()
+  ensureMarketplaceDateFilter()
+  setMarketplaceLoadingState('Đang tải đơn từ Nhanh ngày ' + marketplaceFilters.date + '...')
+  try {
+    const res = await axios.get('/api/admin/marketplaces/orders', {
+      params: {
+        channel: marketplaceFilters.channel,
+        status: marketplaceFilters.status,
+        date: marketplaceFilters.date,
+        pageSize: 100,
+      }
+    })
+    const data = res.data?.data || {}
+    marketplaceOrders = data.orders || []
+    updateMarketplaceStats(data.stats || {})
+    renderMarketplaceOrders()
+  } catch (e) {
+    updateMarketplaceStats({})
+    const message = e?.response?.data?.error || 'Không tải được đơn từ Nhanh'
+    const table = document.getElementById('marketplaceOrdersTableBody')
+    const mobile = document.getElementById('marketplaceOrdersMobileList')
+    const empty = document.getElementById('marketplaceOrdersEmpty')
+    if (empty) empty.classList.add('hidden')
+    if (table) table.innerHTML = '<tr><td colspan="7" class="px-4 py-16 text-center text-red-500"><i class="fas fa-triangle-exclamation text-2xl mb-2"></i><p>' + escapeAdminText(message) + '</p></td></tr>'
+    if (mobile) mobile.innerHTML = '<div class="p-6 text-center text-red-500"><i class="fas fa-triangle-exclamation text-2xl mb-2"></i><p>' + escapeAdminText(message) + '</p></div>'
+  }
+}
+
+async function loadAdminPermissionItems() {
+  if (adminPermissionItems.length) return adminPermissionItems
+  const res = await axios.get('/api/admin/members/permission-items')
+  adminPermissionItems = res.data?.data || []
+  return adminPermissionItems
+}
+
+async function loadAdminMembers() {
+  const table = document.getElementById('adminMembersTable')
+  const mobile = document.getElementById('adminMembersMobileList')
+  const empty = document.getElementById('adminMembersEmpty')
+  if (table) table.innerHTML = '<tr><td colspan="5" class="px-5 py-10 text-center text-gray-400"><i class="fas fa-spinner fa-spin mr-2"></i>Đang tải thành viên...</td></tr>'
+  if (mobile) mobile.innerHTML = '<div class="p-5 text-center text-gray-400"><i class="fas fa-spinner fa-spin mr-2"></i>Đang tải...</div>'
+  try {
+    await loadAdminPermissionItems()
+    const res = await axios.get('/api/admin/members')
+    adminMembers = res.data?.data || []
+    renderAdminMembers()
+  } catch (e) {
+    if (table) table.innerHTML = '<tr><td colspan="5" class="px-5 py-10 text-center text-red-500">Lỗi tải thành viên</td></tr>'
+    if (mobile) mobile.innerHTML = '<div class="p-5 text-center text-red-500">Lỗi tải thành viên</div>'
+    if (empty) empty.classList.add('hidden')
+  }
+}
+
+function summarizeAdminMemberPermissions(member) {
+  const permissions = member?.permissions || {}
+  const visible = adminPermissionItems.filter((item) => permissions[item.key]?.view || permissions[item.key]?.edit)
+  if (!visible.length) return '<span class="text-gray-400">Chưa cấp quyền</span>'
+  return visible.slice(0, 3).map((item) => '<span class="inline-flex rounded-full bg-pink-50 px-2 py-1 text-[11px] font-bold text-pink-600">' + escapeAdminText(item.label) + '</span>').join('') +
+    (visible.length > 3 ? '<span class="inline-flex rounded-full bg-gray-100 px-2 py-1 text-[11px] font-bold text-gray-500">+' + (visible.length - 3) + '</span>' : '')
+}
+
+function renderAdminMembers() {
+  const table = document.getElementById('adminMembersTable')
+  const mobile = document.getElementById('adminMembersMobileList')
+  const empty = document.getElementById('adminMembersEmpty')
+  const hasRows = adminMembers.length > 0
+  if (empty) empty.classList.toggle('hidden', hasRows)
+  if (table) {
+    table.innerHTML = hasRows ? adminMembers.map((member) => {
+      return '<tr class="border-b last:border-0 hover:bg-gray-50">' +
+        '<td class="px-5 py-4"><div class="flex items-center gap-3"><span class="flex h-10 w-10 items-center justify-center rounded-full bg-slate-900 text-sm font-bold text-white">' + escapeAdminText(member.name || member.id).charAt(0).toUpperCase() + '</span><div><p class="font-bold text-gray-900">' + escapeAdminText(member.name || member.id) + '</p><p class="text-xs text-gray-400">Tạo: ' + escapeAdminText(String(member.created_at || '').slice(0, 10)) + '</p></div></div></td>' +
+        '<td class="px-5 py-4 font-mono text-sm text-gray-700">' + escapeAdminText(member.id) + '</td>' +
+        '<td class="px-5 py-4"><div class="flex flex-wrap gap-1.5">' + summarizeAdminMemberPermissions(member) + '</div></td>' +
+        '<td class="px-5 py-4 text-center">' + (member.is_active ? '<span class="badge badge-done">Đang mở</span>' : '<span class="badge badge-cancelled">Đã khóa</span>') + '</td>' +
+        '<td class="px-5 py-4 text-right"><div class="inline-flex items-center gap-1.5">' +
+          '<button type="button" onclick="openAdminMemberAccountModal(\\'' + escapeAdminText(member.id) + '\\')" class="h-9 w-9 rounded-xl bg-blue-50 text-blue-600 hover:bg-blue-100" title="Sửa tài khoản"><i class="fas fa-user-pen"></i></button>' +
+          '<button type="button" onclick="openAdminMemberPasswordModal(\\'' + escapeAdminText(member.id) + '\\')" class="h-9 w-9 rounded-xl bg-amber-50 text-amber-600 hover:bg-amber-100" title="Đổi mật khẩu"><i class="fas fa-key"></i></button>' +
+          '<button type="button" onclick="openAdminMemberPermissionsModal(\\'' + escapeAdminText(member.id) + '\\')" class="h-9 w-9 rounded-xl bg-pink-50 text-pink-600 hover:bg-pink-100" title="Sửa quyền"><i class="fas fa-shield-halved"></i></button>' +
+        '</div></td>' +
+      '</tr>'
+    }).join('') : ''
+  }
+  if (mobile) {
+    mobile.innerHTML = hasRows ? adminMembers.map((member) => (
+      '<div class="p-4">' +
+        '<div class="mb-3 flex items-start justify-between gap-3"><div><p class="font-bold text-gray-900">' + escapeAdminText(member.name || member.id) + '</p><p class="font-mono text-xs text-gray-500">' + escapeAdminText(member.id) + '</p></div>' +
+        (member.is_active ? '<span class="badge badge-done">Mở</span>' : '<span class="badge badge-cancelled">Khóa</span>') + '</div>' +
+        '<div class="mb-3 flex flex-wrap gap-1.5">' + summarizeAdminMemberPermissions(member) + '</div>' +
+        '<div class="flex gap-2"><button type="button" onclick="openAdminMemberAccountModal(\\'' + escapeAdminText(member.id) + '\\')" class="flex-1 rounded-xl bg-blue-50 px-3 py-2 text-xs font-bold text-blue-600">Tài khoản</button><button type="button" onclick="openAdminMemberPasswordModal(\\'' + escapeAdminText(member.id) + '\\')" class="flex-1 rounded-xl bg-amber-50 px-3 py-2 text-xs font-bold text-amber-600">Mật khẩu</button><button type="button" onclick="openAdminMemberPermissionsModal(\\'' + escapeAdminText(member.id) + '\\')" class="flex-1 rounded-xl bg-pink-50 px-3 py-2 text-xs font-bold text-pink-600">Quyền</button></div>' +
+      '</div>'
+    )).join('') : ''
+  }
+}
+
+function findAdminMember(id) {
+  return adminMembers.find((member) => member.id === id) || null
+}
+
+function openAdminMemberAccountModal(id = '') {
+  editingAdminMemberId = String(id || '')
+  const member = editingAdminMemberId ? findAdminMember(editingAdminMemberId) : null
+  const modal = document.getElementById('adminMemberAccountModal')
+  document.getElementById('adminMemberAccountModalTitle').textContent = member ? 'Sửa thành viên' : 'Thêm thành viên'
+  document.getElementById('adminMemberEditId').value = member?.id || ''
+  document.getElementById('adminMemberNameInput').value = member?.name || ''
+  const idInput = document.getElementById('adminMemberIdInput')
+  idInput.value = member?.id || ''
+  idInput.disabled = !!member
+  const passwordBlock = document.getElementById('adminMemberPasswordBlock')
+  const passwordInput = document.getElementById('adminMemberPasswordInput')
+  passwordBlock.classList.toggle('hidden', !!member)
+  passwordInput.required = !member
+  passwordInput.value = ''
+  document.getElementById('adminMemberActiveInput').checked = member ? member.is_active !== false : true
+  document.getElementById('adminMemberAccountSubmitBtn').textContent = member ? 'Lưu tài khoản' : 'Tạo và phân quyền'
+  showAdminOverlay(modal)
+}
+
+function closeAdminMemberAccountModal() {
+  forceHideAdminOverlay(document.getElementById('adminMemberAccountModal'))
+}
+
+function openAdminMemberPasswordModal(id) {
+  openAdminMemberAccountModal(id)
+  const passwordBlock = document.getElementById('adminMemberPasswordBlock')
+  const passwordInput = document.getElementById('adminMemberPasswordInput')
+  passwordBlock.classList.remove('hidden')
+  passwordInput.required = true
+  passwordInput.value = ''
+  document.getElementById('adminMemberAccountModalTitle').textContent = 'Đổi mật khẩu member'
+  document.getElementById('adminMemberAccountSubmitBtn').textContent = 'Cập nhật mật khẩu'
+  setTimeout(() => passwordInput.focus(), 50)
+}
+
+async function submitAdminMemberAccount(event) {
+  event.preventDefault()
+  const id = String(document.getElementById('adminMemberIdInput')?.value || '').trim().toLowerCase()
+  const name = String(document.getElementById('adminMemberNameInput')?.value || '').trim()
+  const password = String(document.getElementById('adminMemberPasswordInput')?.value || '')
+  const isActive = document.getElementById('adminMemberActiveInput')?.checked !== false
+  const btn = document.getElementById('adminMemberAccountSubmitBtn')
+  const isEditing = !!editingAdminMemberId
+  const isPasswordVisible = !document.getElementById('adminMemberPasswordBlock')?.classList.contains('hidden')
+  btn.disabled = true
+  const oldText = btn.textContent
+  btn.textContent = 'Đang lưu...'
+  try {
+    if (!isEditing) {
+      const res = await axios.post('/api/admin/members', { id, name, password })
+      closeAdminMemberAccountModal()
+      await loadAdminMembers()
+      showAdminToast('Đã tạo thành viên, tiếp tục phân quyền', 'success')
+      openAdminMemberPermissionsModal(res.data?.data?.id || id)
+      return
+    }
+    if (isPasswordVisible && password) {
+      await axios.put('/api/admin/members/' + encodeURIComponent(editingAdminMemberId) + '/password', { password })
+      showAdminToast('Đã cập nhật mật khẩu', 'success')
+    }
+    await axios.put('/api/admin/members/' + encodeURIComponent(editingAdminMemberId), { name, is_active: isActive })
+    closeAdminMemberAccountModal()
+    await loadAdminMembers()
+    showAdminToast('Đã lưu tài khoản member', 'success')
+  } catch (e) {
+    const code = e?.response?.data?.error || e?.message || 'Lỗi lưu member'
+    showAdminToast(code, 'error')
+  } finally {
+    btn.disabled = false
+    btn.textContent = oldText
+  }
+}
+
+function emptyPermissionMap() {
+  return adminPermissionItems.reduce((acc, item) => {
+    acc[item.key] = { visible: false, view: false, edit: false }
+    return acc
+  }, {})
+}
+
+function renderAdminMemberPermissions(member) {
+  const grid = document.getElementById('adminMemberPermissionsGrid')
+  if (!grid) return
+  const permissions = { ...emptyPermissionMap(), ...(member?.permissions || {}) }
+  const groups = {}
+  adminPermissionItems.forEach((item) => {
+    const group = item.group || 'Khác'
+    if (!groups[group]) groups[group] = []
+    groups[group].push(item)
+  })
+  grid.innerHTML = Object.keys(groups).map((group) => {
+    const rows = groups[group].map((item) => {
+      const entry = permissions[item.key] || { visible: false, view: false, edit: false }
+      return '<div class="grid gap-3 rounded-2xl border border-gray-200 bg-white p-3 md:grid-cols-[1fr_auto] md:items-center">' +
+        '<div><p class="font-bold text-gray-900">' + escapeAdminText(item.label) + '</p><p class="text-xs text-gray-500">' + escapeAdminText(item.key) + '</p></div>' +
+        '<div class="grid grid-cols-3 gap-2 text-xs font-bold text-gray-600">' +
+          permissionCheckboxHtml(item.key, 'visible', 'Hiện', entry.visible) +
+          permissionCheckboxHtml(item.key, 'view', 'View', entry.view) +
+          permissionCheckboxHtml(item.key, 'edit', 'Edit', entry.edit) +
+        '</div>' +
+      '</div>'
+    }).join('')
+    return '<section><h3 class="mb-2 text-xs font-extrabold uppercase tracking-[0.18em] text-pink-500">' + escapeAdminText(group) + '</h3><div class="grid gap-2">' + rows + '</div></section>'
+  }).join('')
+}
+
+function permissionCheckboxHtml(key, field, label, checked) {
+  return '<label class="flex items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-gray-50 px-2 py-2"><input type="checkbox" data-member-permission-key="' + escapeAdminText(key) + '" data-member-permission-field="' + field + '" onchange="syncMemberPermissionCheckboxes(this)" ' + (checked ? 'checked' : '') + ' class="h-4 w-4 accent-pink-500"><span>' + label + '</span></label>'
+}
+
+function syncMemberPermissionCheckboxes(input) {
+  const key = input.dataset.memberPermissionKey
+  const field = input.dataset.memberPermissionField
+  const get = (name) => document.querySelector('[data-member-permission-key="' + key + '"][data-member-permission-field="' + name + '"]')
+  const visible = get('visible')
+  const view = get('view')
+  const edit = get('edit')
+  if (field === 'edit' && input.checked) {
+    if (view) view.checked = true
+    if (visible) visible.checked = true
+  }
+  if (field === 'view' && input.checked && visible) visible.checked = true
+  if (field === 'view' && !input.checked && edit) edit.checked = false
+  if (field === 'visible' && !input.checked) {
+    if (view) view.checked = false
+    if (edit) edit.checked = false
+  }
+}
+
+async function openAdminMemberPermissionsModal(id) {
+  adminMemberPermissionsTargetId = String(id || '')
+  await loadAdminPermissionItems()
+  const member = findAdminMember(adminMemberPermissionsTargetId)
+  if (!member) {
+    showAdminToast('Không tìm thấy member', 'error')
+    return
+  }
+  document.getElementById('adminMemberPermissionsSubtitle').textContent = (member.name || member.id) + ' · ID: ' + member.id
+  renderAdminMemberPermissions(member)
+  showAdminOverlay(document.getElementById('adminMemberPermissionsModal'))
+}
+
+function closeAdminMemberPermissionsModal() {
+  forceHideAdminOverlay(document.getElementById('adminMemberPermissionsModal'))
+}
+
+function collectAdminMemberPermissions() {
+  const permissions = emptyPermissionMap()
+  document.querySelectorAll('[data-member-permission-key]').forEach((input) => {
+    const key = input.dataset.memberPermissionKey
+    const field = input.dataset.memberPermissionField
+    if (!permissions[key]) permissions[key] = { visible: false, view: false, edit: false }
+    permissions[key][field] = input.checked === true
+  })
+  Object.keys(permissions).forEach((key) => {
+    if (permissions[key].edit) {
+      permissions[key].view = true
+      permissions[key].visible = true
+    }
+    if (permissions[key].view) permissions[key].visible = true
+    if (!permissions[key].visible) {
+      permissions[key].view = false
+      permissions[key].edit = false
+    }
+  })
+  return permissions
+}
+
+function grantSafeOrderStaffPreset() {
+  const allowed = new Set(['dashboard','orders','returns','customers','live-chat'])
+  document.querySelectorAll('[data-member-permission-key]').forEach((input) => {
+    const key = input.dataset.memberPermissionKey
+    const field = input.dataset.memberPermissionField
+    input.checked = allowed.has(key) && (field === 'visible' || field === 'view' || field === 'edit')
+  })
+}
+
+async function saveAdminMemberPermissions() {
+  if (!adminMemberPermissionsTargetId) return
+  const btn = document.getElementById('adminMemberPermissionsSaveBtn')
+  const oldText = btn.textContent
+  btn.disabled = true
+  btn.textContent = 'Đang lưu...'
+  try {
+    const permissions = collectAdminMemberPermissions()
+    await axios.put('/api/admin/members/' + encodeURIComponent(adminMemberPermissionsTargetId) + '/permissions', { permissions })
+    closeAdminMemberPermissionsModal()
+    await loadAdminMembers()
+    showAdminToast('Đã lưu phân quyền member', 'success')
+  } catch (e) {
+    showAdminToast(e?.response?.data?.error || 'Lưu phân quyền thất bại', 'error')
+  } finally {
+    btn.disabled = false
+    btn.textContent = oldText
+  }
 }
 
 function setMarketingSubmenuOpen(open) {
@@ -1838,20 +2803,22 @@ function renderDashboardInsights(d) {
   ]
   const formulaHtml = formulaCards.map((item, index) => {
     const card =
-      '<div class="min-w-0 rounded-[24px] border px-4 py-4 shadow-sm ' + item.tones + '">' +
-        '<div class="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/70 bg-white/80 text-base shadow-sm">' +
+      '<div class="dashboard-tax-formula-card min-w-0 rounded-[24px] border px-4 py-4 shadow-sm ' + item.tones + '">' +
+        '<div class="dashboard-tax-formula-icon mb-4 inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-white/70 bg-white/80 text-base shadow-sm">' +
           '<i class="fas ' + item.icon + '"></i>' +
         '</div>' +
-        '<p class="min-h-[2.5rem] text-sm font-semibold leading-5">' + escapeDashboardHtml(item.label) + '</p>' +
-        '<p class="mt-3 text-[1.8rem] font-black leading-none tracking-[-0.04em]">' + escapeDashboardHtml(item.value) + '</p>' +
+        '<div class="dashboard-tax-formula-copy">' +
+          '<p class="dashboard-tax-formula-label min-h-[2.5rem] text-sm font-semibold leading-5">' + escapeDashboardHtml(item.label) + '</p>' +
+          '<p class="dashboard-tax-formula-value mt-3 text-[1.8rem] font-black leading-none tracking-[-0.04em]">' + escapeDashboardHtml(item.value) + '</p>' +
+        '</div>' +
       '</div>'
     if (index >= operators.length) return card
-    return card + '<div class="flex items-center justify-center text-2xl font-black text-slate-900 md:min-w-[24px]">' + operators[index] + '</div>'
+    return card + '<div class="dashboard-tax-formula-operator flex items-center justify-center text-2xl font-black text-slate-900 md:min-w-[24px]">' + operators[index] + '</div>'
   }).join('')
 
   grid.innerHTML =
     '<div class="grid gap-4">' +
-      '<div class="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)] md:gap-4">' +
+      '<div class="dashboard-tax-formula-grid grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)_auto_minmax(0,1fr)] md:gap-4">' +
         formulaHtml +
       '</div>' +
       '<div class="flex flex-col gap-3 rounded-2xl border border-blue-100 bg-gradient-to-r from-blue-50 to-slate-50 px-4 py-3 md:flex-row md:items-center md:justify-between">' +
@@ -2661,6 +3628,15 @@ function bindMarketplacePriceCalculator() {
 }
 
 window.updateMarketplacePriceCalculator = updateMarketplacePriceCalculator
+window.onDashboardFilterModeChange = onDashboardFilterModeChange
+window.onDashboardFilterValueChange = onDashboardFilterValueChange
+window.toggleDashboardDatePicker = toggleDashboardDatePicker
+window.shiftDashboardMonthPickerYear = shiftDashboardMonthPickerYear
+window.toggleDashboardMonthYearList = toggleDashboardMonthYearList
+window.selectDashboardMonthPickerYear = selectDashboardMonthPickerYear
+window.selectDashboardMonth = selectDashboardMonth
+window.shiftDashboardDayPickerMonth = shiftDashboardDayPickerMonth
+window.selectDashboardDate = selectDashboardDate
 
 async function openProductModal(id = null) {
   editingId = id
@@ -4151,14 +5127,22 @@ document.addEventListener('DOMContentLoaded', function() {
   initDashboardDateFilterDefaults()
   bindAdminOverlaySafetyObserver()
   bindAdminSidebarSwipeGestures()
+  bindCollapsedSidebarTooltips()
   resetAdminTransientSurface('dom-ready-reset')
   syncOrdersHeaderSearchUI()
   syncDashboardDateFilterUI()
   window.addEventListener('resize', syncSidebarOverlay)
+  window.addEventListener('resize', hideCollapsedSidebarTooltip)
   window.addEventListener('resize', syncOrdersHeaderSearchUI)
   window.addEventListener('resize', positionAdminAvatarMenu)
   window.addEventListener('resize', fitDashboardStatValues)
   window.addEventListener('resize', syncDashboardDateFilterUI)
+  document.addEventListener('click', function(event) {
+    const filter = document.getElementById('dashboardDateFilter')
+    const path = typeof event.composedPath === 'function' ? event.composedPath() : []
+    const clickedInsideFilter = filter && (filter.contains(event.target) || path.includes(filter))
+    if (dashboardDatePickerOpen && filter && !clickedInsideFilter) closeDashboardDatePicker()
+  })
   window.addEventListener('scroll', () => {
     if (adminAvatarMenuOpen) positionAdminAvatarMenu()
   }, true)
@@ -4192,7 +5176,10 @@ async function initAdminAuth() {
       return
     }
     adminProfile = res.data?.data || null
+    await loadAdminUiSettings({ silent: true })
     applyAdminAvatarUI()
+    ensureSettingsImagesNavItem()
+    syncAdminPermissionUI()
   } catch (e) {
     window.location.replace('/admin/login')
     return
@@ -4200,6 +5187,7 @@ async function initAdminAuth() {
   await loadAdminProfile()
   showPage('dashboard')
   initAdminOrderNotifications()
+  if (typeof startLiveChatAdminInboxNotifications === 'function') startLiveChatAdminInboxNotifications()
   resetAdminTransientSurface('auth-ready-reset')
 }
 

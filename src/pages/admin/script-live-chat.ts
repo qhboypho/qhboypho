@@ -29,6 +29,53 @@ if (!document.getElementById('liveChatAdminBubbleStyle')) {
       background: #fff;
       clip-path: path('M12 0 C10 4 6 7 0 8 C5 8 9 10 12 10 Z');
     }
+    @media (max-width: 767px) {
+      #page-live-chat {
+        padding: 0.75rem !important;
+      }
+      .admin-live-chat-layout {
+        display: block !important;
+        height: calc(100dvh - 5.75rem) !important;
+        min-height: 0 !important;
+      }
+      .admin-live-chat-list {
+        height: 100% !important;
+        min-height: 0 !important;
+        border-radius: 1.25rem !important;
+      }
+      .admin-live-chat-detail {
+        position: fixed;
+        inset: 0;
+        z-index: 80;
+        height: 100dvh;
+        width: 100vw;
+        border: 0 !important;
+        border-radius: 0 !important;
+        transform: translateX(100%);
+        opacity: 0.01;
+        pointer-events: none;
+        transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1), opacity 180ms ease;
+      }
+      .admin-live-chat-layout.is-detail-open .admin-live-chat-detail {
+        transform: translateX(0);
+        opacity: 1;
+        pointer-events: auto;
+      }
+      .admin-live-chat-layout.is-detail-open #liveChatAdminBackButton {
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
+      }
+      #liveChatAdminMessages {
+        min-height: 0;
+      }
+      #liveChatAdminInput {
+        font-size: 16px !important;
+      }
+      .admin-live-chat-detail > .p-3 {
+        padding-bottom: calc(0.75rem + env(safe-area-inset-bottom)) !important;
+      }
+    }
   \`
   document.head.appendChild(style)
 }
@@ -38,7 +85,66 @@ let liveChatAdminActiveId = ''
 let liveChatAdminSocket = null
 let liveChatAdminLastMessageId = ''
 let liveChatAdminPollTimer = null
+let liveChatAdminInboxPollTimer = null
 let liveChatAdminRenderedMessageIds = new Set()
+let liveChatAdminSwipeStartX = 0
+let liveChatAdminSwipeStartY = 0
+let liveChatAdminSwipeBound = false
+let liveChatAdminLastUnreadTotal = 0
+let liveChatAdminUnreadInitialized = false
+
+function isLiveChatAdminMobileViewport() {
+  return Math.min(window.innerWidth || 0, window.visualViewport?.width || window.innerWidth || 0) <= 767
+}
+
+function setLiveChatAdminMobileDetailOpen(open) {
+  const liveChatAdminLayout = document.getElementById('liveChatAdminLayout')
+  if (!liveChatAdminLayout) return
+  liveChatAdminLayout.classList.toggle('is-detail-open', !!open)
+}
+
+function closeLiveChatAdminMobileDetail() {
+  setLiveChatAdminMobileDetailOpen(false)
+}
+
+function focusLiveChatAdminMobileInput() {
+  if (!isLiveChatAdminMobileViewport()) return
+  const input = document.getElementById('liveChatAdminInput')
+  if (!input || typeof input.focus !== 'function') return
+  setTimeout(function() {
+    try {
+      input.focus({ preventScroll: true })
+    } catch(e) {
+      input.focus()
+    }
+  }, 120)
+}
+
+function bindLiveChatAdminMobileSwipeBack() {
+  if (liveChatAdminSwipeBound) return
+  const detail = document.getElementById('liveChatConversationDetail')
+  if (!detail) return
+  liveChatAdminSwipeBound = true
+  detail.addEventListener('touchstart', function(event) {
+    if (!isLiveChatAdminMobileViewport()) return
+    const touch = event.touches && event.touches[0]
+    if (!touch) return
+    liveChatAdminSwipeStartX = touch.clientX
+    liveChatAdminSwipeStartY = touch.clientY
+  }, { passive: true })
+  detail.addEventListener('touchend', function(event) {
+    if (!isLiveChatAdminMobileViewport()) return
+    const touch = event.changedTouches && event.changedTouches[0]
+    if (!touch) return
+    const deltaX = touch.clientX - liveChatAdminSwipeStartX
+    const deltaY = Math.abs(touch.clientY - liveChatAdminSwipeStartY)
+    liveChatAdminSwipeStartX = 0
+    liveChatAdminSwipeStartY = 0
+    if (deltaX > 76 && deltaY < 70) {
+      closeLiveChatAdminMobileDetail()
+    }
+  }, { passive: true })
+}
 
 function normalizeLiveChatAdminTime(value) {
   if (!value) return ''
@@ -91,18 +197,73 @@ function playLiveChatSound() {
   } catch(e) {}
 }
 
+function getLiveChatAdminUnreadTotal() {
+  return liveChatAdminConversations.reduce(function(total, item) {
+    return total + Number(item.admin_unread_count || 0)
+  }, 0)
+}
+
+function syncLiveChatAdminBadges(unread) {
+  const count = Number(unread || 0)
+  const badgeText = count > 99 ? '99+' : String(count)
+  const badges = [
+    document.getElementById('liveChatAdminBadge'),
+    document.getElementById('liveChatAdminTopBadge')
+  ]
+  badges.forEach(function(badge) {
+    if (!badge) return
+    badge.textContent = badgeText
+    badge.classList.toggle('hidden', count <= 0)
+    badge.classList.toggle('flex', count > 0)
+  })
+}
+
+function updateLiveChatAdminUnreadState(options) {
+  options = options || {}
+  const unread = getLiveChatAdminUnreadTotal()
+  const shouldNotify = liveChatAdminUnreadInitialized && unread > liveChatAdminLastUnreadTotal && !options.silentSound
+  liveChatAdminUnreadInitialized = true
+  liveChatAdminLastUnreadTotal = unread
+  syncLiveChatAdminBadges(unread)
+  if (shouldNotify) playLiveChatSound()
+}
+
+async function pollLiveChatAdminInboxNotifications(options) {
+  options = options || {}
+  try {
+    const res = await axios.get('/api/admin/live-chat/conversations')
+    if (!res.data?.success) throw new Error(res.data?.error || 'Không tải được live chat')
+    liveChatAdminConversations = Array.isArray(res.data.data) ? res.data.data : []
+    updateLiveChatAdminUnreadState(options)
+    const summary = document.getElementById('liveChatAdminSummary')
+    if (summary) summary.textContent = liveChatAdminConversations.length + ' hội thoại'
+    if (document.body.dataset.adminPage === 'live-chat') renderLiveChatAdminInbox()
+  } catch(e) {}
+}
+
+function startLiveChatAdminInboxNotifications() {
+  if (liveChatAdminInboxPollTimer) return
+  pollLiveChatAdminInboxNotifications({ silentSound: true })
+  liveChatAdminInboxPollTimer = setInterval(function() {
+    pollLiveChatAdminInboxNotifications()
+  }, 3000)
+}
+
 async function loadLiveChatAdminInbox(options) {
   options = options || {}
+  bindLiveChatAdminMobileSwipeBack()
   const list = document.getElementById('liveChatConversationList')
   const summary = document.getElementById('liveChatAdminSummary')
+  if (!options.silent && isLiveChatAdminMobileViewport()) setLiveChatAdminMobileDetailOpen(false)
   if (list && !options.silent) list.innerHTML = '<div class="p-6 text-center text-gray-400"><i class="fas fa-spinner fa-spin text-2xl mb-2"></i><p>Đang tải live chat...</p></div>'
   try {
     const res = await axios.get('/api/admin/live-chat/conversations')
     if (!res.data?.success) throw new Error(res.data?.error || 'Không tải được live chat')
     liveChatAdminConversations = Array.isArray(res.data.data) ? res.data.data : []
+    updateLiveChatAdminUnreadState({ silentSound: true })
     renderLiveChatAdminInbox()
     if (summary) summary.textContent = liveChatAdminConversations.length + ' hội thoại'
-    if (!liveChatAdminActiveId && liveChatAdminConversations[0]) {
+    if (!options.silent && !liveChatAdminActiveId && liveChatAdminConversations[0] && !isLiveChatAdminMobileViewport()) {
       openLiveChatAdminConversation(liveChatAdminConversations[0].id)
     }
   } catch(e) {
@@ -118,13 +279,8 @@ async function loadLiveChatAdminInbox(options) {
 
 function renderLiveChatAdminInbox() {
   const list = document.getElementById('liveChatConversationList')
-  const badge = document.getElementById('liveChatAdminBadge')
+  updateLiveChatAdminUnreadState({ silentSound: true })
   if (!list) return
-  const unread = liveChatAdminConversations.reduce(function(total, item) { return total + Number(item.admin_unread_count || 0) }, 0)
-  if (badge) {
-    badge.textContent = unread > 99 ? '99+' : String(unread)
-    badge.classList.toggle('hidden', unread <= 0)
-  }
   if (!liveChatAdminConversations.length) {
     list.innerHTML = '<div class="p-8 text-center text-gray-400"><i class="fas fa-comments text-3xl mb-3"></i><p>Chưa có hội thoại nào</p></div>'
     return
@@ -156,7 +312,7 @@ function renderLiveChatAdminMessage(message) {
   const bubble = document.createElement('div')
   bubble.className = 'live-chat-admin-bubble ' + (sender === 'admin' ? 'is-own bg-gray-900 text-white' : 'is-other bg-white border text-gray-800') + ' max-w-[78%] rounded-2xl px-3 py-2 text-sm'
   if (String(message.message_type || '') === 'product') {
-    const img = message.product_thumbnail ? '<img src="' + liveChatAdminEscape(message.product_thumbnail) + '" class="w-14 h-14 rounded-xl object-cover bg-gray-100" onerror="this.style.display=\\'none\\'">' : '<span class="w-14 h-14 rounded-xl bg-pink-100 text-pink-500 flex items-center justify-center"><i class="fas fa-shirt"></i></span>'
+    const img = message.product_thumbnail ? '<img src="' + liveChatAdminEscape(message.product_thumbnail) + '" alt="' + liveChatAdminEscape(message.product_name || 'Sản phẩm khách gửi') + '" class="w-14 h-14 rounded-xl object-cover bg-gray-100" onerror="this.style.display=\\'none\\'">' : '<span class="w-14 h-14 rounded-xl bg-pink-100 text-pink-500 flex items-center justify-center"><i class="fas fa-shirt"></i></span>'
     bubble.innerHTML = '<div class="flex items-center gap-3">' + img + '<div class="min-w-0"><p class="font-bold truncate">' + liveChatAdminEscape(message.product_name || message.body || 'Sản phẩm') + '</p><a class="' + (sender === 'admin' ? 'text-pink-200' : 'text-pink-600') + ' text-xs font-semibold" href="' + liveChatAdminEscape(message.product_url || '#') + '" target="_blank">Mở sản phẩm</a></div></div>'
   } else {
     bubble.textContent = String(message.body || '')
@@ -199,6 +355,7 @@ async function openLiveChatAdminConversation(conversationId) {
   liveChatAdminActiveId = String(conversationId || '')
   renderLiveChatAdminInbox()
   if (!liveChatAdminActiveId) return
+  setLiveChatAdminMobileDetailOpen(true)
   try {
     const res = await axios.get('/api/admin/live-chat/' + encodeURIComponent(liveChatAdminActiveId) + '/messages')
     const data = res.data?.data || {}
@@ -215,6 +372,7 @@ async function openLiveChatAdminConversation(conversationId) {
     connectLiveChatAdminSocket()
     startLiveChatAdminPolling()
     loadLiveChatAdminInbox({ silent: true })
+    focusLiveChatAdminMobileInput()
   } catch(e) {
     showAdminToast('Không mở được hội thoại', 'error')
   }
