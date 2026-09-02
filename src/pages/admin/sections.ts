@@ -766,6 +766,28 @@ export function adminTextUiSettingsPage(): string {
           <span class="block text-sm font-semibold text-gray-700 mb-1.5">Mô tả mobile</span>
           <textarea id="heroMobileSubtitleText" data-setting-key="hero_mobile_subtitle_text" data-default-text="${escapeAdminHtml(defaults.hero_mobile_subtitle_text)}" maxlength="220" rows="2" oninput="previewTextUiSettings()" class="w-full resize-y rounded-2xl border border-gray-200 px-4 py-3 text-sm leading-relaxed outline-none focus:border-pink-400 focus:ring-4 focus:ring-pink-100"></textarea>
         </label>
+        <div class="rounded-2xl border border-blue-100 bg-blue-50/60 p-4">
+          <p class="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-blue-500">Nút CTA chính</p>
+          <label class="block">
+            <span class="block text-sm font-semibold text-gray-700 mb-1.5">Text nút</span>
+            <input id="heroPrimaryCtaText" data-setting-key="hero_primary_cta_text" data-allow-empty="true" data-default-text="${escapeAdminHtml(defaults.hero_primary_cta_text)}" type="text" maxlength="80" oninput="previewTextUiSettings()" class="w-full rounded-xl border border-blue-100 bg-white px-3 py-2.5 text-sm font-semibold outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100">
+          </label>
+          <label class="mt-3 block">
+            <span class="block text-sm font-semibold text-gray-700 mb-1.5">Link</span>
+            <input id="heroPrimaryCtaLink" data-setting-key="hero_primary_cta_link" data-default-text="${escapeAdminHtml(defaults.hero_primary_cta_link)}" type="text" maxlength="500" inputmode="url" placeholder="#products" oninput="previewTextUiSettings()" class="w-full rounded-xl border border-blue-100 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100">
+          </label>
+        </div>
+        <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+          <p class="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-slate-500">Nút CTA phụ</p>
+          <label class="block">
+            <span class="block text-sm font-semibold text-gray-700 mb-1.5">Text nút</span>
+            <input id="heroSecondaryCtaText" data-setting-key="hero_secondary_cta_text" data-allow-empty="true" data-default-text="${escapeAdminHtml(defaults.hero_secondary_cta_text)}" type="text" maxlength="80" oninput="previewTextUiSettings()" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm font-semibold outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100">
+          </label>
+          <label class="mt-3 block">
+            <span class="block text-sm font-semibold text-gray-700 mb-1.5">Link</span>
+            <input id="heroSecondaryCtaLink" data-setting-key="hero_secondary_cta_link" data-default-text="${escapeAdminHtml(defaults.hero_secondary_cta_link)}" type="text" maxlength="500" inputmode="url" placeholder="#about" oninput="previewTextUiSettings()" class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-400 focus:ring-4 focus:ring-blue-100">
+          </label>
+        </div>
       </div>
       <div class="mt-5 grid gap-3 md:grid-cols-3">
         <div class="rounded-2xl border border-gray-200 bg-gray-50 p-4">

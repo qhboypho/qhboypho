@@ -9,6 +9,10 @@ export type TextUiSettings = {
   hero_typed_text: string
   hero_description_text: string
   hero_mobile_subtitle_text: string
+  hero_primary_cta_text: string
+  hero_primary_cta_link: string
+  hero_secondary_cta_text: string
+  hero_secondary_cta_link: string
   hero_stat_1_value: string
   hero_stat_1_label: string
   hero_stat_2_value: string
@@ -34,6 +38,10 @@ export const DEFAULT_TEXT_UI_SETTINGS: TextUiSettings = {
   hero_typed_text: 'Cho Cả Nam Nữ|Phong Cách Boypho',
   hero_description_text: 'Khám phá bộ sưu tập thời trang cao cấp dành cho cả nam lẫn nữ. Chất lượng vải premium, thiết kế tinh tế - thể hiện cá tính của bạn.',
   hero_mobile_subtitle_text: 'Đây là những sản phẩm hot nhất và đang được đặt mua nhiều nhất ở thời điểm hiện tại.',
+  hero_primary_cta_text: 'Mua sắm ngay',
+  hero_primary_cta_link: '#products',
+  hero_secondary_cta_text: 'Khám phá thêm',
+  hero_secondary_cta_link: '#about',
   hero_stat_1_value: '500+',
   hero_stat_1_label: 'Sản phẩm',
   hero_stat_2_value: '10K+',
@@ -53,6 +61,10 @@ export const TEXT_UI_SETTING_KEYS = [
   'hero_typed_text',
   'hero_description_text',
   'hero_mobile_subtitle_text',
+  'hero_primary_cta_text',
+  'hero_primary_cta_link',
+  'hero_secondary_cta_text',
+  'hero_secondary_cta_link',
   'hero_stat_1_value',
   'hero_stat_1_label',
   'hero_stat_2_value',
@@ -74,6 +86,16 @@ export function sanitizeTextUiSetting(value: unknown, maxLength = 800): string {
     .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '')
     .trim()
     .slice(0, maxLength)
+}
+
+export function sanitizeHeroCtaLink(value: unknown, fallback = ''): string {
+  const normalized = sanitizeTextUiSetting(value, 500)
+  if (!normalized) return ''
+  const lower = normalized.toLowerCase().replace(/\s+/g, '')
+  if (lower.startsWith('javascript:') || lower.startsWith('data:') || lower.startsWith('vbscript:')) {
+    return fallback
+  }
+  return normalized
 }
 
 function readBooleanSetting(value: unknown, fallback = true): boolean {
@@ -102,6 +124,16 @@ export async function readTextUiSettings(db: D1Database): Promise<TextUiSettings
     }
     if (key === 'storefront_dark_palette') {
       settings[key] = sanitizeStorefrontDarkPalette(map.get(key))
+      return settings
+    }
+    if (key === 'hero_primary_cta_text' || key === 'hero_secondary_cta_text') {
+      settings[key] = map.has(key)
+        ? sanitizeTextUiSetting(map.get(key), 80)
+        : DEFAULT_TEXT_UI_SETTINGS[key]
+      return settings
+    }
+    if (key === 'hero_primary_cta_link' || key === 'hero_secondary_cta_link') {
+      settings[key] = sanitizeHeroCtaLink(map.get(key), DEFAULT_TEXT_UI_SETTINGS[key]) || DEFAULT_TEXT_UI_SETTINGS[key]
       return settings
     }
     const maxLength = key === 'quick_order_risk_note_text' || key === 'hero_description_text' ? 800 : 220

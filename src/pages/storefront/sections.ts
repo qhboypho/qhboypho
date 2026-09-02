@@ -1,5 +1,6 @@
 import {
   DEFAULT_TEXT_UI_SETTINGS,
+  sanitizeHeroCtaLink,
   sanitizeStorefrontDarkPalette,
   sanitizeStorefrontLightPalette,
   type TextUiSettings,
@@ -30,6 +31,14 @@ function resolveTextUiSettings(textUiSettings?: Partial<TextUiSettings>): TextUi
     }
     if (normalizedKey === 'storefront_dark_palette') {
       resolved[normalizedKey] = sanitizeStorefrontDarkPalette(value)
+      return
+    }
+    if (normalizedKey === 'hero_primary_cta_text' || normalizedKey === 'hero_secondary_cta_text') {
+      resolved[normalizedKey] = String(value ?? '').trim()
+      return
+    }
+    if (normalizedKey === 'hero_primary_cta_link' || normalizedKey === 'hero_secondary_cta_link') {
+      resolved[normalizedKey] = sanitizeHeroCtaLink(value, DEFAULT_TEXT_UI_SETTINGS[normalizedKey]) || DEFAULT_TEXT_UI_SETTINGS[normalizedKey]
       return
     }
     const normalizedValue = String(value || '').trim()
@@ -124,6 +133,25 @@ export function storefrontHeroSection(textUiSettings?: Partial<TextUiSettings>):
   const stat2Label = escapeStorefrontSectionHtml(settings.hero_stat_2_label)
   const stat3Value = escapeStorefrontSectionHtml(settings.hero_stat_3_value)
   const stat3Label = escapeStorefrontSectionHtml(settings.hero_stat_3_label)
+  const primaryCtaText = escapeStorefrontSectionHtml(settings.hero_primary_cta_text)
+  const primaryCtaLink = escapeStorefrontSectionHtml(settings.hero_primary_cta_link)
+  const secondaryCtaText = escapeStorefrontSectionHtml(settings.hero_secondary_cta_text)
+  const secondaryCtaLink = escapeStorefrontSectionHtml(settings.hero_secondary_cta_link)
+  const heroCtaButtons = [
+    primaryCtaText
+      ? `<a href="${primaryCtaLink}" class="btn-primary text-white px-8 py-3 rounded-full font-semibold">
+          <i class="fas fa-shopping-bag mr-2"></i>${primaryCtaText}
+        </a>`
+      : '',
+    secondaryCtaText
+      ? `<a href="${secondaryCtaLink}" class="border border-white/30 text-white px-8 py-3 rounded-full font-semibold hover:bg-white/10 transition">
+          ${secondaryCtaText}
+        </a>`
+      : '',
+  ].filter(Boolean).join('')
+  const heroCtaActions = heroCtaButtons
+    ? `<div class="hero-desktop-actions flex gap-4 flex-wrap">${heroCtaButtons}</div>`
+    : ''
   return `<!-- HERO -->
 <section class="gradient-hero flex items-center" id="hero">
   <div class="max-w-7xl mx-auto px-4 py-10 grid md:grid-cols-2 gap-12 items-center hero-layout">
@@ -134,14 +162,7 @@ export function storefrontHeroSection(textUiSettings?: Partial<TextUiSettings>):
       </h1>
       <p class="hero-mobile-sub hidden text-gray-300 text-sm leading-relaxed mb-5">${mobileSubtitle}</p>
       <p class="hero-desktop-desc text-gray-300 text-lg mb-8 leading-loose">${description}</p>
-      <div class="hero-desktop-actions flex gap-4 flex-wrap">
-        <a href="#products" class="btn-primary text-white px-8 py-3 rounded-full font-semibold">
-          <i class="fas fa-shopping-bag mr-2"></i>Mua sắm ngay
-        </a>
-        <a href="#about" class="border border-white/30 text-white px-8 py-3 rounded-full font-semibold hover:bg-white/10 transition">
-          Khám phá thêm
-        </a>
-      </div>
+      ${heroCtaActions}
       <div class="hero-desktop-stats mt-8 grid grid-cols-3 gap-6">
         <div class="text-center"><p class="text-3xl font-bold text-white">${stat1Value}</p><p class="text-gray-400 text-sm">${stat1Label}</p></div>
         <div class="text-center"><p class="text-3xl font-bold text-white">${stat2Value}</p><p class="text-gray-400 text-sm">${stat2Label}</p></div>

@@ -13,8 +13,10 @@ import {
   writeProductAssetObject
 } from '../lib/assetStorage'
 import {
+  DEFAULT_TEXT_UI_SETTINGS,
   DEFAULT_QUICK_ORDER_RISK_NOTE_TEXT,
   readTextUiSettings,
+  sanitizeHeroCtaLink,
   sanitizeStorefrontDarkPalette,
   sanitizeStorefrontLightPalette,
   sanitizeTextUiSetting
@@ -98,6 +100,10 @@ type TextUiSettingsInput = {
   hero_typed_text?: unknown
   hero_description_text?: unknown
   hero_mobile_subtitle_text?: unknown
+  hero_primary_cta_text?: unknown
+  hero_primary_cta_link?: unknown
+  hero_secondary_cta_text?: unknown
+  hero_secondary_cta_link?: unknown
   hero_stat_1_value?: unknown
   hero_stat_1_label?: unknown
   hero_stat_2_value?: unknown
@@ -157,6 +163,10 @@ const SHOP_BACKUP_SETTING_ALLOWLIST = new Set([
   'hero_typed_text',
   'hero_description_text',
   'hero_mobile_subtitle_text',
+  'hero_primary_cta_text',
+  'hero_primary_cta_link',
+  'hero_secondary_cta_text',
+  'hero_secondary_cta_link',
   'hero_stat_1_value',
   'hero_stat_1_label',
   'hero_stat_2_value',
@@ -1200,6 +1210,10 @@ export function registerAdminUtilityRoutes(app: Hono<{ Bindings: AppBindings }>,
         hero_typed_text: sanitizeTextUiSetting(body.hero_typed_text, 220),
         hero_description_text: sanitizeTextUiSetting(body.hero_description_text, 800),
         hero_mobile_subtitle_text: sanitizeTextUiSetting(body.hero_mobile_subtitle_text, 220),
+        hero_primary_cta_text: sanitizeTextUiSetting(body.hero_primary_cta_text, 80),
+        hero_primary_cta_link: sanitizeHeroCtaLink(body.hero_primary_cta_link, DEFAULT_TEXT_UI_SETTINGS.hero_primary_cta_link) || DEFAULT_TEXT_UI_SETTINGS.hero_primary_cta_link,
+        hero_secondary_cta_text: sanitizeTextUiSetting(body.hero_secondary_cta_text, 80),
+        hero_secondary_cta_link: sanitizeHeroCtaLink(body.hero_secondary_cta_link, DEFAULT_TEXT_UI_SETTINGS.hero_secondary_cta_link) || DEFAULT_TEXT_UI_SETTINGS.hero_secondary_cta_link,
         hero_stat_1_value: sanitizeTextUiSetting(body.hero_stat_1_value, 80),
         hero_stat_1_label: sanitizeTextUiSetting(body.hero_stat_1_label, 80),
         hero_stat_2_value: sanitizeTextUiSetting(body.hero_stat_2_value, 80),

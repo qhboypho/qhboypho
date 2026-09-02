@@ -1030,7 +1030,12 @@ function fillTextUiSettings(cfg) {
       input.checked = raw === undefined ? input.defaultChecked : (raw === true || raw === 1 || raw === '1')
       return
     }
-    input.value = String(cfg?.[key] || getTextUiInputDefault(input)).slice(0, Number(input.maxLength) > 0 ? Number(input.maxLength) : 800)
+    const hasValue = cfg && Object.prototype.hasOwnProperty.call(cfg, key)
+    const allowEmpty = input.dataset.allowEmpty === 'true'
+    const value = hasValue && (allowEmpty || cfg[key])
+      ? String(cfg[key] ?? '')
+      : getTextUiInputDefault(input)
+    input.value = value.slice(0, Number(input.maxLength) > 0 ? Number(input.maxLength) : 800)
   })
   previewTextUiSettings()
 }
