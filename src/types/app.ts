@@ -22,6 +22,12 @@ export type AppBindings = CloudflareBindings & {
   ZALOPAY_CREATE_ENDPOINT?: string
   ZALOPAY_QUERY_ENDPOINT?: string
   ZALOPAY_CALLBACK_URL?: string
+  MOMO_PARTNER_CODE?: string
+  MOMO_ACCESS_KEY?: string
+  MOMO_SECRET_KEY?: string
+  MOMO_IPN_URL?: string
+  MOMO_CREATE_ENDPOINT?: string
+  MOMO_QUERY_ENDPOINT?: string
   GHTK_TOKEN?: string
   GHTK_CLIENT_SOURCE?: string
   GHTK_PICK_ADDRESS_ID?: string

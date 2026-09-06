@@ -597,7 +597,7 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
         ? `AND (
              UPPER(COALESCE(o.payment_method, '')) = 'COD'
              OR (
-               UPPER(COALESCE(o.payment_method, '')) IN ('BANK_TRANSFER', 'ZALOPAY')
+               UPPER(COALESCE(o.payment_method, '')) IN ('BANK_TRANSFER', 'ZALOPAY', 'MOMO')
                AND LOWER(COALESCE(o.payment_status, '')) = 'paid'
              )
            )`

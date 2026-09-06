@@ -9,8 +9,11 @@ type PaymentRouteDeps = {
   initDB: (db: D1Database) => Promise<void>
   syncOrderPayment: (db: D1Database, env: any, order: any) => Promise<any>
   syncOrderPaymentWithPayOS: (db: D1Database, env: any, order: any) => Promise<any>
+  syncOrderPaymentWithMoMo: (db: D1Database, env: any, order: any) => Promise<any>
   syncOrderPaymentWithZaloPay: (db: D1Database, env: any, order: any) => Promise<any>
   getPayOSConfig: (db: D1Database, env: any) => Promise<any>
+  getMoMoConfig: (db: D1Database, env: any) => Promise<any>
+  getMoMoMissingConfigKeys: (config: any) => string[]
   getZaloPayConfig: (db: D1Database, env: any) => Promise<any>
   getZaloPayMissingConfigKeys: (config: any) => string[]
   getBankTransferProviderConfig: (db: D1Database, env: any) => Promise<any>
@@ -18,11 +21,19 @@ type PaymentRouteDeps = {
   sanitizeAddressEffectiveDate: (value: string) => string
   addressKitCache: { provinces: Map<string, any[]>, communes: Map<string, any[]> }
   ADDRESS_KIT_BASE_URL: string
+  buildMoMoOrderId: (orderId: number, nowMs?: number) => string
   buildZaloPayAppTransId: (orderId: number, nowMs?: number) => string
   payOSSignWithChecksum: (key: string, payload: string) => Promise<string>
   payOSBuildDataString: (input: Record<string, any>) => string
   parseJsonObject: (value: any) => Record<string, any>
   payOSGetPaymentInfo: (db: D1Database, env: any, paymentLinkIdOrOrderCode: string | number) => Promise<any>
+}
+
+function buildMoMoSignaturePayload(input: Record<string, unknown>) {
+  return Object.keys(input)
+    .sort()
+    .map((key) => `${key}=${input[key] == null ? '' : String(input[key])}`)
+    .join('&')
 }
 
 async function verifyOrderAccess(c: any, order: any): Promise<boolean> {
@@ -172,6 +183,13 @@ export function registerPaymentRoutes(app: Hono<{ Bindings: AppBindings }>, deps
         missing
       }
     })
+  })
+
+  app.get('/api/payments/momo/config', async (c) => {
+    await deps.initDB(c.env.DB)
+    const config = await deps.getMoMoConfig(c.env.DB, c.env)
+    const missing = deps.getMoMoMissingConfigKeys(config)
+    return c.json({ success: true, data: { ready: missing.length === 0, missing } })
   })
 
   app.get('/api/address/provinces', async (c) => {
@@ -344,6 +362,89 @@ export function registerPaymentRoutes(app: Hono<{ Bindings: AppBindings }>, deps
       })
     } catch (e: any) {
       return c.json({ success: false, error: e.message }, 500)
+    }
+  })
+
+  app.post('/api/orders/:id/momo-link', async (c) => {
+    try {
+      await deps.initDB(c.env.DB)
+      const id = Number(c.req.param('id') || 0)
+      if (!id) return c.json({ success: false, error: 'INVALID_ORDER_ID' }, 400)
+      const body: any = await c.req.json().catch(() => ({}))
+      const rawOrigin = String(body.origin || c.req.header('origin') || '').trim()
+      let origin = ''
+      try { origin = new URL(rawOrigin).origin } catch { return c.json({ success: false, error: 'INVALID_ORIGIN' }, 400) }
+
+      const order = await c.env.DB.prepare(`
+        SELECT id, user_id, order_code, total_price, product_name, quantity, payment_method, payment_status, payment_link_id
+        FROM orders WHERE id=?
+      `).bind(id).first() as any
+      if (!order) return c.json({ success: false, error: 'ORDER_NOT_FOUND' }, 404)
+      if (!await verifyOrderAccess(c, order)) return c.json({ success: false, error: 'FORBIDDEN' }, 403)
+      if (String(order.payment_method || '').toUpperCase() !== 'MOMO') {
+        return c.json({ success: false, error: 'PAYMENT_METHOD_NOT_MOMO' }, 400)
+      }
+      if (String(order.payment_status || '').toLowerCase() === 'paid') {
+        return c.json({ success: true, data: { alreadyPaid: true, orderCode: order.order_code } })
+      }
+
+      const sync = await deps.syncOrderPaymentWithMoMo(c.env.DB, c.env, order)
+      if (sync.paid) return c.json({ success: true, data: { alreadyPaid: true, orderCode: order.order_code } })
+
+      const config = await deps.getMoMoConfig(c.env.DB, c.env)
+      const missing = deps.getMoMoMissingConfigKeys(config)
+      if (missing.length) return c.json({ success: false, error: 'MOMO_CONFIG_MISSING', missing }, 503)
+
+      const amount = Math.round(Number(order.total_price || 0))
+      if (amount < 1000) return c.json({ success: false, error: 'MOMO_AMOUNT_BELOW_MINIMUM' }, 400)
+      const now = Date.now()
+      const momoOrderId = String(order.payment_link_id || '').trim() || deps.buildMoMoOrderId(id, now)
+      const requestId = `RQ-${id}-${now}`
+      const orderInfo = `QHBoypho - Thanh toan don hang ${order.order_code}`.slice(0, 255)
+      const redirectUrl = `${origin}/?order=${encodeURIComponent(order.order_code)}&pay=success&provider=momo&closeTab=1`
+      const extraData = btoa(JSON.stringify({ order_id: id, order_code: String(order.order_code || '') }))
+      const signature = await deps.payOSSignWithChecksum(config.secretKey, buildMoMoSignaturePayload({
+        accessKey: config.accessKey,
+        amount,
+        extraData,
+        ipnUrl: config.ipnUrl,
+        orderId: momoOrderId,
+        orderInfo,
+        partnerCode: config.partnerCode,
+        redirectUrl,
+        requestId,
+        requestType: 'captureWallet'
+      }))
+      const response = await fetch(config.createEndpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json; charset=UTF-8' },
+        body: JSON.stringify({
+          partnerCode: config.partnerCode,
+          requestId,
+          amount,
+          orderId: momoOrderId,
+          orderInfo,
+          redirectUrl,
+          ipnUrl: config.ipnUrl,
+          requestType: 'captureWallet',
+          extraData,
+          lang: 'vi',
+          signature
+        })
+      })
+      const momoResponse: any = await response.json().catch(() => ({}))
+      if (!response.ok || Number(momoResponse?.resultCode) !== 0 || !momoResponse?.payUrl) {
+        return c.json({ success: false, error: 'MOMO_CREATE_LINK_FAILED', detail: momoResponse }, 400)
+      }
+
+      await c.env.DB.prepare(`
+        UPDATE orders
+        SET payment_provider='MOMO', payment_link_id=?, payment_checkout_url=?, updated_at=CURRENT_TIMESTAMP
+        WHERE id=?
+      `).bind(momoOrderId, String(momoResponse.payUrl), id).run()
+      return c.json({ success: true, data: { orderId: momoOrderId, payUrl: momoResponse.payUrl, qrCodeUrl: momoResponse.qrCodeUrl || '', orderCode: order.order_code } })
+    } catch (e: any) {
+      return c.json({ success: false, error: e?.message || 'MOMO_CREATE_LINK_FAILED' }, 500)
     }
   })
 
@@ -591,6 +692,54 @@ export function registerPaymentRoutes(app: Hono<{ Bindings: AppBindings }>, deps
       return c.json({ return_code: 1, return_message: 'success' })
     } catch (e: any) {
       return c.json({ return_code: 0, return_message: String(e?.message || 'UNKNOWN_ERROR') })
+    }
+  })
+
+  app.post('/api/payments/momo/ipn', async (c) => {
+    try {
+      await deps.initDB(c.env.DB)
+      const body: any = await c.req.json().catch(() => ({}))
+      const config = await deps.getMoMoConfig(c.env.DB, c.env)
+      if (!config.partnerCode || !config.accessKey || !config.secretKey) return c.body(null, 503)
+      const expectedSignature = await deps.payOSSignWithChecksum(config.secretKey, buildMoMoSignaturePayload({
+        accessKey: config.accessKey,
+        amount: body?.amount,
+        extraData: body?.extraData,
+        message: body?.message,
+        orderId: body?.orderId,
+        orderInfo: body?.orderInfo,
+        orderType: body?.orderType,
+        partnerCode: body?.partnerCode,
+        payType: body?.payType,
+        requestId: body?.requestId,
+        responseTime: body?.responseTime,
+        resultCode: body?.resultCode,
+        transId: body?.transId
+      }))
+      if (String(body?.signature || '').toLowerCase() !== expectedSignature || String(body?.partnerCode || '') !== config.partnerCode) {
+        return c.json({ success: false, error: 'MOMO_INVALID_SIGNATURE' }, 401)
+      }
+      if (Number(body?.resultCode) !== 0) return c.body(null, 204)
+
+      const momoOrderId = String(body?.orderId || '').trim()
+      const order = await c.env.DB.prepare(`
+        SELECT id, order_code, total_price, payment_status
+        FROM orders WHERE payment_link_id=? AND UPPER(COALESCE(payment_method, ''))='MOMO' LIMIT 1
+      `).bind(momoOrderId).first() as any
+      if (!order || Number(body?.amount || 0) !== Math.round(Number(order.total_price || 0))) {
+        return c.json({ success: false, error: 'MOMO_ORDER_MISMATCH' }, 400)
+      }
+      if (String(order.payment_status || '').toLowerCase() !== 'paid') {
+        await c.env.DB.prepare(`
+          UPDATE orders
+          SET payment_status='paid', payment_paid_at=CURRENT_TIMESTAMP, payment_ref=?, payment_provider='MOMO',
+              status=CASE WHEN status='pending' THEN 'confirmed' ELSE status END, updated_at=CURRENT_TIMESTAMP
+          WHERE id=?
+        `).bind(String(body?.transId || '') || null, order.id).run()
+      }
+      return c.body(null, 204)
+    } catch {
+      return c.body(null, 500)
     }
   })
 

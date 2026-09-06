@@ -175,6 +175,45 @@ export function getZaloPayMissingConfigKeys(config: Awaited<ReturnType<typeof ge
   return missing
 }
 
+export async function getMoMoConfig(db: D1Database, env: AppBindings) {
+  const config = await getRuntimeConfigValues(db, env, [
+    'MOMO_PARTNER_CODE',
+    'MOMO_ACCESS_KEY',
+    'MOMO_SECRET_KEY',
+    'MOMO_IPN_URL',
+    'MOMO_CREATE_ENDPOINT',
+    'MOMO_QUERY_ENDPOINT'
+  ])
+  return {
+    partnerCode: String(config.MOMO_PARTNER_CODE || '').trim(),
+    accessKey: String(config.MOMO_ACCESS_KEY || '').trim(),
+    secretKey: String(config.MOMO_SECRET_KEY || '').trim(),
+    ipnUrl: String(config.MOMO_IPN_URL || '').trim(),
+    createEndpoint: String(config.MOMO_CREATE_ENDPOINT || 'https://test-payment.momo.vn/v2/gateway/api/create').trim(),
+    queryEndpoint: String(config.MOMO_QUERY_ENDPOINT || 'https://test-payment.momo.vn/v2/gateway/api/query').trim()
+  }
+}
+
+export function getMoMoMissingConfigKeys(config: Awaited<ReturnType<typeof getMoMoConfig>>) {
+  const missing: string[] = []
+  if (!config.partnerCode) missing.push('MOMO_PARTNER_CODE')
+  if (!config.accessKey) missing.push('MOMO_ACCESS_KEY')
+  if (!config.secretKey) missing.push('MOMO_SECRET_KEY')
+  if (!config.ipnUrl || !/^https:\/\//i.test(config.ipnUrl)) missing.push('MOMO_IPN_URL')
+  return missing
+}
+
+export function buildMoMoOrderId(orderId: number, ts = Date.now()) {
+  return `MOMO-${Math.max(1, Number(orderId) || 1)}-${ts}`
+}
+
+export function buildMoMoSignaturePayload(input: Record<string, unknown>) {
+  return Object.keys(input)
+    .sort()
+    .map((key) => `${key}=${input[key] == null ? '' : String(input[key])}`)
+    .join('&')
+}
+
 export const ADDRESS_KIT_BASE_URL = 'https://production.cas.so/address-kit'
 export const addressKitCache = {
   provinces: new Map<string, any[]>(),
@@ -288,6 +327,51 @@ export async function syncOrderPaymentWithZaloPay(db: D1Database, env: any, orde
   return { synced: true, paid: true, paymentInfo: body }
 }
 
+export async function syncOrderPaymentWithMoMo(db: D1Database, env: any, order: any) {
+  const isMoMo = String(order?.payment_method || '').toUpperCase() === 'MOMO'
+  const isPaid = String(order?.payment_status || '').toLowerCase() === 'paid'
+  if (!isMoMo || isPaid) return { synced: false, paid: isPaid }
+
+  const config = await getMoMoConfig(db, env)
+  if (!config.partnerCode || !config.accessKey || !config.secretKey) return { synced: false, paid: false }
+  const orderId = String(order?.payment_link_id || '').trim()
+  if (!orderId) return { synced: false, paid: false }
+
+  const requestId = `query-${orderId}-${Date.now()}`.slice(0, 50)
+  const signature = await payOSSignWithChecksum(config.secretKey, buildMoMoSignaturePayload({
+    accessKey: config.accessKey,
+    orderId,
+    partnerCode: config.partnerCode,
+    requestId
+  }))
+  const response = await fetch(config.queryEndpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json; charset=UTF-8' },
+    body: JSON.stringify({ partnerCode: config.partnerCode, requestId, orderId, lang: 'vi', signature })
+  })
+  const paymentInfo: any = await response.json().catch(() => ({}))
+  if (!response.ok || Number(paymentInfo?.resultCode) !== 0) {
+    return { synced: false, paid: false, paymentInfo }
+  }
+  if (Number(paymentInfo?.amount || 0) !== Math.round(Number(order?.total_price || 0))) {
+    return { synced: false, paid: false, paymentInfo }
+  }
+
+  await db.prepare(`
+    UPDATE orders
+    SET payment_status='paid',
+        payment_paid_at=COALESCE(payment_paid_at, CURRENT_TIMESTAMP),
+        payment_ref=COALESCE(payment_ref, ?),
+        payment_provider='MOMO',
+        payment_link_id=COALESCE(payment_link_id, ?),
+        status=CASE WHEN status='pending' THEN 'confirmed' ELSE status END,
+        updated_at=CURRENT_TIMESTAMP
+    WHERE id=?
+  `).bind(String(paymentInfo?.transId || '') || null, orderId, order.id).run()
+
+  return { synced: true, paid: true, paymentInfo }
+}
+
 export async function syncOrderPayment(db: D1Database, env: any, order: any) {
   const method = String(order?.payment_method || '').toUpperCase()
   if (method === 'BANK_TRANSFER') {
@@ -296,6 +380,7 @@ export async function syncOrderPayment(db: D1Database, env: any, order: any) {
     return syncOrderPaymentWithPayOS(db, env, order)
   }
   if (method === 'ZALOPAY') return syncOrderPaymentWithZaloPay(db, env, order)
+  if (method === 'MOMO') return syncOrderPaymentWithMoMo(db, env, order)
   const isPaid = String(order?.payment_status || '').toLowerCase() === 'paid'
   return { synced: false, paid: isPaid }
 }

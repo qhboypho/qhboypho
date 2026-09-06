@@ -53,6 +53,21 @@ function checkoutPaymentOptions(scope: 'order' | 'ck', bankHint: string): string
                 <span class="block text-xs text-gray-500">${bankHint}</span>
               </span>
             </button>
+
+            <button
+              type="button"
+              data-payment-scope="${scope}"
+              class="payment-method-btn w-full flex items-center gap-3 border rounded-xl px-3 py-2.5 text-left hover:border-pink-400 transition"
+              onclick="selectCheckoutPaymentMethod('${scope}','MOMO', this)"
+            >
+              <span class="w-8 h-8 rounded-full bg-pink-100 text-pink-600 flex items-center justify-center">
+                <i class="fas fa-wallet"></i>
+              </span>
+              <span>
+                <span class="block text-sm font-semibold text-gray-800">Ví MoMo</span>
+                <span class="block text-xs text-gray-500">Thanh toán nhanh, an toàn qua MoMo</span>
+              </span>
+            </button>
           </div>
         </div>`
 }

@@ -969,6 +969,42 @@ function closeBlockedCustomerModal() {
 }
 
 async function continueOrderPaymentFlow({ orderCode, orderId, orderTotal, paymentMethod, payTabRef }) {
+  if (paymentMethod === 'MOMO') {
+    let paymentData = null
+    try {
+      const payment = await axios.post('/api/orders/' + orderId + '/momo-link', { origin: window.location.origin })
+      paymentData = payment.data?.data || null
+    } catch (error) {
+      const missing = error?.response?.data?.missing || []
+      showToast(missing.length ? 'MoMo chưa được cấu hình đầy đủ.' : 'Không thể kết nối MoMo, vui lòng thử lại.', 'error', 5000)
+      try { if (payTabRef && !payTabRef.closed) payTabRef.close() } catch (_) { }
+      return { handled: true }
+    }
+    if (paymentData?.alreadyPaid) {
+      onOrderMarkedPaid(orderCode)
+      showToast('Đơn ' + orderCode + ' đã được thanh toán trước đó.', 'success', 4500)
+      return { handled: true }
+    }
+    const payUrl = String(paymentData?.payUrl || '').trim()
+    let payTab = payTabRef
+    if (payUrl) {
+      if (payTab) {
+        try { payTab.location.href = payUrl } catch (_) { payTab = null }
+      }
+      if (!payTab) payTab = window.open(payUrl, '_blank')
+      if (payTab) {
+        startOrderPaymentPolling(orderCode)
+        showToast('Đơn ' + orderCode + ': đã mở MoMo, vui lòng hoàn tất thanh toán.', 'success', 5000)
+      } else {
+        showToast('Trình duyệt đang chặn cửa sổ MoMo. Vui lòng cho phép popup rồi thử lại.', 'error', 5000)
+      }
+      return { handled: true }
+    }
+    try { if (payTabRef && !payTabRef.closed) payTabRef.close() } catch (_) { }
+    showToast('MoMo không tạo được phiên thanh toán. Vui lòng thử lại.', 'error', 5000)
+    return { handled: true }
+  }
+
   if (paymentMethod === 'BANK_TRANSFER') {
     let paymentData = null
     try {
@@ -1079,7 +1115,7 @@ async function submitOrder() {
   btn.disabled = true
   btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Đang xử lý...'
   let payTabRef = null
-  if (paymentMethod === 'BANK_TRANSFER') {
+  if (paymentMethod === 'BANK_TRANSFER' || paymentMethod === 'MOMO') {
     try { payTabRef = window.open('about:blank', '_blank') } catch (_) { payTabRef = null }
   }
 
