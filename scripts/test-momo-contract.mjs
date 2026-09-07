@@ -11,9 +11,9 @@ const [modalsSource, orderFlowSource, helpersSource, routesSource, runtimeConfig
   readFile(new URL('../src/routes/orderRoutes.ts', import.meta.url), 'utf8'),
 ])
 
-assert.match(modalsSource, /selectCheckoutPaymentMethod\('\$\{scope\}','MOMO', this\)/, 'checkout should offer MoMo')
-assert.match(orderFlowSource, /paymentMethod === 'MOMO'/, 'checkout should launch the MoMo flow')
-assert.match(orderFlowSource, /\/api\/orders\/' \+ orderId \+ '\/momo-link'/, 'checkout should create a MoMo payment session')
+assert.doesNotMatch(modalsSource, /onclick="selectCheckoutPaymentMethod\('\$\{scope\}','MOMO', this\)"/, 'checkout should keep MoMo hidden until credentials are configured')
+assert.match(modalsSource, /MoMo is intentionally hidden until credentials are configured/, 'the deferred MoMo option should be clearly documented in source')
+assert.match(orderFlowSource, /paymentMethod === 'MOMO'/, 'the retained MoMo flow should be available when the option is re-enabled')
 
 for (const key of ['MOMO_PARTNER_CODE', 'MOMO_ACCESS_KEY', 'MOMO_SECRET_KEY', 'MOMO_IPN_URL']) {
   assert.match(runtimeConfigSource, new RegExp(`${key}:`), `${key} should resolve from runtime config`)

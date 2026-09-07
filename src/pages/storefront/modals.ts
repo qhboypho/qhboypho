@@ -18,6 +18,7 @@ function resolveQuickOrderRiskNoteText(textUiSettings?: Partial<TextUiSettings>)
 }
 
 function checkoutPaymentOptions(scope: 'order' | 'ck', bankHint: string): string {
+  // MoMo is intentionally hidden until credentials are configured.
   return `
         <div id="${scope === 'ck' ? 'ckFieldPaymentMethod' : 'fieldPaymentMethod'}">
           <label class="block text-sm font-semibold text-gray-700 mb-1.5 field-title">
@@ -54,20 +55,6 @@ function checkoutPaymentOptions(scope: 'order' | 'ck', bankHint: string): string
               </span>
             </button>
 
-            <button
-              type="button"
-              data-payment-scope="${scope}"
-              class="payment-method-btn w-full flex items-center gap-3 border rounded-xl px-3 py-2.5 text-left hover:border-pink-400 transition"
-              onclick="selectCheckoutPaymentMethod('${scope}','MOMO', this)"
-            >
-              <span class="w-8 h-8 rounded-full bg-pink-100 text-pink-600 flex items-center justify-center">
-                <i class="fas fa-wallet"></i>
-              </span>
-              <span>
-                <span class="block text-sm font-semibold text-gray-800">Ví MoMo</span>
-                <span class="block text-xs text-gray-500">Thanh toán nhanh, an toàn qua MoMo</span>
-              </span>
-            </button>
           </div>
         </div>`
 }
