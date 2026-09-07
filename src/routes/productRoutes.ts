@@ -849,10 +849,37 @@ export function registerProductRoutes(app: Hono<{ Bindings: AppBindings }>, deps
 
   app.delete('/api/admin/products/:id', async (c) => {
     try {
-      const id = c.req.param('id')
+      await deps.initDB(c.env.DB)
+      const id = Number(c.req.param('id'))
+      if (!Number.isInteger(id) || id <= 0) {
+        return c.json({ success: false, error: 'Mã sản phẩm không hợp lệ' }, 400)
+      }
+
+      const product = await c.env.DB.prepare(`SELECT id FROM products WHERE id = ?`).bind(id).first()
+      if (!product) {
+        return c.json({ success: false, error: 'Không tìm thấy sản phẩm' }, 404)
+      }
+
+      const orderReference = await c.env.DB.prepare(`
+        SELECT COUNT(*) AS count FROM orders WHERE product_id = ?
+      `).bind(id).first<{ count: number }>()
+      if (Number(orderReference?.count || 0) > 0) {
+        return c.json({
+          success: false,
+          error: 'Sản phẩm đã có đơn hàng nên không thể xóa. Hãy ẩn sản phẩm để giữ nguyên lịch sử đơn hàng.'
+        }, 409)
+      }
+
+      await c.env.DB.prepare(`DELETE FROM flash_sale_items WHERE product_id = ?`).bind(id).run()
+      await c.env.DB.prepare(`DELETE FROM reviews WHERE product_id = ?`).bind(id).run()
+      await c.env.DB.prepare(`DELETE FROM product_daily_viewers WHERE product_id = ?`).bind(id).run()
+      await c.env.DB.prepare(`DELETE FROM product_daily_views WHERE product_id = ?`).bind(id).run()
+      await c.env.DB.prepare(`DELETE FROM product_detail_views WHERE product_id = ?`).bind(id).run()
+      await c.env.DB.prepare(`DELETE FROM product_skus WHERE product_id = ?`).bind(id).run()
+      await c.env.DB.prepare(`UPDATE hero_banners SET product_id = NULL WHERE product_id = ?`).bind(id).run()
       await c.env.DB.prepare(`DELETE FROM products WHERE id = ?`).bind(id).run()
       const typeMap = await loadProductTypeMap(c.env.DB)
-      delete typeMap[String(Number(id))]
+      delete typeMap[String(id)]
       await saveProductTypeMap(c.env.DB, typeMap)
       return c.json({ success: true })
     } catch (e: any) {

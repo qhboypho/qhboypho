@@ -16,6 +16,7 @@
     "test:payos-local": "node scripts/test-payos-local.mjs",
     "test:zalopay-local": "node scripts/test-zalopay-local.mjs",
     "test:momo-contract": "node scripts/test-momo-contract.mjs",
+    "test:admin-product-delete-contract": "node scripts/test-admin-product-delete-contract.mjs",
     "test:initdb-noop": "node --experimental-strip-types scripts/test-initdb-noop-contract.mjs",
     "test:admin-auth-flow": "node scripts/test-admin-auth-flow.mjs",
     "test:admin-source-contract": "node scripts/test-admin-source-contract.mjs",

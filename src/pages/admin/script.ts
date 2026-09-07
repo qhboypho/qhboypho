@@ -3471,9 +3471,12 @@ async function deleteProduct(id) {
   if (!confirm('Bạn chắc chắn muốn xóa sản phẩm này?')) return
   try {
     await axios.delete('/api/admin/products/' + id)
-    loadAdminProducts()
+    await loadAdminProducts()
     showAdminToast('Đã xóa sản phẩm', 'success')
-  } catch(e) { showAdminToast('Lỗi xóa sản phẩm', 'error') }
+  } catch(e) {
+    const msg = e.response?.data?.error || e.message || 'Lỗi xóa sản phẩm'
+    showAdminToast(msg, 'error')
+  }
 }
 
 // PRODUCT MODAL
