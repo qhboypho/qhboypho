@@ -11,9 +11,8 @@ Use Node 22 or later with `node:sqlite` support:
 
 ```powershell
 npm ci
-npm run test:launch
-npm run build
-npm audit --omit=dev --audit-level=high
+npm run check:release
+npx wrangler deploy --dry-run --config wrangler.chat.jsonc
 npx wrangler deploy --dry-run --config wrangler.payments.jsonc
 ```
 
@@ -31,7 +30,10 @@ those may read `.dev.vars` and create provider payment sessions.
 3. Check old orders separately. New inventory reservation markers deliberately
    do not claim that historical orders reserved inventory. Audit existing stock
    before selling it. Failed delivery is not proof that stock has returned.
-4. Use a maintenance window to pause new checkout/order mutations, apply the
+4. Deploy the private chat Worker using `wrangler.chat.jsonc` before Pages;
+   Pages binds to that Worker rather than exporting the class itself. Verify
+   existing namespaces first; do not replace or delete an existing namespace.
+   Use a maintenance window to pause new checkout/order mutations, apply the
    migrations, deploy the matching Pages bundle, and verify it before reopening.
    Do not leave old order-creation code writing alongside the new reservation
    and voucher triggers.
@@ -95,20 +97,20 @@ alone is not a safe rollback once the new database triggers are installed:
 prefer a forward fix, or restore a coordinated database/application snapshot
 only after accounting for all post-snapshot transactions.
 
-## Existing checks outside this change
+## Runtime and deployment boundaries
 
-The main Pages local runner currently rejects the inline `LiveChatRoom`
-Durable Object because the generated Pages bundle does not export that class.
-The payment scheduler dry-run does not prove the Pages deployment configuration
-is valid. Verify/fix the Pages and Durable Object deployment arrangement on
-staging before launch; the browser checks use an isolated Vite/D1 adapter.
+The Pages/Durable Object configuration and full TypeScript check are now fixed.
+The release gate tests the actual Pages bundle and chat binding in workerd.
+`wrangler.chat.jsonc` owns the private chat object and daily cleanup schedule;
+`wrangler.payments.jsonc` owns payment reconciliation. Neither is deployed by
+the Pages command. Preview bindings are empty until isolated staging resources
+are provisioned; never test writes against inherited production resources.
 
 SPX shipment creation/labels remain explicitly unimplemented. GHN/SPX cancellation
 requires carrier-side reconciliation where an automated cancellation connector
 is unavailable. Do not advertise these capabilities as fully automated.
 
-The repository's full TypeScript check has pre-existing errors in unrelated
-live-chat, product/flash-sale and marketplace modules. The historical
-`test:admin-source-contract` also expects an `adminOrderNotifyButton` absent in
-the baseline UI. Do not describe the entire repository as green merely because
-the narrower launch suite passes; these require separate triage.
+The historical notification source test now checks the settings control and its
+action wiring, matching the deliberate move in commit c01c74bb. Passing the
+release gate still does not prove live credentials, webhook registration,
+carrier acceptance or every unrelated feature. See `release-2026-09-10.md`.

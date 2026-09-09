@@ -1802,7 +1802,7 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
         const bytes = htmlDocs.length === 1
           ? htmlDocs[0].bytes
           : new TextEncoder().encode(htmlDocs.map((doc) => new TextDecoder().decode(doc.bytes)).join('\n<div style="break-after: page; page-break-after: always;"></div>\n'))
-        return new Response(bytes, {
+        return new Response(new Uint8Array(bytes), {
           status: 200,
           headers: {
             'Content-Type': 'text/html; charset=UTF-8',

@@ -7,6 +7,16 @@ type MarketplaceRouteDeps = {
   initDB: (db: D1Database) => Promise<void>
 }
 
+type JsonObject = Record<string, unknown>
+
+type NhanhResponseData = JsonObject & {
+  paginator?: {
+    next?: {
+      id?: unknown
+    }
+  }
+}
+
 type NhanhConfig = {
   appId: string
   secretKey: string
@@ -89,6 +99,25 @@ type NhanhShopInfo = {
 
 function stringValue(value: unknown): string {
   return String(value ?? '').trim()
+}
+
+function toJsonObject(value: unknown): JsonObject {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as JsonObject
+    : {}
+}
+
+function toNhanhResponseData(value: unknown): NhanhResponseData {
+  const data = toJsonObject(value)
+  const paginator = toJsonObject(data.paginator)
+  const next = toJsonObject(paginator.next)
+  return {
+    ...data,
+    paginator: {
+      ...paginator,
+      next: { ...next },
+    },
+  }
 }
 
 function numberValue(value: unknown): number {
@@ -389,7 +418,7 @@ async function fetchNhanhPost(url: string, config: NhanhConfig, body: Record<str
     },
     body: JSON.stringify(body),
   })
-  const data = await response.json().catch(() => ({}))
+  const data = toNhanhResponseData(await response.json().catch(() => ({})))
   return { ok: response.ok && Number(data?.code || 1) !== 0, status: response.status, data }
 }
 
@@ -440,7 +469,7 @@ async function fetchNhanhOrdersByRange(config: NhanhConfig, pageSize: number, da
         seen.add(key)
         rows.push(row)
       }
-      if (page.data?.messages) messages.push(page.data.messages)
+      if (page.data.messages) messages.push(page.data.messages)
       nextId = stringValue(page.data?.paginator?.next?.id)
       guard += 1
     } while (nextId && guard < 25)
@@ -497,13 +526,14 @@ async function exchangeNhanhAccessCode(config: NhanhConfig, accessCode: string) 
       secretKey: config.secretKey,
     }),
   })
-  const data = await response.json().catch(() => ({}))
+  const data = toNhanhResponseData(await response.json().catch(() => ({})))
+  const nestedData = toJsonObject(data.data)
   if (!response.ok || data?.code || data?.error) {
     const message = stringValue(data?.message || data?.error || data?.errorMessage || `Nhanh token HTTP ${response.status}`)
     throw new Error(message)
   }
-  const token = stringValue(data?.data?.accessToken || data?.accessToken)
-  const businessId = stringValue(data?.data?.businessId || data?.businessId || config.businessId)
+  const token = stringValue(nestedData.accessToken || data.accessToken)
+  const businessId = stringValue(nestedData.businessId || data.businessId || config.businessId)
   if (!token) throw new Error('Nhanh không trả về accessToken')
   return { accessToken: token, businessId, raw: data }
 }

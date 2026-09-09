@@ -185,7 +185,7 @@ export function resolveFlashSaleDisplay({ price, originalPrice, salePrice, disco
 
 type FlashSaleProductShapeInput = {
   product: Record<string, any>
-  campaign?: FlashSaleCampaignLike & { id?: number | string | null; name?: string | null }
+  campaign?: (FlashSaleCampaignLike & { id?: number | string | null; name?: string | null }) | null
   item?: {
     sale_price?: number | string | null
     discount_percent?: number | string | null

@@ -340,7 +340,7 @@ export function findProductSkuMatch(
   const targetSize = normalizeKeyToken(size)
   const activeRows = rows.filter((row) => normalizeBooleanFlag(row.is_active))
 
-  const exact = activeRows.find((row) => makeSkuDescriptorKey(row.color, row.size) === makeSkuDescriptorKey(targetColor, targetSize))
+  const exact = activeRows.find((row) => makeSkuDescriptorKey(normalizeToken(row.color), normalizeToken(row.size)) === makeSkuDescriptorKey(targetColor, targetSize))
   if (exact) return exact
 
   if (targetColor) {

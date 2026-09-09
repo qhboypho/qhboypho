@@ -5,9 +5,13 @@
     "dev": "vite",
     "dev:sandbox": "wrangler pages dev dist --ip 0.0.0.0 --port 3000",
     "build": "vite build",
+    "typecheck": "tsc --noEmit",
+    "test:release-config": "node scripts/test-release-config.mjs",
     "preview": "wrangler pages dev dist",
     "deploy": "npm run build && wrangler pages deploy dist",
-    "deploy:prod": "npm run build && wrangler pages deploy dist --project-name qhclothes",
+    "deploy:prod": "npm run check:release && wrangler pages deploy dist --project-name qhclothes --branch ui-new-v1",
+    "check:release": "npm run typecheck && npm run test:release-config && npm run test:launch && npm run test:release-runtime && npm run test:admin-source-contract && npm audit --audit-level=high",
+    "test:release-runtime": "node scripts/test-pages-worker-runtime.mjs && node scripts/test-chat-worker-runtime.mjs && node scripts/test-product-type-regressions.mjs && node --experimental-strip-types --loader ./scripts/ts-extension-loader.mjs scripts/test-types-integrations.mjs && node --experimental-strip-types --loader ./scripts/ts-extension-loader.mjs scripts/test-shipping-label-bytes.mjs",
     "webpush:keys": "node scripts/generate-vapid-keys.mjs",
     "cf-typegen": "wrangler types --env-interface CloudflareBindings",
     "db:migrate:local": "wrangler d1 migrations apply fashion-store-production --local",
@@ -38,5 +42,10 @@
     "typescript": "^6.0.2",
     "vite": "^6.3.5",
     "wrangler": "^4.92.0"
+  },
+  "overrides": {
+    "miniflare": {
+      "sharp": "0.35.4"
+    }
   }
 }

@@ -1,3 +1,4 @@
+import { DurableObject } from 'cloudflare:workers'
 import type { AppBindings } from '../types/app'
 
 type SocketAttachment = {
@@ -5,16 +6,6 @@ type SocketAttachment = {
   conversationId: string
   connectedAt: number
 }
-
-const DurableObjectBase = ((globalThis as any).DurableObject || class {
-  protected ctx: DurableObjectState
-  protected env: AppBindings
-
-  constructor(ctx: DurableObjectState, env: AppBindings) {
-    this.ctx = ctx
-    this.env = env
-  }
-}) as typeof DurableObject
 
 function safeSend(ws: WebSocket, payload: unknown) {
   try {
@@ -26,7 +17,7 @@ function safeSend(ws: WebSocket, payload: unknown) {
   }
 }
 
-export class LiveChatRoom extends DurableObjectBase<AppBindings> {
+export class LiveChatRoom extends DurableObject<AppBindings> {
   constructor(ctx: DurableObjectState, env: AppBindings) {
     super(ctx, env)
   }

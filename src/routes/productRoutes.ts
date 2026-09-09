@@ -331,7 +331,12 @@ async function validateUniqueTrendingOrder(
   isTrending: unknown,
   trendingOrder: unknown,
   currentProductId: unknown = null
-) {
+): Promise<{
+  ok: boolean
+  order: number
+  staleConflictIds?: number[]
+  error?: string
+}> {
   const order = parseInt(String(trendingOrder || '0'), 10) || 0
   if (!isTrending || order <= 0) return { ok: true, order: 0 }
   const currentId = Number(currentProductId || 0)

@@ -421,13 +421,13 @@ async function resolveGhnRecipientAddress(config: GhnConfig, rawAddress: string,
   const districtRows = Array.isArray(districts?.data) ? districts.data : []
   const district = findGhnAddressMatch(districtRows, ['DistrictName', 'Name'], addressForGhn.district)
   const districtId = Number(district?.DistrictID || district?.DistrictId || district?.ID || 0)
-  if (!districtId) return null
+  if (!district || !districtId) return null
 
   const wards = await ghnFetchJson('/master-data/ward', config, { district_id: districtId })
   const wardRows = Array.isArray(wards?.data) ? wards.data : []
   const ward = findGhnAddressMatch(wardRows, ['WardName', 'Name'], addressForGhn.ward)
   const wardCode = String(ward?.WardCode || ward?.Code || '').trim()
-  if (!wardCode) return null
+  if (!ward || !wardCode) return null
   if (isGhnUnsupportedArea(district) || isGhnUnsupportedArea(ward)) {
     return {
       ...addressForGhn,

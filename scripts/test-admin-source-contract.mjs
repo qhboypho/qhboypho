@@ -43,7 +43,9 @@ assert.match(adminScriptSource, /pushManager\.subscribe/, 'Expected admin dashbo
 assert.match(adminScriptSource, /\/api\/admin\/push\/subscriptions/, 'Expected admin dashboard to persist push subscriptions')
 assert.match(adminSectionsSource, /<header[\s\S]*id="menuToggle"[\s\S]*id="pageTitle"/, 'Expected mobile menu toggle to render inside the admin header before the page title')
 assert.match(adminSectionsSource, /export function adminMobileMenuToggle\(\): string \{\s*return ""\s*\}/, 'Expected legacy mobile menu placeholder to avoid rendering a second fixed hamburger')
-assert.match(adminSectionsSource, /id="adminOrderNotifyButton"/, 'Expected admin header to render a new order notification enable button')
+// c01c74bb moved this control from the header into notification settings.
+assert.match(adminSectionsSource, /id="adminOrderNotifySettingsButton"[^>]*onclick="enableAdminOrderNotifications\(\)"/, 'Expected notification settings to expose the enable action')
+assert.match(adminScriptSource, /function syncAdminOrderNotifyButton\(\)[\s\S]*?getElementById\('adminOrderNotifySettingsButton'\)/, 'Expected notification state updates to target the current settings control')
 assert.match(adminFlashSaleSource, /function adminSecretFieldMarkup\(opts\)/, 'Expected warehouse credentials to use shared secret field markup')
 assert.match(adminFlashSaleSource, /function toggleAdminSecretField\(id\)/, 'Expected warehouse credential fields to support visibility toggle')
 assert.match(adminFlashSaleSource, /async function copyAdminSecretField\(id\)/, 'Expected warehouse credential fields to support copy')

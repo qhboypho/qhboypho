@@ -6,6 +6,8 @@ type TelegramProductDraftDeps = {
   initDB: (db: D1Database) => Promise<void>
 }
 
+type JsonObject = Record<string, unknown>
+
 type TelegramMessage = {
   chat?: { id?: number | string }
   message_id?: number
@@ -30,6 +32,12 @@ let telegramDraftTablesReady = false
 
 function cleanText(value: unknown, max = 1200) {
   return String(value || '').replace(/\r\n?/g, '\n').trim().slice(0, max)
+}
+
+function toJsonObject(value: unknown): JsonObject {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? value as JsonObject
+    : {}
 }
 
 function jsonResponse(body: unknown, status = 200) {
@@ -138,11 +146,15 @@ export function buildGeminiDescriptionPrompt(title: string): string {
   ].join('\n')
 }
 
-export function readGeminiDescription(data: any): string {
-  const parts = Array.isArray(data?.candidates?.[0]?.content?.parts)
-    ? data.candidates[0].content.parts
+export function readGeminiDescription(data: unknown): string {
+  const root = toJsonObject(data)
+  const candidates = Array.isArray(root.candidates) ? root.candidates : []
+  const firstCandidate = toJsonObject(candidates[0])
+  const content = toJsonObject(firstCandidate.content)
+  const parts = Array.isArray(content.parts)
+    ? content.parts
     : []
-  const text = parts.map((part: any) => String(part?.text || '')).filter(Boolean).join('\n')
+  const text = parts.map((part) => String(toJsonObject(part).text || '')).filter(Boolean).join('\n')
   return sanitizeGeminiDescription(text)
 }
 
@@ -345,9 +357,10 @@ async function finishTelegramMediaGroup(db: D1Database, mediaGroupId: string, st
 async function downloadTelegramFile(fileId: string, token: string, fetchImpl: typeof fetch = fetch): Promise<TelegramFileDownload> {
   const infoRes = await fetchImpl(`https://api.telegram.org/bot${token}/getFile?file_id=${encodeURIComponent(fileId)}`)
   if (!infoRes.ok) throw new Error(`TELEGRAM_GET_FILE_FAILED_${infoRes.status}`)
-  const info = await infoRes.json().catch(() => ({}))
-  const filePath = String(info?.result?.file_path || '')
-  const fileSize = Number(info?.result?.file_size || 0)
+  const info = toJsonObject(await infoRes.json().catch(() => ({})))
+  const result = toJsonObject(info.result)
+  const filePath = String(result.file_path || '')
+  const fileSize = Number(result.file_size || 0)
   if (!filePath) throw new Error('TELEGRAM_FILE_PATH_MISSING')
   if (fileSize > MAX_TELEGRAM_PRODUCT_IMAGE_BYTES) throw new Error('TELEGRAM_IMAGE_TOO_LARGE')
 

@@ -10,8 +10,7 @@
     {
       "binding": "DB",
       "database_name": "fashion-store-production",
-      "database_id": "a1edf97a-0041-438e-84b9-e2ed9e4f6295",
-      "preview_database_id": "a1edf97a-0041-438e-84b9-e2ed9e4f6295"
+      "database_id": "a1edf97a-0041-438e-84b9-e2ed9e4f6295"
     }
   ],
   "r2_buckets": [
@@ -25,24 +24,20 @@
     "bindings": [
       {
         "name": "LIVE_CHAT_ROOM",
-        "class_name": "LiveChatRoom"
+        "class_name": "LiveChatRoom",
+        "script_name": "qhclothes-live-chat"
       }
-    ]
-  },
-  "migrations": [
-    {
-      "tag": "live_chat_room_v1",
-      "new_sqlite_classes": [
-        "LiveChatRoom"
-      ]
-    }
-  ],
-  "triggers": {
-    "crons": [
-      "17 18 * * *"
     ]
   },
   "vars": {
     "PRODUCT_IMAGES_PUBLIC_BASE_URL": ""
+  },
+  "env": {
+    "preview": {
+      "d1_databases": [],
+      "r2_buckets": [],
+      "durable_objects": { "bindings": [] },
+      "vars": { "PRODUCT_IMAGES_PUBLIC_BASE_URL": "" }
+    }
   }
 }

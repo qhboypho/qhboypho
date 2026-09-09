@@ -8,6 +8,7 @@ QH Clothes storefront and admin panel built on Hono, Vite, Cloudflare Pages/Work
 
 - Install: `npm install`
 - Build: `npm run build`
+- Full release gate: `npm run check:release` (strict TypeScript, launch tests, real workerd smoke tests, admin contract, full dependency audit).
 - Local Pages server: `npm run dev:sandbox`
 - Admin dashboard smoke check: `npm run test:admin-dashboard-local`
 - Launch regression suite: `npm run test:launch` (isolated SQLite and mocked providers; includes build).
@@ -39,4 +40,8 @@ QH Clothes storefront and admin panel built on Hono, Vite, Cloudflare Pages/Work
 - Manual VietQR must be explicitly configured, never used as an automatic PayOS-error fallback. An authorized operator must verify bank receipt and record its unique reference.
 - Payment reconciliation runs in a separate scheduled Worker configured by `wrangler.payments.jsonc`; deploying Pages alone does not deploy this scheduler or its secrets.
 - Production release requires backup, staging migration rehearsal, matching application/migration rollout and owner-supervised merchant/carrier acceptance. See `docs/launch-payment-checklist.md`; local passing tests do not verify live credentials.
-- Existing verification limitations: full TypeScript checking has unrelated baseline errors, the historical admin source contract expects an absent notification button, and the main Pages local runtime fails on the inline `LiveChatRoom` Durable Object export. Verify that deployment arrangement before launch.
+- TypeScript baseline errors are fixed without disabling strict checks. The admin notification contract targets the settings button moved in c01c74bb.
+- LiveChatRoom belongs to the separate private Worker in `wrangler.chat.jsonc`; deploy it before Pages. Its daily schedule owns expired-chat cleanup. Pages cannot host Durable Object classes or cron handlers.
+- Preview bindings are intentionally empty until separate staging resources are provisioned. Never point preview at production D1/R2/chat. `deploy:prod` explicitly uses the verified production branch `ui-new-v1`, not the current local branch.
+- Build dependencies were patched; Miniflare's pinned sharp is overridden to 0.35.4 to address its native-image security advisory. Revisit this override when upstream updates the pin. Install from package-lock.json with `npm ci`.
+- Release preflight and remaining production gates: `docs/release-2026-09-10.md`. A backup rehearsal is not a deployment or a live merchant/carrier acceptance test.

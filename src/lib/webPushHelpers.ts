@@ -91,6 +91,12 @@ async function markPushSubscriptionSuccess(db: D1Database, id: number) {
   `).bind(id).run()
 }
 
+function copyPushBodyToArrayBuffer(body: Uint8Array): ArrayBuffer {
+  const copy = new ArrayBuffer(body.byteLength)
+  new Uint8Array(copy).set(body)
+  return copy
+}
+
 export async function notifyAdminNewOrderPush(env: AppBindings, db: D1Database, order: AdminOrderPushPayload) {
   const vapid = getWebPushVapidKeys(env)
   if (!vapid) return { sent: 0, skipped: 'missing_vapid' }
@@ -128,7 +134,10 @@ export async function notifyAdminNewOrderPush(env: AppBindings, db: D1Database, 
         }
       }
       const request = await buildPushPayload(message, subscription, vapid)
-      const response = await fetch(subscription.endpoint, request)
+      const response = await fetch(subscription.endpoint, {
+        ...request,
+        body: copyPushBodyToArrayBuffer(request.body),
+      })
       if (response.ok) {
         sent += 1
         await markPushSubscriptionSuccess(db, row.id)
