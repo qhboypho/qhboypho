@@ -242,11 +242,19 @@ async function ghnFetchJson(path: string, config: GhnConfig, body?: Record<strin
       'Token': config.token,
       'ShopId': config.shopId
     },
-    body: body ? JSON.stringify(body) : undefined
+    body: body ? JSON.stringify(body) : undefined,
+    signal: AbortSignal.timeout(10_000)
   })
-  const data: any = await resp.json().catch(() => ({}))
-  if (!resp.ok || Number(data?.code || 0) >= 300) {
-    throw new Error(String(data?.message || data?.code_message_value || 'GHN_API_FAILED'))
+  const data: any = await resp.json().catch(() => null)
+  if (!data || !resp.ok || Number(data?.code || 0) !== 200) {
+    const error = new Error(String(data?.message || data?.code_message_value || 'GHN_API_FAILED'))
+    // A gateway/server error or incomplete body cannot prove creation failed.
+    // Only a structured 4xx rejection permits a later creation attempt.
+    const providerCode = Number(data?.code || 0)
+    ;(error as any).remoteResponseReceived = !!data
+      && resp.status < 500 && resp.status !== 408
+      && providerCode >= 400 && providerCode < 500 && providerCode !== 408
+    throw error
   }
   return data
 }
@@ -491,7 +499,7 @@ export async function ghnCreateShipment(env: AppBindings, db: D1Database, order:
     const body = await ghnFetchJson('/v2/shipping-order/create', config, payload)
     const data = body?.data || {}
     const orderCode = String(data.order_code || data.tracking_code || '').trim()
-    if (!orderCode) return { ok: false, message: 'GHN_TRACKING_EMPTY', detail: data }
+    if (!orderCode) return { ok: false, uncertain: true, message: 'GHN_TRACKING_EMPTY', detail: data }
     return {
       ok: true,
       data: {
@@ -502,7 +510,11 @@ export async function ghnCreateShipment(env: AppBindings, db: D1Database, order:
       }
     }
   } catch (e: any) {
-    return { ok: false, message: String(e?.message || 'GHN_CREATE_ORDER_FAILED') }
+    return {
+      ok: false,
+      uncertain: e?.remoteResponseReceived !== true,
+      message: String(e?.message || 'GHN_CREATE_ORDER_FAILED')
+    }
   }
 }
 
@@ -773,18 +785,44 @@ export async function ghtkCreateShipment(env: any, db: D1Database, order: any) {
     }
   }
 
-  const resp = await fetch('https://services.giaohangtietkiem.vn/services/shipment/order/?ver=1.5', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Token': token,
-      'X-Client-Source': clientSource
-    },
-    body: JSON.stringify(payload)
-  })
-  const body: any = await resp.json().catch(() => ({}))
+  let resp: Response
+  try {
+    resp = await fetch('https://services.giaohangtietkiem.vn/services/shipment/order/?ver=1.5', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Token': token,
+        'X-Client-Source': clientSource
+      },
+      body: JSON.stringify(payload),
+      signal: AbortSignal.timeout(10_000)
+    })
+  } catch (error: any) {
+    return {
+      ok: false,
+      uncertain: true,
+      message: 'GHTK_CREATE_ORDER_UNCERTAIN',
+      detail: String(error?.message || error || 'network failure')
+    }
+  }
+  let body: any
+  try {
+    body = await resp.json()
+  } catch (error: any) {
+    return {
+      ok: false,
+      uncertain: true,
+      message: 'GHTK_CREATE_ORDER_UNCERTAIN',
+      detail: String(error?.message || error || 'invalid carrier response')
+    }
+  }
   if (resp.ok && body?.success && body?.order) return { ok: true, data: body.order, usedFallbackAddress: !!recipientAddress.usedFallback }
-  return { ok: false, message: String(body?.message || 'GHTK_CREATE_ORDER_FAILED'), detail: body }
+  return {
+    ok: false,
+    uncertain: resp.status >= 500 || resp.status === 408 || body?.success !== false,
+    message: String(body?.message || 'GHTK_CREATE_ORDER_FAILED'),
+    detail: body
+  }
 }
 
 export async function ghtkFetchLabelPdf(env: any, db: D1Database, trackingCode: string, original?: string, pageSize?: string) {

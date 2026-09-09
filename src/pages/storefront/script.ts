@@ -11,9 +11,263 @@ let selectedProductSku = null
 let selectedPaymentMethod = ''
 let pendingBankTransferOrder = null
 let bankTransferPollTimer = null
+let bankTransferPollState = null
+const ORDER_ACCESS_TOKENS_STORAGE_KEY = 'qhclothes_order_access_tokens_v1'
+const ORDER_ACCESS_TOKEN_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000
+const ORDER_ACCESS_TOKEN_MAX_ENTRIES = 80
+const ORDER_IDEMPOTENCY_STATE_STORAGE_KEY = 'qhclothes_order_idempotency_v1'
+const ORDER_IDEMPOTENCY_STATE_MAX_AGE_MS = 24 * 60 * 60 * 1000
+let quickOrderIdempotencyState = { fingerprint: '', key: '', accessToken: '' }
+let cartOrderIdempotencyState = Object.create(null)
+let storefrontRetryStateHydrated = false
 const PRODUCT_PREVIEW_ROWS = 3
 const PRODUCT_MODAL_PAGE_SIZE = 24
 const MOBILE_PRODUCT_PAGE_SIZE = 8
+
+function normalizeOrderReference(value) {
+  const reference = String(value == null ? '' : value).trim()
+  if (!reference || reference.length > 128) return ''
+  return reference.toUpperCase()
+}
+
+function normalizeOrderAccessToken(value) {
+  const token = String(value == null ? '' : value).trim()
+  if (!/^[A-Za-z0-9_-]{32,256}$/.test(token)) return ''
+  return token
+}
+
+function readOrderAccessTokenStore() {
+  try {
+    const raw = localStorage.getItem(ORDER_ACCESS_TOKENS_STORAGE_KEY)
+    const parsed = raw ? JSON.parse(raw) : {}
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {}
+    const now = Date.now()
+    const valid = {}
+    Object.keys(parsed).forEach((key) => {
+      const entry = parsed[key]
+      const token = normalizeOrderAccessToken(entry?.token)
+      const savedAt = Number(entry?.savedAt || 0)
+      if (token && savedAt > 0 && now - savedAt <= ORDER_ACCESS_TOKEN_MAX_AGE_MS) {
+        valid[key] = { token, savedAt }
+      }
+    })
+    return valid
+  } catch (_) {
+    return {}
+  }
+}
+
+function writeOrderAccessTokenStore(store) {
+  try {
+    const entries = Object.entries(store || {})
+      .sort((a, b) => Number(b[1]?.savedAt || 0) - Number(a[1]?.savedAt || 0))
+      .slice(0, ORDER_ACCESS_TOKEN_MAX_ENTRIES)
+    localStorage.setItem(ORDER_ACCESS_TOKENS_STORAGE_KEY, JSON.stringify(Object.fromEntries(entries)))
+  } catch (_) { }
+}
+
+function persistOrderAccessToken(orderCode, orderId, token) {
+  const safeToken = normalizeOrderAccessToken(token)
+  if (!safeToken) return false
+  const references = [normalizeOrderReference(orderCode), normalizeOrderReference(orderId)]
+    .filter(Boolean)
+    .map((value) => 'order:' + value)
+  if (!references.length) return false
+  const store = readOrderAccessTokenStore()
+  const entry = { token: safeToken, savedAt: Date.now() }
+  references.forEach((reference) => { store[reference] = entry })
+  writeOrderAccessTokenStore(store)
+  return true
+}
+
+function getOrderAccessToken(orderCode, orderId) {
+  if (orderCode && typeof orderCode === 'object') {
+    const order = orderCode
+    orderId = order.id || order.orderId
+    orderCode = order.order_code || order.orderCode
+  }
+  const store = readOrderAccessTokenStore()
+  const references = [normalizeOrderReference(orderCode), normalizeOrderReference(orderId)]
+    .filter(Boolean)
+    .map((value) => 'order:' + value)
+  for (const reference of references) {
+    const token = normalizeOrderAccessToken(store[reference]?.token)
+    if (token) return token
+  }
+  return ''
+}
+
+function getOrderRequestConfig(orderCode, orderId, config) {
+  const base = config && typeof config === 'object' ? config : {}
+  const headers = { ...(base.headers || {}) }
+  const token = getOrderAccessToken(orderCode, orderId)
+  if (token) headers['X-Order-Access-Token'] = token
+  return { ...base, headers }
+}
+
+function captureOrderAccessToken(response, fallbackOrderCode, fallbackOrderId) {
+  const body = response?.data && typeof response.data === 'object' ? response.data : {}
+  const nested = body.data && typeof body.data === 'object' ? body.data : body
+  const token = nested.order_access_token || nested.orderAccessToken || body.order_access_token || body.orderAccessToken
+  const orderCode = nested.order_code || nested.orderCode || body.order_code || body.orderCode || fallbackOrderCode
+  const orderId = nested.id || nested.order_id || nested.orderId || body.id || body.order_id || body.orderId || fallbackOrderId
+  if (!token) return false
+  return persistOrderAccessToken(orderCode, orderId, token)
+}
+
+function createStorefrontIdempotencyKey(scope) {
+  const prefix = String(scope || 'order').replace(/[^a-z0-9_-]/gi, '').slice(0, 20) || 'order'
+  let random = ''
+  try {
+    if (window.crypto?.randomUUID) random = window.crypto.randomUUID()
+    else if (window.crypto?.getRandomValues) {
+      const bytes = new Uint8Array(16)
+      window.crypto.getRandomValues(bytes)
+      random = Array.from(bytes).map((byte) => byte.toString(16).padStart(2, '0')).join('')
+    }
+  } catch (_) { }
+  if (!random) return ''
+  return ('qh-' + prefix + '-' + Date.now().toString(36) + '-' + random).slice(0, 128)
+}
+
+function createStorefrontOrderAccessToken() {
+  let random = ''
+  try {
+    if (window.crypto?.getRandomValues) {
+      const bytes = new Uint8Array(32)
+      window.crypto.getRandomValues(bytes)
+      random = Array.from(bytes).map((byte) => byte.toString(16).padStart(2, '0')).join('')
+    } else if (window.crypto?.randomUUID) {
+      const uuid = () => String(window.crypto.randomUUID()).replace(/-/g, '')
+      random = uuid() + uuid()
+    }
+  } catch (_) { }
+  if (!random) return ''
+  return random.slice(0, 64)
+}
+
+function getOrderCreationRequestConfig(orderAccessToken, idempotencyKey) {
+  const headers = {}
+  const token = normalizeOrderAccessToken(orderAccessToken)
+  const key = String(idempotencyKey || '').trim()
+  if (token) headers['X-Order-Access-Token'] = token
+  if (key) headers['X-Idempotency-Key'] = key
+  return { headers }
+}
+
+function hydrateStorefrontRetryState() {
+  if (storefrontRetryStateHydrated) return
+  storefrontRetryStateHydrated = true
+  try {
+    const raw = sessionStorage.getItem(ORDER_IDEMPOTENCY_STATE_STORAGE_KEY)
+    const parsed = raw ? JSON.parse(raw) : null
+    const now = Date.now()
+    if (!parsed || typeof parsed !== 'object' || now - Number(parsed.savedAt || 0) > ORDER_IDEMPOTENCY_STATE_MAX_AGE_MS) return
+    const quick = parsed.quick
+    if (quick && typeof quick === 'object' && quick.fingerprint && quick.key) {
+      quickOrderIdempotencyState = {
+        fingerprint: String(quick.fingerprint),
+        key: String(quick.key),
+        accessToken: normalizeOrderAccessToken(quick.accessToken) || ''
+      }
+    }
+    if (parsed.cart && typeof parsed.cart === 'object') {
+      Object.keys(parsed.cart).forEach((cartId) => {
+        const entry = parsed.cart[cartId]
+        if (entry && entry.fingerprint && entry.key) {
+          cartOrderIdempotencyState[cartId] = {
+            fingerprint: String(entry.fingerprint),
+            key: String(entry.key),
+            accessToken: normalizeOrderAccessToken(entry.accessToken) || ''
+          }
+        }
+      })
+    }
+  } catch (_) { }
+}
+
+function persistStorefrontRetryState() {
+  try {
+    sessionStorage.setItem(ORDER_IDEMPOTENCY_STATE_STORAGE_KEY, JSON.stringify({
+      savedAt: Date.now(),
+      quick: quickOrderIdempotencyState,
+      cart: cartOrderIdempotencyState
+    }))
+  } catch (_) { }
+}
+
+function getQuickOrderIdempotencyKey(fingerprint) {
+  hydrateStorefrontRetryState()
+  const normalizedFingerprint = String(fingerprint || '')
+  if (!quickOrderIdempotencyState.key
+    || quickOrderIdempotencyState.fingerprint !== normalizedFingerprint
+    || !normalizeOrderAccessToken(quickOrderIdempotencyState.accessToken)) {
+    quickOrderIdempotencyState = {
+      fingerprint: normalizedFingerprint,
+      key: createStorefrontIdempotencyKey('quick'),
+      accessToken: createStorefrontOrderAccessToken()
+    }
+  }
+  if (!quickOrderIdempotencyState.key || !quickOrderIdempotencyState.accessToken) throw new Error('ORDER_RETRY_SECURITY_UNAVAILABLE')
+  persistStorefrontRetryState()
+  return quickOrderIdempotencyState.key
+}
+
+function getQuickOrderAccessToken(fingerprint) {
+  getQuickOrderIdempotencyKey(fingerprint)
+  return quickOrderIdempotencyState.accessToken
+}
+
+function clearQuickOrderIdempotencyKey() {
+  quickOrderIdempotencyState = { fingerprint: '', key: '', accessToken: '' }
+  persistStorefrontRetryState()
+}
+
+function getCartOrderIdempotencyKey(item, checkoutPayload, voucherCode, paymentMethod, note) {
+  hydrateStorefrontRetryState()
+  const cartId = String(item?.cartId || '').trim()
+  if (!cartId) throw new Error('ORDER_RETRY_IDENTITY_MISSING')
+  const fingerprint = JSON.stringify({
+    cartId,
+    productId: item?.productId || '',
+    productSkuId: item?.productSkuId || '',
+    color: item?.color || '',
+    size: item?.size || '',
+    quantity: item?.qty || 1,
+    name: checkoutPayload?.name || '',
+    phone: checkoutPayload?.phone || '',
+    address: checkoutPayload?.address || '',
+    voucherCode: voucherCode || '',
+    paymentMethod: paymentMethod || '',
+    note: note || ''
+  })
+  const existing = cartOrderIdempotencyState[cartId]
+  if (!existing
+    || existing.fingerprint !== fingerprint
+    || !normalizeOrderAccessToken(existing.accessToken)) {
+    cartOrderIdempotencyState[cartId] = {
+      fingerprint,
+      key: createStorefrontIdempotencyKey('cart'),
+      accessToken: createStorefrontOrderAccessToken()
+    }
+  }
+  const identity = cartOrderIdempotencyState[cartId]
+  if (!identity.key || !identity.accessToken) throw new Error('ORDER_RETRY_SECURITY_UNAVAILABLE')
+  persistStorefrontRetryState()
+  return identity.key
+}
+
+function getCartOrderAccessToken(item, checkoutPayload, voucherCode, paymentMethod, note) {
+  const cartId = String(item?.cartId || '').trim()
+  getCartOrderIdempotencyKey(item, checkoutPayload, voucherCode, paymentMethod, note)
+  return cartOrderIdempotencyState[cartId]?.accessToken || ''
+}
+
+function clearCartOrderIdempotencyKey(cartId) {
+  const key = String(cartId || '').trim()
+  if (key) delete cartOrderIdempotencyState[key]
+  persistStorefrontRetryState()
+}
 
 function isHotTrendWomenContext() {
   const ctx = typeof window !== 'undefined' ? (window.STOREFRONT_SEGMENT_CONTEXT || window.storefrontSegmentContext) : null
@@ -3659,18 +3913,30 @@ function resetCartSubmitButton() {
   btn.innerHTML = '<i class="fas fa-credit-card mr-2"></i>Đặt hàng'
 }
 
-function showCartOrderSuccessModal(createdOrders) {
+function showCartOrderSuccessModal(createdOrders, failedItems) {
   const overlay = document.getElementById('cartOrderSuccessOverlay')
   const msgEl = document.getElementById('cartOrderSuccessMessage')
   const codesEl = document.getElementById('cartOrderSuccessCodes')
   if (!overlay || !codesEl) return
   const orders = Array.isArray(createdOrders) ? createdOrders : []
-  if (msgEl) msgEl.textContent = orders.length > 1
-    ? (orders.length + ' đơn hàng đã được tạo.')
-    : 'Đơn hàng đã được ghi nhận.'
+  const failed = Array.isArray(failedItems) ? failedItems : []
+  if (msgEl) {
+    if (orders.length && failed.length) {
+      msgEl.textContent = orders.length + ' đơn đã tạo; ' + failed.length + ' sản phẩm chưa đặt được và vẫn giữ trong giỏ để thử lại.'
+    } else if (orders.length > 1) {
+      msgEl.textContent = orders.length + ' đơn hàng đã được tạo.'
+    } else if (orders.length === 1) {
+      msgEl.textContent = 'Đơn hàng đã được ghi nhận.'
+    } else {
+      msgEl.textContent = 'Chưa tạo được đơn hàng nào. Sản phẩm vẫn ở trong giỏ.'
+    }
+  }
   codesEl.innerHTML = orders.map((order) => {
     return '<p class="font-mono text-sm font-bold text-blue-600">' + escapeHtml(order.orderCode || '') + '</p>'
   }).join('')
+  if (failed.length) {
+    codesEl.innerHTML += '<p class="mt-2 text-xs text-amber-700">' + failed.length + ' sản phẩm lỗi vẫn được giữ lại trong giỏ hàng.</p>'
+  }
   overlay.classList.remove('hidden')
   overlay.classList.add('flex')
   lockStorefrontPageScroll('cartOrderSuccessOverlay')
@@ -3691,6 +3957,13 @@ async function applyCkVoucher() {
     statusEl.className='mt-2 voucher-error rounded-xl px-3 py-2 text-sm text-red-600 font-medium'
     statusEl.innerHTML='<i class="fas fa-times-circle mr-1"></i>Vui lòng nhập mã khuyến mãi'
     statusEl.classList.remove('hidden'); return
+  }
+  const selectedItems = cart.filter((item) => item.checked)
+  if (selectedItems.length > 1) {
+    statusEl.className = 'mt-2 voucher-error rounded-xl px-3 py-2 text-sm text-red-600 font-medium'
+    statusEl.innerHTML = '<i class="fas fa-times-circle mr-1"></i>Mã giảm giá hiện chỉ áp dụng khi đặt từng sản phẩm. Vui lòng chọn 1 sản phẩm hoặc bỏ mã.'
+    statusEl.classList.remove('hidden')
+    return
   }
   btn.disabled=true; btn.innerHTML='<i class="fas fa-spinner fa-spin"></i>'
   statusEl.classList.add('hidden')
@@ -3815,6 +4088,11 @@ async function submitCartOrder() {
     return
   }
   const paymentMethod = getCheckoutSelectedPaymentMethod('ck')
+  if (ckAppliedVoucher && checkedItems.length > 1) {
+    setCartSubmitStatus('Mã giảm giá hiện chỉ áp dụng khi đặt từng sản phẩm. Vui lòng chọn 1 sản phẩm hoặc bỏ mã trước khi đặt.', 'error')
+    resetCartSubmitButton()
+    return
+  }
   if (paymentMethod === 'BANK_TRANSFER' && checkedItems.length !== 1) {
     setCartSubmitStatus('Chuyển khoản từ giỏ hiện chỉ hỗ trợ 1 mặt hàng mỗi lần. Hãy chọn 1 mặt hàng hoặc dùng COD.', 'error')
     resetCartSubmitButton()
@@ -3827,30 +4105,69 @@ async function submitCartOrder() {
 
   try {
     const createdOrders = []
+    const failedItems = []
     for (const item of checkedItems) {
-      const res = await axios.post('/api/orders', {
-        customer_name: payload.name, customer_phone: payload.phone, customer_address: payload.address,
-        customer_province_code: payload.addressPayload.provinceCode,
-        customer_commune_code: payload.addressPayload.communeCode,
-        address_effective_date: payload.addressPayload.effectiveDate,
-        product_id: item.productId, color: item.color, size: item.size,
-        product_sku_id: item.productSkuId || '',
-        selected_color_image: item.colorImage || '',
-        quantity: item.qty,
-        voucher_code: ckAppliedVoucher ? ckAppliedVoucher.code : '',
-        note,
-        payment_method: paymentMethod,
-        device_id: getStorefrontDeviceId()
-      })
-      createdOrders.push({
-        orderCode: res.data.order_code,
-        orderId: Number(res.data.id || 0),
-        orderTotal: Number(res.data.total || 0)
-      })
+      try {
+        const voucherCode = ckAppliedVoucher ? ckAppliedVoucher.code : ''
+        const idempotencyKey = getCartOrderIdempotencyKey(item, payload, voucherCode, paymentMethod, note)
+        const orderAccessToken = getCartOrderAccessToken(item, payload, voucherCode, paymentMethod, note)
+        const res = await axios.post('/api/orders', {
+          customer_name: payload.name, customer_phone: payload.phone, customer_address: payload.address,
+          customer_province_code: payload.addressPayload.provinceCode,
+          customer_commune_code: payload.addressPayload.communeCode,
+          address_effective_date: payload.addressPayload.effectiveDate,
+          product_id: item.productId, color: item.color, size: item.size,
+          product_sku_id: item.productSkuId || '',
+          selected_color_image: item.colorImage || '',
+          quantity: item.qty,
+          voucher_code: voucherCode,
+          note,
+          payment_method: paymentMethod,
+          device_id: getStorefrontDeviceId(),
+          idempotency_key: idempotencyKey,
+          order_access_token: orderAccessToken
+        }, getOrderCreationRequestConfig(orderAccessToken, idempotencyKey))
+        const orderData = res.data?.data && typeof res.data.data === 'object' ? res.data.data : (res.data || {})
+        const orderCode = String(orderData.order_code || res.data?.order_code || '').trim()
+        const orderId = Number(orderData.id || orderData.order_id || res.data?.id || 0)
+        const orderTotal = Number(orderData.total ?? res.data?.total ?? 0)
+        if (!orderCode || !orderId) throw new Error('ORDER_CREATE_INVALID_RESPONSE')
+        if (!captureOrderAccessToken(res, orderCode, orderId)) {
+          persistOrderAccessToken(orderCode, orderId, orderAccessToken)
+        }
+        createdOrders.push({ orderCode, orderId, orderTotal })
+        // Remove each confirmed item immediately. Items that fail remain retryable.
+        cart = cart.filter((cartItem) => cartItem.cartId !== item.cartId)
+        clearCartOrderIdempotencyKey(item.cartId)
+        saveCart()
+      } catch (error) {
+        failedItems.push({ item, error })
+        const errCode = String(error?.response?.data?.error || '').toUpperCase()
+        // A global validation/risk failure cannot be fixed by submitting the next item.
+        if (['CUSTOMER_BLOCKED', 'ORDER_DAILY_LIMIT_REACHED', 'INVALID_VOUCHER', 'VOUCHER_LIMIT'].includes(errCode)) {
+          break
+        }
+      }
     }
-    // Remove checked items from cart
-    cart = cart.filter(i=>!i.checked)
-    saveCart()
+    const remainingItems = checkedItems.filter((item) => cart.some((cartItem) => cartItem.cartId === item.cartId))
+    if (!createdOrders.length) {
+      const firstFailure = failedItems[0]?.error
+      const errCode = String(firstFailure?.response?.data?.error || '').toUpperCase()
+      if (errCode === 'CUSTOMER_BLOCKED') {
+        showBlockedCustomerModal(firstFailure?.response?.data?.reason || 'Không thể đặt hàng')
+      } else if (errCode === 'ORDER_DAILY_LIMIT_REACHED') {
+        showBlockedCustomerModal(firstFailure?.response?.data?.reason || 'Bạn đã đặt tối đa 2 đơn trong hôm nay. Vui lòng liên hệ shop nếu cần hỗ trợ.')
+      } else if (errCode === 'INVALID_VOUCHER' || errCode === 'VOUCHER_LIMIT') {
+        setCartSubmitStatus('Mã khuyến mãi không còn hiệu lực.', 'error')
+        ckAppliedVoucher = null
+        updateCkTotal()
+        document.getElementById('ckVoucherBtn').innerHTML='Áp dụng'
+        document.getElementById('ckVoucherBtn').className='px-4 py-2.5 bg-gray-800 hover:bg-gray-700 text-white rounded-xl text-sm font-semibold transition whitespace-nowrap'
+      } else {
+        setCartSubmitStatus('Chưa tạo được đơn hàng nào; sản phẩm vẫn được giữ trong giỏ để thử lại.', 'error')
+      }
+      return
+    }
     closeCart()
     if (paymentMethod === 'BANK_TRANSFER' && createdOrders[0]) {
       await continueOrderPaymentFlow({
@@ -3861,8 +4178,12 @@ async function submitCartOrder() {
         payTabRef
       })
     } else {
-      showCartOrderSuccessModal(createdOrders)
-      showToast('Đặt hàng thành công! ' + createdOrders.length + ' đơn hàng đã được tạo', 'success', 5000)
+      showCartOrderSuccessModal(createdOrders, remainingItems)
+      if (remainingItems.length) {
+        showToast('Đã tạo ' + createdOrders.length + ' đơn; sản phẩm lỗi vẫn ở trong giỏ để thử lại.', 'warning', 5500)
+      } else {
+        showToast('Đặt hàng thành công! ' + createdOrders.length + ' đơn hàng đã được tạo', 'success', 5000)
+      }
     }
   } catch(e) {
     try { if (payTabRef && !payTabRef.closed) payTabRef.close() } catch (_) { }
@@ -4674,11 +4995,9 @@ ensureAddressKitReady().catch(() => {
 })
 
 window.addEventListener('message', function (event) {
-  if (event.origin !== window.location.origin) return
-  const data = event.data || {}
-  if ((data.type === 'payment_paid' || data.type === 'payos_paid') && data.orderCode) {
-    onOrderMarkedPaid(String(data.orderCode))
-  }
+  handleStorefrontPaymentMessage(event).catch((error) => {
+    console.error('[payment] message verification failed', error)
+  })
 })
 
 // ── USER AUTH & MENU ──────────────────────────────
@@ -5387,7 +5706,7 @@ async function showUserOrders() {
     if (unpaidGatewayOrders.length) {
       await Promise.all(unpaidGatewayOrders.map(function (o) {
         const method = String(o.payment_method || '').toUpperCase()
-        return axios.post('/api/orders/' + o.id + '/payos-sync').catch(function () { return null })
+        return axios.post('/api/orders/' + o.id + '/payos-sync', {}, getOrderRequestConfig(o.order_code, o.id)).catch(function () { return null })
       }))
       const refreshed = await axios.get('/api/user/orders')
       orders = refreshed.data.data || orders
@@ -5460,6 +5779,31 @@ function resumeOrderPaymentFromButton(button) {
   resumeOrderPayment(orderId, orderCode, paymentMethod)
 }
 
+function openStorefrontHostedCheckout(url, existingPayTab) {
+  const checkoutUrl = String(url || '').trim()
+  if (!checkoutUrl) return { opened: false, payTab: null, sameTab: false }
+  let payTab = existingPayTab || null
+  if (payTab) {
+    try {
+      if (!payTab.closed) {
+        payTab.location.href = checkoutUrl
+        return { opened: true, payTab, sameTab: false }
+      }
+    } catch (_) { payTab = null }
+  }
+  try {
+    payTab = window.open(checkoutUrl, '_blank', 'noopener,noreferrer')
+    if (payTab) return { opened: true, payTab, sameTab: false }
+  } catch (_) { }
+  try {
+    if (typeof window.location.assign === 'function') window.location.assign(checkoutUrl)
+    else window.location.href = checkoutUrl
+    return { opened: true, payTab: null, sameTab: true }
+  } catch (_) {
+    return { opened: false, payTab: null, sameTab: false }
+  }
+}
+
 async function resumeOrderPayment(orderId, orderCode, paymentMethod) {
   const method = String(paymentMethod || '').toUpperCase()
   if (method !== 'BANK_TRANSFER') {
@@ -5471,23 +5815,18 @@ async function resumeOrderPayment(orderId, orderCode, paymentMethod) {
   const syncEndpoint = '/api/orders/' + orderId + '/payos-sync'
   let payTab = window.open('about:blank', '_blank')
   const openCheckoutUrl = function (url) {
-    const checkoutUrl = String(url || '').trim()
-    if (!checkoutUrl) return false
-    if (payTab) {
-      try { payTab.location.href = checkoutUrl } catch (_) { payTab = null }
-      return true
-    }
-    payTab = window.open(checkoutUrl, '_blank')
-    return !!payTab
+    const result = openStorefrontHostedCheckout(url, payTab)
+    payTab = result.payTab
+    return result.opened
   }
   try {
-    const paymentRes = await axios.post(createEndpoint, { origin: window.location.origin })
+    const paymentRes = await axios.post(createEndpoint, { origin: window.location.origin }, getOrderRequestConfig(orderCode, orderId))
     const paymentData = paymentRes.data?.data || {}
     const provider = String(paymentData.provider || '').toUpperCase()
     providerLabel = provider === 'PAYOS' ? 'PayOS' : (provider === 'MANUAL_VIETQR' ? 'VietQR' : 'thanh toán')
     if (paymentData.alreadyPaid) {
       try { if (payTab && !payTab.closed) payTab.close() } catch (_) { }
-      await axios.post(syncEndpoint).catch(function () { return null })
+      await axios.post(syncEndpoint, {}, getOrderRequestConfig(orderCode, orderId)).catch(function () { return null })
       showUserOrders()
       showToast('Đơn này đã thanh toán thành công', 'success', 3500)
       return
@@ -5495,12 +5834,13 @@ async function resumeOrderPayment(orderId, orderCode, paymentMethod) {
     const checkoutUrl = String(paymentData.checkoutUrl || '').trim()
     if (!checkoutUrl) {
       try { if (payTab && !payTab.closed) payTab.close() } catch (_) { }
-      if (provider === 'MANUAL_VIETQR' || paymentData.qrCode || paymentData.transferContent) {
-        openOrderBankTransferModal({
+      if (provider === 'MANUAL_VIETQR') {
+        const opened = openOrderBankTransferModal({
+          provider,
           orderCode,
           orderId,
           amount: paymentData.amount || 0,
-          transferContent: paymentData.transferContent || getOrderTransferContent(orderId || orderCode),
+          transferContent: paymentData.transferContent || '',
           paymentLinkId: paymentData.paymentLinkId || '',
           qrCode: paymentData.qrCode || '',
           bankId: paymentData.bankId || '',
@@ -5508,7 +5848,7 @@ async function resumeOrderPayment(orderId, orderCode, paymentMethod) {
           accountName: paymentData.accountName || '',
           template: paymentData.template || ''
         })
-        showToast('Đã mở QR VietQR để bạn thanh toán tiếp', 'success', 3500)
+        if (opened) showToast('Đã mở QR VietQR để bạn thanh toán tiếp; shop sẽ xác nhận thủ công.', 'success', 3500)
         return
       }
       showToast('Không tạo được link thanh toán ' + providerLabel, 'error', 3500)
@@ -5518,16 +5858,10 @@ async function resumeOrderPayment(orderId, orderCode, paymentMethod) {
       showToast('Trình duyệt đang chặn popup, vui lòng cho phép mở tab mới', 'warning', 3800)
       return
     }
-    startOrderPaymentPolling(orderCode)
+    startOrderPaymentPolling(orderCode, { payTab })
     showToast('Đang mở lại trang ' + providerLabel + ' để bạn thanh toán tiếp', 'success', 3500)
   } catch (err) {
     const errCode = err.response?.data?.error
-    const fallbackUrl = String(err.response?.data?.detail?.checkoutUrl || err.response?.data?.detail?.data?.checkoutUrl || '').trim()
-    if (fallbackUrl && openCheckoutUrl(fallbackUrl)) {
-      startOrderPaymentPolling(orderCode)
-      showToast('Đang mở lại trang ' + providerLabel + ' để bạn thanh toán tiếp', 'success', 3500)
-      return
-    }
     if (errCode === 'PAYOS_CONFIG_MISSING') {
       showToast('Cấu hình thanh toán chưa đầy đủ, vui lòng liên hệ shop', 'error', 5500)
       return
@@ -5571,18 +5905,42 @@ function getOrderTransferContent(orderCode) {
   return 'DH' + safeCode
 }
 
-function openOrderBankTransferModal(info) {
-  const orderCode = info?.orderCode || ''
-  const amount = Number(info?.amount || 0)
-  const transferContent = info?.transferContent || getOrderTransferContent(info?.orderId || orderCode)
-  const bankConfig = {
-    bankId: info?.bankId || BANK_CONFIG.bankId,
-    accountNo: info?.accountNo || BANK_CONFIG.accountNo,
-    accountName: info?.accountName || BANK_CONFIG.accountName,
-    template: info?.template || BANK_CONFIG.template
+function normalizeManualVietQrImage(value) {
+  const raw = String(value || '').trim()
+  if (!raw) return ''
+  if (/^data:image\\/(?:png|jpeg|jpg|webp);base64,[a-z0-9+/=]+$/i.test(raw)) return raw
+  if (!/^https?:\\/\\//i.test(raw)) return ''
+  try {
+    const parsed = new URL(raw, window.location.origin)
+    if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return ''
+    if (!/\\.(?:png|jpe?g|webp)(?:$|[?#])/i.test(parsed.pathname)) return ''
+    return parsed.href
+  } catch (_) {
+    return ''
   }
-  const qrImage = info?.qrCode || getVietQRUrl(amount, transferContent, bankConfig)
-  pendingBankTransferOrder = { orderCode, amount, transferContent, paymentLinkId: info?.paymentLinkId || '' }
+}
+
+function openOrderBankTransferModal(info) {
+  const provider = String(info?.provider || '').toUpperCase()
+  if (provider !== 'MANUAL_VIETQR') {
+    showToast('Mã QR thanh toán không khả dụng cho cổng này.', 'error', 4500)
+    return false
+  }
+  const orderCode = String(info?.orderCode || '').trim()
+  const amount = Number(info?.amount || 0)
+  const transferContent = String(info?.transferContent || '').trim()
+  const bankConfig = {
+    bankId: String(info?.bankId || '').trim(),
+    accountNo: String(info?.accountNo || '').trim(),
+    accountName: String(info?.accountName || '').trim(),
+    template: String(info?.template || '').trim()
+  }
+  const qrImage = normalizeManualVietQrImage(info?.qrCode)
+  if (!orderCode || amount <= 0 || !transferContent || !bankConfig.bankId || !bankConfig.accountNo || !bankConfig.accountName || !qrImage) {
+    showToast('Shop chưa cung cấp đủ thông tin VietQR thủ công cho đơn này.', 'error', 5000)
+    return false
+  }
+  pendingBankTransferOrder = { provider, orderCode, orderId: Number(info?.orderId || 0), amount, transferContent, paymentLinkId: info?.paymentLinkId || '' }
   document.getElementById('orderBankOrderCode').textContent = orderCode
   const amountDisplay = document.getElementById('orderBankAmountDisplay')
   if (amountDisplay) {
@@ -5601,7 +5959,8 @@ function openOrderBankTransferModal(info) {
   document.getElementById('orderBankQrImg').src = qrImage
   document.getElementById('orderBankTransferOverlay').classList.remove('hidden')
   lockStorefrontPageScroll('orderBankTransferOverlay')
-  startOrderPaymentPolling(orderCode)
+  startOrderPaymentPolling(orderCode, { orderId: Number(info?.orderId || 0), maxAttempts: 30 })
+  return true
 }
 
 function closeOrderBankTransferModal() {
@@ -5622,9 +5981,10 @@ async function copyBankValue(value) {
 
 function stopOrderPaymentPolling() {
   if (bankTransferPollTimer) {
-    clearInterval(bankTransferPollTimer)
+    clearTimeout(bankTransferPollTimer)
     bankTransferPollTimer = null
   }
+  if (bankTransferPollState) bankTransferPollState.stopped = true
 }
 
 function showOrderPaidNotice(orderCode) {
@@ -5654,17 +6014,94 @@ function onOrderMarkedPaid(orderCode) {
   if (typeof loadAdminOrders === 'function') loadAdminOrders()
 }
 
-function startOrderPaymentPolling(orderCode) {
+async function queryOrderPaymentStatus(orderCode, orderId) {
+  const res = await axios.get(
+    '/api/orders/' + encodeURIComponent(String(orderCode || '')) + '/payment-status',
+    getOrderRequestConfig(orderCode, orderId)
+  )
+  const data = res.data?.data || {}
+  return {
+    data,
+    paymentStatus: String(data.payment_status || '').toLowerCase(),
+    paid: String(data.payment_status || '').toLowerCase() === 'paid'
+  }
+}
+
+function startOrderPaymentPolling(orderCode, options) {
   stopOrderPaymentPolling()
-  bankTransferPollTimer = setInterval(async () => {
+  const cfg = options || {}
+  const safeOrderCode = String(orderCode || '').trim()
+  if (!safeOrderCode) return false
+  const maxAttempts = Math.max(1, Math.min(60, Number(cfg.maxAttempts || 30)))
+  const intervalMs = Math.max(250, Math.min(15000, Number(cfg.intervalMs || 4000)))
+  const orderId = Number(cfg.orderId || pendingBankTransferOrder?.orderId || 0)
+  const state = {
+    orderCode: safeOrderCode,
+    orderId,
+    maxAttempts,
+    intervalMs,
+    attempts: 0,
+    inFlight: false,
+    stopped: false,
+    payTab: cfg.payTab || null
+  }
+  bankTransferPollState = state
+
+  const schedule = (delay) => {
+    if (state.stopped || bankTransferPollState !== state) return
+    bankTransferPollTimer = setTimeout(run, delay)
+  }
+  const finishWithMessage = (message, type) => {
+    if (state.stopped || bankTransferPollState !== state) return
+    state.stopped = true
+    if (bankTransferPollTimer) {
+      clearTimeout(bankTransferPollTimer)
+      bankTransferPollTimer = null
+    }
+    showToast(message, type || 'error', 5000)
+  }
+  const run = async () => {
+    if (state.stopped || bankTransferPollState !== state || state.inFlight) return
+    if (state.attempts >= state.maxAttempts) {
+      finishWithMessage('Chưa nhận được xác nhận thanh toán. Bạn có thể kiểm tra lại đơn hàng sau.', 'error')
+      return
+    }
+    state.attempts += 1
+    state.inFlight = true
     try {
-      const res = await axios.get('/api/orders/' + encodeURIComponent(orderCode) + '/payment-status')
-      const paymentStatus = res.data?.data?.payment_status
-      if (paymentStatus === 'paid') {
-        onOrderMarkedPaid(orderCode)
+      const result = await queryOrderPaymentStatus(state.orderCode, state.orderId)
+      if (result.paid) {
+        onOrderMarkedPaid(state.orderCode)
+        return
       }
-    } catch (_) { }
-  }, 4000)
+      if (state.payTab && state.payTab.closed) {
+        finishWithMessage('Tab thanh toán đã đóng trước khi shop xác nhận. Bạn có thể mở lại thanh toán từ lịch sử đơn.', 'error')
+        return
+      }
+      if (state.attempts >= state.maxAttempts) {
+        finishWithMessage('Chưa nhận được xác nhận thanh toán. Bạn có thể kiểm tra lại đơn hàng sau.', 'error')
+        return
+      }
+      schedule(state.intervalMs)
+    } catch (error) {
+      const status = Number(error?.response?.status || 0)
+      const code = String(error?.response?.data?.error || '').toUpperCase()
+      if (status === 403 || code === 'FORBIDDEN') {
+        finishWithMessage('Phiên kiểm tra thanh toán không còn hợp lệ. Vui lòng mở lại đơn hàng.', 'error')
+        return
+      }
+      if (state.attempts >= state.maxAttempts) {
+        finishWithMessage('Không thể xác nhận thanh toán lúc này. Vui lòng kiểm tra lại đơn hàng sau.', 'error')
+        return
+      }
+      schedule(state.intervalMs)
+    } finally {
+      state.inFlight = false
+    }
+  }
+
+  schedule(0)
+  return true
 }
 
 function cleanPaymentQueryParams() {
@@ -5708,7 +6145,32 @@ function handleAuthReturnFlow() {
   cleanAuthQueryParams()
 }
 
-function handlePaymentReturnFlow() {
+async function verifyPaymentStatusAndHandle(orderCode, provider, options) {
+  const safeOrderCode = String(orderCode || '').trim().toUpperCase()
+  if (!safeOrderCode) return { verified: false, forbidden: false }
+  const cfg = options || {}
+  try {
+    const result = await queryOrderPaymentStatus(safeOrderCode, cfg.orderId)
+    if (result.paid) {
+      onOrderMarkedPaid(safeOrderCode)
+      return { verified: true, forbidden: false, result }
+    }
+    startOrderPaymentPolling(safeOrderCode, { orderId: cfg.orderId, maxAttempts: cfg.maxAttempts || 30, payTab: cfg.payTab })
+    return { verified: false, forbidden: false, pending: true, result }
+  } catch (error) {
+    const status = Number(error?.response?.status || 0)
+    const code = String(error?.response?.data?.error || '').toUpperCase()
+    if (status === 403 || code === 'FORBIDDEN') {
+      stopOrderPaymentPolling()
+      showToast('Không có quyền kiểm tra đơn hàng này. Hãy quay lại tab đặt hàng hoặc đăng nhập lại.', 'error', 5500)
+      return { verified: false, forbidden: true }
+    }
+    startOrderPaymentPolling(safeOrderCode, { orderId: cfg.orderId, maxAttempts: cfg.maxAttempts || 30, payTab: cfg.payTab })
+    return { verified: false, forbidden: false, pending: true, error }
+  }
+}
+
+async function handlePaymentReturnFlow() {
   const params = new URLSearchParams(window.location.search)
   const payState = String(params.get('pay') || '').toLowerCase()
   const orderCode = String(params.get('order') || '').trim().toUpperCase()
@@ -5718,25 +6180,40 @@ function handlePaymentReturnFlow() {
   if (!payState) return
 
   if (payState === 'success' && orderCode) {
-    try {
-      if (window.opener && !window.opener.closed) {
-        window.opener.postMessage({ type: 'payment_paid', orderCode, provider }, window.location.origin)
-      }
-    } catch (_) { }
-    startOrderPaymentPolling(orderCode)
+    const verification = await verifyPaymentStatusAndHandle(orderCode, provider, { maxAttempts: 30 })
     cleanPaymentQueryParams()
-    if (closeTab && window.opener && !window.opener.closed) {
-      setTimeout(() => { window.close() }, 80)
+    if (!verification.verified) {
+      if (!verification.forbidden) showToast('Đã nhận phản hồi thanh toán; đang chờ shop xác nhận.', 'info', 4500)
       return
     }
-    showToast('Thanh toán ' + providerLabel + ' thành công', 'success', 3000)
+    try {
+      if (window.opener && !window.opener.closed) {
+        window.opener.postMessage({ type: 'payment_verified', orderCode, provider }, window.location.origin)
+      }
+    } catch (_) { }
+    if (closeTab && window.opener && !window.opener.closed) {
+      setTimeout(() => { try { window.close() } catch (_) { } }, 80)
+      return
+    }
+    showToast('Thanh toán ' + providerLabel + ' đã được xác minh', 'success', 3000)
     return
+  }
+
+  if (payState === 'success') {
+    showToast('Không xác định được đơn hàng sau khi thanh toán. Vui lòng kiểm tra lịch sử đơn.', 'error', 5000)
   }
 
   if (payState === 'cancel') {
     showToast('Bạn đã hủy thanh toán ' + providerLabel, 'error', 3000)
   }
   cleanPaymentQueryParams()
+}
+
+async function handleStorefrontPaymentMessage(event) {
+  if (!event || event.origin !== window.location.origin) return
+  const data = event.data || {}
+  if (!['payment_paid', 'payos_paid', 'payment_verified'].includes(data.type) || !data.orderCode) return
+  await verifyPaymentStatusAndHandle(String(data.orderCode), String(data.provider || 'payos'))
 }
 
 function showWalletInMenu() {

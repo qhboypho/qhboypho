@@ -1,5 +1,32 @@
-import type { AppBindings } from '../types/app'
-import { getRuntimeConfigValues } from './runtimeConfigHelpers'
+import { getRuntimeConfigValues, type RuntimeConfigEnv } from './runtimeConfigHelpers'
+
+/**
+ * The payment reconciliation worker only needs runtime payment credentials.
+ * Keep this type small so a scheduled worker does not have to construct the
+ * unrelated bindings used by the Pages application.
+ */
+export type PaymentRuntimeEnv = Partial<Pick<RuntimeConfigEnv,
+  | 'BANK_TRANSFER_PROVIDER'
+  | 'MANUAL_VIETQR_BANK_ID'
+  | 'MANUAL_VIETQR_ACCOUNT_NO'
+  | 'MANUAL_VIETQR_ACCOUNT_NAME'
+  | 'MANUAL_VIETQR_TEMPLATE'
+  | 'PAYOS_CLIENT_ID'
+  | 'PAYOS_API_KEY'
+  | 'PAYOS_CHECKSUM_KEY'
+  | 'ZALOPAY_APP_ID'
+  | 'ZALOPAY_KEY1'
+  | 'ZALOPAY_KEY2'
+  | 'ZALOPAY_CREATE_ENDPOINT'
+  | 'ZALOPAY_QUERY_ENDPOINT'
+  | 'ZALOPAY_CALLBACK_URL'
+  | 'MOMO_PARTNER_CODE'
+  | 'MOMO_ACCESS_KEY'
+  | 'MOMO_SECRET_KEY'
+  | 'MOMO_IPN_URL'
+  | 'MOMO_CREATE_ENDPOINT'
+  | 'MOMO_QUERY_ENDPOINT'
+>> & { PAYOS_WEBHOOK_URL?: string }
 
 export function payOSBuildDataString(input: Record<string, any>) {
   const normalize = (v: any) => {
@@ -26,7 +53,14 @@ export async function payOSSignWithChecksum(checksumKey: string, dataString: str
   return Array.from(new Uint8Array(sigBuf)).map((b) => b.toString(16).padStart(2, '0')).join('')
 }
 
-export async function getPayOSConfig(db: D1Database, env: AppBindings) {
+export async function hashOrderAccessToken(token: string) {
+  const normalized = String(token || '').trim()
+  if (!normalized) return ''
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`order-access:${normalized}`))
+  return Array.from(new Uint8Array(digest)).map((byte) => byte.toString(16).padStart(2, '0')).join('')
+}
+
+export async function getPayOSConfig(db: D1Database, env: PaymentRuntimeEnv) {
   const config = await getRuntimeConfigValues(db, env, ['PAYOS_CLIENT_ID', 'PAYOS_API_KEY', 'PAYOS_CHECKSUM_KEY'])
   return {
     clientId: config.PAYOS_CLIENT_ID || '',
@@ -43,7 +77,7 @@ function normalizeBankTransferProvider(value: any): BankTransferProvider {
   return 'PAYOS'
 }
 
-export async function getBankTransferProviderConfig(db: D1Database, env: AppBindings) {
+export async function getBankTransferProviderConfig(db: D1Database, env: PaymentRuntimeEnv) {
   const config = await getRuntimeConfigValues(db, env, [
     'BANK_TRANSFER_PROVIDER',
     'MANUAL_VIETQR_BANK_ID',
@@ -55,12 +89,25 @@ export async function getBankTransferProviderConfig(db: D1Database, env: AppBind
   return {
     provider,
     manualVietQR: {
-      bankId: String(config.MANUAL_VIETQR_BANK_ID || 'MB').trim() || 'MB',
-      accountNo: String(config.MANUAL_VIETQR_ACCOUNT_NO || '0200100441441').trim() || '0200100441441',
-      accountName: String(config.MANUAL_VIETQR_ACCOUNT_NAME || 'TRAN CONG HANH').trim() || 'TRAN CONG HANH',
+      bankId: String(config.MANUAL_VIETQR_BANK_ID || '').trim(),
+      accountNo: String(config.MANUAL_VIETQR_ACCOUNT_NO || '').trim(),
+      accountName: String(config.MANUAL_VIETQR_ACCOUNT_NAME || '').trim(),
       template: String(config.MANUAL_VIETQR_TEMPLATE || 'compact2').trim() || 'compact2'
     }
   }
+}
+
+export function getManualVietQRMissingConfigKeys(config: any) {
+  const missing: string[] = []
+  const bankId = String(config?.bankId || '').trim().toUpperCase()
+  const accountNo = String(config?.accountNo || '').trim()
+  const accountName = String(config?.accountName || '').trim()
+  const template = String(config?.template || '').trim().toLowerCase()
+  if (!/^[A-Z0-9][A-Z0-9._-]{1,19}$/.test(bankId)) missing.push('MANUAL_VIETQR_BANK_ID')
+  if (!/^\d{4,30}$/.test(accountNo)) missing.push('MANUAL_VIETQR_ACCOUNT_NO')
+  if (accountName.length < 2 || accountName.length > 100) missing.push('MANUAL_VIETQR_ACCOUNT_NAME')
+  if (!/^(compact|compact2|qr_only|print)$/.test(template)) missing.push('MANUAL_VIETQR_TEMPLATE')
+  return missing
 }
 
 function getManualOrderTransferContent(order: any) {
@@ -71,7 +118,7 @@ function getManualOrderTransferContent(order: any) {
 export function buildManualVietQRPaymentData(order: any, config: Awaited<ReturnType<typeof getBankTransferProviderConfig>>['manualVietQR']) {
   const amount = Math.round(Number(order?.total_price || 0))
   const transferContent = getManualOrderTransferContent(order)
-  const bankId = String(config?.bankId || 'MB').trim()
+  const bankId = String(config?.bankId || '').trim()
   const accountNo = String(config?.accountNo || '').trim()
   const accountName = String(config?.accountName || '').trim()
   const template = String(config?.template || 'compact2').trim()
@@ -91,7 +138,7 @@ export function buildManualVietQRPaymentData(order: any, config: Awaited<ReturnT
   }
 }
 
-export async function payOSGetPaymentInfo(db: D1Database, env: AppBindings, id: string | number) {
+export async function payOSGetPaymentInfo(db: D1Database, env: PaymentRuntimeEnv, id: string | number) {
   const { clientId, apiKey } = await getPayOSConfig(db, env)
   if (!clientId || !apiKey || !id) return null
 
@@ -101,7 +148,8 @@ export async function payOSGetPaymentInfo(db: D1Database, env: AppBindings, id: 
       'Content-Type': 'application/json',
       'x-client-id': clientId,
       'x-api-key': apiKey
-    }
+    },
+    signal: AbortSignal.timeout(10_000)
   })
   const body: any = await resp.json().catch(() => ({}))
   if (!resp.ok || String(body?.code || '') !== '00' || !body?.data) return null
@@ -140,7 +188,7 @@ export function parseJsonObject(input: any) {
   }
 }
 
-export async function getZaloPayConfig(db: D1Database, env: AppBindings) {
+export async function getZaloPayConfig(db: D1Database, env: PaymentRuntimeEnv) {
   const config = await getRuntimeConfigValues(db, env, [
     'ZALOPAY_APP_ID',
     'ZALOPAY_KEY1',
@@ -175,7 +223,7 @@ export function getZaloPayMissingConfigKeys(config: Awaited<ReturnType<typeof ge
   return missing
 }
 
-export async function getMoMoConfig(db: D1Database, env: AppBindings) {
+export async function getMoMoConfig(db: D1Database, env: PaymentRuntimeEnv) {
   const config = await getRuntimeConfigValues(db, env, [
     'MOMO_PARTNER_CODE',
     'MOMO_ACCESS_KEY',
@@ -228,12 +276,12 @@ export function sanitizeAddressEffectiveDate(input: string) {
   return 'latest'
 }
 
-export async function syncOrderPaymentWithPayOS(db: D1Database, env: any, order: any) {
+export async function syncOrderPaymentWithPayOS(db: D1Database, env: PaymentRuntimeEnv, order: any) {
   const isBankTransfer = String(order?.payment_method || '').toUpperCase() === 'BANK_TRANSFER'
   const isPaid = String(order?.payment_status || '').toLowerCase() === 'paid'
   if (!isBankTransfer || isPaid) return { synced: false, paid: isPaid }
 
-  const payOSId = order?.payment_link_id || order?.payment_order_code || order?.id
+  const payOSId = String(order?.payment_link_id || '').trim()
   if (!payOSId) return { synced: false, paid: false }
 
   const paymentInfo = await payOSGetPaymentInfo(db, env, payOSId)
@@ -242,31 +290,71 @@ export async function syncOrderPaymentWithPayOS(db: D1Database, env: any, order:
   const payStatus = String(paymentInfo.status || '').toUpperCase()
   const amountPaid = Number(paymentInfo.amountPaid || 0)
   const orderTotal = Number(order.total_price || 0)
-  const isPayOSPaid = payStatus === 'PAID' && amountPaid >= orderTotal
+  const orderPaymentLinkId = String(order?.payment_link_id || '').trim()
+  const paymentLinkId = String(paymentInfo?.id || paymentInfo?.paymentLinkId || '').trim()
+  const expectedOrderCode = Number(order?.payment_order_code || 0)
+  const providerOrderCode = Number(paymentInfo?.orderCode || 0)
+  // PayOS's payment-request query response is VND-only and, unlike its
+  // webhook payload, does not include a currency field. Reject an explicit
+  // non-VND value, while treating the omitted field according to that API
+  // contract.
+  const currency = String(paymentInfo?.currency || 'VND').trim().toUpperCase()
+  const isBoundToOrder = !!orderPaymentLinkId
+    && !!paymentLinkId
+    && paymentLinkId === orderPaymentLinkId
+    && Number.isSafeInteger(expectedOrderCode)
+    && expectedOrderCode > 0
+    && Number.isSafeInteger(providerOrderCode)
+    && providerOrderCode === expectedOrderCode
+  const isPayOSPaid = payStatus === 'PAID'
+    && currency === 'VND'
+    && orderTotal > 0
+    && Number.isFinite(amountPaid)
+    && amountPaid > 0
+    && amountPaid === orderTotal
+    && isBoundToOrder
   if (!isPayOSPaid) return { synced: false, paid: false, paymentInfo }
 
-  await db.prepare(`
+  const updateResult = await db.prepare(`
     UPDATE orders
     SET payment_status='paid',
         payment_paid_at=COALESCE(payment_paid_at, CURRENT_TIMESTAMP),
-        payment_ref=COALESCE(payment_ref, ?),
+        payment_ref=COALESCE(NULLIF(payment_ref, ''), ?),
         payment_provider='PAYOS',
-        payment_link_id=COALESCE(payment_link_id, ?),
-        payment_order_code=COALESCE(payment_order_code, ?),
-        status=CASE WHEN status='pending' THEN 'confirmed' ELSE status END,
+        payment_link_id=?,
+        payment_order_code=?,
+        payment_review_required=CASE WHEN LOWER(COALESCE(status, ''))='cancelled' OR LOWER(COALESCE(return_status, '')) IN ('cancelled', 'returned', 'refunded', 'rejected', 'delivery_failed') THEN 1 ELSE COALESCE(payment_review_required, 0) END,
+        payment_review_reason=CASE WHEN LOWER(COALESCE(status, ''))='cancelled' OR LOWER(COALESCE(return_status, '')) IN ('cancelled', 'returned', 'refunded', 'rejected', 'delivery_failed') THEN 'PAID_AFTER_CANCELLATION' ELSE payment_review_reason END,
+        status=CASE WHEN LOWER(COALESCE(status, ''))='pending' THEN 'confirmed' ELSE status END,
         updated_at=CURRENT_TIMESTAMP
     WHERE id=?
+      AND LOWER(COALESCE(payment_status, '')) <> 'paid'
+      AND UPPER(COALESCE(payment_method, ''))='BANK_TRANSFER'
+      AND UPPER(COALESCE(NULLIF(payment_provider, ''), 'PAYOS'))='PAYOS'
+      AND payment_link_id=?
+      AND payment_order_code=?
+      AND total_price=?
   `).bind(
     String(paymentInfo.reference || paymentInfo.id || payOSId),
-    String(paymentInfo.id || order.payment_link_id || ''),
-    Number(paymentInfo.orderCode || order.payment_order_code || order.id || 0),
-    order.id
+    orderPaymentLinkId,
+    expectedOrderCode,
+    order.id,
+    orderPaymentLinkId,
+    expectedOrderCode,
+    orderTotal,
   ).run()
 
-  return { synced: true, paid: true, paymentInfo }
+  const latest = await db.prepare('SELECT payment_status, payment_review_required FROM orders WHERE id=? LIMIT 1').bind(order.id).first() as any
+  const latestPaid = String(latest?.payment_status || '').toLowerCase() === 'paid'
+  const reconciliationRequired = Number(latest?.payment_review_required || 0) === 1
+  if (Number((updateResult as any)?.meta?.changes || 0) < 1) {
+    return { synced: latestPaid, paid: latestPaid, paymentInfo, reconciliationRequired }
+  }
+
+  return { synced: true, paid: true, paymentInfo, reconciliationRequired }
 }
 
-export async function syncOrderPaymentWithZaloPay(db: D1Database, env: any, order: any) {
+export async function syncOrderPaymentWithZaloPay(db: D1Database, env: PaymentRuntimeEnv, order: any) {
   const isZaloPay = String(order?.payment_method || '').toUpperCase() === 'ZALOPAY'
   const isPaid = String(order?.payment_status || '').toLowerCase() === 'paid'
   if (!isZaloPay || isPaid) return { synced: false, paid: isPaid }
@@ -299,35 +387,51 @@ export async function syncOrderPaymentWithZaloPay(db: D1Database, env: any, orde
 
   const paidAmount = Number(body?.amount || 0)
   const orderTotal = Number(order?.total_price || 0)
-  if (paidAmount > 0 && orderTotal > 0 && paidAmount < orderTotal) {
+  if (orderTotal <= 0 || !Number.isFinite(paidAmount) || paidAmount <= 0 || paidAmount !== orderTotal) {
     return { synced: false, paid: false, paymentInfo: body }
   }
 
   const zpTransIdNum = Number(body?.zp_trans_id || 0)
   const paymentRef = String(body?.zp_trans_id || appTransId || '')
 
-  await db.prepare(`
+  const updateResult = await db.prepare(`
     UPDATE orders
     SET payment_status='paid',
         payment_paid_at=COALESCE(payment_paid_at, CURRENT_TIMESTAMP),
-        payment_ref=COALESCE(payment_ref, ?),
+        payment_ref=COALESCE(NULLIF(payment_ref, ''), ?),
         payment_provider='ZALOPAY',
         payment_link_id=COALESCE(payment_link_id, ?),
         payment_order_code=COALESCE(payment_order_code, ?),
-        status=CASE WHEN status='pending' THEN 'confirmed' ELSE status END,
+        payment_review_required=CASE WHEN LOWER(COALESCE(status, ''))='cancelled' OR LOWER(COALESCE(return_status, '')) IN ('cancelled', 'returned', 'refunded', 'rejected', 'delivery_failed') THEN 1 ELSE COALESCE(payment_review_required, 0) END,
+        payment_review_reason=CASE WHEN LOWER(COALESCE(status, ''))='cancelled' OR LOWER(COALESCE(return_status, '')) IN ('cancelled', 'returned', 'refunded', 'rejected', 'delivery_failed') THEN 'PAID_AFTER_CANCELLATION' ELSE payment_review_reason END,
+        status=CASE WHEN LOWER(COALESCE(status, ''))='pending' THEN 'confirmed' ELSE status END,
         updated_at=CURRENT_TIMESTAMP
     WHERE id=?
+      AND LOWER(COALESCE(payment_status, '')) <> 'paid'
+      AND UPPER(COALESCE(payment_method, ''))='ZALOPAY'
+      AND UPPER(COALESCE(NULLIF(payment_provider, ''), 'ZALOPAY'))='ZALOPAY'
+      AND payment_link_id=?
+      AND total_price=?
   `).bind(
     paymentRef || null,
     appTransId || null,
     Number.isFinite(zpTransIdNum) && zpTransIdNum > 0 ? zpTransIdNum : null,
-    order.id
+    order.id,
+    appTransId,
+    orderTotal,
   ).run()
 
-  return { synced: true, paid: true, paymentInfo: body }
+  const latest = await db.prepare('SELECT payment_status, payment_review_required FROM orders WHERE id=? LIMIT 1').bind(order.id).first() as any
+  const latestPaid = String(latest?.payment_status || '').toLowerCase() === 'paid'
+  const reconciliationRequired = Number(latest?.payment_review_required || 0) === 1
+  if (Number((updateResult as any)?.meta?.changes || 0) < 1) {
+    return { synced: latestPaid, paid: latestPaid, paymentInfo: body, reconciliationRequired }
+  }
+
+  return { synced: true, paid: true, paymentInfo: body, reconciliationRequired }
 }
 
-export async function syncOrderPaymentWithMoMo(db: D1Database, env: any, order: any) {
+export async function syncOrderPaymentWithMoMo(db: D1Database, env: PaymentRuntimeEnv, order: any) {
   const isMoMo = String(order?.payment_method || '').toUpperCase() === 'MOMO'
   const isPaid = String(order?.payment_status || '').toLowerCase() === 'paid'
   if (!isMoMo || isPaid) return { synced: false, paid: isPaid }
@@ -347,35 +451,60 @@ export async function syncOrderPaymentWithMoMo(db: D1Database, env: any, order: 
   const response = await fetch(config.queryEndpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json; charset=UTF-8' },
-    body: JSON.stringify({ partnerCode: config.partnerCode, requestId, orderId, lang: 'vi', signature })
+    body: JSON.stringify({ partnerCode: config.partnerCode, requestId, orderId, lang: 'vi', signature }),
+    signal: AbortSignal.timeout(10_000)
   })
   const paymentInfo: any = await response.json().catch(() => ({}))
   if (!response.ok || Number(paymentInfo?.resultCode) !== 0) {
     return { synced: false, paid: false, paymentInfo }
   }
-  if (Number(paymentInfo?.amount || 0) !== Math.round(Number(order?.total_price || 0))) {
+  const orderTotal = Math.round(Number(order?.total_price || 0))
+  if (orderTotal <= 0 || Number(paymentInfo?.amount || 0) <= 0 || Number(paymentInfo?.amount || 0) !== orderTotal) {
     return { synced: false, paid: false, paymentInfo }
   }
 
-  await db.prepare(`
+  const updateResult = await db.prepare(`
     UPDATE orders
     SET payment_status='paid',
         payment_paid_at=COALESCE(payment_paid_at, CURRENT_TIMESTAMP),
-        payment_ref=COALESCE(payment_ref, ?),
+        payment_ref=COALESCE(NULLIF(payment_ref, ''), ?),
         payment_provider='MOMO',
         payment_link_id=COALESCE(payment_link_id, ?),
-        status=CASE WHEN status='pending' THEN 'confirmed' ELSE status END,
+        payment_review_required=CASE WHEN LOWER(COALESCE(status, ''))='cancelled' OR LOWER(COALESCE(return_status, '')) IN ('cancelled', 'returned', 'refunded', 'rejected', 'delivery_failed') THEN 1 ELSE COALESCE(payment_review_required, 0) END,
+        payment_review_reason=CASE WHEN LOWER(COALESCE(status, ''))='cancelled' OR LOWER(COALESCE(return_status, '')) IN ('cancelled', 'returned', 'refunded', 'rejected', 'delivery_failed') THEN 'PAID_AFTER_CANCELLATION' ELSE payment_review_reason END,
+        status=CASE WHEN LOWER(COALESCE(status, ''))='pending' THEN 'confirmed' ELSE status END,
         updated_at=CURRENT_TIMESTAMP
     WHERE id=?
-  `).bind(String(paymentInfo?.transId || '') || null, orderId, order.id).run()
+      AND LOWER(COALESCE(payment_status, '')) <> 'paid'
+      AND UPPER(COALESCE(payment_method, ''))='MOMO'
+      AND UPPER(COALESCE(NULLIF(payment_provider, ''), 'MOMO'))='MOMO'
+      AND payment_link_id=?
+      AND total_price=?
+  `).bind(
+    String(paymentInfo?.transId || '') || null,
+    orderId,
+    order.id,
+    orderId,
+    orderTotal,
+  ).run()
 
-  return { synced: true, paid: true, paymentInfo }
+  const latest = await db.prepare('SELECT payment_status, payment_review_required FROM orders WHERE id=? LIMIT 1').bind(order.id).first() as any
+  const latestPaid = String(latest?.payment_status || '').toLowerCase() === 'paid'
+  const reconciliationRequired = Number(latest?.payment_review_required || 0) === 1
+  if (Number((updateResult as any)?.meta?.changes || 0) < 1) {
+    return { synced: latestPaid, paid: latestPaid, paymentInfo, reconciliationRequired }
+  }
+
+  return { synced: true, paid: true, paymentInfo, reconciliationRequired }
 }
 
 export async function syncOrderPayment(db: D1Database, env: any, order: any) {
   const method = String(order?.payment_method || '').toUpperCase()
   if (method === 'BANK_TRANSFER') {
-    const { provider } = await getBankTransferProviderConfig(db, env)
+    const orderProvider = String(order?.payment_provider || '').trim().toUpperCase()
+    const provider = orderProvider === 'MANUAL_VIETQR' || orderProvider === 'PAYOS'
+      ? orderProvider
+      : (await getBankTransferProviderConfig(db, env)).provider
     if (provider === 'MANUAL_VIETQR') return { synced: false, paid: false, provider }
     return syncOrderPaymentWithPayOS(db, env, order)
   }
@@ -383,4 +512,99 @@ export async function syncOrderPayment(db: D1Database, env: any, order: any) {
   if (method === 'MOMO') return syncOrderPaymentWithMoMo(db, env, order)
   const isPaid = String(order?.payment_status || '').toLowerCase() === 'paid'
   return { synced: false, paid: isPaid }
+}
+
+const MAX_PAYMENT_RECONCILIATION_BATCH = 100
+
+export type PaymentReconciliationResult = {
+  scanned: number
+  paid: number
+  pending: number
+  failed: number
+  results: Array<{ orderId: number, orderCode: string, paid: boolean, error?: string }>
+}
+
+/**
+ * Reconcile a bounded, oldest-first batch of online payments. Failed checks
+ * are delayed in the attempts table so an expired old payment cannot starve
+ * newer pending orders on every scheduled run. Cancelled orders remain in the
+ * scan because a late payment must be recorded and flagged for review.
+ */
+export async function reconcilePendingPayments(
+  db: D1Database,
+  env: PaymentRuntimeEnv,
+  limit = 25,
+): Promise<PaymentReconciliationResult> {
+  const requestedLimit = Number.isFinite(Number(limit)) ? Math.floor(Number(limit)) : 25
+  const safeLimit = Math.min(MAX_PAYMENT_RECONCILIATION_BATCH, Math.max(1, requestedLimit))
+  const rowsResult = await db.prepare(`
+    SELECT
+      o.id, o.order_code, o.total_price, o.payment_method, o.payment_status,
+      o.payment_provider, o.payment_link_id, o.payment_order_code, o.status,
+      o.created_at
+    FROM orders o
+    LEFT JOIN payment_reconciliation_attempts a ON a.order_id=o.id
+    WHERE LOWER(COALESCE(o.payment_status, 'unpaid')) <> 'paid'
+      AND UPPER(COALESCE(o.payment_method, '')) IN ('BANK_TRANSFER', 'ZALOPAY', 'MOMO')
+      AND (NULLIF(TRIM(COALESCE(o.payment_link_id, '')), '') IS NOT NULL OR o.payment_order_code IS NOT NULL)
+      AND (a.next_attempt_at IS NULL OR a.next_attempt_at <= CURRENT_TIMESTAMP)
+    ORDER BY datetime(COALESCE(a.next_attempt_at, o.created_at)) ASC,
+             datetime(o.created_at) ASC,
+             o.id ASC
+    LIMIT ?
+  `).bind(safeLimit).all()
+
+  const rows = (rowsResult.results || []) as any[]
+  const output: PaymentReconciliationResult = {
+    scanned: rows.length,
+    paid: 0,
+    pending: 0,
+    failed: 0,
+    results: [],
+  }
+
+  for (const order of rows) {
+    const orderId = Number(order.id || 0)
+    const orderCode = String(order.order_code || '')
+    try {
+      const sync = await syncOrderPayment(db, env, order)
+      if (sync?.paid) {
+        output.paid++
+        output.results.push({ orderId, orderCode, paid: true })
+        await db.prepare('DELETE FROM payment_reconciliation_attempts WHERE order_id=?').bind(orderId).run()
+        continue
+      }
+
+      output.pending++
+      output.results.push({ orderId, orderCode, paid: false })
+      await db.prepare(`
+        INSERT INTO payment_reconciliation_attempts
+          (order_id, attempt_count, last_attempt_at, next_attempt_at, last_result, updated_at)
+        VALUES (?, 1, CURRENT_TIMESTAMP, datetime('now', '+10 minutes'), 'PENDING', CURRENT_TIMESTAMP)
+        ON CONFLICT(order_id) DO UPDATE SET
+          attempt_count=payment_reconciliation_attempts.attempt_count + 1,
+          last_attempt_at=CURRENT_TIMESTAMP,
+          next_attempt_at=datetime('now', '+10 minutes'),
+          last_result='PENDING',
+          updated_at=CURRENT_TIMESTAMP
+      `).bind(orderId).run()
+    } catch (error: any) {
+      const errorCode = String(error?.code || error?.message || 'RECONCILIATION_FAILED').slice(0, 160)
+      output.failed++
+      output.results.push({ orderId, orderCode, paid: false, error: errorCode })
+      await db.prepare(`
+        INSERT INTO payment_reconciliation_attempts
+          (order_id, attempt_count, last_attempt_at, next_attempt_at, last_result, updated_at)
+        VALUES (?, 1, CURRENT_TIMESTAMP, datetime('now', '+10 minutes'), ?, CURRENT_TIMESTAMP)
+        ON CONFLICT(order_id) DO UPDATE SET
+          attempt_count=payment_reconciliation_attempts.attempt_count + 1,
+          last_attempt_at=CURRENT_TIMESTAMP,
+          next_attempt_at=datetime('now', '+10 minutes'),
+          last_result=excluded.last_result,
+          updated_at=CURRENT_TIMESTAMP
+      `).bind(orderId, errorCode).run()
+    }
+  }
+
+  return output
 }

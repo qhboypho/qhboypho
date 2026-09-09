@@ -10,7 +10,8 @@ QH Clothes storefront and admin panel built on Hono, Vite, Cloudflare Pages/Work
 - Build: `npm run build`
 - Local Pages server: `npm run dev:sandbox`
 - Admin dashboard smoke check: `npm run test:admin-dashboard-local`
-- Local admin fallback credentials can be `admin` / `admin` when no DB password override is set.
+- Launch regression suite: `npm run test:launch` (isolated SQLite and mocked providers; includes build).
+- Admin authentication requires a configured PBKDF2 password hash; there is no `admin` / `admin` fallback.
 
 ## Key Areas
 
@@ -32,3 +33,10 @@ QH Clothes storefront and admin panel built on Hono, Vite, Cloudflare Pages/Work
 - The dashboard financial panel now exposes an Excel export button that downloads the currently filtered successful-order tax evidence, including order code, tracking code, order date, delivered date, order value, per-order VAT/TNCN, and total tax.
 - The sidebar `Đơn hàng` badge uses the all-time shipping-queue total for non-internal orders, matching the `Sắp xếp vận chuyển` + `Đang chờ vận chuyển` split on the orders page.
 - MoMo checkout uses a server-created `captureWallet` session and a signed IPN at `/api/payments/momo/ipn`; provide the MoMo credentials and public HTTPS IPN URL as Worker secrets before enabling live payments.
+- MoMo remains hidden in checkout; Apple Pay is not implemented.
+- Checkout retries use a persisted guest access token and idempotency key. Migrations 0031–0034 add atomic stock/voucher reservations, payment and shipment attempts, and immutable manual-payment audit records. Historical orders are not assumed to have reserved stock.
+- Unpaid online orders remain visible in admin but cannot ship as COD. Ambiguous carrier creation results require reconciliation before another attempt; delivery failure alone does not restore inventory.
+- Manual VietQR must be explicitly configured, never used as an automatic PayOS-error fallback. An authorized operator must verify bank receipt and record its unique reference.
+- Payment reconciliation runs in a separate scheduled Worker configured by `wrangler.payments.jsonc`; deploying Pages alone does not deploy this scheduler or its secrets.
+- Production release requires backup, staging migration rehearsal, matching application/migration rollout and owner-supervised merchant/carrier acceptance. See `docs/launch-payment-checklist.md`; local passing tests do not verify live credentials.
+- Existing verification limitations: full TypeScript checking has unrelated baseline errors, the historical admin source contract expects an absent notification button, and the main Pages local runtime fails on the inline `LiveChatRoom` Durable Object export. Verify that deployment arrangement before launch.

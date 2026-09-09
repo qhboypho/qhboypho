@@ -2916,8 +2916,11 @@ async function loadDashboard() {
     const statTaxDueEl = document.getElementById('statTaxDue')
     const statFrontendVisitorsEl = document.getElementById('statFrontendVisitors')
     if (statProductsEl) statProductsEl.textContent = d.totalProducts ?? '0'
-    if (statOrdersEl) statOrdersEl.textContent = d.totalOrders ?? '0'
-    if (statPendingEl) statPendingEl.textContent = d.pendingOrders ?? '0'
+    // Keep the dashboard's placed-order and shipping-ready metrics separate:
+    // unpaid/review orders are real orders but must never inflate the dispatch
+    // queue or suggest that they can already be handed to a carrier.
+    if (statOrdersEl) statOrdersEl.textContent = d.placedOrders ?? d.totalOrders ?? '0'
+    if (statPendingEl) statPendingEl.textContent = d.readyToShipOrders ?? d.pendingOrders ?? '0'
     if (statRevenueEl) statRevenueEl.textContent = fmtPrice(d.revenue || 0)
     if (statTaxDueEl) statTaxDueEl.textContent = fmtPrice(d.totalTax || 0)
     if (statFrontendVisitorsEl) statFrontendVisitorsEl.textContent = Number(d.frontendVisitors || 0).toLocaleString('vi-VN')

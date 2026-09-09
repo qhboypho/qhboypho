@@ -11,6 +11,8 @@ let SHIPPING_CARRIERS = [
   { value: 'GHN', label: 'GHN' }
 ]
 let shippingCarrierOptionsLoaded = false
+let manualPaymentReconciliationOrderId = 0
+let manualPaymentReconciliationIdempotencyKey = ''
 
 function normalizeShippingCarrierValue(value) {
   const carrier = String(value || '').trim().toUpperCase()
@@ -19,6 +21,49 @@ function normalizeShippingCarrierValue(value) {
 
 function getOrderShippingCarrier(order) {
   return normalizeShippingCarrierValue(order?.shipping_carrier || order?.carrier || 'GHTK')
+}
+
+function isPaymentReviewRequired(order) {
+  const value = order?.payment_review_required
+  return value === true || value === 1 || value === '1' || String(value || '').trim().toLowerCase() === 'true'
+}
+
+function isManualVietQrOrder(order) {
+  return String(order?.payment_method || '').trim().toUpperCase() === 'BANK_TRANSFER' &&
+    String(order?.payment_provider || '').trim().toUpperCase() === 'MANUAL_VIETQR'
+}
+
+function isUnpaidManualVietQrOrder(order) {
+  return isManualVietQrOrder(order) && String(order?.payment_status || '').trim().toLowerCase() !== 'paid'
+}
+
+function isUnpaidBankTransferOrder(order) {
+  const method = String(order?.payment_method || '').trim().toUpperCase()
+  const paymentStatus = String(order?.payment_status || '').trim().toLowerCase()
+  const status = String(order?.status || '').trim().toLowerCase()
+  return method === 'BANK_TRANSFER' &&
+    paymentStatus !== 'paid' &&
+    status !== 'cancelled' &&
+    status !== 'done'
+}
+
+function isActiveOrderForShipping(order) {
+  const status = String(order?.status || '').trim().toLowerCase()
+  return status !== 'shipping' && status !== 'done' && status !== 'cancelled'
+}
+
+function isOrderShippingReady(order) {
+  if (!isActiveOrderForShipping(order) || isPaymentReviewRequired(order)) return false
+  const returnStatus = String(order?.return_status || '').trim().toLowerCase()
+  if (['returned', 'delivery_failed', 'cancelled'].includes(returnStatus)) return false
+  const method = String(order?.payment_method || '').trim().toUpperCase()
+  if (method === 'COD') return true
+  return ['BANK_TRANSFER', 'ZALOPAY', 'MOMO'].includes(method) &&
+    String(order?.payment_status || '').trim().toLowerCase() === 'paid'
+}
+
+function isOrdersPaymentView() {
+  return ordersViewMode === 'waiting_payment' || ordersViewMode === 'requires_review'
 }
 
 function getShippingCarrierLabel(value) {
@@ -121,9 +166,10 @@ async function loadAdminOrders() {
   document.getElementById('ordersTable').innerHTML = '<tr><td colspan="7" class="text-center py-12 text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></td></tr>'
   document.getElementById('ordersMobileList').innerHTML = '<div class="py-12 text-center text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></div>'
   try {
-    const params = new URLSearchParams()
-    params.set('shipping_queue', '1')
-    const res = await axios.get('/api/admin/orders?' + params.toString())
+    // Load the complete operational set. Payment queues must stay visible even
+    // when they are not eligible for shipping; each view applies its own safe
+    // client-side projection below.
+    const res = await axios.get('/api/admin/orders')
     adminOrders = res.data.data || []
     const validIds = new Set(adminOrders.map(o => Number(o.id)))
     selectedOrderIds = new Set(Array.from(selectedOrderIds).filter(id => validIds.has(Number(id))))
@@ -143,7 +189,8 @@ async function loadAdminOrders() {
 }
 
 function setOrdersViewMode(mode) {
-  ordersViewMode = mode === 'waiting_ship' ? 'waiting_ship' : 'to_arrange'
+  const allowedModes = new Set(['to_arrange', 'waiting_ship', 'waiting_payment', 'requires_review'])
+  ordersViewMode = allowedModes.has(mode) ? mode : 'to_arrange'
   const modeSelect = document.getElementById('ordersViewModeSelect')
   if (modeSelect) modeSelect.value = ordersViewMode
   if (ordersViewMode !== 'waiting_ship') {
@@ -164,9 +211,13 @@ function updateOrdersModeButtons(counters) {
   const modeSelect = document.getElementById('ordersViewModeSelect')
   const arrangeOption = document.getElementById('ordersViewModeToArrangeOption')
   const waitingOption = document.getElementById('ordersViewModeWaitingOption')
+  const waitingPaymentOption = document.getElementById('ordersViewModeWaitingPaymentOption')
+  const requiresReviewOption = document.getElementById('ordersViewModeRequiresReviewOption')
 
   if (arrangeOption) arrangeOption.textContent = 'Sắp xếp vận chuyển (' + String(counters.toArrange || 0) + ')'
   if (waitingOption) waitingOption.textContent = 'Đang chờ vận chuyển (' + String(counters.waitingShip || 0) + ')'
+  if (waitingPaymentOption) waitingPaymentOption.textContent = 'Chờ thanh toán ngân hàng (' + String(counters.waitingPayment || 0) + ')'
+  if (requiresReviewOption) requiresReviewOption.textContent = 'Cần đối soát (' + String(counters.requiresReview || 0) + ')'
   if (modeSelect) modeSelect.value = ordersViewMode
 }
 
@@ -177,16 +228,23 @@ function filterOrders() {
   const sourceOrders = adminOrders.filter(o => !isInternalTestOrder(o))
 
   const activeOrders = sourceOrders.filter(o => {
-    const st = String(o.status || '').toLowerCase()
-    return st !== 'shipping' && st !== 'done' && st !== 'cancelled'
+    return isOrderShippingReady(o)
   })
   const toArrangeCount = activeOrders.filter(o => Number(o.shipping_arranged || 0) !== 1).length
   const waitingShipCount = activeOrders.filter(o => Number(o.shipping_arranged || 0) === 1).length
-  updateOrdersModeButtons({ toArrange: toArrangeCount, waitingShip: waitingShipCount })
+  const waitingPaymentCount = sourceOrders.filter(isUnpaidBankTransferOrder).length
+  const requiresReviewCount = sourceOrders.filter(isPaymentReviewRequired).length
+  updateOrdersModeButtons({
+    toArrange: toArrangeCount,
+    waitingShip: waitingShipCount,
+    waitingPayment: waitingPaymentCount,
+    requiresReview: requiresReviewCount
+  })
 
   const byView = sourceOrders.filter(o => {
-    const st = String(o.status || '').toLowerCase()
-    if (st === 'shipping' || st === 'done' || st === 'cancelled') return false
+    if (ordersViewMode === 'waiting_payment') return isUnpaidBankTransferOrder(o)
+    if (ordersViewMode === 'requires_review') return isPaymentReviewRequired(o)
+    if (!isOrderShippingReady(o)) return false
     if (ordersViewMode === 'waiting_ship') return Number(o.shipping_arranged || 0) === 1
     return Number(o.shipping_arranged || 0) !== 1
   })
@@ -212,7 +270,11 @@ function filterOrders() {
   renderOrdersTable(paginatedAdminOrders)
   renderOrdersPagination(filtered.length, totalPages)
   const total = filtered.reduce((s,o) => s + getOrderAmountDue(o), 0)
-  const modeLabel = ordersViewMode === 'waiting_ship' ? 'Đang chờ vận chuyển' : 'Sắp xếp vận chuyển'
+  const modeLabel = ordersViewMode === 'waiting_ship'
+    ? 'Đang chờ vận chuyển'
+    : (ordersViewMode === 'waiting_payment'
+      ? 'Chờ thanh toán ngân hàng'
+      : (ordersViewMode === 'requires_review' ? 'Cần đối soát' : 'Sắp xếp vận chuyển'))
   const carrierLabel = carrierFilter ? (' - ' + getShippingCarrierLabel(carrierFilter)) : ''
   document.getElementById('orderStats').textContent = \`\${modeLabel}\${carrierLabel}: \${filtered.length} đơn – Tổng: \${fmtPrice(total)}\`
   updateOrderSelectionUI()
@@ -256,6 +318,20 @@ function getRowPrimaryActionMeta() {
       label: 'In giấy tờ',
       className: 'bg-blue-600 hover:bg-blue-700 text-white border border-blue-600',
       icon: 'fa-print'
+    }
+  }
+  if (ordersViewMode === 'waiting_payment') {
+    return {
+      label: 'Đối soát thanh toán',
+      className: 'bg-amber-500 hover:bg-amber-600 text-white border border-amber-500',
+      icon: 'fa-building-columns'
+    }
+  }
+  if (ordersViewMode === 'requires_review') {
+    return {
+      label: 'Xử lý đối soát',
+      className: 'bg-violet-600 hover:bg-violet-700 text-white border border-violet-600',
+      icon: 'fa-triangle-exclamation'
     }
   }
   return {
@@ -318,7 +394,9 @@ function renderOrderRowActionControls(order, compact = false) {
   const meta = getRowPrimaryActionMeta()
   const orderId = Number(order.id)
   const compactLabel = compact
-    ? (ordersViewMode === 'waiting_ship' ? 'In giấy tờ' : 'Sắp xếp')
+    ? (ordersViewMode === 'waiting_ship'
+      ? 'In giấy tờ'
+      : (isOrdersPaymentView() ? 'Đối soát' : 'Sắp xếp'))
     : meta.label
   const wrapClass = compact
     ? 'grid grid-cols-2 gap-2 items-stretch w-full min-w-0'
@@ -404,7 +482,7 @@ function renderOrdersTable(orders) {
     <td class="px-4 py-3 text-right w-[150px] min-w-[150px]">
       <p class="font-bold text-gray-800">\${fmtPrice(getOrderAmountDue(o))}</p>
       \${o.discount_amount > 0 ? \`<p class="text-xs text-green-600">-\${fmtPrice(o.discount_amount)}</p>\` : ''}
-      <p class="mt-1"><span class="text-[11px] px-2 py-0.5 rounded-full \${paymentStatusClass(o.payment_status)}">\${paymentStatusLabel(o.payment_status)}</span></p>
+      <p class="mt-1 flex flex-wrap justify-end gap-1"><span class="text-[11px] px-2 py-0.5 rounded-full \${paymentStatusClass(o.payment_status)}">\${paymentStatusLabel(o.payment_status)}</span>\${isPaymentReviewRequired(o) ? '<span class="text-[11px] px-2 py-0.5 rounded-full bg-violet-50 text-violet-700 border border-violet-200">Cần đối soát</span>' : ''}</p>
       <div class="mt-1 flex justify-end">\${paymentMethodTagHTML(o.payment_method, o.payment_status)}</div>
     </td>
     <td class="px-4 py-3 text-center hidden lg:table-cell w-[120px] min-w-[120px]">
@@ -477,7 +555,7 @@ function renderOrdersMobileList(orders) {
               \${renderOrderRowActionControls(o, true)}
             </div>
             <div class="mobile-order-payment-status flex justify-end">
-              <span class="text-[11px] px-2 py-0.5 rounded-full \${paymentStatusClass(o.payment_status)}">\${paymentStatusLabel(o.payment_status)}</span>
+              <div class="flex flex-wrap justify-end gap-1"><span class="text-[11px] px-2 py-0.5 rounded-full \${paymentStatusClass(o.payment_status)}">\${paymentStatusLabel(o.payment_status)}</span>\${isPaymentReviewRequired(o) ? '<span class="text-[11px] px-2 py-0.5 rounded-full bg-violet-50 text-violet-700 border border-violet-200">Cần đối soát</span>' : ''}</div>
             </div>
           </div>
         </div>
@@ -566,7 +644,7 @@ function updateOrderSelectionUI() {
       : 'Sắp xếp vận chuyển'
   }
   if (bulkBtn) {
-    const showDelete = ordersViewMode !== 'waiting_ship' && anySelectedVisible
+    const showDelete = ordersViewMode === 'to_arrange' && anySelectedVisible
     bulkBtn.classList.toggle('hidden', !showDelete)
     bulkBtn.classList.toggle('flex', showDelete)
   }
@@ -588,6 +666,11 @@ function updateOrderSelectionUI() {
     carrierSelect.classList.toggle('hidden', ordersViewMode === 'waiting_ship')
     carrierSelect.disabled = ordersViewMode === 'waiting_ship'
     if (ordersViewMode === 'waiting_ship') carrierSelect.value = ''
+    if (isOrdersPaymentView()) {
+      carrierSelect.classList.toggle('hidden', true)
+      carrierSelect.disabled = true
+      carrierSelect.value = ''
+    }
   }
   if (carrierFilterSelect) {
     const showCarrierFilter = ordersViewMode === 'waiting_ship'
@@ -809,6 +892,203 @@ function closeOrderDetailModal() {
   forceHideAdminOverlay(document.getElementById('orderDetailModal'))
 }
 
+function makeManualPaymentIdempotencyKey(orderId, bankReference) {
+  const randomUuid = window.crypto && typeof window.crypto.randomUUID === 'function'
+    ? window.crypto.randomUUID()
+    : String(Date.now()) + '-' + Math.random().toString(36).slice(2)
+  return 'manual-vietqr:' + String(orderId) + ':' + String(bankReference || '').slice(0, 80) + ':' + randomUuid
+}
+
+function getPaymentReconciliationSyncEndpoint(order) {
+  const provider = String(order?.payment_provider || '').trim().toUpperCase()
+  if (provider === 'PAYOS' || !provider) return '/api/orders/' + Number(order?.id || 0) + '/payos-sync'
+  if (provider === 'ZALOPAY') return '/api/orders/' + Number(order?.id || 0) + '/zalopay-sync'
+  return ''
+}
+
+async function recheckPaymentProvider(orderId) {
+  const order = adminOrders.find((item) => Number(item.id) === Number(orderId))
+  if (!order) return
+  const endpoint = getPaymentReconciliationSyncEndpoint(order)
+  if (!endpoint) {
+    showAdminToast('Nhà cung cấp này chưa có thao tác tự đối soát trong dashboard', 'warning')
+    return
+  }
+  const recheckBtn = document.getElementById('manualPaymentRecheckBtn')
+  if (recheckBtn) recheckBtn.disabled = true
+  try {
+    const response = await axios.post(endpoint, {})
+    const synced = response?.data?.synced === true || response?.data?.data?.payment_status === 'paid'
+    showAdminToast(synced ? 'Đã cập nhật trạng thái thanh toán từ nhà cung cấp' : 'Nhà cung cấp chưa xác nhận thanh toán', synced ? 'success' : 'warning')
+    await loadAdminOrders()
+    const refreshed = adminOrders.find((item) => Number(item.id) === Number(orderId))
+    if (refreshed) openManualPaymentReconciliation(refreshed.id)
+  } catch (error) {
+    const code = error?.response?.data?.error || error?.response?.data?.code || 'PAYMENT_PROVIDER_RECHECK_FAILED'
+    showAdminToast('Không thể đối soát tự động: ' + String(code), 'error')
+  } finally {
+    if (recheckBtn) recheckBtn.disabled = false
+  }
+}
+
+function openManualPaymentReconciliation(orderId) {
+  const order = adminOrders.find((item) => Number(item.id) === Number(orderId))
+  const modal = document.getElementById('manualPaymentReconciliationModal')
+  if (!order || !modal) return
+  manualPaymentReconciliationOrderId = Number(order.id)
+  manualPaymentReconciliationIdempotencyKey = ''
+
+  const method = String(order.payment_method || '').trim().toUpperCase()
+  const provider = String(order.payment_provider || '').trim().toUpperCase() || 'CHƯA GÁN'
+  const isManual = method === 'BANK_TRANSFER' && provider === 'MANUAL_VIETQR'
+  const isPaid = String(order.payment_status || '').trim().toLowerCase() === 'paid'
+  const reviewRequired = isPaymentReviewRequired(order)
+  const amount = Number(order.total_price || 0)
+  const summary = document.getElementById('manualPaymentReconciliationOrderSummary')
+  const subtitle = document.getElementById('manualPaymentReconciliationSubtitle')
+  const hint = document.getElementById('manualPaymentReconciliationHint')
+  const amountInput = document.getElementById('manualPaymentVerifiedAmount')
+  const referenceInput = document.getElementById('manualPaymentBankReference')
+  const confirmedInput = document.getElementById('manualPaymentOperatorConfirmed')
+  const confirmBtn = document.getElementById('manualPaymentConfirmBtn')
+  let recheckBtn = document.getElementById('manualPaymentRecheckBtn')
+  if (!recheckBtn && confirmBtn?.parentElement) {
+    recheckBtn = document.createElement('button')
+    recheckBtn.type = 'button'
+    recheckBtn.id = 'manualPaymentRecheckBtn'
+    recheckBtn.className = 'hidden inline-flex items-center gap-2 rounded-xl border border-sky-200 bg-sky-50 px-4 py-2.5 text-sm font-bold text-sky-700 hover:bg-sky-100 transition'
+    recheckBtn.innerHTML = '<i class="fas fa-rotate"></i><span>Kiểm tra lại nhà cung cấp</span>'
+    recheckBtn.onclick = function() { recheckPaymentProvider(order.id) }
+    confirmBtn.parentElement.insertBefore(recheckBtn, confirmBtn)
+  }
+  if (summary) {
+    summary.innerHTML = ''
+      + '<div class="grid gap-3 sm:grid-cols-2">'
+      + '<div><p class="text-xs text-gray-500">Mã đơn hàng</p><p class="font-bold text-blue-700">' + escapeHtml(String(order.order_code || order.id)) + '</p></div>'
+      + '<div><p class="text-xs text-gray-500">Khách hàng</p><p class="font-semibold text-gray-900 truncate">' + escapeHtml(displayCustomerName(order.customer_name || '')) + '</p></div>'
+      + '<div><p class="text-xs text-gray-500">Số tiền đơn hàng</p><p class="font-extrabold text-gray-900">' + escapeHtml(fmtPrice(amount)) + '</p></div>'
+      + '<div><p class="text-xs text-gray-500">Phương thức / nhà cung cấp</p><p class="font-semibold text-gray-900">' + escapeHtml(formatPaymentMethod(method)) + ' / ' + escapeHtml(provider) + '</p></div>'
+      + '<div><p class="text-xs text-gray-500">Trạng thái thanh toán</p><p class="font-semibold ' + (isPaid ? 'text-emerald-700' : 'text-amber-700') + '">' + escapeHtml(paymentStatusLabel(order.payment_status)) + '</p></div>'
+      + '<div><p class="text-xs text-gray-500">Trạng thái xử lý</p><p class="font-semibold ' + (reviewRequired ? 'text-violet-700' : 'text-gray-700') + '">' + (reviewRequired ? 'Cần xem lại' : (isPaid ? 'Đã ghi nhận' : 'Đang chờ thanh toán')) + '</p></div>'
+      + '</div>'
+  }
+  if (amountInput) {
+    amountInput.value = Number.isSafeInteger(amount) && amount > 0 ? String(amount) : ''
+    amountInput.disabled = !isManual || isPaid
+  }
+  if (referenceInput) {
+    referenceInput.value = isManual && !isPaid ? '' : String(order.payment_ref || '')
+    referenceInput.disabled = !isManual || isPaid
+  }
+  if (confirmedInput) {
+    confirmedInput.checked = false
+    confirmedInput.disabled = !isManual || isPaid
+  }
+  if (confirmBtn) {
+    const canConfirm = isManual && !isPaid
+    confirmBtn.classList.toggle('hidden', !canConfirm)
+    confirmBtn.disabled = !canConfirm
+  }
+  if (recheckBtn) {
+    const canRecheck = !isManual && !isPaid && !!getPaymentReconciliationSyncEndpoint(order)
+    recheckBtn.classList.toggle('hidden', !canRecheck)
+    recheckBtn.disabled = false
+  }
+  if (subtitle) subtitle.textContent = isManual
+    ? 'Chỉ xác nhận sau khi đã kiểm tra giao dịch trên tài khoản ngân hàng.'
+    : 'Đơn này dùng nhà cung cấp thanh toán tự động; hãy kiểm tra lại trạng thái từ nhà cung cấp.'
+  if (hint) {
+    hint.textContent = isPaid
+      ? 'Đơn đã ghi nhận thanh toán. Không thực hiện xác nhận lần hai.'
+      : isManual
+        ? 'Chỉ nhập giao dịch thực tế đã nhận đủ tiền. Số tiền phải là số nguyên VNĐ và khớp tuyệt đối với đơn.'
+        : 'Nút xác nhận thủ công bị khóa vì nhà cung cấp không phải MANUAL_VIETQR.'
+  }
+  showAdminOverlay(modal)
+}
+
+function closeManualPaymentReconciliationModal(event) {
+  if (event && event.target !== event.currentTarget) return
+  forceHideAdminOverlay(document.getElementById('manualPaymentReconciliationModal'))
+  manualPaymentReconciliationOrderId = 0
+  manualPaymentReconciliationIdempotencyKey = ''
+}
+
+async function confirmManualPaymentReconciliation() {
+  const order = adminOrders.find((item) => Number(item.id) === Number(manualPaymentReconciliationOrderId))
+  if (!order) return
+  const method = String(order.payment_method || '').trim().toUpperCase()
+  const provider = String(order.payment_provider || '').trim().toUpperCase()
+  if (method !== 'BANK_TRANSFER' || provider !== 'MANUAL_VIETQR') {
+    showAdminToast('Chỉ được xác nhận thủ công cho BANK_TRANSFER / MANUAL_VIETQR', 'error')
+    return
+  }
+  if (String(order.payment_status || '').trim().toLowerCase() === 'paid') {
+    showAdminToast('Đơn này đã thanh toán, không xác nhận lại', 'warning')
+    return
+  }
+  const amountInput = document.getElementById('manualPaymentVerifiedAmount')
+  const referenceInput = document.getElementById('manualPaymentBankReference')
+  const confirmedInput = document.getElementById('manualPaymentOperatorConfirmed')
+  const confirmBtn = document.getElementById('manualPaymentConfirmBtn')
+  const verifiedAmount = Number(amountInput?.value || 0)
+  const expectedAmount = Number(order.total_price || 0)
+  const bankReference = String(referenceInput?.value || '').trim()
+  if (!Number.isSafeInteger(verifiedAmount) || verifiedAmount <= 0) {
+    showAdminToast('Số tiền xác minh phải là số nguyên VNĐ dương', 'error')
+    return
+  }
+  if (!Number.isSafeInteger(expectedAmount) || expectedAmount <= 0 || verifiedAmount !== expectedAmount) {
+    showAdminToast('Số tiền sao kê phải khớp tuyệt đối với tổng tiền đơn', 'error')
+    return
+  }
+  if (bankReference.length < 2 || bankReference.length > 160) {
+    showAdminToast('Mã giao dịch ngân hàng không hợp lệ', 'error')
+    return
+  }
+  if (confirmedInput?.checked !== true) {
+    showAdminToast('Hãy xác nhận đã kiểm tra sao kê ngân hàng', 'error')
+    return
+  }
+  if (!confirm('Xác nhận đã nhận đủ ' + fmtPrice(verifiedAmount) + ' cho đơn ' + String(order.order_code || order.id) + '?')) return
+  if (!manualPaymentReconciliationIdempotencyKey) {
+    manualPaymentReconciliationIdempotencyKey = makeManualPaymentIdempotencyKey(order.id, bankReference)
+  }
+  if (confirmBtn) confirmBtn.disabled = true
+  try {
+    const response = await axios.post('/api/admin/payment-reconciliation/orders/' + Number(order.id) + '/confirm', {
+      bank_reference: bankReference,
+      verified_amount: verifiedAmount,
+      operator_confirmed: true,
+      idempotency_key: manualPaymentReconciliationIdempotencyKey
+    })
+    const data = response?.data?.data || {}
+    order.payment_status = data.payment_status || 'paid'
+    order.payment_provider = data.payment_provider || 'MANUAL_VIETQR'
+    order.payment_ref = data.payment_ref || bankReference
+    order.payment_paid_at = data.payment_paid_at || order.payment_paid_at
+    order.payment_review_required = data.payment_review_required === true ? true : false
+    order.amount_due = order.payment_status === 'paid' ? 0 : Number(order.total_price || 0)
+    showAdminToast(data.already_processed ? 'Đối soát đã được ghi nhận trước đó' : 'Đã xác nhận thanh toán và lưu audit', 'success')
+    closeManualPaymentReconciliationModal()
+    filterOrders()
+  } catch (error) {
+    const code = error?.response?.data?.code || error?.response?.data?.error || 'PAYMENT_RECONCILIATION_CONFIRM_FAILED'
+    const labels = {
+      VERIFIED_AMOUNT_MISMATCH: 'Số tiền sao kê không khớp tổng tiền đơn',
+      BANK_REFERENCE_ALREADY_RECORDED: 'Mã giao dịch đã được dùng cho đơn khác',
+      PAYMENT_ALREADY_RECORDED: 'Giao dịch của đơn này đã được ghi nhận',
+      PAYMENT_ALREADY_PAID: 'Đơn này đã thanh toán',
+      PAYMENT_STATE_CHANGED: 'Trạng thái đơn đã thay đổi, hãy tải lại dữ liệu',
+      ADMIN_PERMISSION_DENIED: 'Tài khoản không có quyền sửa cài đặt thanh toán'
+    }
+    showAdminToast(labels[code] || String(code), 'error')
+    await loadAdminOrders()
+  } finally {
+    if (confirmBtn) confirmBtn.disabled = false
+  }
+}
+
 function printArrangedOrdersFromModal() {
   if (!arrangedOrdersForPrint.length) {
     showAdminToast('Không có đơn để in', 'warning')
@@ -827,6 +1107,10 @@ function printArrangedOrdersFromModal() {
 async function handleOrderPrimaryAction(id) {
   const orderId = Number(id)
   if (!Number.isFinite(orderId) || orderId <= 0) return
+  if (isOrdersPaymentView()) {
+    openManualPaymentReconciliation(orderId)
+    return
+  }
   if (ordersViewMode === 'waiting_ship') {
     const order = adminOrders.find((x) => Number(x.id) === orderId)
     if (!order) return

@@ -9,6 +9,7 @@ import { registerOrderRoutes } from './routes/orderRoutes'
 import { registerReturnsRoutes } from './routes/returnsRoutes'
 import { registerCustomerRoutes } from './routes/customerRoutes'
 import { registerPaymentRoutes } from './routes/paymentRoutes'
+import { registerAdminPaymentReconciliationRoutes } from './routes/adminPaymentReconciliationRoutes'
 import { registerVoucherStatsRoutes } from './routes/voucherStatsRoutes'
 import { registerAdminUtilityRoutes } from './routes/adminUtilityRoutes'
 import { registerAdminPushRoutes } from './routes/adminPushRoutes'
@@ -188,6 +189,11 @@ registerPaymentRoutes(app, {
   payOSBuildDataString,
   parseJsonObject,
   payOSGetPaymentInfo
+})
+
+registerAdminPaymentReconciliationRoutes(app, {
+  initDB,
+  buildInternalTestOrderWhereSql
 })
 
 registerVoucherStatsRoutes(app, {

@@ -972,7 +972,7 @@ async function continueOrderPaymentFlow({ orderCode, orderId, orderTotal, paymen
   if (paymentMethod === 'MOMO') {
     let paymentData = null
     try {
-      const payment = await axios.post('/api/orders/' + orderId + '/momo-link', { origin: window.location.origin })
+      const payment = await axios.post('/api/orders/' + orderId + '/momo-link', { origin: window.location.origin }, getOrderRequestConfig(orderCode, orderId))
       paymentData = payment.data?.data || null
     } catch (error) {
       const missing = error?.response?.data?.missing || []
@@ -986,17 +986,13 @@ async function continueOrderPaymentFlow({ orderCode, orderId, orderTotal, paymen
       return { handled: true }
     }
     const payUrl = String(paymentData?.payUrl || '').trim()
-    let payTab = payTabRef
     if (payUrl) {
-      if (payTab) {
-        try { payTab.location.href = payUrl } catch (_) { payTab = null }
-      }
-      if (!payTab) payTab = window.open(payUrl, '_blank')
-      if (payTab) {
-        startOrderPaymentPolling(orderCode)
+      const opened = openStorefrontHostedCheckout(payUrl, payTabRef)
+      if (opened.opened) {
+        startOrderPaymentPolling(orderCode, { payTab: opened.payTab })
         showToast('Đơn ' + orderCode + ': đã mở MoMo, vui lòng hoàn tất thanh toán.', 'success', 5000)
       } else {
-        showToast('Trình duyệt đang chặn cửa sổ MoMo. Vui lòng cho phép popup rồi thử lại.', 'error', 5000)
+        showToast('Không thể mở trang MoMo. Vui lòng thử lại.', 'error', 5000)
       }
       return { handled: true }
     }
@@ -1008,10 +1004,15 @@ async function continueOrderPaymentFlow({ orderCode, orderId, orderTotal, paymen
   if (paymentMethod === 'BANK_TRANSFER') {
     let paymentData = null
     try {
-      const payment = await axios.post('/api/orders/' + orderId + '/bank-transfer-link', { origin: window.location.origin })
+      const payment = await axios.post('/api/orders/' + orderId + '/bank-transfer-link', { origin: window.location.origin }, getOrderRequestConfig(orderCode, orderId))
       paymentData = payment.data?.data || null
-    } catch (_) {
-      showToast('Cổng thanh toán tạm lỗi, đang chuyển sang QR dự phòng.', 'error', 4500)
+    } catch (error) {
+      try { if (payTabRef && !payTabRef.closed) payTabRef.close() } catch (_) { }
+      const errCode = error?.response?.data?.error
+      showToast(errCode === 'FORBIDDEN'
+        ? 'Phiên thanh toán không còn hợp lệ. Vui lòng mở lại đơn hàng.'
+        : 'Không thể tạo phiên chuyển khoản. Vui lòng thử lại.', 'error', 5000)
+      return { handled: true }
     }
     if (paymentData?.alreadyPaid) {
       onOrderMarkedPaid(orderCode)
@@ -1021,46 +1022,36 @@ async function continueOrderPaymentFlow({ orderCode, orderId, orderTotal, paymen
     const provider = String(paymentData?.provider || '').toUpperCase()
     const checkoutUrl = String(paymentData?.checkoutUrl || '').trim()
     if (checkoutUrl) {
-      let payTab = payTabRef
-      if (payTab) {
-        try { payTab.location.href = checkoutUrl } catch (_) { payTab = null }
-      }
-      if (!payTab) payTab = window.open(checkoutUrl, '_blank')
-      if (payTab) {
-        startOrderPaymentPolling(orderCode)
+      const opened = openStorefrontHostedCheckout(checkoutUrl, payTabRef)
+      if (opened.opened) {
+        startOrderPaymentPolling(orderCode, { payTab: opened.payTab })
         showToast('Đơn ' + orderCode + ': đã mở tab thanh toán, vui lòng hoàn tất.', 'success', 5000)
       } else {
-        showToast('Trình duyệt đang chặn popup, hiển thị QR dự phòng để bạn thanh toán thủ công.', 'error', 5000)
-        openOrderBankTransferModal({
-          orderCode,
-          orderId,
-          amount: orderTotal,
-          transferContent: paymentData?.transferContent || 'DH' + orderId,
-          paymentLinkId: paymentData?.paymentLinkId || '',
-          qrCode: paymentData?.qrCode || '',
-          bankId: paymentData?.bankId || '',
-          accountNo: paymentData?.accountNo || '',
-          accountName: paymentData?.accountName || '',
-          template: paymentData?.template || ''
-        })
+        try { if (payTabRef && !payTabRef.closed) payTabRef.close() } catch (_) { }
+        showToast('Không thể mở trang thanh toán. Vui lòng thử lại.', 'error', 5000)
       }
       return { handled: true }
     }
 
     try { if (payTabRef && !payTabRef.closed) payTabRef.close() } catch (_) { }
-    openOrderBankTransferModal({
-      orderCode,
-      orderId,
-      amount: orderTotal,
-      transferContent: paymentData?.transferContent || 'DH' + orderId,
-      paymentLinkId: paymentData?.paymentLinkId || '',
-      qrCode: paymentData?.qrCode || '',
-      bankId: paymentData?.bankId || '',
-      accountNo: paymentData?.accountNo || '',
-      accountName: paymentData?.accountName || '',
-      template: paymentData?.template || ''
-    })
-    showToast(provider === 'MANUAL_VIETQR' ? 'Đơn hàng ' + orderCode + ' đã tạo. Vui lòng quét QR/chuyển khoản đúng nội dung.' : 'Đơn hàng ' + orderCode + ' đã tạo. Vui lòng chuyển khoản để hoàn tất.', 'success', 5000)
+    if (provider === 'MANUAL_VIETQR') {
+      const opened = openOrderBankTransferModal({
+        provider,
+        orderCode,
+        orderId,
+        amount: paymentData?.amount || orderTotal,
+        transferContent: paymentData?.transferContent || '',
+        paymentLinkId: paymentData?.paymentLinkId || '',
+        qrCode: paymentData?.qrCode || '',
+        bankId: paymentData?.bankId || '',
+        accountNo: paymentData?.accountNo || '',
+        accountName: paymentData?.accountName || '',
+        template: paymentData?.template || ''
+      })
+      if (opened) showToast('Đơn hàng ' + orderCode + ' đã tạo. Vui lòng chuyển khoản đúng nội dung; shop sẽ xác nhận thủ công.', 'success', 5000)
+      return { handled: true }
+    }
+    showToast('PayOS chưa trả về link thanh toán. Vui lòng thử lại.', 'error', 5000)
     return { handled: true }
   }
 
@@ -1121,6 +1112,23 @@ async function submitOrder() {
 
   try {
     const resolvedColorImage = getSelectedColorImageFromProduct(currentProduct, selectedColor)
+    const note = document.getElementById('orderNote').value.trim()
+    const voucherCode = appliedVoucher ? appliedVoucher.code : ''
+    const idempotencyFingerprint = JSON.stringify({
+      productId: currentProduct.id,
+      productSkuId: selectedProductSku?.id || '',
+      color: selectedColor,
+      size: selectedSize,
+      quantity: orderQty,
+      name: payload.name,
+      phone: payload.phone,
+      address: payload.address,
+      voucherCode,
+      note,
+      paymentMethod
+    })
+    const idempotencyKey = getQuickOrderIdempotencyKey(idempotencyFingerprint)
+    const orderAccessToken = getQuickOrderAccessToken(idempotencyFingerprint)
     const res = await axios.post('/api/orders', {
       customer_name: payload.name,
       customer_phone: payload.phone,
@@ -1134,15 +1142,23 @@ async function submitOrder() {
       selected_color_image: resolvedColorImage || selectedColorImage || (currentProduct?.thumbnail || ''),
       size: selectedSize,
       quantity: orderQty,
-      voucher_code: appliedVoucher ? appliedVoucher.code : '',
-      note: document.getElementById('orderNote').value.trim(),
+      voucher_code: voucherCode,
+      note,
       payment_method: paymentMethod,
-      device_id: getStorefrontDeviceId()
-    })
+      device_id: getStorefrontDeviceId(),
+      idempotency_key: idempotencyKey,
+      order_access_token: orderAccessToken
+    }, getOrderCreationRequestConfig(orderAccessToken, idempotencyKey))
+    const orderData = res.data?.data && typeof res.data.data === 'object' ? res.data.data : (res.data || {})
+    const orderCode = String(orderData.order_code || res.data?.order_code || '').trim()
+    const orderTotal = Number(orderData.total ?? res.data?.total ?? 0)
+    const orderId = Number(orderData.id || orderData.order_id || res.data?.id || 0)
+    if (!orderCode || !orderId) throw new Error('ORDER_CREATE_INVALID_RESPONSE')
+    if (!captureOrderAccessToken(res, orderCode, orderId)) {
+      persistOrderAccessToken(orderCode, orderId, orderAccessToken)
+    }
+    clearQuickOrderIdempotencyKey()
     closeOrder()
-    const orderCode = res.data.order_code
-    const orderTotal = Number(res.data.total || 0)
-    const orderId = Number(res.data.id || 0)
     await continueOrderPaymentFlow({ orderCode, orderId, orderTotal, paymentMethod, payTabRef })
   } catch(e) {
     try { if (payTabRef && !payTabRef.closed) payTabRef.close() } catch (_) { }

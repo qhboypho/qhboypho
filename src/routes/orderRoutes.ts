@@ -6,7 +6,16 @@ import { refreshCustomerAutoBlock } from '../lib/customerBlockHelpers'
 import { getUserSessionUserId } from '../lib/userSessionHelpers'
 import { resolveAutoVoucherProductPrice } from '../lib/autoVoucherHelpers.ts'
 import { notifyAdminNewOrderPush } from '../lib/webPushHelpers'
-import { findProductSkuMatch, loadProductSkusByProductIds, type ProductSkuLike } from '../lib/productSkuHelpers.ts'
+import { loadProductSkusByProductIds, type ProductSkuLike } from '../lib/productSkuHelpers.ts'
+import {
+  buildShippingIdempotencyKey,
+  evaluateShippingPaymentEligibility,
+  extractShippingTrackingCode,
+  isTerminalReturnStatus,
+  isUncertainShippingCreateResult,
+  isValidOrderStatusTransition,
+  normalizeShippingCreationState
+} from '../lib/shippingStateHelpers'
 
 type OrderRouteDeps = {
   initDB: (db: D1Database) => Promise<void>
@@ -31,6 +40,13 @@ type OrderHistoryUser = {
 
 const NORMALIZED_CUSTOMER_PHONE_SQL = "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(TRIM(COALESCE(customer_phone, '')), ' ', ''), '-', ''), '.', ''), '(', ''), ')', ''), '+', '')"
 const SUPPORTED_BUILT_IN_SHIPPING_CARRIERS = new Set(['GHTK', 'SPX', 'GHN'])
+const MAX_ORDER_QUANTITY = 99
+const MAX_ORDER_NAME_LENGTH = 120
+const MAX_ORDER_ADDRESS_LENGTH = 500
+const MAX_ORDER_NOTE_LENGTH = 1000
+const MAX_ORDER_VARIANT_LENGTH = 120
+const MAX_ORDER_ACCESS_TOKEN_LENGTH = 256
+const MAX_IDEMPOTENCY_KEY_LENGTH = 128
 
 function normalizeShippingCarrier(value: unknown) {
   const carrier = String(value || '').trim().toUpperCase().replace(/[^A-Z0-9_]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 24)
@@ -42,6 +58,88 @@ function normalizeOrderNumber(value: unknown) {
   return Number.isFinite(num) ? num : 0
 }
 
+function normalizePositiveInteger(value: unknown, max: number) {
+  if (typeof value === 'boolean' || value === null || value === undefined) return null
+  const raw = String(value).trim()
+  if (!/^\d+$/.test(raw)) return null
+  const parsed = Number(raw)
+  if (!Number.isSafeInteger(parsed) || parsed <= 0 || parsed > max) return null
+  return parsed
+}
+
+function normalizeRequiredOrderText(value: unknown, maxLength: number) {
+  if (typeof value !== 'string' && typeof value !== 'number') return ''
+  return String(value).trim().slice(0, maxLength)
+}
+
+function normalizeOptionalOrderText(value: unknown, maxLength: number) {
+  if (value === null || value === undefined) return ''
+  return String(value).trim().slice(0, maxLength)
+}
+
+function generateOrderAccessToken() {
+  const bytes = new Uint8Array(32)
+  crypto.getRandomValues(bytes)
+  return toHex(bytes)
+}
+
+function normalizeOrderAccessToken(value: unknown) {
+  const token = String(value ?? '').trim()
+  if (!token) return ''
+  if (token.length > MAX_ORDER_ACCESS_TOKEN_LENGTH || !/^[A-Za-z0-9_-]{32,256}$/.test(token)) return null
+  return token
+}
+
+function normalizeIdempotencyKey(value: unknown) {
+  const key = String(value ?? '').trim()
+  if (!key) return ''
+  if (key.length < 16 || key.length > MAX_IDEMPOTENCY_KEY_LENGTH || !/^[A-Za-z0-9._~:-]+$/.test(key)) return null
+  return key
+}
+
+function normalizeSkuValue(value: unknown) {
+  return String(value ?? '').trim().toLowerCase()
+}
+
+function isActiveSku(sku: ProductSkuLike) {
+  return Number(sku.is_active ?? 1) === 1
+}
+
+function isExactSkuSelection(sku: ProductSkuLike, color: unknown, size: unknown) {
+  return normalizeSkuValue(sku.color) === normalizeSkuValue(color)
+    && normalizeSkuValue(sku.size) === normalizeSkuValue(size)
+}
+
+function buildOrderIdempotencyScope(userId: number | null, orderAccessTokenHash: string) {
+  if (userId) return `user:${userId}`
+  return `guest-token:${orderAccessTokenHash}`
+}
+
+function buildOrderIdempotencyPayload(input: {
+  customerName: string
+  customerPhone: string
+  customerAddress: string
+  customerProvinceCode: string
+  customerCommuneCode: string
+  customerAddressEffectiveDate: string
+  productId: number
+  productSkuId: number | null
+  color: string
+  size: string
+  quantity: number
+  voucherCode: string
+  note: string
+  paymentMethod: string
+  deviceId: string
+  orderAccessTokenHash: string
+}) {
+  return JSON.stringify(input)
+}
+
+function isUniqueConstraintError(error: unknown) {
+  return /unique constraint|constraint failed/i.test(String((error as any)?.message || error || ''))
+}
+
 async function resolveOrderProductSku(
   db: D1Database,
   productId: unknown,
@@ -49,14 +147,17 @@ async function resolveOrderProductSku(
   color: unknown,
   size: unknown
 ): Promise<ProductSkuLike | null> {
-  const skuMap = await loadProductSkusByProductIds(db, [productId])
-  const skus = skuMap.get(Math.floor(normalizeOrderNumber(productId))) || []
+  const normalizedProductId = Math.floor(normalizeOrderNumber(productId))
+  const skuMap = await loadProductSkusByProductIds(db, [normalizedProductId], { includeInactive: true })
+  const skus = skuMap.get(normalizedProductId) || []
   const requestedId = Math.floor(normalizeOrderNumber(productSkuId))
   if (requestedId > 0) {
     const byId = skus.find((sku) => Math.floor(normalizeOrderNumber(sku.id)) === requestedId)
-    if (byId) return byId
+    if (!byId || !isActiveSku(byId)) return null
+    if ((String(color ?? '').trim() || String(size ?? '').trim()) && !isExactSkuSelection(byId, color, size)) return null
+    return byId
   }
-  return findProductSkuMatch(skus, color, size)
+  return skus.find((sku) => isActiveSku(sku) && isExactSkuSelection(sku, color, size)) || null
 }
 
 async function getAvailableCarrierCodeSet(db: D1Database, deps: OrderRouteDeps) {
@@ -298,6 +399,26 @@ async function generateUniqueOrderCode(db: D1Database) {
   return 'QH' + fallback
 }
 
+type IdempotentOrderRow = {
+  id?: number | string | null
+  order_code?: string | null
+  total_price?: number | string | null
+  discount_amount?: number | string | null
+  order_access_token_hash?: string | null
+  idempotency_payload_hash?: string | null
+}
+
+async function findIdempotentOrder(db: D1Database, idempotencyKeyHash: string) {
+  if (!idempotencyKeyHash) return null
+  return db.prepare(`
+    SELECT id, order_code, total_price, discount_amount,
+           order_access_token_hash, idempotency_payload_hash
+    FROM orders
+    WHERE idempotency_key_hash = ?
+    LIMIT 1
+  `).bind(idempotencyKeyHash).first<IdempotentOrderRow>()
+}
+
 async function getOrderHistoryUser(db: D1Database, userId: unknown) {
   const normalizedUserId = normalizeOrderUserId(userId)
   if (!normalizedUserId) return null
@@ -402,76 +523,174 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
   app.post('/api/orders', async (c) => {
     try {
       await deps.initDB(c.env.DB)
-      const body = await c.req.json()
+      const body = await c.req.json().catch(() => null)
+      if (!body || typeof body !== 'object' || Array.isArray(body)) {
+        return c.json({ success: false, error: 'INVALID_JSON' }, 400)
+      }
+
       const {
         customer_name, customer_phone, customer_address,
         product_id, product_sku_id, color, selected_color_image, size, quantity, note, voucher_code, payment_method, device_id,
         customer_province_code, customer_commune_code, address_effective_date
-      } = body
+      } = body as Record<string, unknown>
 
+      const customerName = normalizeRequiredOrderText(customer_name, MAX_ORDER_NAME_LENGTH)
       const normalizedCustomerPhone = normalizeOrderPhone(customer_phone)
+      const customerAddress = normalizeRequiredOrderText(customer_address, MAX_ORDER_ADDRESS_LENGTH)
+      const productId = normalizePositiveInteger(product_id, Number.MAX_SAFE_INTEGER)
+      const qty = normalizePositiveInteger(quantity, MAX_ORDER_QUANTITY)
+      const normalizedColor = normalizeOptionalOrderText(color, MAX_ORDER_VARIANT_LENGTH)
+      const normalizedSize = normalizeOptionalOrderText(size, MAX_ORDER_VARIANT_LENGTH)
+      const normalizedNote = normalizeOptionalOrderText(note, MAX_ORDER_NOTE_LENGTH)
       const normalizedDeviceId = normalizeDeviceId(device_id)
+      const productSkuId = product_sku_id === null || product_sku_id === undefined || String(product_sku_id).trim() === ''
+        ? null
+        : normalizePositiveInteger(product_sku_id, Number.MAX_SAFE_INTEGER)
+      const customerProvinceCode = normalizeAddressCode(customer_province_code)
+      const customerCommuneCode = normalizeAddressCode(customer_commune_code)
+      const customerAddressEffectiveDate = normalizeAddressEffectiveDate(address_effective_date)
+      const normalizedPaymentMethod = String(payment_method || '').trim().toUpperCase()
+      const paymentMethod = ['COD', 'ZALOPAY', 'MOMO', 'BANK_TRANSFER'].includes(normalizedPaymentMethod)
+        ? normalizedPaymentMethod
+        : 'COD'
+      const normalizedVoucherCode = normalizeOptionalOrderText(voucher_code, 64).toUpperCase()
 
-      if (!customer_name || !normalizedCustomerPhone || !customer_address || !product_id) {
+      if (!customerName || !normalizedCustomerPhone || !customerAddress || !productId) {
         return c.json({ success: false, error: 'Missing required fields' }, 400)
+      }
+      if (normalizedCustomerPhone.length < 7 || normalizedCustomerPhone.length > 15) {
+        return c.json({ success: false, error: 'INVALID_CUSTOMER_PHONE' }, 400)
+      }
+      if (!qty) return c.json({ success: false, error: 'INVALID_QUANTITY' }, 400)
+      if (product_sku_id !== null && product_sku_id !== undefined && String(product_sku_id).trim() !== '' && !productSkuId) {
+        return c.json({ success: false, error: 'INVALID_PRODUCT_VARIANT' }, 400)
+      }
+
+      const bodyAccessToken = normalizeOrderAccessToken((body as any).order_access_token)
+      const headerAccessToken = normalizeOrderAccessToken(c.req.header('X-Order-Access-Token'))
+      if (bodyAccessToken === null || headerAccessToken === null) {
+        return c.json({ success: false, error: 'INVALID_ORDER_ACCESS_TOKEN' }, 400)
+      }
+      if (bodyAccessToken && headerAccessToken && bodyAccessToken !== headerAccessToken) {
+        return c.json({ success: false, error: 'ORDER_ACCESS_TOKEN_MISMATCH' }, 400)
+      }
+      const orderAccessToken = bodyAccessToken || headerAccessToken || generateOrderAccessToken()
+      const orderAccessTokenHash = await sha256Hex(`order-access:${orderAccessToken}`)
+
+      const headerIdempotencyKey = c.req.header('X-Idempotency-Key') || ''
+      const bodyIdempotencyKey = (body as any).idempotency_key
+      const normalizedHeaderIdempotencyKey = normalizeIdempotencyKey(headerIdempotencyKey)
+      const normalizedBodyIdempotencyKey = normalizeIdempotencyKey(bodyIdempotencyKey)
+      if (normalizedHeaderIdempotencyKey === null || normalizedBodyIdempotencyKey === null) {
+        return c.json({ success: false, error: 'INVALID_IDEMPOTENCY_KEY' }, 400)
+      }
+      if (normalizedHeaderIdempotencyKey && normalizedBodyIdempotencyKey
+        && normalizedHeaderIdempotencyKey !== normalizedBodyIdempotencyKey) {
+        return c.json({ success: false, error: 'IDEMPOTENCY_KEY_MISMATCH' }, 400)
+      }
+      const idempotencyKey = normalizedHeaderIdempotencyKey || normalizedBodyIdempotencyKey
+      if (idempotencyKey && !bodyAccessToken && !headerAccessToken) {
+        return c.json({ success: false, error: 'ORDER_ACCESS_TOKEN_REQUIRED' }, 400)
       }
 
       const sessionUserId = await getUserSessionUserId(c)
       const user = sessionUserId ? await getOrderHistoryUser(c.env.DB, sessionUserId) : null
       const userId = normalizeOrderUserId(user?.id)
+      const riskIdentity = await buildOrderRiskIdentity(c, customerAddress)
+      const deviceHash = normalizedDeviceId ? await sha256Hex(`order-device:${normalizedDeviceId}`) : ''
+      const idempotencyKeyHash = idempotencyKey
+        ? await sha256Hex(`order-idempotency:${buildOrderIdempotencyScope(userId, orderAccessTokenHash)}:${idempotencyKey}`)
+        : ''
+      const idempotencyPayloadHash = idempotencyKey
+        ? await sha256Hex(buildOrderIdempotencyPayload({
+            customerName,
+            customerPhone: normalizedCustomerPhone,
+            customerAddress,
+            customerProvinceCode,
+            customerCommuneCode,
+            customerAddressEffectiveDate,
+            productId,
+            productSkuId,
+            color: normalizeSkuValue(normalizedColor),
+            size: normalizeSkuValue(normalizedSize),
+            quantity: qty,
+            voucherCode: normalizedVoucherCode,
+            note: normalizedNote,
+            paymentMethod,
+            deviceId: normalizedDeviceId,
+            orderAccessTokenHash
+          }))
+        : ''
+
+      if (idempotencyKeyHash) {
+        const existing = await findIdempotentOrder(c.env.DB, idempotencyKeyHash)
+        if (existing) {
+          if (existing.idempotency_payload_hash !== idempotencyPayloadHash
+            || existing.order_access_token_hash !== orderAccessTokenHash) {
+            return c.json({ success: false, error: 'IDEMPOTENCY_KEY_REUSE' }, 409)
+          }
+          return c.json({
+            success: true,
+            duplicate: true,
+            order_code: existing.order_code,
+            id: Number(existing.id || 0),
+            discount: Number(existing.discount_amount || 0),
+            total: Number(existing.total_price || 0),
+            order_access_token: orderAccessToken
+          })
+        }
+      }
 
       await refreshCustomerAutoBlock(c.env.DB, userId, normalizedCustomerPhone)
 
       // Check if customer is blocked
       let isBlocked = false
       let blockReason = ''
-      
+
       if (userId) {
         const user = await c.env.DB.prepare(
           'SELECT is_blocked, blocked_reason FROM users WHERE id = ?'
         ).bind(userId).first() as any
-        
+
         if (user && isBlockedValue(user.is_blocked)) {
           isBlocked = true
           blockReason = user.blocked_reason || 'Bạn đã bị cấm mua hàng tạm thời'
         }
       }
-      
+
       if (!isBlocked) {
         let query = 'SELECT blocked_reason FROM blocked_customers WHERE is_active = 1 AND ('
         const params: any[] = []
-        
+
         if (userId) {
           query += 'user_id = ?'
           params.push(userId)
         }
-        
+
         if (normalizedCustomerPhone) {
           if (userId) query += ' OR '
           query += `${NORMALIZED_CUSTOMER_PHONE_SQL} = ?`
           params.push(normalizedCustomerPhone)
         }
-        
+
         query += ')'
-        
+
         const block = await c.env.DB.prepare(query).bind(...params).first() as any
-        
+
         if (block) {
           isBlocked = true
           blockReason = block.blocked_reason || 'Bạn đã bị cấm mua hàng tạm thời'
         }
       }
-      
+
       if (isBlocked) {
-        return c.json({ 
-          success: false, 
+        return c.json({
+          success: false,
           error: 'CUSTOMER_BLOCKED',
           reason: blockReason
         }, 403)
       }
 
-      const riskIdentity = await buildOrderRiskIdentity(c, customer_address)
-      const deviceHash = normalizedDeviceId ? await sha256Hex(`order-device:${normalizedDeviceId}`) : ''
       const hasDailyOverride = await hasActiveDailyOrderLimitOverride(c.env.DB, {
         phone: normalizedCustomerPhone
       })
@@ -494,80 +713,131 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
         }
       }
 
-      const product = await c.env.DB.prepare(`SELECT * FROM products WHERE id=? AND is_active=1`).bind(product_id).first() as any
+      const product = await c.env.DB.prepare(`SELECT * FROM products WHERE id=? AND is_active=1`).bind(productId).first() as any
       if (!product) return c.json({ success: false, error: 'Product not found' }, 404)
-      const selectedSku = await resolveOrderProductSku(c.env.DB, product_id, product_sku_id, color, size)
+      const selectedSku = await resolveOrderProductSku(c.env.DB, productId, productSkuId, normalizedColor, normalizedSize)
+      const skuRows = await c.env.DB.prepare(`SELECT id FROM product_skus WHERE product_id = ? LIMIT 1`).bind(productId).all()
+      const hasSkuRows = (skuRows.results || []).length > 0
+      const hasVariantIntent = productSkuId !== null || !!normalizedColor || !!normalizedSize
+      if ((hasSkuRows || hasVariantIntent) && !selectedSku) {
+        return c.json({ success: false, error: 'INVALID_PRODUCT_VARIANT' }, 400)
+      }
 
-      const qty = parseInt(quantity) || 1
+      const productUnitPrice = await resolveAutoVoucherProductPrice(c.env.DB, product, selectedSku || undefined)
+      if (!Number.isFinite(productUnitPrice) || productUnitPrice <= 0) {
+        return c.json({ success: false, error: 'PRODUCT_PRICE_UNAVAILABLE' }, 409)
+      }
+      const subtotal = productUnitPrice * qty
       let discount = 0
 
-      if (voucher_code && voucher_code.trim()) {
+      if (normalizedVoucherCode) {
         const now = new Date().toISOString()
         const voucher = await c.env.DB.prepare(
           `SELECT * FROM vouchers WHERE code=? AND is_active=1 AND valid_from<=? AND valid_to>=?`
-        ).bind(voucher_code.trim().toUpperCase(), now, now).first() as any
+        ).bind(normalizedVoucherCode, now, now).first() as any
 
         if (!voucher) {
           return c.json({ success: false, error: 'INVALID_VOUCHER' }, 400)
         }
-        if (voucher.usage_limit > 0 && voucher.used_count >= voucher.usage_limit) {
+        if (Number(voucher.usage_limit || 0) > 0 && Number(voucher.used_count || 0) >= Number(voucher.usage_limit || 0)) {
           return c.json({ success: false, error: 'VOUCHER_LIMIT' }, 400)
         }
-        discount = voucher.discount_amount
-        await c.env.DB.prepare(`UPDATE vouchers SET used_count=used_count+1 WHERE id=?`).bind(voucher.id).run()
+        discount = Math.min(subtotal, Math.max(0, Number(voucher.discount_amount || 0)))
       }
 
-      const productUnitPrice = await resolveAutoVoucherProductPrice(c.env.DB, product, selectedSku || undefined)
-      const subtotal = productUnitPrice * qty
       const total = Math.max(0, subtotal - discount)
-      const orderCode = await generateUniqueOrderCode(c.env.DB)
-      const normalizedPaymentMethod = String(payment_method || '').toUpperCase()
-      const paymentMethod = ['COD', 'ZALOPAY', 'MOMO', 'BANK_TRANSFER'].includes(normalizedPaymentMethod)
-        ? normalizedPaymentMethod
-        : 'COD'
-      const selectedColorImage = String(selected_color_image || '').trim()
-        || String(selectedSku?.image || '').trim()
-        || deps.resolveSelectedColorImage(product.colors, color, product.thumbnail || '')
-      const customerProvinceCode = normalizeAddressCode(customer_province_code)
-      const customerCommuneCode = normalizeAddressCode(customer_commune_code)
-      const customerAddressEffectiveDate = normalizeAddressEffectiveDate(address_effective_date)
+      const resolvedColor = String(selectedSku?.color ?? normalizedColor).trim()
+      const resolvedSize = String(selectedSku?.size ?? normalizedSize).trim()
+      const selectedColorImage = String(selectedSku?.image || '').trim()
+        || deps.resolveSelectedColorImage(product.colors, resolvedColor, product.thumbnail || '')
+      const inventoryReserved = 1
 
-      const result = await c.env.DB.prepare(`
-        INSERT INTO orders 
-          (user_id, order_code, customer_name, customer_phone, customer_email, customer_address, customer_province_code, customer_commune_code, customer_address_effective_date, client_ip_hash, customer_address_fingerprint, device_hash, product_id, product_sku_id, product_name, product_price, color, selected_color_image, size, quantity, total_price, voucher_code, discount_amount, note, payment_method)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).bind(
-        userId,
-        orderCode,
-        customer_name,
-        normalizedCustomerPhone,
-        normalizeOrderEmail(user?.email) || null,
-        customer_address,
-        customerProvinceCode || null,
-        customerCommuneCode || null,
-        customerAddressEffectiveDate,
-        riskIdentity.ipHash || null,
-        riskIdentity.addressFingerprint || null,
-        deviceHash || null,
-        product_id,
-        selectedSku?.id || null,
-        product.name,
-        productUnitPrice,
-        color || '',
-        selectedColorImage || '',
-        size || '',
-        qty,
-        total,
-        voucher_code ? voucher_code.trim().toUpperCase() : '',
-        discount,
-        note || '',
-        paymentMethod
-      ).run()
+      let result: any = null
+      let orderCode = ''
+      let lastInsertError: unknown = null
+      for (let attempt = 0; attempt < 5; attempt++) {
+        orderCode = await generateUniqueOrderCode(c.env.DB)
+        const insert = c.env.DB.prepare(`
+          INSERT INTO orders
+            (user_id, order_code, customer_name, customer_phone, customer_email, customer_address, customer_province_code, customer_commune_code, customer_address_effective_date, client_ip_hash, customer_address_fingerprint, device_hash, product_id, product_sku_id, product_name, product_price, color, selected_color_image, size, quantity, total_price, voucher_code, discount_amount, note, payment_method, inventory_reserved, inventory_released, order_access_token_hash, idempotency_key_hash, idempotency_payload_hash)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).bind(
+          userId,
+          orderCode,
+          customerName,
+          normalizedCustomerPhone,
+          normalizeOrderEmail(user?.email) || null,
+          customerAddress,
+          customerProvinceCode || null,
+          customerCommuneCode || null,
+          customerAddressEffectiveDate,
+          riskIdentity.ipHash || null,
+          riskIdentity.addressFingerprint || null,
+          deviceHash || null,
+          productId,
+          selectedSku?.id || null,
+          product.name,
+          productUnitPrice,
+          resolvedColor,
+          selectedColorImage || '',
+          resolvedSize,
+          qty,
+          total,
+          normalizedVoucherCode,
+          discount,
+          normalizedNote,
+          paymentMethod,
+          inventoryReserved,
+          0,
+          orderAccessTokenHash,
+          idempotencyKeyHash || null,
+          idempotencyPayloadHash || null
+        )
+
+        try {
+          const batchResult = await c.env.DB.batch([insert])
+          result = batchResult[0]
+          lastInsertError = null
+          break
+        } catch (error) {
+          lastInsertError = error
+          if (idempotencyKeyHash) {
+            const existing = await findIdempotentOrder(c.env.DB, idempotencyKeyHash)
+            if (existing) {
+              if (existing.idempotency_payload_hash !== idempotencyPayloadHash
+                || existing.order_access_token_hash !== orderAccessTokenHash) {
+                return c.json({ success: false, error: 'IDEMPOTENCY_KEY_REUSE' }, 409)
+              }
+              return c.json({
+                success: true,
+                duplicate: true,
+                order_code: existing.order_code,
+                id: Number(existing.id || 0),
+                discount: Number(existing.discount_amount || 0),
+                total: Number(existing.total_price || 0),
+                order_access_token: orderAccessToken
+              })
+            }
+          }
+          if (!isUniqueConstraintError(error)) break
+        }
+      }
+
+      if (!result) {
+        const message = String((lastInsertError as any)?.message || lastInsertError || '')
+        if (/INSUFFICIENT_STOCK/i.test(message)) {
+          return c.json({ success: false, error: 'INSUFFICIENT_STOCK' }, 409)
+        }
+        if (/INVALID_VOUCHER/i.test(message)) {
+          return c.json({ success: false, error: 'VOUCHER_LIMIT' }, 409)
+        }
+        return c.json({ success: false, error: 'ORDER_CREATION_FAILED' }, 500)
+      }
 
       const createdOrderForPush = {
         id: result.meta.last_row_id,
         order_code: orderCode,
-        customer_name,
+        customer_name: customerName,
         customer_phone: normalizedCustomerPhone,
         total_price: total
       }
@@ -580,9 +850,16 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
         void pushTask
       }
 
-      return c.json({ success: true, order_code: orderCode, id: result.meta.last_row_id, discount, total })
+      return c.json({
+        success: true,
+        order_code: orderCode,
+        id: result.meta.last_row_id,
+        discount,
+        total,
+        order_access_token: orderAccessToken
+      })
     } catch (e: any) {
-      return c.json({ success: false, error: e.message }, 500)
+      return c.json({ success: false, error: 'ORDER_CREATION_FAILED' }, 500)
     }
   })
 
@@ -663,18 +940,285 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
     }
   })
 
+  const getShippingCreationAttempt = async (db: D1Database, orderId: number) => {
+    return await db.prepare(`
+      SELECT order_id, carrier, idempotency_key, state, tracking_code, label_code,
+             shipping_fee, last_error, created_at, updated_at
+      FROM shipping_creation_attempts
+      WHERE order_id=?
+      LIMIT 1
+    `).bind(orderId).first() as any
+  }
+
+  const dbChanges = (result: any) => {
+    const changes = Number(result?.meta?.changes)
+    return Number.isFinite(changes) ? changes : null
+  }
+
+  const updateShippingCreationAttempt = async (
+    db: D1Database,
+    orderId: number,
+    state: 'creating' | 'created' | 'failed' | 'needs_reconciliation',
+    options: { trackingCode?: string, labelCode?: string, fee?: number, error?: string } = {}
+  ) => {
+    try {
+      const result = await db.prepare(`
+        UPDATE shipping_creation_attempts
+        SET state=?,
+            tracking_code=COALESCE(NULLIF(?, ''), tracking_code),
+            label_code=COALESCE(NULLIF(?, ''), label_code),
+            shipping_fee=CASE WHEN ? > 0 THEN ? ELSE shipping_fee END,
+            last_error=?,
+            updated_at=CURRENT_TIMESTAMP
+        WHERE order_id=?
+          AND state IN ('creating', 'failed', 'needs_reconciliation')
+      `).bind(
+        state,
+        String(options.trackingCode || '').trim(),
+        String(options.labelCode || '').trim(),
+        Number(options.fee || 0) > 0 ? Number(options.fee || 0) : 0,
+        Number(options.fee || 0) > 0 ? Number(options.fee || 0) : 0,
+        String(options.error || '').slice(0, 500) || null,
+        orderId
+      ).run()
+      return dbChanges(result) === 1
+    } catch {
+      return false
+    }
+  }
+
+  const reconciliationFailure = (order: any, carrier: string, attempt: any, detail?: unknown) => ({
+    id: Number(order?.id),
+    order_code: String(order?.order_code || ''),
+    carrier,
+    error: 'SHIPPING_RECONCILIATION_REQUIRED',
+    reconciliation_required: true,
+    idempotency_key: String(attempt?.idempotency_key || '').trim() || null,
+    attempt_state: String(attempt?.state || '').trim() || 'creating',
+    action: 'Kiểm tra trạng thái trên hệ thống hãng vận chuyển theo mã đơn/idempotency key, ghi nhận mã vận đơn vào đơn rồi mới thử lại.',
+    detail: detail || null
+  })
+
+  const acquireShippingCreationAttempt = async (db: D1Database, order: any, carrier: string) => {
+    const orderId = Number(order?.id)
+    const existing = await getShippingCreationAttempt(db, orderId)
+    if (existing) {
+      const existingCarrier = normalizeShippingCarrier(existing.carrier)
+      if (existingCarrier !== carrier) {
+        return { acquired: false, blocked: true, attempt: existing, reason: 'SHIPPING_RECONCILIATION_REQUIRED' }
+      }
+      const state = normalizeShippingCreationState(existing.state)
+      if (state === 'failed') {
+        try {
+          const reset = await db.prepare(`
+            UPDATE shipping_creation_attempts
+            SET state='creating', last_error=NULL, updated_at=CURRENT_TIMESTAMP
+            WHERE order_id=?
+              AND state='failed'
+              AND EXISTS (
+                SELECT 1
+                FROM orders o
+                WHERE o.id=shipping_creation_attempts.order_id
+                  AND LOWER(COALESCE(o.status, '')) IN ('pending', 'confirmed')
+                  AND COALESCE(o.shipping_arranged, 0)=0
+                  AND TRIM(COALESCE(o.shipping_tracking_code, ''))=''
+                  AND LOWER(COALESCE(o.return_status, '')) NOT IN ('returned', 'cancelled', 'delivery_failed')
+                  AND (
+                    UPPER(COALESCE(o.payment_method, ''))='COD'
+                    OR (
+                      UPPER(COALESCE(o.payment_method, '')) IN ('BANK_TRANSFER', 'ZALOPAY', 'MOMO')
+                      AND LOWER(COALESCE(o.payment_status, ''))='paid'
+                    )
+                  )
+              )
+          `).bind(orderId).run()
+          if (dbChanges(reset) === 1) {
+            return {
+              acquired: true,
+              blocked: false,
+              attempt: { ...existing, state: 'creating' }
+            }
+          }
+        } catch {
+          // Treat a failed lock transition as unknown. Never call the carrier.
+        }
+      }
+      return { acquired: false, blocked: true, attempt: existing, reason: 'SHIPPING_RECONCILIATION_REQUIRED' }
+    }
+
+    const idempotencyKey = buildShippingIdempotencyKey(order, carrier)
+    try {
+      const inserted = await db.prepare(`
+        INSERT INTO shipping_creation_attempts
+          (order_id, carrier, idempotency_key, state, created_at, updated_at)
+        SELECT ?, ?, ?, 'creating', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP
+        FROM orders o
+        WHERE o.id=?
+          AND LOWER(COALESCE(o.status, '')) IN ('pending', 'confirmed')
+          AND COALESCE(o.shipping_arranged, 0)=0
+          AND TRIM(COALESCE(o.shipping_tracking_code, ''))=''
+          AND LOWER(COALESCE(o.return_status, '')) NOT IN ('returned', 'cancelled', 'delivery_failed')
+          AND (
+            UPPER(COALESCE(o.payment_method, ''))='COD'
+            OR (
+              UPPER(COALESCE(o.payment_method, '')) IN ('BANK_TRANSFER', 'ZALOPAY', 'MOMO')
+              AND LOWER(COALESCE(o.payment_status, ''))='paid'
+            )
+          )
+        ON CONFLICT(order_id) DO NOTHING
+      `).bind(orderId, carrier, idempotencyKey, orderId).run()
+      if (dbChanges(inserted) === 1) {
+        return {
+          acquired: true,
+          blocked: false,
+          attempt: { order_id: orderId, carrier, idempotency_key: idempotencyKey, state: 'creating' }
+        }
+      }
+    } catch {
+      return { acquired: false, blocked: true, attempt: null, reason: 'SHIPPING_RECONCILIATION_REQUIRED' }
+    }
+
+    const raced = await getShippingCreationAttempt(db, orderId)
+    return { acquired: false, blocked: true, attempt: raced, reason: 'SHIPPING_RECONCILIATION_REQUIRED' }
+  }
+
+  const persistCreatedShipment = async (
+    db: D1Database,
+    order: any,
+    carrier: string,
+    trackingCode: string,
+    labelCode: string,
+    fee: number
+  ) => {
+    const id = Number(order?.id)
+    const safeTrackingCode = String(trackingCode || '').trim()
+    if (!safeTrackingCode) return { ok: false, reason: 'SHIPPING_TRACKING_EMPTY' }
+    try {
+      const results = await db.batch([
+        db.prepare(`
+          UPDATE orders
+          SET shipping_arranged=1,
+              shipping_arranged_at=COALESCE(shipping_arranged_at, CURRENT_TIMESTAMP),
+              shipping_carrier=CASE
+                WHEN TRIM(COALESCE(shipping_tracking_code, ''))='' THEN ?
+                ELSE shipping_carrier
+              END,
+              shipping_tracking_code=CASE
+                WHEN TRIM(COALESCE(shipping_tracking_code, ''))='' THEN ?
+                ELSE shipping_tracking_code
+              END,
+              shipping_label=CASE
+                WHEN TRIM(COALESCE(shipping_label, ''))='' THEN ?
+                ELSE shipping_label
+              END,
+              shipping_fee=CASE
+                WHEN COALESCE(shipping_fee, 0)<=0 AND ? > 0 THEN ?
+                ELSE shipping_fee
+              END,
+              status=CASE WHEN LOWER(COALESCE(status, ''))='pending' THEN 'confirmed' ELSE status END,
+              updated_at=CURRENT_TIMESTAMP
+          WHERE id=?
+            AND LOWER(COALESCE(status, '')) NOT IN ('done', 'cancelled')
+            AND LOWER(COALESCE(return_status, '')) NOT IN ('returned', 'cancelled', 'delivery_failed')
+            AND (
+              TRIM(COALESCE(shipping_tracking_code, ''))=''
+              OR TRIM(shipping_tracking_code)=?
+            )
+        `).bind(carrier, safeTrackingCode, String(labelCode || '').trim(), fee > 0 ? fee : 0, fee > 0 ? fee : 0, id, safeTrackingCode),
+          db.prepare(`
+          UPDATE shipping_creation_attempts
+          SET state='created',
+              tracking_code=?,
+              label_code=COALESCE(NULLIF(?, ''), label_code),
+              shipping_fee=CASE WHEN ? > 0 THEN ? ELSE shipping_fee END,
+              last_error=NULL,
+              updated_at=CURRENT_TIMESTAMP
+          WHERE order_id=?
+            AND state='creating'
+            AND changes()=1
+            AND EXISTS (
+              SELECT 1
+              FROM orders o
+              WHERE o.id=shipping_creation_attempts.order_id
+                AND TRIM(COALESCE(o.shipping_tracking_code, ''))=?
+            )
+        `).bind(safeTrackingCode, String(labelCode || '').trim(), fee > 0 ? fee : 0, fee > 0 ? fee : 0, id, safeTrackingCode)
+      ])
+      const orderPersisted = dbChanges(results?.[0]) === 1
+      const attemptPersisted = dbChanges(results?.[1]) === 1
+      if (orderPersisted && attemptPersisted) return { ok: true }
+
+      await updateShippingCreationAttempt(db, id, 'needs_reconciliation', {
+        trackingCode: safeTrackingCode,
+        labelCode,
+        fee,
+        error: 'REMOTE_SHIPMENT_CREATED_BUT_LOCAL_PERSISTENCE_INCOMPLETE'
+      })
+      return { ok: false, reason: 'SHIPPING_RECONCILIATION_REQUIRED' }
+    } catch (error: any) {
+      await updateShippingCreationAttempt(db, id, 'needs_reconciliation', {
+        trackingCode: safeTrackingCode,
+        labelCode,
+        fee,
+        error: 'REMOTE_SHIPMENT_CREATED_BUT_LOCAL_PERSISTENCE_FAILED'
+      })
+      return { ok: false, reason: 'SHIPPING_RECONCILIATION_REQUIRED', detail: String(error?.message || error) }
+    }
+  }
+
+  const persistReusedShipment = async (db: D1Database, order: any, carrier: string, trackingCode: string) => {
+    const id = Number(order?.id)
+    const safeTrackingCode = String(trackingCode || '').trim()
+    try {
+      const result = await db.prepare(`
+        UPDATE orders
+        SET shipping_arranged=1,
+            shipping_arranged_at=COALESCE(shipping_arranged_at, CURRENT_TIMESTAMP),
+            shipping_carrier=CASE
+              WHEN TRIM(COALESCE(shipping_carrier, ''))='' THEN ?
+              ELSE shipping_carrier
+            END,
+            shipping_tracking_code=CASE
+              WHEN TRIM(COALESCE(shipping_tracking_code, ''))='' THEN ?
+              ELSE shipping_tracking_code
+            END,
+            status=CASE WHEN LOWER(COALESCE(status, ''))='pending' THEN 'confirmed' ELSE status END,
+            updated_at=CURRENT_TIMESTAMP
+        WHERE id=?
+          AND LOWER(COALESCE(status, '')) NOT IN ('done', 'cancelled')
+          AND LOWER(COALESCE(return_status, '')) NOT IN ('returned', 'cancelled', 'delivery_failed')
+          AND (
+            TRIM(COALESCE(shipping_tracking_code, ''))=''
+            OR TRIM(shipping_tracking_code)=?
+          )
+      `).bind(carrier, safeTrackingCode, id, safeTrackingCode).run()
+      if (dbChanges(result) === 1) return { ok: true }
+      const latest = await db.prepare('SELECT shipping_carrier, shipping_tracking_code FROM orders WHERE id=? LIMIT 1').bind(id).first() as any
+      const latestTracking = String(latest?.shipping_tracking_code || '').trim()
+      const latestCarrier = String(latest?.shipping_carrier || '').trim().toUpperCase()
+      return {
+        ok: latestTracking === safeTrackingCode && latestCarrier === normalizeShippingCarrier(carrier),
+        reason: 'SHIPPING_RECONCILIATION_REQUIRED'
+      }
+    } catch (error: any) {
+      return { ok: false, reason: 'SHIPPING_RECONCILIATION_REQUIRED', detail: String(error?.message || error) }
+    }
+  }
+
   app.patch('/api/admin/orders/:id/status', async (c) => {
     try {
       await deps.initDB(c.env.DB)
-      const id = c.req.param('id')
-      const { status } = await c.req.json()
-      const nextStatus = String(status || '').trim().toLowerCase()
-      const allowedStatuses = new Set(['pending', 'confirmed', 'shipping', 'done', 'cancelled'])
-      if (!allowedStatuses.has(nextStatus)) {
+      const id = Number(c.req.param('id'))
+      if (!Number.isFinite(id) || id <= 0) return c.json({ success: false, error: 'INVALID_ORDER_ID' }, 400)
+      const body = await c.req.json().catch(() => ({} as any))
+      const nextStatus = String(body?.status || '').trim().toLowerCase()
+      if (!new Set(['pending', 'confirmed', 'shipping', 'done', 'cancelled']).has(nextStatus)) {
         return c.json({ success: false, error: 'INVALID_STATUS' }, 400)
       }
       const existing = await c.env.DB.prepare(`
-        SELECT id, status, shipping_carrier, shipping_tracking_code, shipping_arranged
+        SELECT id, status, return_status, payment_method, payment_status,
+               shipping_carrier, shipping_tracking_code, shipping_arranged,
+               shipping_delivery_confirmed_at
         FROM orders
         WHERE id=?
         LIMIT 1
@@ -682,19 +1226,43 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
       if (!existing) return c.json({ success: false, error: 'ORDER_NOT_FOUND' }, 404)
 
       const currentStatus = String(existing.status || '').trim().toLowerCase()
-      const hasShippingEvidence = Number(existing.shipping_arranged || 0) === 1 || !!String(existing.shipping_tracking_code || '').trim()
-
+      const trackingCode = String(existing.shipping_tracking_code || '').trim()
+      const currentCarrier = String(existing.shipping_carrier || '').trim().toUpperCase()
       if (currentStatus === 'cancelled' || currentStatus === 'done') {
         return c.json({ success: false, error: 'ORDER_ALREADY_CLOSED' }, 400)
       }
+      if (isTerminalReturnStatus(existing.return_status)) {
+        return c.json({ success: false, error: 'ORDER_RETURN_TERMINAL', return_status: String(existing.return_status).toLowerCase() }, 400)
+      }
+      if (!isValidOrderStatusTransition(currentStatus, nextStatus)) {
+        return c.json({ success: false, error: 'INVALID_STATUS_TRANSITION', from: currentStatus, to: nextStatus }, 400)
+      }
 
-      if (nextStatus === 'shipping' && !hasShippingEvidence) {
-        return c.json({ success: false, error: 'SHIPPING_NOT_READY' }, 400)
+      if (nextStatus === 'shipping' || nextStatus === 'done') {
+        const payment = evaluateShippingPaymentEligibility(existing.payment_method, existing.payment_status)
+        if (!payment.allowed) {
+          return c.json({
+            success: false,
+            error: 'SHIPPING_PAYMENT_REQUIRED',
+            payment_method: payment.method,
+            payment_status: payment.paymentStatus
+          }, 400)
+        }
+        if (!trackingCode || !currentCarrier) {
+          return c.json({ success: false, error: 'SHIPPING_NOT_READY' }, 400)
+        }
       }
 
       if (nextStatus === 'done') {
-        if (currentStatus !== 'shipping' || !hasShippingEvidence) {
+        if (currentStatus !== 'shipping') {
           return c.json({ success: false, error: 'ORDER_NOT_DELIVERED' }, 400)
+        }
+        if (!String(existing.shipping_delivery_confirmed_at || '').trim()) {
+          return c.json({
+            success: false,
+            error: 'ORDER_NOT_DELIVERED',
+            reason: 'CARRIER_DELIVERY_EVIDENCE_REQUIRED'
+          }, 400)
         }
       }
 
@@ -702,59 +1270,205 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
         if (currentStatus === 'shipping') {
           return c.json({ success: false, error: 'ORDER_ALREADY_IN_SHIPPING' }, 400)
         }
-
-        const carrier = String(existing.shipping_carrier || '').trim().toUpperCase()
-        const trackingCode = String(existing.shipping_tracking_code || '').trim()
-        if (carrier === 'GHTK' && trackingCode) {
-          const cancelRes = await deps.ghtkCancelShipment(c.env, c.env.DB, trackingCode)
-          if (!cancelRes.ok) {
-            return c.json({ success: false, error: cancelRes.message || 'GHTK_CANCEL_FAILED', detail: cancelRes.detail || null }, 400)
+        if (Number(existing.shipping_arranged || 0) === 1 && !trackingCode) {
+          return c.json({
+            success: false,
+            error: 'SHIPPING_RECONCILIATION_REQUIRED',
+            action: 'Đơn có cờ đã sắp xếp nhưng thiếu mã vận đơn; đối soát với hãng trước khi hủy.'
+          }, 409)
+        }
+        if (trackingCode) {
+          if (currentCarrier !== 'GHTK') {
+            return c.json({
+              success: false,
+              error: 'SHIPPING_CANCEL_REQUIRES_CARRIER_RECONCILIATION',
+              carrier: currentCarrier || null,
+              tracking_code: trackingCode,
+              action: 'Hủy trên hệ thống hãng vận chuyển hoặc đối soát trạng thái trước; hệ thống không tự hủy cục bộ.'
+            }, 409)
+          }
+          let cancelRes: any
+          try {
+            cancelRes = await deps.ghtkCancelShipment(c.env, c.env.DB, trackingCode)
+          } catch (error: any) {
+            return c.json({
+              success: false,
+              error: 'SHIPPING_CANCEL_UNCERTAIN',
+              carrier: currentCarrier,
+              tracking_code: trackingCode,
+              action: 'Không rõ kết quả hủy từ GHTK; kiểm tra GHTK trước khi thử lại.',
+              detail: String(error?.message || error)
+            }, 409)
+          }
+          if (!cancelRes?.ok) {
+            return c.json({
+              success: false,
+              error: 'SHIPPING_CANCEL_REQUIRES_CARRIER_RECONCILIATION',
+              carrier: currentCarrier,
+              tracking_code: trackingCode,
+              action: 'GHTK chưa xác nhận hủy; đối soát trên GHTK trước khi cập nhật đơn.',
+              detail: cancelRes?.detail || cancelRes?.message || null
+            }, 409)
           }
         }
-        
-        // Set cancelled_by = 'shop' when admin cancels the order
-        // Also set return_status = 'cancelled' for returns management
-        await c.env.DB.prepare(`
-          UPDATE orders 
-          SET status = ?, 
-              return_status = 'cancelled',
-              cancelled_by = 'shop',
-              updated_at = CURRENT_TIMESTAMP 
-          WHERE id = ?
-        `).bind(nextStatus, id).run()
-        
-        // Check for auto-block after cancellation
-        const order = await c.env.DB.prepare('SELECT user_id, customer_phone FROM orders WHERE id = ?').bind(id).first() as any
-        if (order) {
-          await refreshCustomerAutoBlock(c.env.DB, order.user_id, order.customer_phone)
+
+        const result = await c.env.DB.prepare(`
+          UPDATE orders
+          SET status='cancelled',
+              return_status='cancelled',
+              cancelled_by='shop',
+              updated_at=CURRENT_TIMESTAMP
+          WHERE id=?
+            AND status=?
+            AND NOT EXISTS (
+              SELECT 1
+              FROM shipping_creation_attempts a
+              WHERE a.order_id=orders.id
+                AND a.state IN ('creating', 'needs_reconciliation')
+            )
+        `).bind(id, currentStatus).run()
+        if (dbChanges(result) !== 1) {
+          return c.json({ success: false, error: 'ORDER_STATE_CHANGED', action: 'Tải lại đơn và đối soát trước khi thử lại.' }, 409)
         }
-        
+        const order = await c.env.DB.prepare('SELECT user_id, customer_phone FROM orders WHERE id=? LIMIT 1').bind(id).first() as any
+        if (order) await refreshCustomerAutoBlock(c.env.DB, order.user_id, order.customer_phone)
         return c.json({ success: true, status: nextStatus, cancelled_by: 'shop' })
       }
 
-      if (nextStatus === 'done') {
-        await c.env.DB.prepare(`
-          UPDATE orders
-          SET status=?,
-              delivered_at=COALESCE(delivered_at, CURRENT_TIMESTAMP),
-              updated_at=CURRENT_TIMESTAMP
-          WHERE id=?
-        `).bind(nextStatus, id).run()
-      } else {
-        await c.env.DB.prepare(`
-          UPDATE orders SET status=?, updated_at=CURRENT_TIMESTAMP WHERE id=?
-        `).bind(nextStatus, id).run()
+      const result = nextStatus === 'done'
+        ? await c.env.DB.prepare(`
+            UPDATE orders
+            SET status='done',
+                delivered_at=COALESCE(delivered_at, CURRENT_TIMESTAMP),
+                updated_at=CURRENT_TIMESTAMP
+            WHERE id=? AND status='shipping'
+          `).bind(id).run()
+        : await c.env.DB.prepare(`
+            UPDATE orders SET status=?, updated_at=CURRENT_TIMESTAMP WHERE id=? AND status=?
+          `).bind(nextStatus, id, currentStatus).run()
+      if (dbChanges(result) !== 1) {
+        return c.json({ success: false, error: 'ORDER_STATE_CHANGED' }, 409)
       }
-      
-      // Check for auto-block after any status change to cancelled
-      if (nextStatus === 'cancelled') {
-        const order = await c.env.DB.prepare('SELECT user_id, customer_phone FROM orders WHERE id = ?').bind(id).first() as any
-        if (order) {
-          await refreshCustomerAutoBlock(c.env.DB, order.user_id, order.customer_phone)
-        }
-      }
-      
       return c.json({ success: true, status: nextStatus })
+    } catch (e: any) {
+      return c.json({ success: false, error: e.message }, 500)
+    }
+  })
+
+  // GHN/SPX do not expose a delivery-status adapter in this Worker. An
+  // operator may record carrier-verified proof through this endpoint, but
+  // only with an explicit confirmation and a reference that can be audited.
+  // This endpoint never marks an order delivered by itself.
+  app.post('/api/admin/orders/:id/delivery-evidence', async (c) => {
+    try {
+      await deps.initDB(c.env.DB)
+      const id = Number(c.req.param('id'))
+      if (!Number.isFinite(id) || id <= 0) return c.json({ success: false, error: 'INVALID_ORDER_ID' }, 400)
+      const body = await c.req.json().catch(() => null as any)
+      if (!body || typeof body !== 'object' || Array.isArray(body)) {
+        return c.json({ success: false, error: 'INVALID_JSON' }, 400)
+      }
+      if (body.operator_confirmed !== true) {
+        return c.json({
+          success: false,
+          error: 'DELIVERY_EVIDENCE_CONFIRMATION_REQUIRED',
+          action: 'Xác nhận rằng bằng chứng đã được kiểm tra trên hệ thống hãng trước khi ghi nhận.'
+        }, 400)
+      }
+
+      const evidenceRef = String(body.evidence_ref ?? '').trim()
+      if (!evidenceRef || evidenceRef.length > 256 || /[\u0000-\u001f\u007f]/.test(evidenceRef)) {
+        return c.json({ success: false, error: 'INVALID_DELIVERY_EVIDENCE_REF' }, 400)
+      }
+
+      const requestedSource = String(body.source ?? '').trim().toUpperCase()
+      const sourceSet = new Set(['GHTK_OPERATOR', 'GHN_OPERATOR', 'SPX_OPERATOR', 'CARRIER_PORTAL'])
+      if (!sourceSet.has(requestedSource)) {
+        return c.json({ success: false, error: 'INVALID_DELIVERY_EVIDENCE_SOURCE' }, 400)
+      }
+
+      const existing = await c.env.DB.prepare(`
+        SELECT id, status, return_status, shipping_carrier, shipping_tracking_code,
+               shipping_delivery_confirmed_at, shipping_delivery_source,
+               shipping_delivery_evidence_ref, shipping_delivery_confirmed_by
+        FROM orders
+        WHERE id=?
+        LIMIT 1
+      `).bind(id).first() as any
+      if (!existing) return c.json({ success: false, error: 'ORDER_NOT_FOUND' }, 404)
+
+      const status = String(existing.status || '').trim().toLowerCase()
+      if (!['shipping', 'done'].includes(status)) {
+        return c.json({ success: false, error: 'DELIVERY_EVIDENCE_REQUIRES_SHIPPING_STATUS' }, 409)
+      }
+      if (isTerminalReturnStatus(existing.return_status) || status === 'cancelled') {
+        return c.json({ success: false, error: 'ORDER_CLOSED' }, 409)
+      }
+
+      const carrier = String(existing.shipping_carrier || '').trim().toUpperCase()
+      const trackingCode = String(existing.shipping_tracking_code || '').trim()
+      if (!carrier || !trackingCode) {
+        return c.json({ success: false, error: 'SHIPPING_NOT_READY' }, 400)
+      }
+      if (requestedSource !== 'CARRIER_PORTAL' && requestedSource !== `${carrier}_OPERATOR`) {
+        return c.json({
+          success: false,
+          error: 'DELIVERY_EVIDENCE_SOURCE_CARRIER_MISMATCH',
+          carrier,
+          source: requestedSource
+        }, 400)
+      }
+
+      const existingEvidenceRef = String(existing.shipping_delivery_evidence_ref || '').trim()
+      if (String(existing.shipping_delivery_confirmed_at || '').trim()) {
+        if (existingEvidenceRef === evidenceRef && String(existing.shipping_delivery_source || '').trim().toUpperCase() === requestedSource) {
+          return c.json({
+            success: true,
+            already_confirmed: true,
+            delivery_evidence: {
+              source: String(existing.shipping_delivery_source || '').trim(),
+              evidence_ref: existingEvidenceRef,
+              confirmed_by: existing.shipping_delivery_confirmed_by || null
+            }
+          })
+        }
+        return c.json({
+          success: false,
+          error: 'DELIVERY_EVIDENCE_ALREADY_RECORDED',
+          action: 'Đơn đã có bằng chứng giao hàng; không ghi đè bằng chứng hiện hữu.'
+        }, 409)
+      }
+
+      const confirmedBy = String(getCookie(c, 'admin_user_key') || 'admin').trim().slice(0, 64) || 'admin'
+      const result = await c.env.DB.prepare(`
+        UPDATE orders
+        SET shipping_delivery_confirmed_at=CURRENT_TIMESTAMP,
+            shipping_delivery_source=?,
+            shipping_delivery_evidence_ref=?,
+            shipping_delivery_confirmed_by=?,
+            updated_at=CURRENT_TIMESTAMP
+        WHERE id=?
+          AND status IN ('shipping', 'done')
+          AND TRIM(COALESCE(shipping_carrier, ''))=?
+          AND TRIM(COALESCE(shipping_tracking_code, ''))=?
+          AND (shipping_delivery_confirmed_at IS NULL OR TRIM(shipping_delivery_confirmed_at)='')
+          AND LOWER(COALESCE(return_status, '')) NOT IN ('returned', 'cancelled', 'delivery_failed')
+      `).bind(requestedSource, evidenceRef, confirmedBy, id, carrier, trackingCode).run()
+      if (dbChanges(result) !== 1) {
+        return c.json({
+          success: false,
+          error: 'DELIVERY_EVIDENCE_STATE_CHANGED',
+          action: 'Tải lại đơn; bằng chứng có thể đã được ghi nhận bởi thao tác khác.'
+        }, 409)
+      }
+      return c.json({
+        success: true,
+        delivery_evidence: {
+          source: requestedSource,
+          evidence_ref: evidenceRef,
+          confirmed_by: confirmedBy
+        }
+      })
     } catch (e: any) {
       return c.json({ success: false, error: e.message }, 500)
     }
@@ -762,8 +1476,57 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
 
   app.delete('/api/admin/orders/:id', async (c) => {
     try {
-      const id = c.req.param('id')
-      await c.env.DB.prepare(`DELETE FROM orders WHERE id = ?`).bind(id).run()
+      await deps.initDB(c.env.DB)
+      const id = Number(c.req.param('id'))
+      if (!Number.isFinite(id) || id <= 0) return c.json({ success: false, error: 'INVALID_ORDER_ID' }, 400)
+      const existing = await c.env.DB.prepare('SELECT * FROM orders WHERE id=? LIMIT 1').bind(id).first() as any
+      if (!existing) return c.json({ success: false, error: 'ORDER_NOT_FOUND' }, 404)
+      const status = String(existing.status || '').trim().toLowerCase()
+      const trackingCode = String(existing.shipping_tracking_code || '').trim()
+      if (status === 'done' || status === 'shipping' || trackingCode || Number(existing.shipping_arranged || 0) === 1) {
+        return c.json({ success: false, error: 'ORDER_HAS_SHIPPING_HISTORY' }, 409)
+      }
+      const paymentStatus = String(existing.payment_status || '').trim().toLowerCase()
+      if (paymentStatus === 'paid') {
+        return c.json({ success: false, error: 'ORDER_PAID_CANNOT_DELETE' }, 409)
+      }
+      const hasPaymentAttempt = [
+        existing.payment_link_id,
+        existing.payment_order_code,
+        existing.payment_ref,
+        existing.payment_checkout_url
+      ].some((value) => String(value ?? '').trim() !== '')
+      if (hasPaymentAttempt) {
+        return c.json({ success: false, error: 'ORDER_PAYMENT_ATTEMPT_EXISTS' }, 409)
+      }
+      const reserved = Number(existing.inventory_reserved || 0) === 1
+      const released = Number(existing.inventory_released || 0) === 1
+      if (reserved && !released) {
+        return c.json({ success: false, error: 'ORDER_STOCK_RESERVED', action: 'Hủy đơn để giải phóng tồn kho trước khi xóa.' }, 409)
+      }
+      if (!['pending', 'cancelled'].includes(status)) {
+        return c.json({ success: false, error: 'ORDER_NOT_DELETABLE' }, 409)
+      }
+      const result = await c.env.DB.prepare(`
+        DELETE FROM orders
+        WHERE id=?
+          AND status=?
+          AND LOWER(COALESCE(payment_status, ''))!='paid'
+          AND TRIM(COALESCE(shipping_tracking_code, ''))=''
+          AND COALESCE(shipping_arranged, 0)=0
+          AND TRIM(COALESCE(payment_link_id, ''))=''
+          AND TRIM(COALESCE(payment_order_code, ''))=''
+          AND TRIM(COALESCE(payment_ref, ''))=''
+          AND TRIM(COALESCE(payment_checkout_url, ''))=''
+          AND (COALESCE(inventory_reserved, 0)=0 OR COALESCE(inventory_released, 0)=1)
+          AND NOT EXISTS (
+            SELECT 1
+            FROM shipping_creation_attempts a
+            WHERE a.order_id=orders.id
+              AND a.state IN ('creating', 'needs_reconciliation', 'created')
+          )
+      `).bind(id, status).run()
+      if (dbChanges(result) !== 1) return c.json({ success: false, error: 'ORDER_STATE_CHANGED' }, 409)
       return c.json({ success: true })
     } catch (e: any) {
       return c.json({ success: false, error: e.message }, 500)
@@ -782,22 +1545,44 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
         return c.json({ success: false, error: 'SHIPPING_CARRIER_NOT_AVAILABLE' }, 400)
       }
       const existing = await c.env.DB.prepare(`
-        SELECT id, shipping_tracking_code, shipping_carrier
+        SELECT id, status, return_status, shipping_tracking_code, shipping_carrier
         FROM orders
         WHERE id=?
         LIMIT 1
       `).bind(id).first() as any
       if (!existing) return c.json({ success: false, error: 'ORDER_NOT_FOUND' }, 404)
       const tracking = String(existing.shipping_tracking_code || '').trim()
-      const currentCarrier = normalizeShippingCarrier(existing.shipping_carrier || 'GHTK')
+      const storedCarrier = String(existing.shipping_carrier || '').trim()
+      if (tracking && !storedCarrier) {
+        return c.json({
+          success: false,
+          error: 'SHIPPING_TRACKING_CARRIER_MISSING',
+          tracking_code: tracking,
+          action: 'Đối soát hãng vận chuyển của mã vận đơn trước khi cập nhật; hệ thống không tự suy đoán hãng.'
+        }, 409)
+      }
+      const currentCarrier = normalizeShippingCarrier(storedCarrier)
+      if (isTerminalReturnStatus(existing.return_status) || ['done', 'cancelled'].includes(String(existing.status || '').trim().toLowerCase())) {
+        return c.json({ success: false, error: 'ORDER_CLOSED' }, 409)
+      }
       if (tracking && currentCarrier !== carrier) {
         return c.json({ success: false, error: 'ORDER_ALREADY_HAS_TRACKING' }, 400)
       }
-      await c.env.DB.prepare(`
+      const result = await c.env.DB.prepare(`
         UPDATE orders
         SET shipping_carrier=?, updated_at=CURRENT_TIMESTAMP
         WHERE id=?
+          AND TRIM(COALESCE(shipping_tracking_code, ''))=''
+          AND NOT EXISTS (
+            SELECT 1
+            FROM shipping_creation_attempts a
+            WHERE a.order_id=orders.id
+          )
       `).bind(carrier, id).run()
+      if (tracking && currentCarrier === carrier) return c.json({ success: true, carrier, reused_tracking: true })
+      if (dbChanges(result) !== 1) {
+        return c.json({ success: false, error: 'ORDER_SHIPPING_STATE_CHANGED', action: 'Đơn đã có mã vận đơn hoặc đang đối soát; tải lại trước khi đổi hãng.' }, 409)
+      }
       return c.json({ success: true, carrier })
     } catch (e: any) {
       return c.json({ success: false, error: e.message }, 500)
@@ -808,17 +1593,27 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
     try {
       await deps.initDB(c.env.DB)
       const body: any = await c.req.json().catch(() => ({}))
-      const ids = Array.isArray(body.ids) ? body.ids.map((v: any) => Number(v)).filter((v: number) => Number.isFinite(v) && v > 0) : []
+      const rawIds = Array.isArray(body.ids)
+        ? body.ids.map((v: any) => Number(v)).filter((v: number) => Number.isFinite(v) && v > 0)
+        : []
+      const ids = Array.from(new Set<number>(rawIds as number[]))
       const requestedCarriers = buildRequestedCarrierMap(body.carriers)
       if (!ids.length) return c.json({ success: false, error: 'NO_ORDER_IDS' }, 400)
+      if (ids.length > 100) return c.json({ success: false, error: 'TOO_MANY_ORDER_IDS' }, 400)
       const availableCarrierCodes = await getAvailableCarrierCodeSet(c.env.DB, deps)
 
       const orderQuery = `
-        SELECT id, order_code, customer_name, customer_phone, customer_address, product_name,
-               customer_province_code, customer_commune_code, customer_address_effective_date,
-               quantity, total_price, note, payment_status, status, shipping_carrier, shipping_tracking_code
-        FROM orders
-        WHERE id IN (${ids.map(() => '?').join(',')})
+        SELECT o.id, o.order_code, o.customer_name, o.customer_phone, o.customer_address, o.product_name,
+               o.customer_province_code, o.customer_commune_code, o.customer_address_effective_date,
+               o.quantity, o.total_price, o.note, o.payment_method, o.payment_status,
+               o.status, o.return_status, o.shipping_arranged, o.shipping_carrier,
+               o.shipping_tracking_code, o.shipping_label, o.shipping_fee,
+               a.state AS shipping_create_state,
+               a.idempotency_key AS shipping_create_attempt_id,
+               a.last_error AS shipping_create_last_error
+        FROM orders o
+        LEFT JOIN shipping_creation_attempts a ON a.order_id=o.id
+        WHERE o.id IN (${ids.map(() => '?').join(',')})
       `
       const orderResult = await c.env.DB.prepare(orderQuery).bind(...ids).all()
       const rows = (orderResult.results || []) as any[]
@@ -832,61 +1627,136 @@ export function registerOrderRoutes(app: Hono<{ Bindings: AppBindings }>, deps: 
           failed.push({ id, error: 'ORDER_NOT_FOUND' })
           continue
         }
-        const status = String(order.status || '').toLowerCase()
+        const status = String(order.status || '').trim().toLowerCase()
         if (status === 'done' || status === 'cancelled') {
           failed.push({ id, order_code: order.order_code, error: 'ORDER_CLOSED' })
           continue
         }
-        const targetCarrier = normalizeShippingCarrier(requestedCarriers.get(id) || order.shipping_carrier || 'GHTK')
+        if (!['pending', 'confirmed'].includes(status)) {
+          failed.push({ id, order_code: order.order_code, error: 'INVALID_STATUS_TRANSITION', detail: { status } })
+          continue
+        }
+        if (isTerminalReturnStatus(order.return_status)) {
+          failed.push({ id, order_code: order.order_code, error: 'ORDER_RETURN_TERMINAL', return_status: String(order.return_status).toLowerCase() })
+          continue
+        }
+        const payment = evaluateShippingPaymentEligibility(order.payment_method, order.payment_status)
+        if (!payment.allowed) {
+          failed.push({
+            id,
+            order_code: order.order_code,
+            error: 'SHIPPING_PAYMENT_REQUIRED',
+            payment_method: payment.method,
+            payment_status: payment.paymentStatus
+          })
+          continue
+        }
+
+        const trackingCode = String(order.shipping_tracking_code || '').trim()
+        const storedCarrier = String(order.shipping_carrier || '').trim()
+        if (trackingCode && !storedCarrier) {
+          failed.push(reconciliationFailure(order, 'UNKNOWN', {
+            state: 'needs_reconciliation',
+            idempotency_key: order.shipping_create_attempt_id
+          }, 'Existing tracking has no persisted carrier; carrier must be identified before reuse.'))
+          continue
+        }
+        const targetCarrier = normalizeShippingCarrier(requestedCarriers.get(id) || storedCarrier || 'GHTK')
         if (!availableCarrierCodes.has(targetCarrier)) {
           failed.push({ id, order_code: order.order_code, carrier: targetCarrier, error: 'SHIPPING_CARRIER_NOT_AVAILABLE' })
           continue
         }
-
-        let trackingCode = String(order.shipping_tracking_code || '').trim()
-        const existingCarrier = normalizeShippingCarrier(order.shipping_carrier || targetCarrier)
+        const existingCarrier = trackingCode ? normalizeShippingCarrier(storedCarrier) : targetCarrier
         if (trackingCode && existingCarrier !== targetCarrier) {
-          failed.push({ id, order_code: order.order_code, error: 'ORDER_ALREADY_HAS_DIFFERENT_CARRIER_TRACKING' })
+          failed.push({ id, order_code: order.order_code, carrier: targetCarrier, error: 'ORDER_ALREADY_HAS_DIFFERENT_CARRIER_TRACKING' })
           continue
         }
-        let labelCode = ''
-        let fee = 0
-        if (!trackingCode) {
-          const createRes: any = await createShipmentForCarrier(targetCarrier, c.env, c.env.DB, order)
-          if (!createRes.ok) {
-            failed.push({ id, order_code: order.order_code, carrier: targetCarrier, error: createRes.message || `${targetCarrier}_CREATE_ORDER_FAILED`, detail: createRes.detail || null })
+
+        if (trackingCode) {
+          const reused = await persistReusedShipment(c.env.DB, order, existingCarrier, trackingCode)
+          if (!reused.ok) {
+            failed.push(reconciliationFailure(order, existingCarrier, {
+              state: 'needs_reconciliation',
+              idempotency_key: order.shipping_create_attempt_id
+            }, reused.reason || reused.detail || null))
             continue
           }
-          trackingCode = String(createRes.data?.label || createRes.data?.tracking_id || '').trim()
-          labelCode = String(createRes.data?.label || '').trim()
-          fee = Number(createRes.data?.fee || 0) || 0
-          if (!trackingCode) {
-            failed.push({ id, order_code: order.order_code, carrier: targetCarrier, error: `${targetCarrier}_TRACKING_EMPTY`, detail: createRes.data || null })
-            continue
-          }
-          updated.push({
-            id,
-            order_code: order.order_code,
-            tracking_code: trackingCode,
-            carrier: targetCarrier,
-            used_fallback_address: !!createRes.usedFallbackAddress
-          })
-        } else {
-          updated.push({ id, order_code: order.order_code, tracking_code: trackingCode, carrier: targetCarrier, reused_tracking: true })
+          updated.push({ id, order_code: order.order_code, tracking_code: trackingCode, carrier: existingCarrier, reused_tracking: true })
+          continue
         }
 
-        await c.env.DB.prepare(`
-          UPDATE orders
-          SET shipping_arranged=1,
-              shipping_arranged_at=COALESCE(shipping_arranged_at, CURRENT_TIMESTAMP),
-              shipping_carrier=?,
-              shipping_tracking_code=COALESCE(NULLIF(?, ''), shipping_tracking_code),
-              shipping_label=COALESCE(NULLIF(?, ''), shipping_label),
-              shipping_fee=CASE WHEN ? > 0 THEN ? ELSE shipping_fee END,
-              status=CASE WHEN status='pending' THEN 'confirmed' ELSE status END,
-              updated_at=CURRENT_TIMESTAMP
-          WHERE id=?
-        `).bind(targetCarrier, trackingCode, labelCode, fee, fee, id).run()
+        if (Number(order.shipping_arranged || 0) === 1 || status === 'confirmed' && String(order.shipping_create_state || '').trim().toLowerCase() === 'needs_reconciliation') {
+          failed.push(reconciliationFailure(order, targetCarrier, {
+            state: order.shipping_create_state || 'needs_reconciliation',
+            idempotency_key: order.shipping_create_attempt_id
+          }, 'Order is marked as arranged without a reusable tracking code.'))
+          continue
+        }
+
+        const lock = await acquireShippingCreationAttempt(c.env.DB, order, targetCarrier)
+        if (!lock.acquired) {
+          failed.push(reconciliationFailure(order, targetCarrier, lock.attempt, String(lock.reason || 'SHIPPING_RECONCILIATION_REQUIRED')))
+          continue
+        }
+        const attempt = lock.attempt
+        let createRes: any
+        try {
+          createRes = await createShipmentForCarrier(targetCarrier, c.env, c.env.DB, {
+            ...order,
+            shipping_attempt_id: attempt?.idempotency_key || null,
+            shipping_idempotency_key: attempt?.idempotency_key || null
+          })
+        } catch (error: any) {
+          const errorMessage = String(error?.message || error || `${targetCarrier}_CREATE_ORDER_UNCERTAIN`).slice(0, 500)
+          await updateShippingCreationAttempt(c.env.DB, id, 'needs_reconciliation', { error: errorMessage })
+          failed.push(reconciliationFailure(order, targetCarrier, attempt, {
+            reason: 'REMOTE_CREATE_RESULT_UNKNOWN',
+            message: errorMessage
+          }))
+          continue
+        }
+
+        const remoteTracking = extractShippingTrackingCode(createRes)
+        const remoteData = createRes?.data || {}
+        const labelCode = String(remoteData?.label || remoteData?.label_id || remoteTracking || '').trim()
+        const fee = Number(remoteData?.fee || remoteData?.total_fee || 0) || 0
+        if (!createRes?.ok && !remoteTracking) {
+          const message = String(createRes?.message || `${targetCarrier}_CREATE_ORDER_FAILED`).slice(0, 500)
+          if (isUncertainShippingCreateResult(createRes)) {
+            await updateShippingCreationAttempt(c.env.DB, id, 'needs_reconciliation', { error: message })
+            failed.push(reconciliationFailure(order, targetCarrier, attempt, createRes?.detail || message))
+          } else {
+            const markedFailed = await updateShippingCreationAttempt(c.env.DB, id, 'failed', { error: message })
+            if (!markedFailed) {
+              failed.push(reconciliationFailure(order, targetCarrier, attempt, { reason: 'CREATE_FAILED_STATE_PERSISTENCE_UNKNOWN', message }))
+            } else {
+              failed.push({ id, order_code: order.order_code, carrier: targetCarrier, error: message, detail: createRes?.detail || null })
+            }
+          }
+          continue
+        }
+        if (!remoteTracking) {
+          await updateShippingCreationAttempt(c.env.DB, id, 'needs_reconciliation', { error: `${targetCarrier}_TRACKING_EMPTY` })
+          failed.push(reconciliationFailure(order, targetCarrier, attempt, createRes?.data || null))
+          continue
+        }
+
+        const persisted = await persistCreatedShipment(c.env.DB, order, targetCarrier, remoteTracking, labelCode, fee)
+        if (!persisted.ok) {
+          failed.push(reconciliationFailure(order, targetCarrier, attempt, {
+            reason: persisted.reason,
+            remote_tracking_code: remoteTracking,
+            detail: persisted.detail || null
+          }))
+          continue
+        }
+        updated.push({
+          id,
+          order_code: order.order_code,
+          tracking_code: remoteTracking,
+          carrier: targetCarrier,
+          used_fallback_address: !!createRes?.usedFallbackAddress
+        })
       }
 
       return c.json({

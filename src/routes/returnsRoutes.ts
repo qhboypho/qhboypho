@@ -1,6 +1,7 @@
 import type { Hono } from 'hono'
 import type { AppBindings } from '../types/app'
 import { getGhtkApiCredentials } from '../lib/shippingHelpers'
+import { isTerminalReturnStatus } from '../lib/shippingStateHelpers'
 
 type ReturnsRouteDeps = {
   initDB: (db: D1Database) => Promise<void>
@@ -45,7 +46,8 @@ export function registerReturnsRoutes(app: Hono<{ Bindings: AppBindings }>, deps
 
       // Get all orders with shipping tracking codes
       const ordersResult = await c.env.DB.prepare(`
-        SELECT id, order_code, shipping_tracking_code, return_status
+        SELECT id, order_code, shipping_tracking_code, return_status,
+               shipping_delivery_confirmed_at
         FROM orders
         WHERE shipping_tracking_code IS NOT NULL 
           AND shipping_tracking_code != ''
@@ -76,52 +78,75 @@ export function registerReturnsRoutes(app: Hono<{ Bindings: AppBindings }>, deps
           const body: any = await resp.json().catch(() => ({}))
           if (!body?.order) continue
 
-          const ghtkStatus = String(body.order.status_id || '').toLowerCase()
-          const ghtkStatusText = String(body.order.status || '').toLowerCase()
-          
-          // Map GHTK status to return_status
-          // Status 9: Đã huỷ (cancelled)
-          // Status 10: Đã hoàn (returned)
-          // Status 6, 7, 8: Giao không thành công (delivery_failed)
+          const statusValue = body.order.status_id ?? body.order.status_code ?? body.order.status
+          const rawStatusValue = String(statusValue ?? '').trim()
+          const parsedStatusId = /^-?\d+$/.test(rawStatusValue) ? Number(rawStatusValue) : null
+          const ghtkStatusText = String(body.order.status_text || body.order.status || '').trim().toLowerCase()
+
+          // GHTK's official status IDs are not interchangeable:
+          // -1 = cancelled, 9 = failed to deliver, 21 = returned.
+          // 5 = delivered and 6 = reconciled after a successful delivery.
+          // 7/8/10 are pickup/delivery operational states and are not terminal
+          // return evidence. Never infer the customer/shop actor from tracking.
           let returnStatus: string | null = null
-          
-          if (ghtkStatus === '9' || ghtkStatusText.includes('hủy') || ghtkStatusText.includes('huy')) {
+          if (parsedStatusId === -1) {
             returnStatus = 'cancelled'
-          } else if (ghtkStatus === '10' || ghtkStatusText.includes('hoàn') || ghtkStatusText.includes('hoan')) {
-            returnStatus = 'returned'
-          } else if (ghtkStatus === '6' || ghtkStatus === '7' || ghtkStatus === '8' || 
-                     ghtkStatusText.includes('giao không thành công') || 
-                     ghtkStatusText.includes('giao that bai') ||
-                     ghtkStatusText.includes('không giao được')) {
+          } else if (parsedStatusId === 9) {
             returnStatus = 'delivery_failed'
+          } else if (parsedStatusId === 21) {
+            returnStatus = 'returned'
+          } else if (parsedStatusId === null && /(đã\s*trả\s*hàng|da\s*tra\s*hang|returned\b)/i.test(ghtkStatusText)) {
+            returnStatus = 'returned'
+          } else if (parsedStatusId === null && /(không\s*giao\s*được|khong\s*giao\s*duoc|failed\s*to\s*deliver)/i.test(ghtkStatusText)) {
+            returnStatus = 'delivery_failed'
+          } else if (parsedStatusId === null && /(hủy\s*đơn|huy\s*don|canceled\s*order)/i.test(ghtkStatusText)) {
+            returnStatus = 'cancelled'
           }
 
-          // Update if status changed
-          if (returnStatus && order.return_status !== returnStatus) {
-            // Determine cancelled_by for cancelled orders
-            let cancelledBy: string | null = null
-            if (returnStatus === 'cancelled') {
-              // LOGIC: If order has tracking code from GHTK, it means the order was shipped
-              // So if it's cancelled, it MUST be customer who cancelled (bom hang)
-              // If no tracking code, it means shop cancelled before shipping
-              const trackingCode = String(order.shipping_tracking_code || '').trim()
-              cancelledBy = trackingCode ? 'customer' : 'shop'
-            }
-            
-            await c.env.DB.prepare(`
-              UPDATE orders 
+          // Do not downgrade a terminal return state from a later/stale carrier
+          // response. A failed delivery may progress to returned, but a
+          // cancelled/returned order is never guessed to be a customer fault.
+          const currentReturnStatus = String(order.return_status || '').trim().toLowerCase()
+          const returnStatusCanAdvance = returnStatus
+            && (!isTerminalReturnStatus(currentReturnStatus)
+              || currentReturnStatus === returnStatus
+              || (currentReturnStatus === 'delivery_failed' && returnStatus === 'returned'))
+          if (returnStatusCanAdvance && returnStatus !== currentReturnStatus) {
+            const returnUpdate = await c.env.DB.prepare(`
+              UPDATE orders
               SET return_status = ?,
-                  cancelled_by = ?,
                   updated_at = CURRENT_TIMESTAMP
               WHERE id = ?
-            `).bind(returnStatus, cancelledBy, order.id).run()
+                AND LOWER(COALESCE(return_status, '')) = ?
+            `).bind(returnStatus, order.id, currentReturnStatus).run()
             
+            if (Number(returnUpdate?.meta?.changes) === 1) {
+              syncedCount++
+              updatedOrders.push({
+                order_code: order.order_code,
+                old_status: order.return_status,
+                new_status: returnStatus
+              })
+            }
+          }
+
+          // Only a carrier-confirmed delivered/reconciled status is delivery
+          // evidence. This is intentionally separate from the admin status
+          // field; the latter cannot be used to manufacture proof of delivery.
+          if ((parsedStatusId === 5 || parsedStatusId === 6) && !String(order.shipping_delivery_confirmed_at || '').trim()) {
+            await c.env.DB.prepare(`
+              UPDATE orders
+              SET shipping_delivery_confirmed_at=COALESCE(shipping_delivery_confirmed_at, CURRENT_TIMESTAMP),
+                  shipping_delivery_source=COALESCE(NULLIF(shipping_delivery_source, ''), 'GHTK_STATUS'),
+                  updated_at=CURRENT_TIMESTAMP
+              WHERE id=?
+            `).bind(order.id).run()
             syncedCount++
             updatedOrders.push({
               order_code: order.order_code,
-              old_status: order.return_status,
-              new_status: returnStatus,
-              cancelled_by: cancelledBy
+              delivery_evidence: true,
+              source: 'GHTK_STATUS',
+              status_id: parsedStatusId
             })
           }
         } catch (err) {
@@ -151,6 +176,23 @@ export function registerReturnsRoutes(app: Hono<{ Bindings: AppBindings }>, deps
       const allowedStatuses = ['returned', 'cancelled', 'delivery_failed', null]
       if (!allowedStatuses.includes(return_status)) {
         return c.json({ success: false, error: 'INVALID_RETURN_STATUS' }, 400)
+      }
+
+      const existing = await c.env.DB.prepare(`
+        SELECT status, return_status, shipping_tracking_code
+        FROM orders
+        WHERE id=?
+        LIMIT 1
+      `).bind(id).first() as any
+      if (!existing) return c.json({ success: false, error: 'ORDER_NOT_FOUND' }, 404)
+      const currentReturnStatus = String(existing.return_status || '').trim().toLowerCase()
+      const nextReturnStatus = String(return_status || '').trim().toLowerCase()
+      if (isTerminalReturnStatus(currentReturnStatus) && nextReturnStatus !== currentReturnStatus) {
+        return c.json({ success: false, error: 'RETURN_STATUS_TERMINAL' }, 409)
+      }
+      if ((nextReturnStatus === 'returned' || nextReturnStatus === 'delivery_failed')
+        && !String(existing.shipping_tracking_code || '').trim()) {
+        return c.json({ success: false, error: 'RETURN_STATUS_REQUIRES_TRACKING' }, 400)
       }
 
       await c.env.DB.prepare(`

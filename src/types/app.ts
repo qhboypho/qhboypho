@@ -16,6 +16,7 @@ export type AppBindings = CloudflareBindings & {
   PAYOS_CLIENT_ID?: string
   PAYOS_API_KEY?: string
   PAYOS_CHECKSUM_KEY?: string
+  PAYOS_WEBHOOK_URL?: string
   ZALOPAY_APP_ID?: string
   ZALOPAY_KEY1?: string
   ZALOPAY_KEY2?: string

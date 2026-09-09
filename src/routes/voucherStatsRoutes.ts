@@ -403,10 +403,14 @@ export function registerVoucherStatsRoutes(app: Hono<{ Bindings: AppBindings }>,
       const undeliveredOrderFilterSql = `${orderFilter.sql} AND LOWER(COALESCE(status, '')) NOT IN ('done', 'cancelled')`
       const returnedOrderFilterSql = `${orderFilter.sql} AND LOWER(COALESCE(return_status, '')) = 'returned'`
       const shippingReadySql = `(
-        UPPER(COALESCE(payment_method, '')) = 'COD'
-        OR (
-          UPPER(COALESCE(payment_method, '')) IN ('BANK_TRANSFER', 'ZALOPAY')
-          AND LOWER(COALESCE(payment_status, '')) = 'paid'
+        COALESCE(CAST(payment_review_required AS INTEGER), 0) != 1
+        AND LOWER(COALESCE(return_status, '')) NOT IN ('returned', 'delivery_failed', 'cancelled')
+        AND (
+          UPPER(COALESCE(payment_method, '')) = 'COD'
+          OR (
+            UPPER(COALESCE(payment_method, '')) IN ('BANK_TRANSFER', 'ZALOPAY', 'MOMO')
+            AND LOWER(COALESCE(payment_status, '')) = 'paid'
+          )
         )
       )`
       const actionableShippingSql = `LOWER(COALESCE(status, '')) NOT IN ('shipping', 'done', 'cancelled') AND ${shippingReadySql}`
@@ -430,6 +434,31 @@ export function registerVoucherStatsRoutes(app: Hono<{ Bindings: AppBindings }>,
         WHERE ${allOrderFilter.sql}
           AND ${actionableShippingSql}
           AND COALESCE(CAST(shipping_arranged AS INTEGER), 0) != 1
+        `).bind(...allOrderFilter.params).first() as any
+      const placedOrders = await c.env.DB.prepare(`
+        SELECT COUNT(*) as count
+        FROM orders
+        WHERE ${orderFilter.sql}
+      `).bind(...orderFilter.params).first() as any
+      const readyToShipOrders = await c.env.DB.prepare(`
+        SELECT COUNT(*) as count
+        FROM orders
+        WHERE ${orderFilter.sql}
+          AND ${actionableShippingSql}
+      `).bind(...orderFilter.params).first() as any
+      const paymentWaitingOrders = await c.env.DB.prepare(`
+        SELECT COUNT(*) as count
+        FROM orders
+        WHERE ${allOrderFilter.sql}
+          AND UPPER(COALESCE(payment_method, '')) = 'BANK_TRANSFER'
+          AND LOWER(COALESCE(payment_status, '')) != 'paid'
+          AND LOWER(COALESCE(status, '')) NOT IN ('cancelled', 'done')
+      `).bind(...allOrderFilter.params).first() as any
+      const paymentReviewOrders = await c.env.DB.prepare(`
+        SELECT COUNT(*) as count
+        FROM orders
+        WHERE ${allOrderFilter.sql}
+          AND COALESCE(CAST(payment_review_required AS INTEGER), 0) = 1
       `).bind(...allOrderFilter.params).first() as any
       const revenue = await c.env.DB.prepare(`
         SELECT SUM(COALESCE(total_price, 0)) as total
@@ -516,6 +545,10 @@ export function registerVoucherStatsRoutes(app: Hono<{ Bindings: AppBindings }>,
           totalProducts: totalProducts?.count || 0,
           totalOrders: sidebarUndeliveredOrders?.count || 0,
           pendingOrders: shippingQueueOrders?.count || 0,
+          placedOrders: placedOrders?.count || 0,
+          readyToShipOrders: readyToShipOrders?.count || 0,
+          paymentWaitingOrders: paymentWaitingOrders?.count || 0,
+          paymentReviewOrders: paymentReviewOrders?.count || 0,
           undeliveredOrders: undeliveredOrders?.count || 0,
           sidebarUndeliveredOrders: sidebarUndeliveredOrders?.count || 0,
           shippingQueueOrders: shippingQueueOrders?.count || 0,

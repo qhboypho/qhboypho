@@ -1,5 +1,3 @@
-import type { AppBindings } from '../types/app'
-
 const RUNTIME_CONFIG_KEYS = {
   GOOGLE_CLIENT_ID: 'google_client_id',
   GOOGLE_CLIENT_SECRET: 'google_client_secret',
@@ -56,8 +54,11 @@ const RUNTIME_CONFIG_KEYS = {
 
 type RuntimeConfigKey = keyof typeof RUNTIME_CONFIG_KEYS
 
-function getEnvValue(env: AppBindings, envKey: RuntimeConfigKey) {
-  return String((env as any)[envKey] || '').trim()
+/** Runtime-config consumers need only these optional string variables. */
+export type RuntimeConfigEnv = Partial<Record<RuntimeConfigKey, string | undefined>>
+
+function getEnvValue(env: RuntimeConfigEnv, envKey: RuntimeConfigKey) {
+  return String(env[envKey] || '').trim()
 }
 
 async function hydrateRuntimeConfigFromEnv(db: D1Database, dbKey: string, envValue: string) {
@@ -79,7 +80,7 @@ async function hydrateRuntimeConfigFromEnv(db: D1Database, dbKey: string, envVal
 
 export async function getRuntimeConfigValues(
   db: D1Database,
-  env: AppBindings,
+  env: RuntimeConfigEnv,
   envKeys: RuntimeConfigKey[]
 ) {
   const uniqueKeys = Array.from(new Set(envKeys))
@@ -112,7 +113,7 @@ export async function getRuntimeConfigValues(
 
 export async function getRuntimeConfigValue(
   db: D1Database,
-  env: AppBindings,
+  env: RuntimeConfigEnv,
   envKey: RuntimeConfigKey,
   fallback = ''
 ) {
