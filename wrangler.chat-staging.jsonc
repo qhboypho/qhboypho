@@ -1,0 +1,18 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "qhclothes-live-chat-staging",
+  "main": "src/liveChatWorker.ts",
+  "compatibility_date": "2026-09-09",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": false,
+  "preview_urls": false,
+  "durable_objects": {"bindings": [{"name": "LIVE_CHAT_ROOM", "class_name": "LiveChatRoom"}]},
+  "migrations": [{"tag": "live_chat_room_v1", "new_sqlite_classes": ["LiveChatRoom"]}],
+  "triggers": {"crons": []},
+  "d1_databases": [{
+    "binding": "DB",
+    "database_name": "qhclothes-release-staging",
+    "database_id": "03832596-0ded-4fea-993f-a9a65892d8b7"
+  }],
+  "observability": {"enabled": true}
+}

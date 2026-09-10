@@ -6,7 +6,7 @@
     "dev:sandbox": "wrangler pages dev dist --ip 0.0.0.0 --port 3000",
     "build": "vite build",
     "typecheck": "tsc --noEmit",
-    "test:release-config": "node scripts/test-release-config.mjs",
+    "test:release-config": "node scripts/test-release-config.mjs && node scripts/test-migration-deploy-split.mjs && node scripts/test-release-maintenance.mjs",
     "preview": "wrangler pages dev dist",
     "deploy": "npm run build && wrangler pages deploy dist",
     "deploy:prod": "npm run check:release && wrangler pages deploy dist --project-name qhclothes --branch ui-new-v1",

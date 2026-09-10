@@ -2,7 +2,7 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "qhclothes-live-chat",
   "main": "src/liveChatWorker.ts",
-  "compatibility_date": "2026-09-10",
+  "compatibility_date": "2026-09-09",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": false,
   "preview_urls": false,

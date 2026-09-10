@@ -1,0 +1,10 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "qhclothes-release-staging",
+  "pages_build_output_dir": "../maintenance",
+  "compatibility_date": "2026-09-09",
+  "compatibility_flags": ["nodejs_compat"],
+  "d1_databases": [],
+  "r2_buckets": [],
+  "durable_objects": {"bindings": []}
+}

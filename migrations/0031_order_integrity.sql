@@ -34,9 +34,7 @@ BEGIN
     AND EXISTS (SELECT 1 FROM products WHERE id = NEW.product_id AND is_active = 1)
     AND COALESCE(stock, 0) >= CAST(NEW.quantity AS INTEGER);
 
-  SELECT CASE
-    WHEN changes() = 0 THEN RAISE(ABORT, 'INSUFFICIENT_STOCK')
-  END;
+  SELECT RAISE(ABORT, 'INSUFFICIENT_STOCK') WHERE changes() = 0;
 END;
 
 CREATE TRIGGER IF NOT EXISTS orders_reserve_product_stock
@@ -51,9 +49,7 @@ BEGIN
     AND is_active = 1
     AND COALESCE(stock, 0) >= CAST(NEW.quantity AS INTEGER);
 
-  SELECT CASE
-    WHEN changes() = 0 THEN RAISE(ABORT, 'INSUFFICIENT_STOCK')
-  END;
+  SELECT RAISE(ABORT, 'INSUFFICIENT_STOCK') WHERE changes() = 0;
 END;
 
 -- Voucher usage is consumed by the same order INSERT transaction. The
@@ -70,9 +66,7 @@ BEGIN
     AND valid_to >= CURRENT_TIMESTAMP
     AND (COALESCE(usage_limit, 0) <= 0 OR COALESCE(used_count, 0) < usage_limit);
 
-  SELECT CASE
-    WHEN changes() = 0 THEN RAISE(ABORT, 'INVALID_VOUCHER')
-  END;
+  SELECT RAISE(ABORT, 'INVALID_VOUCHER') WHERE changes() = 0;
 END;
 
 -- Release only stock reserved by the new flow and only when cancellation is
