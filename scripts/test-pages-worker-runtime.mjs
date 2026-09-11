@@ -11,7 +11,7 @@ const runtime = new Miniflare(convertV4MiniflareOptions({
   outboundService: () => { throw new Error('Unexpected external request in release smoke') },
 }))
 try {
-  for (const path of ['/', '/admin/login']) {
+  for (const path of ['/', '/?search=Ao+premium&utm_source=test', '/hottrendnu?search=vay', '/admin/login']) {
     const response = await runtime.dispatchFetch(`http://release.local${path}`)
     assert.equal(response.status, 200, path)
     assert.match(response.headers.get('content-type'), /text\/html/)
