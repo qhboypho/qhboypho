@@ -34,22 +34,34 @@ const moduleSource = fs.readFileSync('src/pages/storefront/script.ts', 'utf8')
   .replace(/^import\s+\{\s*storefrontDetailOrderScript\s*\}\s+from\s+'\.\/script-detail-order'\s*\r?\n/, '')
   .replace('export function storefrontInlineScript(): string {', 'function storefrontInlineScript() {')
 const generated = vm.runInNewContext(moduleSource + '\nstorefrontInlineScript()', { storefrontDetailOrderScript: () => '' })
-const functionSource = generated.slice(generated.indexOf('function toggleAddressDropdown'), generated.indexOf('function bindAddressSearchableDropdowns'))
+const functionStart = generated.indexOf('async function toggleAddressDropdown')
+const functionSource = generated.slice(functionStart, generated.indexOf('function bindAddressSearchableDropdowns'))
+assert.notEqual(functionStart, -1, 'province dropdown recovery must be asynchronous')
 let retries = 0
+let communeRetries = 0
 let renderedCount = -1
-const menu = { classList: { contains: () => true, remove() {} } }
+let renderedCommuneCount = -1
+let menuHidden = true
+const menu = { classList: { contains: () => menuHidden, remove() { menuHidden = false } } }
+const provinceSelect = { value: '01' }
 const context = vm.createContext({
-  addressProvinceOptions: [], addressDropdownSearchState: {},
+  addressProvinceOptions: [], addressCommuneOptionsByProvince: {}, addressDropdownSearchState: {},
   getAddressDropdownIds: () => ({ menuId: 'menu', searchId: 'search', optionsId: 'options' }),
-  document: { getElementById: id => id === 'menu' ? menu : id === 'search' ? { value: '', focus() {} } : { innerHTML: '' } },
+  getAddressScopeElements: () => ({ provinceId: 'province' }),
+  document: { getElementById: id => id === 'menu' ? menu : id === 'search' ? { value: '', focus() {} } : id === 'province' ? provinceSelect : { innerHTML: '' } },
   closeAllAddressDropdowns() {}, setTimeout: fn => fn(),
   async ensureAddressKitReady() { retries++; context.addressProvinceOptions = [{ code: '01', name: 'Hà Nội' }] },
+  async fetchAddressCommunesByProvince(code) { communeRetries++; context.addressCommuneOptionsByProvince[code] = [{ code: '00001', name: 'Phường thử' }] },
   renderProvinceOptionsForScope() { renderedCount = context.addressProvinceOptions.length },
-  renderCommuneOptionsForScope() {}, showToast() {},
+  renderCommuneOptionsForScope() { renderedCommuneCount = context.addressCommuneOptionsByProvince['01']?.length || 0 }, showToast() {},
 })
 vm.runInContext(functionSource, context)
 await vm.runInContext("toggleAddressDropdown('order','province')", context)
 assert.equal(retries, 1, 'opening an empty province dropdown must retry loading data')
 assert.equal(renderedCount, 1, 'recovered provinces must render in the open dropdown')
+menuHidden = true
+await vm.runInContext("toggleAddressDropdown('order','commune')", context)
+assert.equal(communeRetries, 1, 'opening an empty commune dropdown must retry loading data for the selected province')
+assert.equal(renderedCommuneCount, 1, 'recovered communes must render in the open dropdown')
 
 console.log('address dropdown empty-response and retry recovery passed')
