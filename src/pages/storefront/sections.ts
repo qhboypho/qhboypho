@@ -220,7 +220,8 @@ export function storefrontFilterBarSection(): string {
       <h2 class="filter-section-title font-display">Danh Sách Sản Phẩm</h2>
       <div class="filter-search-wrap">
         <i class="fas fa-search filter-search-icon" aria-hidden="true"></i>
-        <input type="text" id="searchInput" placeholder="Tìm sản phẩm..." class="filter-search-input w-full" oninput="searchProducts(this.value)">
+        <input type="search" id="searchInput" aria-label="Tìm sản phẩm" enterkeyhint="search" placeholder="Tìm sản phẩm..." class="filter-search-input w-full" oninput="if(!event.isComposing) searchProducts(this.value)" oncompositionend="searchProducts(this.value)" onkeydown="if(event.key==='Enter' && !event.isComposing){event.preventDefault();searchProducts(this.value);this.blur()}">
+        <button type="button" id="clearProductsSearch" aria-label="Xóa từ khóa tìm kiếm" onclick="clearProductsSearch()" hidden>×</button>
       </div>
       <div class="filter-chip-row flex overflow-x-auto no-scrollbar gap-2 md:flex-1" id="filterChipRow">
         <button class="filter-btn active whitespace-nowrap" data-cat="all" onclick="filterProducts('all',this)">Tất cả</button>
@@ -240,9 +241,22 @@ export function storefrontFilterBarSection(): string {
         <span>Bộ lọc</span>
       </button>
       <button type="button" id="productsLayoutToggle" class="filter-view-toggle" aria-label="Chuyển sang dạng lưới 2 cột" title="Chuyển sang dạng lưới 2 cột" onclick="toggleProductsMobileLayout()"><i class="fas fa-table-cells-large" aria-hidden="true"></i></button>
-      <span id="productsCountLabel" class="filter-product-count sr-only">0 mặt hàng</span>
     </div>
+    <p id="productsCountLabel" class="search-result-count" role="status" aria-live="polite" aria-atomic="true">0 sản phẩm</p>
+    <div id="activeProductsFilters" aria-label="Bộ lọc đang áp dụng" hidden></div>
   </div>
+  <style>
+    #filterBar .filter-search-wrap { position: relative; }
+    #filterBar #searchInput { padding-right: 42px; }
+    #filterBar #searchInput::-webkit-search-cancel-button { display: none; }
+    #filterBar #clearProductsSearch { position: absolute; right: 0; top: 0; width: 40px; height: 100%; min-height: 40px; font-size: 24px; color: inherit; }
+    #filterBar .search-result-count { margin: 8px 0 0; font-size: 13px; color: inherit; overflow-wrap: anywhere; }
+    #activeProductsFilters { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    #activeProductsFilters[hidden], #clearProductsSearch[hidden] { display: none; }
+    #activeProductsFilters button { border: 1px solid currentColor; border-radius: 20px; padding: 8px 12px; min-height: 40px; font-size: 12px; color: inherit; background: transparent; }
+    #emptyState .search-reset-button { display: inline-flex; margin-top: 16px; padding: 10px 18px; border: 1px solid currentColor; border-radius: 24px; min-height: 44px; color: inherit; background: transparent; }
+    #filterBar button:focus-visible, #filterBar #searchInput:focus-visible { outline: 2px solid #3b82f6; outline-offset: 2px; }
+  </style>
 </section>`
 }
 

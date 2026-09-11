@@ -41,3 +41,38 @@ context.searchProducts('')
 assert.ok(!context.savedUrl.includes('search='), 'clearing removes only search param')
 assert.ok(context.savedUrl.includes('utm_source=test'))
 console.log('Storefront search: input, Vietnamese multiword matching, ranking and URL passed')
+
+Object.assign(context, {
+  resetMobileProductsVisibleCount() {}, productMatchesTypeFilter: () => true,
+  productMatchesColorFilter: () => true, productMatchesSizeFilter: () => true, productMatchesPriceFilter: () => true,
+  sortProductsList: products => products.slice().reverse(), renderProducts(products) { context.result = products },
+})
+load('applyProductsFilters', context)
+load('clearProductFilters', context)
+load('sortProductsByTime', context)
+context.activeProductSearch = 'ao nam den'
+context.applyProductsFilters()
+assert.deepEqual(Array.from(context.result, p => p.id), [1, 2], 'relevance overrides default order')
+context.sortProductsByTime('oldest')
+assert.deepEqual(Array.from(context.result, p => p.id), [2, 1], 'explicit sort overrides relevance')
+context.sortProductsByTime('relevance')
+assert.deepEqual(Array.from(context.result, p => p.id), [1, 2])
+context.document.querySelectorAll = () => []
+context.activeProductCategory = 'female'
+context.applyProductsFilters()
+assert.equal(context.result.length, 0, 'category combines with query')
+context.clearProductFilters('category')
+assert.equal(context.result.length, 2)
+assert.equal(context.activeProductSearch, 'ao nam den', 'removing filters preserves query')
+context.activeProductColor = 'den'
+context.activeProductSize = 'M'
+context.activeProductPrice = 'under_200'
+context.clearProductFilters('all')
+assert.equal(context.activeProductColor, 'all')
+assert.equal(context.activeProductSize, 'all')
+assert.equal(context.activeProductPrice, 'all')
+context.isHotTrendWomenContext = () => true
+context.window.location.search = '?search=Vay%20hoa'
+context.hydrateProductSearchFromUrl()
+assert.equal(context.activeProductSearch, 'Vay hoa', 'women storefront hydration remains supported')
+console.log('Storefront search: filter removal, explicit sort and adjacent storefront passed')

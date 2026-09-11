@@ -345,6 +345,7 @@ let activeProductType = 'all'
 let storefrontProductTypes = []
 let activeProductSearch = ''
 let activeProductSort = 'newest'
+let productSortExplicit = false
 let activeProductColor = 'all'
 let activeProductSize = 'all'
 let activeProductPrice = 'all'
@@ -2841,6 +2842,19 @@ function renderHotTrendNuActions(productId, compact) {
 function renderProductsEmptyState() {
   const empty = document.getElementById('emptyState')
   if (!empty) return
+  if (!isHotTrendWomenContext()) {
+    empty.replaceChildren()
+    const message = document.createElement('p')
+    message.textContent = activeProductSearch.trim() ? 'Không tìm thấy sản phẩm cho “' + activeProductSearch.trim() + '”. Thử từ khóa khác hoặc bỏ bộ lọc.' : 'Chưa có sản phẩm phù hợp. Thử bỏ bộ lọc để xem thêm.'
+    empty.appendChild(message)
+    const button = document.createElement('button')
+    button.type = 'button'
+    button.className = 'search-reset-button'
+    button.textContent = 'Xem tất cả sản phẩm'
+    button.onclick = () => { activeProductSearch = ''; syncStorefrontSearchInputs(''); updateStorefrontSearchUrl(''); clearProductFilters('all') }
+    empty.appendChild(button)
+    return
+  }
   const keyword = String(activeProductSearch || '').trim()
   if (isHotTrendWomenContext() && keyword) {
     empty.innerHTML = '<i class="fas fa-search mb-4 text-5xl"></i>' +
@@ -3171,10 +3185,23 @@ function setHotTrendNuProductFilter(kind, value) {
 
 function updateProductsFilterMeta(total) {
   const countLabel = document.getElementById('productsCountLabel')
-  if (countLabel) countLabel.textContent = String(total || 0) + ' mặt hàng'
+  if (countLabel) countLabel.textContent = String(total || 0) + ' sản phẩm' + (activeProductSearch.trim() ? ' cho “' + activeProductSearch.trim() + '”' : '')
+  renderActiveProductFilters()
+  const clearSearch = document.getElementById('clearProductsSearch')
+  if (clearSearch) clearSearch.hidden = !activeProductSearch
   const sortSelects = [document.getElementById('productsSortSelect'), document.getElementById('productsSortSelectMobile')]
   sortSelects.forEach((sortSelect) => {
-    if (sortSelect && sortSelect.value !== activeProductSort) sortSelect.value = activeProductSort
+    if (!sortSelect) return
+    let relevance = sortSelect.querySelector('option[value="relevance"]')
+    if (!relevance) {
+      relevance = document.createElement('option')
+      relevance.value = 'relevance'
+      relevance.textContent = 'Phù hợp nhất'
+      sortSelect.prepend(relevance)
+    }
+    relevance.hidden = !activeProductSearch.trim()
+    const selected = activeProductSearch.trim() && !productSortExplicit ? 'relevance' : activeProductSort
+    if (sortSelect.value !== selected) sortSelect.value = selected
   })
   const colorSelect = document.getElementById('productsColorFilter')
   if (colorSelect && colorSelect.value !== activeProductColor) colorSelect.value = activeProductColor
@@ -3216,12 +3243,14 @@ function applyProductsFilters() {
   resetMobileProductsVisibleCount()
   filteredProducts = sortProductsList(allProducts.filter((p) => {
     const matchCat = activeProductCategory === 'all' || p.category === activeProductCategory
-    const searchHaystack = normalizeProductFilterText([p.name, p.brand, p.sku, p.description].filter(Boolean).join(' '))
-    const matchSearch = !activeProductSearch || searchHaystack.includes(normalizeProductFilterText(activeProductSearch))
+    const matchSearch = getProductSearchScore(p, activeProductSearch) >= 0
     const matchType = productMatchesTypeFilter(p)
 
     return matchCat && matchSearch && matchType && productMatchesColorFilter(p) && productMatchesSizeFilter(p) && productMatchesPriceFilter(p)
   }))
+  if (activeProductSearch.trim() && !productSortExplicit) {
+    filteredProducts.sort((a, b) => getProductSearchScore(b, activeProductSearch) - getProductSearchScore(a, activeProductSearch))
+  }
   renderProducts(filteredProducts)
 }
 
@@ -3320,8 +3349,65 @@ function applyFilterModal() {
 }
 
 function searchProducts(q) {
-  activeProductSearch = String(q || '').toLowerCase().trim()
+  activeProductSearch = String(q || '')
   syncStorefrontSearchInputs(activeProductSearch)
+  updateStorefrontSearchUrl(activeProductSearch)
+  applyProductsFilters()
+}
+
+function clearProductsSearch() {
+  searchProducts('')
+  document.getElementById('searchInput')?.focus({ preventScroll: true })
+}
+
+function getProductSearchScore(product, query) {
+  const keyword = normalizeProductFilterText(query).split(/\\s+/).filter(Boolean).join(' ')
+  if (!keyword) return 0
+  const tokens = keyword.split(' ')
+  const name = normalizeProductFilterText(product.name)
+  const sku = normalizeProductFilterText(product.sku)
+  const text = normalizeProductFilterText([product.name, product.brand, product.sku, product.description, inferStorefrontProductType(product)].filter(Boolean).join(' '))
+  if (!tokens.every(token => text.includes(token))) return -1
+  if (sku === keyword || name === keyword) return 100
+  if (name.includes(keyword)) return 80
+  if (tokens.every(token => name.includes(token) || sku.includes(token))) return 60
+  return 10
+}
+
+function renderActiveProductFilters() {
+  const root = document.getElementById('activeProductsFilters')
+  if (!root) return
+  const values = { category: activeProductCategory, type: activeProductType, color: activeProductColor, size: activeProductSize, price: activeProductPrice }
+  const names = { category: 'Danh mục', type: 'Loại', color: 'Màu', size: 'Size', price: 'Giá' }
+  const labels = { male: 'Nam', female: 'Nữ', unisex: 'Unisex', under_200: 'Dưới 200.000đ', '200_400': '200.000–400.000đ', over_400: 'Trên 400.000đ' }
+  root.replaceChildren()
+  Object.entries(values).forEach(([kind, value]) => {
+    if (!value || value === 'all') return
+    const button = document.createElement('button')
+    button.type = 'button'
+    button.textContent = names[kind] + ': ' + (labels[value] || value) + ' ×'
+    button.setAttribute('aria-label', 'Bỏ lọc ' + button.textContent.replace(' ×', ''))
+    button.onclick = () => clearProductFilters(kind)
+    root.appendChild(button)
+  })
+  if (root.childElementCount) {
+    const button = document.createElement('button')
+    button.type = 'button'
+    button.textContent = 'Bỏ tất cả bộ lọc'
+    button.onclick = () => clearProductFilters('all')
+    root.appendChild(button)
+  }
+  root.hidden = !root.childElementCount
+}
+
+function clearProductFilters(kind) {
+  if (kind === 'all' || kind === 'category') activeProductCategory = 'all'
+  if (kind === 'all' || kind === 'type') activeProductType = 'all'
+  if (kind === 'all' || kind === 'color') activeProductColor = 'all'
+  if (kind === 'all' || kind === 'size') activeProductSize = 'all'
+  if (kind === 'all' || kind === 'price') activeProductPrice = 'all'
+  document.querySelectorAll('.filter-btn').forEach(button => button.classList.toggle('active', button.getAttribute('data-cat') === activeProductCategory))
+  document.querySelectorAll('.hottrendnu-type-chip').forEach(button => button.classList.toggle('active', button.getAttribute('data-type') === activeProductType))
   applyProductsFilters()
 }
 
@@ -3338,13 +3424,10 @@ function getPrimaryProductImage(product) {
 }
 
 function getStorefrontSearchMatches(query, limit) {
-  const keyword = normalizeProductFilterText(query)
   const source = Array.isArray(allProducts) ? allProducts : []
-  if (!keyword) return source.slice(0, limit || 5)
-  return source.filter((product) => {
-    const text = normalizeProductFilterText([product.name, product.brand, product.sku, product.description, inferStorefrontProductType(product)].filter(Boolean).join(' '))
-    return text.includes(keyword)
-  }).slice(0, limit || 6)
+  return source.map(product => ({ product, score: getProductSearchScore(product, query) }))
+    .filter(item => item.score >= 0).sort((a, b) => b.score - a.score)
+    .slice(0, limit || 6).map(item => item.product)
 }
 
 function renderStorefrontSearchSuggestions(input) {
@@ -3408,14 +3491,13 @@ function closeStorefrontHeaderSearchPanels() {
 }
 
 function syncStorefrontSearchInputs(value) {
-  const keyword = String(value || '').trim()
+  const keyword = String(value || '')
   document.querySelectorAll('.qhher-storefront-search-input, #searchInput').forEach((input) => {
     if (input && input.value !== keyword) input.value = keyword
   })
 }
 
 function updateStorefrontSearchUrl(keyword) {
-  if (!isHotTrendWomenContext()) return
   try {
     const url = new URL(window.location.href)
     const value = String(keyword || '').trim()
@@ -3427,7 +3509,7 @@ function updateStorefrontSearchUrl(keyword) {
 
 function submitStorefrontHeaderSearch(value) {
   const keyword = String(value || '').trim()
-  activeProductSearch = keyword.toLowerCase()
+  activeProductSearch = keyword
   syncStorefrontSearchInputs(keyword)
   updateStorefrontSearchUrl(keyword)
   closeStorefrontHeaderSearchPanels()
@@ -3443,12 +3525,11 @@ function openStorefrontSearchSuggestionProduct(productId) {
 }
 
 function hydrateProductSearchFromUrl() {
-  if (!isHotTrendWomenContext()) return
   try {
     const params = new URLSearchParams(window.location.search)
     const keyword = String(params.get('search') || '').trim()
     if (!keyword) return
-    activeProductSearch = keyword.toLowerCase()
+    activeProductSearch = keyword
     syncStorefrontSearchInputs(keyword)
   } catch (_) {}
 }
@@ -3460,6 +3541,7 @@ document.addEventListener('click', function(event) {
 })
 
 function sortProductsByTime(value) {
+  productSortExplicit = value !== 'relevance'
   activeProductSort = ['oldest', 'price_asc', 'price_desc', 'best_selling'].includes(value) ? value : 'newest'
   applyProductsFilters()
 }
@@ -3629,18 +3711,17 @@ function focusProductsSearch() {
   const filterBar = document.getElementById('filterBar')
   const input = document.getElementById('searchInput')
   if (!filterBar || !input) return
+  // Focus inside the tap event so mobile browsers can open the keyboard.
+  try {
+    input.focus({ preventScroll: true })
+  } catch (_) {
+    input.focus()
+  }
   const navbarHeight = navbar ? navbar.getBoundingClientRect().height : 0
   const filterRect = filterBar.getBoundingClientRect()
   const targetTop = Math.max(0, window.scrollY + filterRect.top - navbarHeight - 12)
-  window.scrollTo({ top: targetTop, behavior: 'smooth' })
-  setTimeout(() => {
-    try {
-      input.focus({ preventScroll: true })
-    } catch (_) {
-      input.focus()
-    }
-    if (String(input.value || '').trim()) input.select()
-  }, 260)
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  window.scrollTo({ top: targetTop, behavior: reduceMotion ? 'auto' : 'smooth' })
 }
 const toggleMobileSearch = focusProductsSearch
 // ── CART MODAL ────────────────────────────────────

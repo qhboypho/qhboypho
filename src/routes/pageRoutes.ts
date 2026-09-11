@@ -274,8 +274,19 @@ function notFoundHTML(): string {
       }
 
       .not-found-button.primary {
-        background: linear-gradient(135deg, var(--blue), var(--purple), var(--pink));
-        box-shadow: 0 0.8rem 1.8rem rgba(232, 67, 147, 0.24);
+        background: #2563eb;
+        border-color: #2563eb;
+        box-shadow: 0 8px 20px rgba(37, 99, 235, 0.18);
+      }
+
+      .not-found-button.primary:hover {
+        background: #1d4ed8;
+        border-color: #1d4ed8;
+      }
+
+      .not-found-button:focus-visible {
+        outline: 2px solid #93c5fd;
+        outline-offset: 4px;
       }
 
       .not-found-button.secondary {
@@ -338,6 +349,7 @@ async function redirectToCanonicalHost(c: any, next: () => Promise<void>) {
 
 function hasOnlyKnownStorefrontQueryParams(url: URL): boolean {
   const knownKeys = new Set([
+    'search',
     'product',
     'ref',
     'aff',

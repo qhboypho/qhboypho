@@ -9,6 +9,7 @@ const tests = [
   'test-ghn-uncertain-response.mjs',
   'test-address-dropdown-recovery.mjs',
   'test-storefront-checkout-runtime.mjs',
+  'test-storefront-search.mjs',
   'test-admin-payment-reconciliation-contract.mjs',
   'test-admin-payment-reconciliation-behavior.mjs',
   'test-payment-review-races.mjs',

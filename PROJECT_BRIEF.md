@@ -1,5 +1,7 @@
 # Project Brief
 
+- `frontend-v2` search preserves typed text, matches Vietnamese multiword queries, and ranks by relevance unless a sort is explicitly chosen. Boypho supports `?search=` reloads, clear/search feedback and removable filter chips. Mobile nav still focuses the product search field. Regression: `scripts/test-storefront-search.mjs` (included in `test:launch`) and `scripts/test-pages-worker-runtime.mjs`. The 404 primary button uses the blue storefront accent. iPhone hardware keyboard behavior still needs device verification.
+
 ## Purpose
 
 QH Clothes storefront and admin panel built on Hono, Vite, Cloudflare Pages/Workers, and D1.
