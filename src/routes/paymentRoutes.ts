@@ -375,9 +375,11 @@ export function registerPaymentRoutes(app: Hono<{ Bindings: AppBindings }>, deps
   app.get('/api/address/provinces', async (c) => {
     try {
       const effectiveDate = deps.sanitizeAddressEffectiveDate(c.req.query('effectiveDate') || 'latest')
-      if (deps.addressKitCache.provinces.has(effectiveDate)) {
-        return c.json({ success: true, data: deps.addressKitCache.provinces.get(effectiveDate) || [] })
+      const cachedProvinces = deps.addressKitCache.provinces.get(effectiveDate) || []
+      if (cachedProvinces.length) {
+        return c.json({ success: true, data: cachedProvinces })
       }
+      deps.addressKitCache.provinces.delete(effectiveDate)
 
       const url = `${deps.ADDRESS_KIT_BASE_URL}/${effectiveDate}/provinces`
       const res = await fetch(url, { headers: { accept: 'application/json' } })
@@ -394,6 +396,10 @@ export function registerPaymentRoutes(app: Hono<{ Bindings: AppBindings }>, deps
         .filter((p: any) => p.code && p.name)
         .sort((a: any, b: any) => a.name.localeCompare(b.name, 'vi'))
 
+      if (!normalized.length) {
+        return c.json({ success: false, error: 'ADDRESSKIT_EMPTY_RESPONSE' }, 502)
+      }
+
       deps.addressKitCache.provinces.set(effectiveDate, normalized)
       return c.json({ success: true, data: normalized })
     } catch (e: any) {
@@ -407,9 +413,11 @@ export function registerPaymentRoutes(app: Hono<{ Bindings: AppBindings }>, deps
       const provinceCode = String(c.req.param('provinceCode') || '').trim()
       if (!provinceCode) return c.json({ success: false, error: 'INVALID_PROVINCE_CODE' }, 400)
       const cacheKey = `${effectiveDate}:${provinceCode}`
-      if (deps.addressKitCache.communes.has(cacheKey)) {
-        return c.json({ success: true, data: deps.addressKitCache.communes.get(cacheKey) || [] })
+      const cachedCommunes = deps.addressKitCache.communes.get(cacheKey) || []
+      if (cachedCommunes.length) {
+        return c.json({ success: true, data: cachedCommunes })
       }
+      deps.addressKitCache.communes.delete(cacheKey)
 
       const encodedProvinceCode = encodeURIComponent(provinceCode)
       const url = `${deps.ADDRESS_KIT_BASE_URL}/${effectiveDate}/provinces/${encodedProvinceCode}/communes`
@@ -428,6 +436,10 @@ export function registerPaymentRoutes(app: Hono<{ Bindings: AppBindings }>, deps
         }))
         .filter((p: any) => p.code && p.name)
         .sort((a: any, b: any) => a.name.localeCompare(b.name, 'vi'))
+
+      if (!normalized.length) {
+        return c.json({ success: false, error: 'ADDRESSKIT_EMPTY_RESPONSE' }, 502)
+      }
 
       deps.addressKitCache.communes.set(cacheKey, normalized)
       return c.json({ success: true, data: normalized })

@@ -1207,10 +1207,11 @@ function selectAddressDropdownOption(scope, type, code) {
   }
 }
 
-function toggleAddressDropdown(scope, type) {
+async function toggleAddressDropdown(scope, type) {
   const dIds = getAddressDropdownIds(scope, type)
   const menuEl = document.getElementById(dIds.menuId)
   const searchEl = document.getElementById(dIds.searchId)
+  const optionsEl = document.getElementById(dIds.optionsId)
   if (!menuEl) return
   const willOpen = menuEl.classList.contains('hidden')
   closeAllAddressDropdowns()
@@ -1221,8 +1222,35 @@ function toggleAddressDropdown(scope, type) {
     setTimeout(() => searchEl.focus(), 0)
   }
   addressDropdownSearchState[scope + ':' + type] = ''
-  if (type === 'province') renderProvinceOptionsForScope(scope, '')
-  else renderCommuneOptionsForScope(scope, '')
+  if (type === 'province') {
+    if (!addressProvinceOptions.length) {
+      if (optionsEl) optionsEl.innerHTML = '<div class="px-3 py-2 text-sm text-gray-500">Đang tải tỉnh/thành...</div>'
+      try {
+        await ensureAddressKitReady()
+      } catch (_) {
+        if (optionsEl) optionsEl.innerHTML = '<div class="px-3 py-2 text-sm text-red-500">Không tải được tỉnh/thành. Đóng và bấm lại để thử.</div>'
+        showToast('Không tải được danh sách tỉnh/thành. Vui lòng bấm lại để thử.', 'error', 4500)
+        return
+      }
+      if (menuEl.classList.contains('hidden')) return
+    }
+    renderProvinceOptionsForScope(scope, '')
+  } else {
+    const scopeIds = getAddressScopeElements(scope)
+    const provinceCode = String(document.getElementById(scopeIds.provinceId)?.value || '').trim()
+    if (provinceCode && !Array.isArray(addressCommuneOptionsByProvince[provinceCode])) {
+      if (optionsEl) optionsEl.innerHTML = '<div class="px-3 py-2 text-sm text-gray-500">Đang tải phường/xã...</div>'
+      try {
+        await fetchAddressCommunesByProvince(provinceCode)
+      } catch (_) {
+        if (optionsEl) optionsEl.innerHTML = '<div class="px-3 py-2 text-sm text-red-500">Không tải được phường/xã. Đóng và bấm lại để thử.</div>'
+        showToast('Không tải được danh sách phường/xã. Vui lòng bấm lại để thử.', 'error', 4500)
+        return
+      }
+      if (menuEl.classList.contains('hidden')) return
+    }
+    renderCommuneOptionsForScope(scope, '')
+  }
 }
 
 function bindAddressSearchableDropdowns() {

@@ -7,6 +7,7 @@ const tests = [
   'test-payment-backend-audit.mjs',
   'test-shipping-integrity.mjs',
   'test-ghn-uncertain-response.mjs',
+  'test-address-dropdown-recovery.mjs',
   'test-storefront-checkout-runtime.mjs',
   'test-admin-payment-reconciliation-contract.mjs',
   'test-admin-payment-reconciliation-behavior.mjs',

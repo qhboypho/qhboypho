@@ -18,7 +18,13 @@ const deps = {
 const app = new Hono()
 registerPaymentRoutes(app, deps)
 let upstreamCalls = 0
-globalThis.fetch = async () => {
+let communeUpstreamCalls = 0
+globalThis.fetch = async url => {
+  if (String(url).includes('/communes')) {
+    communeUpstreamCalls++
+    if (communeUpstreamCalls === 1) return Response.json({ communes: [] })
+    return Response.json({ communes: [{ code: '00001', name: 'Phường thử', provinceCode: '01' }] })
+  }
   upstreamCalls++
   if (upstreamCalls === 1) return Response.json({ provinces: [] })
   return Response.json({ provinces: [{ code: '01', name: 'Thành phố Hà Nội' }] })
@@ -29,6 +35,12 @@ const second = await app.request('http://shop.test/api/address/provinces?effecti
 assert.equal(second.status, 200)
 assert.equal((await second.json()).data.length, 1)
 assert.equal(upstreamCalls, 2, 'a later request must recover by calling the upstream again')
+const firstCommunes = await app.request('http://shop.test/api/address/provinces/01/communes?effectiveDate=latest', {}, { DB: {} })
+assert.equal(firstCommunes.status, 502, 'an empty upstream commune payload must be retryable')
+const secondCommunes = await app.request('http://shop.test/api/address/provinces/01/communes?effectiveDate=latest', {}, { DB: {} })
+assert.equal(secondCommunes.status, 200)
+assert.equal((await secondCommunes.json()).data.length, 1)
+assert.equal(communeUpstreamCalls, 2, 'communes must recover after an empty upstream response')
 
 const moduleSource = fs.readFileSync('src/pages/storefront/script.ts', 'utf8')
   .replace(/^import\s+\{\s*storefrontDetailOrderScript\s*\}\s+from\s+'\.\/script-detail-order'\s*\r?\n/, '')
