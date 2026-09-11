@@ -38,7 +38,7 @@ export const DEFAULT_TEXT_UI_SETTINGS: TextUiSettings = {
   hero_typed_text: 'Cho Cả Nam Nữ|Phong Cách Boypho',
   hero_description_text: 'Khám phá bộ sưu tập thời trang cao cấp dành cho cả nam lẫn nữ. Chất lượng vải premium, thiết kế tinh tế - thể hiện cá tính của bạn.',
   hero_mobile_subtitle_text: 'Đây là những sản phẩm hot nhất và đang được đặt mua nhiều nhất ở thời điểm hiện tại.',
-  hero_primary_cta_text: 'Mua sắm ngay',
+  hero_primary_cta_text: 'Khám phá sản phẩm',
   hero_primary_cta_link: '#products',
   hero_secondary_cta_text: 'Khám phá thêm',
   hero_secondary_cta_link: '#about',

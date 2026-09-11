@@ -135,22 +135,12 @@ export function storefrontHeroSection(textUiSettings?: Partial<TextUiSettings>):
   const stat3Label = escapeStorefrontSectionHtml(settings.hero_stat_3_label)
   const primaryCtaText = escapeStorefrontSectionHtml(settings.hero_primary_cta_text)
   const primaryCtaLink = escapeStorefrontSectionHtml(settings.hero_primary_cta_link)
-  const secondaryCtaText = escapeStorefrontSectionHtml(settings.hero_secondary_cta_text)
-  const secondaryCtaLink = escapeStorefrontSectionHtml(settings.hero_secondary_cta_link)
-  const heroCtaButtons = [
-    primaryCtaText
-      ? `<a href="${primaryCtaLink}" class="btn-primary text-white px-8 py-3 rounded-full font-semibold">
-          <i class="fas fa-shopping-bag mr-2"></i>${primaryCtaText}
-        </a>`
-      : '',
-    secondaryCtaText
-      ? `<a href="${secondaryCtaLink}" class="border border-white/30 text-white px-8 py-3 rounded-full font-semibold hover:bg-white/10 transition">
-          ${secondaryCtaText}
-        </a>`
-      : '',
-  ].filter(Boolean).join('')
-  const heroCtaActions = heroCtaButtons
-    ? `<div class="hero-desktop-actions flex gap-4 flex-wrap">${heroCtaButtons}</div>`
+  const heroCtaActions = primaryCtaText
+    ? `<div class="hero-desktop-actions flex justify-center">
+        <a href="${primaryCtaLink}" class="btn-primary inline-flex items-center justify-center gap-2 text-white px-8 py-3 rounded-full font-semibold">
+          ${primaryCtaText}<i class="fas fa-arrow-right text-sm" aria-hidden="true"></i>
+        </a>
+      </div>`
     : ''
   return `<!-- HERO -->
 <section class="gradient-hero flex items-center" id="hero" role="region" aria-labelledby="heroTitle">
