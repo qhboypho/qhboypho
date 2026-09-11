@@ -45,7 +45,7 @@ export function storefrontHTML(options: StorefrontPageOptions = {}): string {
   const seoDescription = 'QH Boypho cung cấp thời trang nam nữ hot trend, mua trực tiếp giá tốt hơn, không qua sàn, cập nhật mẫu mới mỗi ngày cho giới trẻ yêu phong cách.'
   const seoKeywords = 'QH Boypho, thời trang nam nữ, local brand, áo thun unisex, quần áo hot trend, mua trực tiếp giá tốt hơn, thời trang giới trẻ, shop quần áo online'
   return `<!DOCTYPE html>
-<html lang="vi" data-storefront-light-palette="${lightPalette}" data-storefront-dark-palette="${darkPalette}">
+<html lang="vi" data-ui-variant="frontend-v2" data-storefront-light-palette="${lightPalette}" data-storefront-dark-palette="${darkPalette}">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">

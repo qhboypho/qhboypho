@@ -23,6 +23,9 @@ QH Clothes storefront and admin panel built on Hono, Vite, Cloudflare Pages/Work
 
 ## Current Notes
 
+- Local `frontend-v2` refresh keeps the stacked hero carousel and auto-typing, introduces scoped cobalt light/dark surfaces, improves checkout labels/touch targets/dialog focus and payment selection semantics, and disables fabricated purchase notifications on the main storefront. No deployment is implied by this branch.
+- UI checks: `node scripts/test-frontend-v2-ui.mjs`, `node scripts/test-frontend-v2-modal-runtime.mjs`, and `node scripts/test-frontend-v2-purchase-toast.mjs`, plus build/typecheck/launch regression checks. Browser QA must cover both themes and mobile checkout; synthetic local fixtures do not validate live merchant/carrier behavior.
+- Product photos and live promotional prices remain data-owned: the observed Polo/chair mismatch was not changed in production; investigate live product/variant pricing with real fixtures before claiming a data correction.
 - `/api/admin/stats` supports dashboard date filters via `mode=month&month=YYYY-MM`, `mode=day&date=YYYY-MM-DD`, or `mode=all`.
 - Dashboard revenue counts paid non-cancelled orders plus completed COD orders, not every non-cancelled order.
 - Dashboard date/month filter is injected next to the admin avatar and is only visible on the dashboard page.

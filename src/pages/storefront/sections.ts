@@ -54,7 +54,7 @@ export function storefrontBodyOpen(): string {
 }
 
 export function storefrontBodyOpenWithPalette(lightPalette: string, darkPalette: string): string {
-  return `<body class="bg-gray-50 overflow-x-hidden pb-[70px] md:pb-0" data-storefront-theme="light" data-storefront-light-palette="${escapeStorefrontSectionHtml(lightPalette)}" data-storefront-dark-palette="${escapeStorefrontSectionHtml(darkPalette)}">`
+  return `<body class="bg-gray-50 overflow-x-hidden pb-[70px] md:pb-0" data-ui-variant="frontend-v2" data-storefront-theme="light" data-storefront-light-palette="${escapeStorefrontSectionHtml(lightPalette)}" data-storefront-dark-palette="${escapeStorefrontSectionHtml(darkPalette)}">`
 }
 
 export function storefrontNavbarSection(): string {
@@ -153,11 +153,11 @@ export function storefrontHeroSection(textUiSettings?: Partial<TextUiSettings>):
     ? `<div class="hero-desktop-actions flex gap-4 flex-wrap">${heroCtaButtons}</div>`
     : ''
   return `<!-- HERO -->
-<section class="gradient-hero flex items-center" id="hero">
+<section class="gradient-hero flex items-center" id="hero" role="region" aria-labelledby="heroTitle">
   <div class="max-w-7xl mx-auto px-4 py-10 grid md:grid-cols-2 gap-12 items-center hero-layout">
     <div class="hero-copy-block">
       <p class="hero-badge text-pink-400 font-medium tracking-widest uppercase text-sm mb-4">${badge}</p>
-      <h1 class="hero-title font-display text-5xl md:text-6xl text-white font-bold leading-snug md:leading-tight mb-6">
+      <h1 id="heroTitle" class="hero-title font-display text-5xl md:text-6xl text-white font-bold leading-snug md:leading-tight mb-6">
         ${title}<br><span class="hero-title-gradient hero-typed-line"><span id="heroTypedText" class="hero-typed-text" data-typed-text="${typedText}" aria-label="${typedAria}"></span><span class="hero-typed-cursor" aria-hidden="true"></span></span>
       </h1>
       <p class="hero-mobile-sub hidden text-gray-300 text-sm leading-relaxed mb-5">${mobileSubtitle}</p>
@@ -171,7 +171,7 @@ export function storefrontHeroSection(textUiSettings?: Partial<TextUiSettings>):
     </div>
     <div class="flex justify-end" id="heroBannersWrapper">
       <!-- Collapsed / stacked state -->
-      <div id="heroBannersCollapsed" title="Click để xem thêm">
+      <div id="heroBannersCollapsed" role="region" aria-roledescription="carousel" aria-label="Bộ sưu tập nổi bật" title="Click để xem thêm">
         <!-- will be rendered by JS -->
         <div class="relative rounded-3xl overflow-hidden bg-white/[0.03]" style="width:360px;height:360px"></div>
       </div>
@@ -255,7 +255,7 @@ export function storefrontProductsSection(): string {
 }
 
 export function storefrontFeaturesSection(): string {
-  return "<!-- FEATURES SECTION -->\n<section class=\"bg-white py-16\" id=\"about\">\n  <div class=\"max-w-7xl mx-auto px-4\">\n    <div class=\"grid grid-cols-2 md:grid-cols-4 gap-8 text-center\">\n      <div class=\"p-6\"><div class=\"w-14 h-14 bg-pink-50 rounded-2xl flex items-center justify-center mx-auto mb-4\"><i class=\"fas fa-truck text-pink-500 text-2xl\"></i></div><h3 class=\"font-semibold text-gray-800 mb-2\">Giao hàng toàn quốc</h3><p class=\"text-gray-500 text-sm\">Giao tận nơi, nhanh chóng, an toàn</p></div>\n      <div class=\"p-6\"><div class=\"w-14 h-14 bg-pink-50 rounded-2xl flex items-center justify-center mx-auto mb-4\"><i class=\"fas fa-shield-alt text-pink-500 text-2xl\"></i></div><h3 class=\"font-semibold text-gray-800 mb-2\">Chất lượng đảm bảo</h3><p class=\"text-gray-500 text-sm\">100% vải cao cấp, kiểm định chặt chẽ</p></div>\n      <div class=\"p-6\"><div class=\"w-14 h-14 bg-pink-50 rounded-2xl flex items-center justify-center mx-auto mb-4\"><i class=\"fas fa-undo text-pink-500 text-2xl\"></i></div><h3 class=\"font-semibold text-gray-800 mb-2\">Đổi trả dễ dàng</h3><p class=\"text-gray-500 text-sm\">7 ngày đổi trả, không cần lý do</p></div>\n      <div class=\"p-6\"><div class=\"w-14 h-14 bg-pink-50 rounded-2xl flex items-center justify-center mx-auto mb-4\"><i class=\"fas fa-headset text-pink-500 text-2xl\"></i></div><h3 class=\"font-semibold text-gray-800 mb-2\">Hỗ trợ 24/7</h3><p class=\"text-gray-500 text-sm\">Tư vấn nhiệt tình, tận tâm</p></div>\n    </div>\n  </div>\n</section>"
+  return "<!-- FEATURES SECTION -->\n<section class=\"bg-white py-16\" id=\"about\">\n  <div class=\"max-w-7xl mx-auto px-4\">\n    <div class=\"grid grid-cols-2 md:grid-cols-4 gap-8 text-center\">\n      <div class=\"p-6\"><div class=\"w-14 h-14 bg-pink-50 rounded-2xl flex items-center justify-center mx-auto mb-4\"><i class=\"fas fa-truck text-pink-500 text-2xl\"></i></div><h3 class=\"font-semibold text-gray-800 mb-2\">Giao hàng toàn quốc</h3><p class=\"text-gray-500 text-sm\">Giao tận nơi, nhanh chóng, an toàn</p></div>\n      <div class=\"p-6\"><div class=\"w-14 h-14 bg-pink-50 rounded-2xl flex items-center justify-center mx-auto mb-4\"><i class=\"fas fa-shield-alt text-pink-500 text-2xl\"></i></div><h3 class=\"font-semibold text-gray-800 mb-2\">Chất lượng đảm bảo</h3><p class=\"text-gray-500 text-sm\">100% vải cao cấp, kiểm định chặt chẽ</p></div>\n      <div class=\"p-6\"><div class=\"w-14 h-14 bg-pink-50 rounded-2xl flex items-center justify-center mx-auto mb-4\"><i class=\"fas fa-undo text-pink-500 text-2xl\"></i></div><h3 class=\"font-semibold text-gray-800 mb-2\">Đổi trả dễ dàng</h3><p class=\"text-gray-500 text-sm\">Hỗ trợ đổi trả trong 7 ngày nếu sản phẩm bị lỗi</p></div>\n      <div class=\"p-6\"><div class=\"w-14 h-14 bg-pink-50 rounded-2xl flex items-center justify-center mx-auto mb-4\"><i class=\"fas fa-headset text-pink-500 text-2xl\"></i></div><h3 class=\"font-semibold text-gray-800 mb-2\">Hỗ trợ 24/7</h3><p class=\"text-gray-500 text-sm\">Tư vấn nhiệt tình, tận tâm</p></div>\n    </div>\n  </div>\n</section>"
 }
 
 export function storefrontFooterSection(): string {

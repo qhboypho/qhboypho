@@ -28,6 +28,7 @@ function checkoutPaymentOptions(scope: 'order' | 'ck', bankHint: string): string
             <button
               type="button"
               data-payment-scope="${scope}"
+              aria-pressed="false"
               class="payment-method-btn w-full flex items-center gap-3 border rounded-xl px-3 py-2.5 text-left hover:border-pink-400 transition"
               onclick="selectCheckoutPaymentMethod('${scope}','COD', this)"
             >
@@ -43,6 +44,7 @@ function checkoutPaymentOptions(scope: 'order' | 'ck', bankHint: string): string
             <button
               type="button"
               data-payment-scope="${scope}"
+              aria-pressed="false"
               class="payment-method-btn w-full flex items-center gap-3 border rounded-xl px-3 py-2.5 text-left hover:border-pink-400 transition"
               onclick="selectCheckoutPaymentMethod('${scope}','BANK_TRANSFER', this)"
             >
@@ -62,12 +64,12 @@ function checkoutPaymentOptions(scope: 'order' | 'ck', bankHint: string): string
 export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>): string {
   const quickOrderRiskNoteText = escapeStorefrontModalHtml(resolveQuickOrderRiskNoteText(textUiSettings))
   return `
-<div id="orderOverlay" class="fixed inset-0 overlay z-[1006] hidden flex items-center justify-center p-4">
+<div id="orderOverlay" class="fixed inset-0 overlay z-[1006] hidden flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="orderModalTitle" tabindex="-1">
   <div class="popup-card bg-white rounded-3xl shadow-2xl w-full max-w-md md:max-w-[56rem] max-h-[90vh] overflow-y-auto" id="orderPopupCard">
     <div id="orderModalHeader" class="sticky top-0 bg-white rounded-t-3xl border-b px-6 py-4 flex items-center justify-between">
-      <h3 class="font-display text-xl font-bold text-gray-900">Đặt hàng nhanh</h3>
-      <button onclick="closeOrder()" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition">
-        <i class="fas fa-times text-gray-600"></i>
+      <h3 id="orderModalTitle" class="font-display text-xl font-bold text-gray-900">Đặt hàng nhanh</h3>
+      <button type="button" onclick="closeOrder()" class="modal-close-btn w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition" aria-label="Đóng cửa sổ đặt hàng">
+        <i class="fas fa-times text-gray-600" aria-hidden="true"></i>
       </button>
     </div>
 
@@ -95,18 +97,18 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
             <div class="order-shipping-editor-body">
               <div class="space-y-4">
                 <div id="fieldName">
-                  <label class="block text-sm font-semibold text-gray-700 mb-1.5 field-title">
+                  <label for="orderName" class="block text-sm font-semibold text-gray-700 mb-1.5 field-title">
                     <i class="fas fa-user text-pink-400 mr-1"></i>Họ và tên *
                   </label>
-                  <input type="text" id="orderName" placeholder="Nhập họ và tên"
+                  <input type="text" id="orderName" autocomplete="name" placeholder="Nhập họ và tên"
                     class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
                 </div>
 
                 <div id="fieldPhone">
-                  <label class="block text-sm font-semibold text-gray-700 mb-1.5 field-title">
+                  <label for="orderPhone" class="block text-sm font-semibold text-gray-700 mb-1.5 field-title">
                     <i class="fas fa-phone text-pink-400 mr-1"></i>Số điện thoại *
                   </label>
-                  <input type="tel" id="orderPhone" placeholder="0987 654 321"
+                  <input type="tel" id="orderPhone" autocomplete="tel" inputmode="tel" placeholder="0987 654 321"
                     class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200">
                 </div>
 
@@ -152,11 +154,11 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
                       </select>
                     </div>
                   </div>
-                  <input type="text" id="orderAddressDetail"
+                  <input type="text" id="orderAddressDetail" autocomplete="address-line1"
                     placeholder="Số nhà, tên đường..."
                     class="mt-2.5 w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200"
                     oninput="clearFieldError('fieldAddress'); syncAddressFullText('order')">
-                  <input type="text" id="orderAddress"
+                  <input type="text" id="orderAddress" autocomplete="street-address"
                     readonly
                     placeholder="Địa chỉ đầy đủ sẽ tự động ghép tại đây"
                     class="mt-2.5 w-full border rounded-xl px-4 py-2.5 text-sm bg-gray-50 text-gray-600 focus:outline-none">
@@ -190,9 +192,9 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
             <i class="fas fa-sort-numeric-up text-pink-400 mr-1"></i>Số lượng
           </label>
           <div class="flex items-center gap-3">
-            <button onclick="changeQty(-1)" class="w-9 h-9 rounded-full border-2 border-gray-300 flex items-center justify-center hover:border-pink-400 hover:text-pink-500 transition font-bold">−</button>
-            <span id="qtyDisplay" class="text-xl font-bold w-8 text-center">1</span>
-            <button onclick="changeQty(1)" class="w-9 h-9 rounded-full border-2 border-gray-300 flex items-center justify-center hover:border-pink-400 hover:text-pink-500 transition font-bold">+</button>
+            <button type="button" onclick="changeQty(-1)" class="qty-control w-9 h-9 rounded-full border-2 border-gray-300 flex items-center justify-center hover:border-pink-400 hover:text-pink-500 transition font-bold" aria-label="Giảm số lượng">−</button>
+            <span id="qtyDisplay" class="text-xl font-bold w-8 text-center" aria-live="polite">1</span>
+            <button type="button" onclick="changeQty(1)" class="qty-control w-9 h-9 rounded-full border-2 border-gray-300 flex items-center justify-center hover:border-pink-400 hover:text-pink-500 transition font-bold" aria-label="Tăng số lượng">+</button>
           </div>
         </div>
 
@@ -201,7 +203,7 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
             <i class="fas fa-tag text-pink-400 mr-1"></i>Mã khuyến mãi (tuỳ chọn)
           </label>
           <div class="order-voucher-row flex gap-2">
-            <input type="text" id="orderVoucher" placeholder="Nhập mã khuyến mãi..."
+            <input type="text" id="orderVoucher" autocomplete="off" placeholder="Nhập mã khuyến mãi..."
               class="flex-1 border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200 uppercase tracking-wider"
               oninput="this.value=this.value.toUpperCase()">
             <button onclick="applyVoucher()" id="voucherBtn"
@@ -214,9 +216,9 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
 
         <div id="orderNoteField">
           <input type="hidden" id="orderNote">
-          <button type="button" onclick="openCheckoutNoteSheet('order')" class="checkout-note-field-row">
-            <span><i class="fas fa-sticky-note text-pink-400 mr-1"></i>Ghi chú (tuỳ chọn)</span>
-            <i class="fas fa-chevron-right"></i>
+          <button type="button" onclick="openCheckoutNoteSheet('order')" class="checkout-note-field-row" aria-label="Thêm ghi chú cho đơn hàng">
+            <span><i class="fas fa-sticky-note text-pink-400 mr-1" aria-hidden="true"></i>Ghi chú (tuỳ chọn)</span>
+            <i class="fas fa-chevron-right" aria-hidden="true"></i>
           </button>
           <p id="orderNotePreview" class="checkout-order-note-preview order-note-preview-inline hidden"></p>
         </div>
@@ -251,15 +253,15 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
         </div>
         <div class="flex justify-between items-center gap-3">
           <span id="orderTotalLabel" class="min-w-0 text-sm font-semibold text-gray-600">Tổng cộng (1 mặt hàng):</span>
-          <span id="orderTotal" class="flex-shrink-0 text-2xl font-bold text-gradient-price">0đ</span>
+          <span id="orderTotal" class="flex-shrink-0 text-2xl font-bold text-gradient-price" aria-live="polite" aria-atomic="true">0đ</span>
         </div>
       </div>
       <div class="order-action-buttons">
-        <button onclick="addCurrentToCart()" id="addToCartBtn"
+        <button type="button" onclick="addCurrentToCart()" id="addToCartBtn"
           class="add-to-cart-btn order-cart-btn flex-1 flex items-center justify-center gap-2 text-white px-4 py-3.5 rounded-xl font-bold text-base transition">
           <i class="fas fa-cart-plus"></i><span>Thêm vào giỏ</span>
         </button>
-        <button onclick="submitOrder()" id="submitOrderBtn"
+        <button type="button" onclick="submitOrder()" id="submitOrderBtn"
           class="btn-primary order-submit-btn flex-1 flex items-center justify-center gap-2 text-white px-4 py-3.5 rounded-xl font-bold text-base">
           <i class="fas fa-shopping-cart"></i><span>Đặt ngay</span>
         </button>
@@ -268,14 +270,14 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
   </div>
 </div>
 
-<div id="orderBankTransferOverlay" class="fixed inset-0 overlay z-[70] hidden flex items-center justify-center p-4">
+<div id="orderBankTransferOverlay" class="fixed inset-0 overlay z-[70] hidden flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="orderBankTransferTitle" tabindex="-1">
   <div class="popup-card bg-white rounded-3xl shadow-2xl w-full max-w-md max-h-[92vh] overflow-y-auto">
     <div class="sticky top-0 bg-white rounded-t-3xl border-b px-6 py-4 flex items-center justify-between">
-      <h3 class="font-display text-xl font-bold text-gray-900">
+      <h3 id="orderBankTransferTitle" class="font-display text-xl font-bold text-gray-900">
         <i class="fas fa-qrcode text-pink-500 mr-2"></i>Quét mã QR để thanh toán
       </h3>
-      <button onclick="closeOrderBankTransferModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition">
-        <i class="fas fa-times text-gray-600"></i>
+      <button type="button" onclick="closeOrderBankTransferModal()" class="modal-close-btn w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition" aria-label="Đóng hướng dẫn thanh toán">
+        <i class="fas fa-times text-gray-600" aria-hidden="true"></i>
       </button>
     </div>
     <div class="px-6 py-5">
@@ -327,23 +329,23 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
   </div>
 </div>
 
-<div id="orderPaidNoticeOverlay" class="fixed inset-0 z-[80] hidden items-center justify-center bg-black/30 p-4">
+<div id="orderPaidNoticeOverlay" class="fixed inset-0 z-[80] hidden items-center justify-center bg-black/30 p-4" role="dialog" aria-modal="true" aria-labelledby="orderPaidNoticeTitle" tabindex="-1">
   <div class="bg-white rounded-2xl shadow-2xl w-full max-w-xs p-5 text-center">
     <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-green-100 text-green-600 flex items-center justify-center">
       <i class="fas fa-check text-xl"></i>
     </div>
-    <p class="text-green-600 font-bold text-lg">Đã thanh toán thành công</p>
+    <p id="orderPaidNoticeTitle" class="text-green-600 font-bold text-lg">Đã thanh toán thành công</p>
     <p class="text-sm text-gray-600 mt-1">Đơn hàng đã được ghi nhận.</p>
     <p class="text-xs font-mono text-blue-600 mt-2" id="orderPaidNoticeCode"></p>
   </div>
 </div>
 
-<div id="cartOrderSuccessOverlay" class="fixed inset-0 z-[10030] hidden items-center justify-center bg-black/40 p-4">
+<div id="cartOrderSuccessOverlay" class="fixed inset-0 z-[10030] hidden items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-labelledby="cartOrderSuccessTitle" tabindex="-1">
   <div class="popup-card bg-white rounded-3xl shadow-2xl w-full max-w-sm p-5 text-center">
     <div class="w-14 h-14 mx-auto mb-3 rounded-full bg-green-100 text-green-600 flex items-center justify-center">
       <i class="fas fa-check text-2xl"></i>
     </div>
-    <p class="text-green-600 font-bold text-lg">Đặt hàng thành công</p>
+    <p id="cartOrderSuccessTitle" class="text-green-600 font-bold text-lg">Đặt hàng thành công</p>
     <p id="cartOrderSuccessMessage" class="text-sm text-gray-600 mt-1">Đơn hàng đã được ghi nhận.</p>
     <div id="cartOrderSuccessCodes" class="mt-3 space-y-1"></div>
     <button type="button" onclick="closeCartOrderSuccessModal()" class="mt-5 btn-primary w-full text-white py-3 rounded-xl font-bold text-sm">
@@ -352,21 +354,21 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
   </div>
 </div>
 
-<div id="shippingJourneyOverlay" class="fixed inset-0 hidden items-center justify-center bg-black/30 p-4" style="z-index:85;" onclick="handleShippingJourneyOverlayClick(event)">
+<div id="shippingJourneyOverlay" class="fixed inset-0 hidden items-center justify-center bg-black/30 p-4" style="z-index:85;" onclick="handleShippingJourneyOverlayClick(event)" role="dialog" aria-modal="true" aria-labelledby="shippingJourneyTitle" tabindex="-1">
   <div class="popup-card bg-white rounded-3xl shadow-2xl w-full max-w-md max-h-[88vh] overflow-y-auto">
     <div class="sticky top-0 bg-white rounded-t-3xl border-b px-6 py-4 flex items-center justify-between">
-      <h3 class="font-display text-xl font-bold text-gray-900">
+      <h3 id="shippingJourneyTitle" class="font-display text-xl font-bold text-gray-900">
         <i class="fas fa-route text-pink-500 mr-2"></i>Hành trình vận chuyển
       </h3>
-      <button onclick="closeShippingJourneyModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition">
-        <i class="fas fa-times text-gray-600"></i>
+      <button type="button" onclick="closeShippingJourneyModal()" class="modal-close-btn w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition" aria-label="Đóng hành trình vận chuyển">
+        <i class="fas fa-times text-gray-600" aria-hidden="true"></i>
       </button>
     </div>
     <div id="shippingJourneyContent" class="px-6 py-5"></div>
   </div>
 </div>
 
-<div id="detailOverlay" class="fixed inset-0 overlay hidden flex flex-col items-center justify-end sm:justify-center p-4 pt-16" style="z-index:1001;">
+<div id="detailOverlay" class="fixed inset-0 overlay hidden flex flex-col items-center justify-end sm:justify-center p-4 pt-16" style="z-index:1001;" role="dialog" aria-modal="true" aria-labelledby="detailModalTitle" tabindex="-1">
   <div class="w-full max-w-md md:max-w-[56rem] flex justify-end gap-3 mb-3 md:hidden">
      <button type="button" onclick="openCart()" class="w-11 h-11 flex items-center justify-center rounded-full bg-white text-gray-800 shadow-lg hover:text-pink-500 transition relative">
         <i class="fas fa-shopping-cart text-lg"></i>
@@ -381,10 +383,10 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
       <button type="button" onclick="closeDetail()" class="qhher-detail-back-btn hidden w-9 h-9 items-center justify-center rounded-full bg-white text-gray-900 transition" aria-label="Quay lại">
         <i class="fas fa-arrow-left text-sm"></i>
       </button>
-      <h3 class="detail-modal-title font-display text-xl font-bold text-gray-900">Chi tiết sản phẩm</h3>
+      <h3 id="detailModalTitle" class="detail-modal-title font-display text-xl font-bold text-gray-900">Chi tiết sản phẩm</h3>
       <div id="detailHeaderActions" class="qhher-detail-header-actions hidden"></div>
-      <button onclick="closeDetail()" class="detail-close-btn w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition">
-        <i class="fas fa-times text-gray-600"></i>
+      <button type="button" onclick="closeDetail()" class="detail-close-btn modal-close-btn w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition" aria-label="Đóng chi tiết sản phẩm">
+        <i class="fas fa-times text-gray-600" aria-hidden="true"></i>
       </button>
     </div>
     <div id="detailContent" class="px-2 pt-0 pb-2 overflow-y-auto flex-1"></div>
@@ -392,11 +394,11 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
   </div>
 </div>
 
-<div id="cartOverlay" class="fixed inset-0 overlay hidden" style="z-index:1005;" onclick="handleCartOverlayClick(event)">
+<div id="cartOverlay" class="fixed inset-0 overlay hidden" style="z-index:1005;" onclick="handleCartOverlayClick(event)" role="dialog" aria-modal="true" aria-labelledby="cartTitle" tabindex="-1">
   <div id="cartModal" class="cart-modal absolute right-0 top-0 bottom-0 w-full max-w-lg bg-white flex flex-col shadow-2xl">
     <div id="cartHeader" class="flex items-center justify-between px-5 py-4 border-b bg-gradient-to-r from-gray-900 to-gray-800 text-white flex-shrink-0">
       <div class="flex items-center gap-3">
-        <button id="cartBackBtn" onclick="cartGoBack()" class="hidden w-8 h-8 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 transition">
+        <button type="button" id="cartBackBtn" onclick="cartGoBack()" class="hidden w-8 h-8 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 transition" aria-label="Quay lại giỏ hàng">
           <i class="fas fa-arrow-left text-sm"></i>
         </button>
         <div>
@@ -404,8 +406,8 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
           <p id="cartSubtitle" class="text-xs text-gray-300">Chưa có mặt hàng</p>
         </div>
       </div>
-      <button onclick="closeCart()" class="w-9 h-9 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 transition">
-        <i class="fas fa-times"></i>
+      <button type="button" onclick="closeCart()" class="modal-close-btn w-9 h-9 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 transition" aria-label="Đóng giỏ hàng">
+        <i class="fas fa-times" aria-hidden="true"></i>
       </button>
     </div>
 
@@ -426,7 +428,7 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
       <div id="cartFooter" class="hidden flex-shrink-0 border-t bg-white px-5 py-4">
         <div class="flex items-center justify-between mb-3">
           <span class="text-gray-600 font-medium">Tổng cộng (<span id="cartSelectedItems">0</span> mặt hàng):</span>
-          <span id="cartTotalPrice" class="text-xl font-bold text-gradient-price">0đ</span>
+          <span id="cartTotalPrice" class="text-xl font-bold text-gradient-price" aria-live="polite" aria-atomic="true">0đ</span>
         </div>
         <button onclick="proceedToCheckout()" id="checkoutBtn"
           class="btn-primary w-full text-white py-3.5 rounded-xl font-bold text-base disabled:opacity-50">
@@ -459,19 +461,19 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
               <h3 class="checkout-shipping-title font-display text-base font-bold text-gray-800 mb-4">Thông tin giao hàng</h3>
               <div class="space-y-4">
           <div id="ckFieldName">
-            <label class="block text-sm font-semibold text-gray-700 mb-1.5 field-title">
+            <label for="ckName" class="block text-sm font-semibold text-gray-700 mb-1.5 field-title">
               <i class="fas fa-user text-pink-400 mr-1"></i>Họ và tên *
             </label>
-            <input type="text" id="ckName" placeholder="Nhập họ và tên"
+            <input type="text" id="ckName" autocomplete="name" placeholder="Nhập họ và tên"
               class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200"
               oninput="clearCheckoutError('ckFieldName')">
           </div>
 
           <div id="ckFieldPhone">
-            <label class="block text-sm font-semibold text-gray-700 mb-1.5 field-title">
+            <label for="ckPhone" class="block text-sm font-semibold text-gray-700 mb-1.5 field-title">
               <i class="fas fa-phone text-pink-400 mr-1"></i>Số điện thoại *
             </label>
-            <input type="tel" id="ckPhone" placeholder="0987 654 321"
+            <input type="tel" id="ckPhone" autocomplete="tel" inputmode="tel" placeholder="0987 654 321"
               class="w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200"
               oninput="clearCheckoutError('ckFieldPhone')">
           </div>
@@ -518,11 +520,11 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
                 </select>
               </div>
             </div>
-            <input type="text" id="ckAddressDetail"
+            <input type="text" id="ckAddressDetail" autocomplete="address-line1"
               placeholder="Số nhà, tên đường..."
               class="mt-2.5 w-full border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200"
               oninput="clearCheckoutError('ckFieldAddress'); syncAddressFullText('ck')">
-            <input type="text" id="ckAddress"
+            <input type="text" id="ckAddress" autocomplete="street-address"
               readonly
               placeholder="Địa chỉ đầy đủ sẽ tự động ghép tại đây"
               class="mt-2.5 w-full border rounded-xl px-4 py-2.5 text-sm bg-gray-50 text-gray-600 focus:outline-none">
@@ -542,7 +544,7 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
               <i class="fas fa-tag text-pink-400 mr-1"></i>Mã khuyến mãi (tuỳ chọn)
             </label>
             <div class="flex gap-2">
-              <input type="text" id="ckVoucher" placeholder="Nhập mã khuyến mãi..."
+              <input type="text" id="ckVoucher" autocomplete="off" placeholder="Nhập mã khuyến mãi..."
                 class="flex-1 border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200 uppercase tracking-wider"
                 oninput="this.value=this.value.toUpperCase()">
               <button onclick="applyCkVoucher()" id="ckVoucherBtn"
@@ -554,10 +556,10 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
           </div>
 
           <div id="ckNoteField">
-            <input type="hidden" id="ckNote">
-            <button type="button" onclick="openCheckoutNoteSheet('ck')" class="checkout-note-field-row">
-              <span><i class="fas fa-sticky-note text-pink-400 mr-1"></i>Ghi chú (tuỳ chọn)</span>
-              <i class="fas fa-chevron-right"></i>
+          <input type="hidden" id="ckNote">
+          <button type="button" onclick="openCheckoutNoteSheet('ck')" class="checkout-note-field-row" aria-label="Thêm ghi chú cho đơn hàng">
+            <span><i class="fas fa-sticky-note text-pink-400 mr-1" aria-hidden="true"></i>Ghi chú (tuỳ chọn)</span>
+            <i class="fas fa-chevron-right" aria-hidden="true"></i>
             </button>
             <p id="ckNotePreview" class="checkout-order-note-preview checkout-note-preview-inline hidden"></p>
           </div>
@@ -591,11 +593,11 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
           </div>
           <div class="flex justify-between items-center gap-3">
             <span id="ckTotalLabel" class="min-w-0 text-sm font-semibold text-gray-600">Tổng (0 mặt hàng):</span>
-            <span id="ckTotal" class="flex-shrink-0 text-2xl font-bold text-gradient-price">0đ</span>
+            <span id="ckTotal" class="flex-shrink-0 text-2xl font-bold text-gradient-price" aria-live="polite" aria-atomic="true">0đ</span>
           </div>
         </div>
         <div id="ckSubmitStatus" class="hidden mb-3 rounded-xl px-3 py-2 text-sm font-semibold"></div>
-        <button onclick="submitCartOrder()" id="submitCartBtn"
+        <button type="button" onclick="submitCartOrder()" id="submitCartBtn"
           class="btn-primary w-full text-white py-3.5 rounded-xl font-bold text-base">
           <i class="fas fa-credit-card mr-2"></i>Đặt hàng
         </button>
@@ -604,13 +606,13 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
   </div>
 </div>
 
-<div id="checkoutAddressManagerOverlay" class="fixed inset-0 overlay hidden flex items-stretch justify-center sm:items-center p-0 sm:p-4 z-[10020]" onclick="if(event.target===this) closeCheckoutAddressManager()">
+<div id="checkoutAddressManagerOverlay" class="fixed inset-0 overlay hidden flex items-stretch justify-center sm:items-center p-0 sm:p-4 z-[10020]" onclick="if(event.target===this) closeCheckoutAddressManager()" role="dialog" aria-modal="true" aria-labelledby="checkoutAddressManagerTitle" tabindex="-1">
   <div id="checkoutAddressManagerPanel" class="checkout-address-manager-panel bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-md overflow-hidden transform transition-transform translate-y-full sm:translate-y-0 duration-300" onclick="event.stopPropagation()">
     <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
       <button type="button" onclick="closeCheckoutAddressManager()" class="checkout-sheet-back-btn" aria-label="Quay lại">
         <i class="fas fa-chevron-left"></i>
       </button>
-      <h3 class="font-display text-lg font-bold text-gray-900">Địa chỉ của bạn</h3>
+      <h3 id="checkoutAddressManagerTitle" class="font-display text-lg font-bold text-gray-900">Địa chỉ của bạn</h3>
       <span class="w-9"></span>
     </div>
     <button type="button" onclick="openCheckoutAddressEditorFromManager()" class="checkout-address-add-row">
@@ -622,16 +624,16 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
   </div>
 </div>
 
-<div id="checkoutNoteOverlay" class="fixed inset-0 overlay hidden flex items-center justify-center p-4 z-[10020]" onclick="if(event.target===this) closeCheckoutNoteSheet()">
+<div id="checkoutNoteOverlay" class="fixed inset-0 overlay hidden flex items-center justify-center p-4 z-[10020]" onclick="if(event.target===this) closeCheckoutNoteSheet()" role="dialog" aria-modal="true" aria-labelledby="checkoutNoteTitle" tabindex="-1">
   <div id="checkoutNotePanel" class="checkout-note-panel bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden opacity-0 scale-95 transform transition duration-200" onclick="event.stopPropagation()">
     <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-      <h3 class="font-display text-lg font-bold text-gray-900">Ghi chú đơn hàng</h3>
-      <button type="button" onclick="closeCheckoutNoteSheet()" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition">
-        <i class="fas fa-times text-gray-600"></i>
+      <h3 id="checkoutNoteTitle" class="font-display text-lg font-bold text-gray-900">Ghi chú đơn hàng</h3>
+      <button type="button" onclick="closeCheckoutNoteSheet()" class="modal-close-btn w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition" aria-label="Đóng ghi chú đơn hàng">
+        <i class="fas fa-times text-gray-600" aria-hidden="true"></i>
       </button>
     </div>
     <div class="px-5 py-4">
-      <textarea id="checkoutNoteDraft" rows="4" placeholder="Nhập ghi chú cho shop..."
+      <textarea id="checkoutNoteDraft" rows="4" aria-label="Ghi chú cho shop" placeholder="Nhập ghi chú cho shop..."
         class="w-full border rounded-2xl px-4 py-3 text-sm resize-none focus:outline-none focus:border-pink-400 focus:ring-1 focus:ring-pink-200"></textarea>
     </div>
     <div class="px-5 py-4 border-t border-gray-100 flex gap-3">
@@ -645,13 +647,13 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
   </div>
 </div>
 
-<div id="userMenuOverlay" class="fixed inset-0 user-menu-overlay z-50 hidden" onclick="handleUserMenuOverlayClick(event)">
+<div id="userMenuOverlay" class="fixed inset-0 user-menu-overlay z-50 hidden" onclick="handleUserMenuOverlayClick(event)" role="dialog" aria-modal="true" aria-labelledby="userMenuTitle" tabindex="-1">
   <div id="userMenuPanel" class="user-menu-panel absolute right-0 top-0 bottom-0 w-full max-w-sm bg-white flex flex-col shadow-2xl">
     <div class="bg-gradient-to-r from-gray-900 to-gray-800 text-white px-5 py-5 flex-shrink-0">
       <div class="flex items-center justify-between mb-4">
-        <h2 class="font-display text-lg font-bold">Tài khoản</h2>
-        <button onclick="closeUserMenu()" class="w-8 h-8 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 transition">
-          <i class="fas fa-times"></i>
+        <h2 id="userMenuTitle" class="font-display text-lg font-bold">Tài khoản</h2>
+        <button type="button" onclick="closeUserMenu()" class="modal-close-btn w-8 h-8 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 transition" aria-label="Đóng tài khoản">
+          <i class="fas fa-times" aria-hidden="true"></i>
         </button>
       </div>
       <div id="userMenuGuest">
@@ -700,12 +702,12 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
 </div>
 
 <!-- REVIEW MODAL -->
-<div id="reviewModalOverlay" class="review-modal-overlay hidden" onclick="handleReviewOverlayClick(event)">
+<div id="reviewModalOverlay" class="review-modal-overlay hidden" onclick="handleReviewOverlayClick(event)" role="dialog" aria-modal="true" aria-labelledby="reviewModalTitle" tabindex="-1">
   <div class="review-modal-panel" id="reviewModalPanel">
     <div class="flex items-center justify-between mb-4">
-      <h3 class="font-display text-lg font-bold text-gray-900"><i class="fas fa-star text-amber-400 mr-2"></i>Đánh giá sản phẩm</h3>
-      <button onclick="closeReviewModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition">
-        <i class="fas fa-times text-gray-600"></i>
+      <h3 id="reviewModalTitle" class="font-display text-lg font-bold text-gray-900"><i class="fas fa-star text-amber-400 mr-2" aria-hidden="true"></i>Đánh giá sản phẩm</h3>
+      <button type="button" onclick="closeReviewModal()" class="modal-close-btn w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition" aria-label="Đóng đánh giá sản phẩm">
+        <i class="fas fa-times text-gray-600" aria-hidden="true"></i>
       </button>
     </div>
     <div id="reviewProductInfo" class="flex items-center gap-3 mb-4 p-3 bg-gray-50 rounded-xl"></div>
@@ -743,7 +745,7 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
 </div>
 
 <!-- Blocked Customer Modal -->
-<div id="blockedCustomerModal" class="fixed inset-0 overlay hidden flex items-center justify-center p-4" style="z-index:10040;" onclick="if(event.target===this) closeBlockedCustomerModal()">
+<div id="blockedCustomerModal" class="fixed inset-0 overlay hidden flex items-center justify-center p-4" style="z-index:10040;" onclick="if(event.target===this) closeBlockedCustomerModal()" role="dialog" aria-modal="true" aria-labelledby="blockedCustomerTitle" tabindex="-1">
   <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden" onclick="event.stopPropagation()">
     <div class="bg-gradient-to-r from-red-500 to-red-600 px-6 py-5 text-white">
       <div class="flex items-center gap-3">
@@ -751,7 +753,7 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
           <i class="fas fa-ban text-2xl"></i>
         </div>
         <div>
-          <h3 class="font-bold text-lg">Không thể đặt hàng</h3>
+          <h3 id="blockedCustomerTitle" class="font-bold text-lg">Không thể đặt hàng</h3>
           <p class="text-sm text-red-100">Không thể đặt hàng</p>
         </div>
       </div>
@@ -773,12 +775,12 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
   </div>
 </div>
 
-<div id="favoriteAuthModal" class="fixed inset-0 overlay hidden flex items-center justify-center p-4" style="z-index:1003;" onclick="if(event.target===this) closeFavoriteAuthModal()">
+<div id="favoriteAuthModal" class="fixed inset-0 overlay hidden flex items-center justify-center p-4" style="z-index:1003;" onclick="if(event.target===this) closeFavoriteAuthModal()" role="dialog" aria-modal="true" aria-labelledby="favoriteAuthTitle" tabindex="-1">
   <div class="popup-card bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden" onclick="event.stopPropagation()">
     <div class="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
-      <h3 class="font-display text-lg font-bold text-gray-900"><i class="fas fa-heart text-pink-500 mr-2"></i>Lưu yêu thích</h3>
-      <button type="button" onclick="closeFavoriteAuthModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition">
-        <i class="fas fa-times text-gray-600"></i>
+      <h3 id="favoriteAuthTitle" class="font-display text-lg font-bold text-gray-900"><i class="fas fa-heart text-pink-500 mr-2" aria-hidden="true"></i>Lưu yêu thích</h3>
+      <button type="button" onclick="closeFavoriteAuthModal()" class="modal-close-btn w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition" aria-label="Đóng lưu yêu thích">
+        <i class="fas fa-times text-gray-600" aria-hidden="true"></i>
       </button>
     </div>
     <div class="px-6 py-5">
@@ -797,12 +799,12 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
   </div>
 </div>
 
-<div id="filterModalOverlay" class="fixed inset-0 overlay hidden flex items-end justify-center sm:items-center p-0 sm:p-4 z-[10010]" onclick="if(event.target===this) closeFilterModal()">
+<div id="filterModalOverlay" class="fixed inset-0 overlay hidden flex items-end justify-center sm:items-center p-0 sm:p-4 z-[10010]" onclick="if(event.target===this) closeFilterModal()" role="dialog" aria-modal="true" aria-labelledby="filterModalTitle" tabindex="-1">
   <div class="bg-white rounded-t-3xl sm:rounded-3xl shadow-2xl w-full max-w-md overflow-hidden transform transition-transform translate-y-full sm:translate-y-0 duration-300" id="filterModalPanel">
     <div class="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-      <h3 class="font-display text-lg font-bold text-gray-900"><i class="fas fa-sliders-h text-pink-500 mr-2"></i>Bộ lọc sản phẩm</h3>
-      <button type="button" onclick="closeFilterModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition">
-        <i class="fas fa-times text-gray-600"></i>
+      <h3 id="filterModalTitle" class="font-display text-lg font-bold text-gray-900"><i class="fas fa-sliders-h text-pink-500 mr-2" aria-hidden="true"></i>Bộ lọc sản phẩm</h3>
+      <button type="button" onclick="closeFilterModal()" class="modal-close-btn w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition" aria-label="Đóng bộ lọc sản phẩm">
+        <i class="fas fa-times text-gray-600" aria-hidden="true"></i>
       </button>
     </div>
     <div class="px-6 py-5 space-y-6 max-h-[65vh] overflow-y-auto">
@@ -842,13 +844,13 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
 </div>
 
 <!-- VARIANT MODAL -->
-<div id="variantModalOverlay" class="fixed inset-0 z-[10010] hidden items-end bg-black/40 opacity-0 transition-opacity duration-300 md:items-center md:justify-center md:bg-slate-950/55 md:p-6" onclick="closeVariantModal(event)">
+<div id="variantModalOverlay" class="fixed inset-0 z-[10010] hidden items-end bg-black/40 opacity-0 transition-opacity duration-300 md:items-center md:justify-center md:bg-slate-950/55 md:p-6" onclick="closeVariantModal(event)" role="dialog" aria-modal="true" aria-labelledby="variantModalTitle" tabindex="-1">
   <div id="variantModalPanel" class="relative flex max-h-[90vh] w-full flex-col rounded-t-3xl bg-white opacity-0 shadow-2xl transition-[transform,opacity] duration-300 translate-y-full md:max-h-[min(88vh,46rem)] md:max-w-[44rem] md:translate-y-4 md:scale-[0.985] md:rounded-[2rem] md:border md:border-slate-200/80 md:shadow-[0_32px_90px_rgba(15,23,42,0.28)]" onclick="event.stopPropagation()">
     <!-- Header -->
     <div class="flex items-center justify-between border-b px-5 py-4 md:px-7 md:py-5">
-      <h3 class="font-bold text-gray-900 font-display">Tùy chọn sản phẩm</h3>
-      <button onclick="closeVariantModal()" class="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition">
-        <i class="fas fa-times text-gray-600"></i>
+      <h3 id="variantModalTitle" class="font-bold text-gray-900 font-display">Tùy chọn sản phẩm</h3>
+      <button type="button" onclick="closeVariantModal()" class="modal-close-btn w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition" aria-label="Đóng lựa chọn sản phẩm">
+        <i class="fas fa-times text-gray-600" aria-hidden="true"></i>
       </button>
     </div>
     
@@ -884,17 +886,17 @@ export function storefrontModalsSection(textUiSettings?: Partial<TextUiSettings>
       <!-- Quantity -->
       <div class="flex items-center justify-between pt-2">
         <label class="font-bold text-gray-800 text-sm">Số lượng</label>
-        <div class="flex items-center border border-gray-200 rounded-lg overflow-hidden h-9">
-          <button onclick="updateVariantQty(-1)" class="w-9 h-full flex items-center justify-center bg-gray-50 hover:bg-gray-100 transition text-gray-600"><i class="fas fa-minus text-xs"></i></button>
-          <span id="variantQtyDisplay" class="w-10 text-center text-sm font-semibold text-gray-800">1</span>
-          <button onclick="updateVariantQty(1)" class="w-9 h-full flex items-center justify-center bg-gray-50 hover:bg-gray-100 transition text-gray-600"><i class="fas fa-plus text-xs"></i></button>
+        <div class="flex items-center border border-gray-200 rounded-lg overflow-hidden min-h-[44px] h-auto">
+          <button type="button" onclick="updateVariantQty(-1)" class="qty-control w-9 h-full flex items-center justify-center bg-gray-50 hover:bg-gray-100 transition text-gray-600" aria-label="Giảm số lượng"><i class="fas fa-minus text-xs" aria-hidden="true"></i></button>
+          <span id="variantQtyDisplay" class="w-10 text-center text-sm font-semibold text-gray-800" aria-live="polite">1</span>
+          <button type="button" onclick="updateVariantQty(1)" class="qty-control w-9 h-full flex items-center justify-center bg-gray-50 hover:bg-gray-100 transition text-gray-600" aria-label="Tăng số lượng"><i class="fas fa-plus text-xs" aria-hidden="true"></i></button>
         </div>
       </div>
     </div>
     
     <!-- Footer -->
     <div class="flex-shrink-0 border-t bg-white px-5 py-4 md:px-7 md:py-5">
-      <button id="variantSubmitBtn" onclick="submitVariantModal()" class="btn-primary w-full text-white py-3.5 rounded-xl font-bold text-base">
+      <button type="button" id="variantSubmitBtn" onclick="submitVariantModal()" class="btn-primary w-full text-white py-3.5 rounded-xl font-bold text-base">
         Xác nhận
       </button>
     </div>

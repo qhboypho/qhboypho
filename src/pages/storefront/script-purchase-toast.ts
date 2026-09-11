@@ -3,6 +3,7 @@
 // toàn bộ JS output phải là string literal cứng.
 export function storefrontPurchaseToastScript(): string {
   return ';(function purchaseToastInit(){'
+    + 'if(document.body?.dataset.uiVariant === "frontend-v2")return;'
     + 'var U=["anhtuan","minhkhoi","thuynguyen","hoanganh","quocbao","ngoclinh","thanhhoa","ducmanh","kimchi","bichvan","trungkien","mylinh","songtung","haidang","phuongnam","lanhuong","vietanh","thanhlong","minhchau","quynhmai","tuananh","huongly","baominh","thanhvan","phucdat","tuyetmai","khanhlinh","namphong","binhan","haianh"];'
     + 'var t=null;'
     + 'var purchaseToastShownCount=0;'

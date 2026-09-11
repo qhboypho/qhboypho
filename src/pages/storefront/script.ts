@@ -876,6 +876,7 @@ function resetCheckoutPaymentMethod(scope) {
   else selectedPaymentMethod = ''
   document.querySelectorAll('.payment-method-btn[data-payment-scope="' + scope + '"]').forEach((btn) => {
     btn.classList.remove('active', 'border-pink-500', 'bg-pink-50')
+    btn.setAttribute('aria-pressed', 'false')
   })
 }
 
@@ -883,8 +884,10 @@ function selectCheckoutPaymentMethod(scope, method, btn) {
   if (!btn || btn.disabled || btn.closest('.payment-method-unavailable')) return
   document.querySelectorAll('.payment-method-btn[data-payment-scope="' + scope + '"]').forEach((node) => {
     node.classList.remove('active', 'border-pink-500', 'bg-pink-50')
+    node.setAttribute('aria-pressed', 'false')
   })
   btn.classList.add('active', 'border-pink-500', 'bg-pink-50')
+  btn.setAttribute('aria-pressed', 'true')
   if (scope === 'ck') cartSelectedPaymentMethod = method
   else selectedPaymentMethod = method
   const cfg = getCheckoutScopeConfig(scope)
@@ -1533,6 +1536,10 @@ async function openOrderAddressEditor(addressId) {
   if (editor) {
     editor.classList.add('is-open')
     lockStorefrontPageScroll('orderShippingEditor')
+    window.setTimeout(() => {
+      const firstField = document.getElementById('orderName')
+      if (editor.classList.contains('is-open') && firstField instanceof HTMLElement) firstField.focus({ preventScroll: true })
+    }, 0)
   }
 }
 
@@ -1611,6 +1618,10 @@ function openCheckoutAddressEditor(addressId) {
   if (editor) {
     editor.classList.add('is-open')
     lockStorefrontPageScroll('ckShippingEditor')
+    window.setTimeout(() => {
+      const firstField = document.getElementById('ckName')
+      if (editor.classList.contains('is-open') && firstField instanceof HTMLElement) firstField.focus({ preventScroll: true })
+    }, 0)
   }
 }
 
@@ -4214,7 +4225,18 @@ document.getElementById('detailOverlay').addEventListener('click', (e) => { if(e
 document.getElementById('orderBankTransferOverlay').addEventListener('click', (e) => { if (e.target.id === 'orderBankTransferOverlay') closeOrderBankTransferModal() })
 document.getElementById('productsModalOverlay')?.addEventListener('click', (e) => { if (e.target.id === 'productsModalOverlay') closeProductsModal() })
 const storefrontClosableOverlays = [
+  { id: 'variantModalOverlay', close: () => closeVariantModal() },
   { id: 'favoriteAuthModal', close: () => closeFavoriteAuthModal() },
+  { id: 'reviewModalOverlay', close: () => closeReviewModal() },
+  { id: 'blockedCustomerModal', close: () => closeBlockedCustomerModal() },
+  { id: 'filterModalOverlay', close: () => closeFilterModal() },
+  { id: 'orderPaidNoticeOverlay', close: () => {
+    const overlay = document.getElementById('orderPaidNoticeOverlay')
+    if (!overlay) return
+    overlay.classList.add('hidden')
+    overlay.classList.remove('flex')
+    unlockStorefrontPageScroll('orderPaidNoticeOverlay')
+  } },
   { id: 'orderBankTransferOverlay', close: () => closeOrderBankTransferModal() },
   { id: 'shippingJourneyOverlay', close: () => closeShippingJourneyModal() },
   { id: 'productsModalOverlay', close: () => closeProductsModal() },
@@ -4228,14 +4250,18 @@ const storefrontClosableOverlays = [
 ]
 
 function closeVisibleStorefrontOverlay() {
-  for (const item of storefrontClosableOverlays) {
-    const overlay = document.getElementById(item.id)
-    if (overlay && !overlay.classList.contains('hidden')) {
-      item.close()
-      return true
-    }
-  }
-  return false
+  const visible = storefrontClosableOverlays
+    .map((item, order) => {
+      const overlay = document.getElementById(item.id)
+      if (!overlay || overlay.classList.contains('hidden')) return null
+      const zIndex = Number(window.getComputedStyle(overlay).zIndex || 0)
+      return { item, order, overlay, zIndex: Number.isFinite(zIndex) ? zIndex : 0 }
+    })
+    .filter(Boolean)
+    .sort((a, b) => b.zIndex - a.zIndex || b.order - a.order)
+  if (!visible.length) return false
+  visible[0].item.close()
+  return true
 }
 
 function handleGlobalEscape(e) {
@@ -4244,6 +4270,152 @@ function handleGlobalEscape(e) {
 }
 
 document.addEventListener('keydown', handleGlobalEscape)
+
+// Keep keyboard focus inside the active storefront dialog. The overlays are
+// rendered together, so the last visible dialog is treated as the top layer;
+// this also keeps nested checkout sheets usable with keyboard and screen
+// readers without changing any order or payment behavior.
+let storefrontModalActive = null
+let storefrontModalFocusStack = []
+let storefrontModalAccessibilityReady = false
+
+function storefrontModalIsVisible(dialog) {
+  if (!(dialog instanceof HTMLElement) || dialog.classList.contains('hidden')) return false
+  const style = window.getComputedStyle(dialog)
+  return style.display !== 'none' && style.visibility !== 'hidden'
+}
+
+function storefrontModalFocusables(dialog) {
+  if (!dialog) return []
+  return Array.from(dialog.querySelectorAll('a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])'))
+    .filter((element) => {
+      if (!(element instanceof HTMLElement)) return false
+      const style = window.getComputedStyle(element)
+      return style.display !== 'none' && style.visibility !== 'hidden' && element.getClientRects().length > 0 && !element.closest('.hidden') && !element.closest('[inert]') && element.getAttribute('aria-hidden') !== 'true' && element.getAttribute('tabindex') !== '-1'
+    })
+}
+
+function storefrontModalCanRestoreFocus(element) {
+  if (!(element instanceof HTMLElement) || !element.isConnected || element.matches(':disabled,[tabindex="-1"]')) return false
+  if (element.closest('[inert]')) return false
+  const owner = element.closest('[role="dialog"][aria-modal="true"]')
+  if (owner && (!storefrontModalIsVisible(owner) || owner.getAttribute('aria-hidden') === 'true')) return false
+  const style = window.getComputedStyle(element)
+  return style.display !== 'none' && style.visibility !== 'hidden' && element.getClientRects().length > 0
+}
+
+function getTopStorefrontModal() {
+  const dialogs = Array.from(document.querySelectorAll('[role="dialog"][aria-modal="true"]'))
+    .filter(storefrontModalIsVisible)
+  if (!dialogs.length) return null
+  return dialogs.reduce((top, dialog) => {
+    const topZ = Number(window.getComputedStyle(top).zIndex || 0)
+    const dialogZ = Number(window.getComputedStyle(dialog).zIndex || 0)
+    return dialogZ >= topZ ? dialog : top
+  })
+}
+
+function syncStorefrontModalAccessibility() {
+  const dialogs = Array.from(document.querySelectorAll('[role="dialog"][aria-modal="true"]'))
+  const next = getTopStorefrontModal()
+  if (next === storefrontModalActive) return
+
+  const previous = storefrontModalActive
+  let restore = null
+  const activeElement = document.activeElement
+  const activeOwner = activeElement instanceof HTMLElement
+    ? activeElement.closest('[role="dialog"][aria-modal="true"]')
+    : null
+  // Read the opener before changing aria-hidden on the previous dialog. A
+  // nested sheet is commonly opened by a button inside its parent dialog.
+  const activeCanRestore = storefrontModalCanRestoreFocus(activeElement)
+  if (next) {
+    if (!previous && activeCanRestore) {
+      storefrontModalFocusStack.push({ dialog: next, opener: activeElement })
+    } else if (previous && next !== previous && storefrontModalIsVisible(previous) && activeOwner === previous && activeCanRestore) {
+      storefrontModalFocusStack.push({ dialog: next, opener: activeElement })
+    } else if (previous && next !== previous && !storefrontModalIsVisible(previous)) {
+      const previousEntryIndex = storefrontModalFocusStack.map((entry) => entry.dialog).lastIndexOf(previous)
+      if (previousEntryIndex >= 0) {
+        restore = storefrontModalFocusStack[previousEntryIndex].opener
+        storefrontModalFocusStack.splice(previousEntryIndex, 1)
+      }
+      if (!storefrontModalFocusStack.some((entry) => entry.dialog === next) && restore) {
+        storefrontModalFocusStack.push({ dialog: next, opener: restore })
+        restore = null
+      }
+    }
+  } else if (previous) {
+    const previousEntryIndex = storefrontModalFocusStack.map((entry) => entry.dialog).lastIndexOf(previous)
+    if (previousEntryIndex >= 0) {
+      restore = storefrontModalFocusStack[previousEntryIndex].opener
+      storefrontModalFocusStack.splice(previousEntryIndex, 1)
+    }
+  }
+  dialogs.forEach((dialog) => dialog.setAttribute('aria-hidden', next && dialog === next ? 'false' : 'true'))
+  storefrontModalActive = next
+  if (!next) {
+    while (!storefrontModalCanRestoreFocus(restore) && storefrontModalFocusStack.length) {
+      restore = storefrontModalFocusStack.pop().opener
+    }
+    if (storefrontModalCanRestoreFocus(restore)) {
+      window.requestAnimationFrame(() => restore.focus({ preventScroll: true }))
+    }
+    return
+  }
+  window.requestAnimationFrame(() => {
+    if (storefrontModalActive !== next || next.contains(document.activeElement)) return
+    if (storefrontModalCanRestoreFocus(restore) && next.contains(restore)) {
+      restore.focus({ preventScroll: true })
+      return
+    }
+    const first = storefrontModalFocusables(next)[0] || next
+    first.focus({ preventScroll: true })
+  })
+}
+
+function setupStorefrontModalAccessibility() {
+  if (storefrontModalAccessibilityReady) return
+  storefrontModalAccessibilityReady = true
+  const dialogs = Array.from(document.querySelectorAll('[role="dialog"][aria-modal="true"]'))
+  dialogs.forEach((dialog) => {
+    dialog.setAttribute('aria-hidden', 'true')
+    if (typeof MutationObserver === 'function') {
+      const observer = new MutationObserver(() => window.setTimeout(syncStorefrontModalAccessibility, 0))
+      observer.observe(dialog, { attributes: true, attributeFilter: ['class', 'style'] })
+    }
+  })
+  document.addEventListener('click', () => window.setTimeout(syncStorefrontModalAccessibility, 0), true)
+  document.addEventListener('focusin', (event) => {
+    const dialog = getTopStorefrontModal()
+    if (!dialog || dialog.contains(event.target)) return
+    const first = storefrontModalFocusables(dialog)[0] || dialog
+    first.focus({ preventScroll: true })
+  }, true)
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Tab') return
+    const dialog = getTopStorefrontModal()
+    if (!dialog) return
+    const focusables = storefrontModalFocusables(dialog)
+    if (!focusables.length) {
+      event.preventDefault()
+      dialog.focus({ preventScroll: true })
+      return
+    }
+    const first = focusables[0]
+    const last = focusables[focusables.length - 1]
+    if (event.shiftKey && (document.activeElement === first || !dialog.contains(document.activeElement))) {
+      event.preventDefault()
+      last.focus({ preventScroll: true })
+    } else if (!event.shiftKey && (document.activeElement === last || !dialog.contains(document.activeElement))) {
+      event.preventDefault()
+      first.focus({ preventScroll: true })
+    }
+  }, true)
+  syncStorefrontModalAccessibility()
+}
+
+setupStorefrontModalAccessibility()
 
 // Auto clear error on input
 ;['orderName','orderPhone','orderAddressDetail','orderProvince','orderCommune'].forEach(id => {
